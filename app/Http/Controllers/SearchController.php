@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Modules\Catalog\Models\Product;
+use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
@@ -26,6 +27,7 @@ class SearchController extends Controller
         $users = collect();
         $branches = collect();
         $products = collect();
+        $customers = collect();
 
         if ($q !== '') {
             if ($user->hasPermission('users.manage')) {
@@ -39,6 +41,18 @@ class SearchController extends Controller
                         // Pagar cabang: hanya pengguna yang berbagi cabang
                         // terkelola dengan pencari.
                         $query->whereHas('branches', fn ($b) => $b->whereIn('branches.id', $context->managedBranchIds()));
+                    })
+                    ->orderBy('name')
+                    ->limit(10)
+                    ->get();
+            }
+
+            if ($user->hasPermission('customers.view')) {
+                // Pelanggan terpagar cabang lewat BranchScope pada model.
+                $customers = Customer::query()
+                    ->where(function ($query) use ($q) {
+                        $query->where('name', 'like', "%{$q}%")
+                            ->orWhere('phone', 'like', "%{$q}%");
                     })
                     ->orderBy('name')
                     ->limit(10)
@@ -68,6 +82,6 @@ class SearchController extends Controller
             }
         }
 
-        return view('search.index', compact('q', 'users', 'branches', 'products'));
+        return view('search.index', compact('q', 'users', 'branches', 'products', 'customers'));
     }
 }

@@ -14,7 +14,7 @@
 
     <div class="py-8">
         <div class="mx-auto max-w-5xl sm:px-6 lg:px-8">
-            <?php if($users->isEmpty() && $branches->isEmpty() && $products->isEmpty()): ?>
+            <?php if($users->isEmpty() && $branches->isEmpty() && $products->isEmpty() && $customers->isEmpty()): ?>
                 <div class="rounded-lg bg-white shadow-soft">
                     <?php if (isset($component)) { $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $attributes; } ?>
@@ -57,6 +57,40 @@
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes(['active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($user->is_active)]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal1a10f463ba2873b939123688d39cb7c8)): ?>
+<?php $attributes = $__attributesOriginal1a10f463ba2873b939123688d39cb7c8; ?>
+<?php unset($__attributesOriginal1a10f463ba2873b939123688d39cb7c8); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal1a10f463ba2873b939123688d39cb7c8)): ?>
+<?php $component = $__componentOriginal1a10f463ba2873b939123688d39cb7c8; ?>
+<?php unset($__componentOriginal1a10f463ba2873b939123688d39cb7c8); ?>
+<?php endif; ?>
+                        </a>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if($customers->isNotEmpty()): ?>
+                <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500"><?php echo e(__('ui.search_page.customers')); ?></h2>
+                <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                    <?php $__currentLoopData = $customers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $customer): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <a href="<?php echo e(route('customers.show', $customer)); ?>" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 transition duration-150 last:border-0 hover:bg-lentera-50">
+                            <span>
+                                <span class="block font-medium text-gray-800"><?php echo e($customer->name); ?></span>
+                                <span class="block text-xs text-gray-400"><?php echo e($customer->phone); ?></span>
+                            </span>
+                            <?php if (isset($component)) { $__componentOriginal1a10f463ba2873b939123688d39cb7c8 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal1a10f463ba2873b939123688d39cb7c8 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.badge','data' => ['active' => $customer->is_active]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.badge'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($customer->is_active)]); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal1a10f463ba2873b939123688d39cb7c8)): ?>

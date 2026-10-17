@@ -4,6 +4,8 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
 use App\Modules\Catalog\Http\Controllers\ProductController;
+use App\Modules\Clinical\Http\Controllers\PrescriptionController;
+use App\Modules\CRM\Http\Controllers\CustomerController;
 use App\Modules\Identity\Http\Controllers\RoleController;
 use App\Modules\Identity\Http\Controllers\UserController;
 use App\Modules\Master\Http\Controllers\BranchController;
@@ -45,6 +47,25 @@ Route::middleware('auth')->group(function () {
         Route::get('/peran/{role}/ubah', [RoleController::class, 'edit'])->name('roles.edit');
         Route::put('/peran/{role}', [RoleController::class, 'update'])->name('roles.update');
     });
+
+    // ---- Pelanggan & Resep (M.2) ----
+    Route::get('/pelanggan', [CustomerController::class, 'index'])->middleware('permission:customers.view')->name('customers.index');
+    Route::get('/pelanggan/buat', [CustomerController::class, 'create'])->middleware('permission:customers.create')->name('customers.create');
+    Route::post('/pelanggan', [CustomerController::class, 'store'])->middleware('permission:customers.create')->name('customers.store');
+    Route::get('/pelanggan/{customer}', [CustomerController::class, 'show'])->middleware('permission:customers.view')->name('customers.show');
+    Route::get('/pelanggan/{customer}/ubah', [CustomerController::class, 'edit'])->middleware('permission:customers.update')->name('customers.edit');
+    Route::put('/pelanggan/{customer}', [CustomerController::class, 'update'])->middleware('permission:customers.update')->name('customers.update');
+    Route::post('/pelanggan/{customer}/alih-aktif', [CustomerController::class, 'toggleActive'])->middleware('permission:customers.deactivate')->name('customers.toggle-active');
+
+    Route::get('/pelanggan/{customer}/resep/baru', [PrescriptionController::class, 'create'])->middleware('permission:prescriptions.create')->name('prescriptions.create');
+    Route::post('/pelanggan/{customer}/resep', [PrescriptionController::class, 'store'])->middleware('permission:prescriptions.create')->name('prescriptions.store');
+    Route::get('/resep/{prescription}', [PrescriptionController::class, 'show'])->middleware('permission:prescriptions.view')->name('prescriptions.show');
+    Route::get('/resep/{prescription}/ubah', [PrescriptionController::class, 'edit'])->middleware('permission:prescriptions.create')->name('prescriptions.edit');
+    Route::put('/resep/{prescription}', [PrescriptionController::class, 'update'])->middleware('permission:prescriptions.create')->name('prescriptions.update');
+    Route::post('/resep/{prescription}/duplikat', [PrescriptionController::class, 'duplicate'])->middleware('permission:prescriptions.create')->name('prescriptions.duplicate');
+    Route::get('/resep/{prescription}/cetak', [PrescriptionController::class, 'print'])->middleware('permission:prescriptions.print')->name('prescriptions.print');
+    Route::get('/resep/{prescription}/precal', [PrescriptionController::class, 'precal'])->middleware('permission:prescriptions.view')->name('prescriptions.precal');
+    Route::get('/resep/{prescription}/precal/cetak', [PrescriptionController::class, 'precalPrint'])->middleware('permission:prescriptions.view')->name('prescriptions.precal-print');
 
     // ---- Katalog (M.1) ----
     Route::get('/katalog/{type}', [ProductController::class, 'index'])->middleware('permission:products.view')->name('products.index');

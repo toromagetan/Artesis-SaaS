@@ -3,6 +3,8 @@
 namespace App\Modules\Master\Models;
 
 use App\Modules\Identity\Models\User;
+use Database\Factories\BranchFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -12,7 +14,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  */
 class Branch extends Model
 {
+    use HasFactory;
+
     protected $fillable = ['name', 'address', 'phone', 'is_active'];
+
+    protected static function newFactory()
+    {
+        return BranchFactory::new();
+    }
 
     protected function casts(): array
     {
