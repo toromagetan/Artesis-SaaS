@@ -53,6 +53,14 @@
                 <a href="{{ route('ledger.index') }}"
                    class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('ledger.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.ledger') }}</a>
             @endif
+            @if (Auth::user()->hasPermission('assets.manage'))
+                <a href="{{ route('assets.index') }}"
+                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('assets.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.assets') }}</a>
+            @endif
+            @if (Auth::user()->hasPermission('periods.lock'))
+                <a href="{{ route('periods.index') }}"
+                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('periods.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.periods') }}</a>
+            @endif
             @if (Auth::user()->hasPermission('stock.view'))
                 <a href="{{ route('transfers.index') }}"
                    class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('transfers.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.transfers') }}</a>
@@ -175,6 +183,12 @@
             @if (Auth::user()->hasPermission('journals.view'))
                 <x-responsive-nav-link :href="route('journals.index')" :active="request()->routeIs('journals.*')">{{ __('ui.nav.journals') }}</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('ledger.index')" :active="request()->routeIs('ledger.*')">{{ __('ui.nav.ledger') }}</x-responsive-nav-link>
+            @endif
+            @if (Auth::user()->hasPermission('assets.manage'))
+                <x-responsive-nav-link :href="route('assets.index')" :active="request()->routeIs('assets.*')">{{ __('ui.nav.assets') }}</x-responsive-nav-link>
+            @endif
+            @if (Auth::user()->hasPermission('periods.lock'))
+                <x-responsive-nav-link :href="route('periods.index')" :active="request()->routeIs('periods.*')">{{ __('ui.nav.periods') }}</x-responsive-nav-link>
             @endif
             @if (Auth::user()->hasPermission('reports.sales') || Auth::user()->hasPermission('reports.purchases') || Auth::user()->hasPermission('reports.stock') || Auth::user()->hasPermission('reports.financial'))
                 <x-responsive-nav-link :href="route('reports.sales')" :active="request()->routeIs('reports.*')">{{ __('ui.nav.reports') }}</x-responsive-nav-link>

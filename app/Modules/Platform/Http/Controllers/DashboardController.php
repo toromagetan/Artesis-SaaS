@@ -3,6 +3,7 @@
 namespace App\Modules\Platform\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Accounting\Services\FinancialReportService;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Models\StockTransfer;
@@ -23,7 +24,7 @@ use Illuminate\View\View;
  */
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, ReportService $reports): View
+    public function __invoke(Request $request, ReportService $reports, FinancialReportService $financial): View
     {
         $user = $request->user();
         $context = BranchContext::for($user);
@@ -88,6 +89,28 @@ class DashboardController extends Controller
 
         if ($user->hasPermission('reports.purchases')) {
             $data['cards']['payables'] = $reports->supplierPayables($branchIds)['grand_total'];
+        }
+
+        // Kartu keuangan (F1.6): laba bulan berjalan per cabang
+        // terpagar cabang pemanggil; posisi kas hanya untuk aktor
+        // berakses global (angka tingkat tenant).
+        if ($user->hasPermission('reports.financial')) {
+            $byBranch = collect($financial->incomeByBranch(now()->startOfMonth()->toDateString(), $today))
+                ->filter(fn ($row) => $row['branch_id'] === null
+                    ? $context->hasGlobalAccess()
+                    : in_array($row['branch_id'], $branchIds, true))
+                ->values()
+                ->all();
+            $monthNet = Money::zero();
+            foreach ($byBranch as $row) {
+                $monthNet = $monthNet->add($row['net']);
+            }
+            $data['cards']['finance'] = [
+                'month_net' => $monthNet,
+                'by_branch' => $byBranch,
+                'branch_names' => Branch::pluck('name', 'id')->all(),
+                'cash' => $context->hasGlobalAccess() ? $financial->cashPosition() : null,
+            ];
         }
 
         return view('dashboard', $data);

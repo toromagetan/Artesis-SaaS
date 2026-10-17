@@ -87,6 +87,28 @@
                         <p class="mt-1 text-2xl font-semibold tnum"><?php echo e($cards['payables']->format()); ?></p>
                     </a>
                 <?php endif; ?>
+
+                <?php if(isset($cards['finance'])): ?>
+                    <div class="rounded-lg bg-white p-6 shadow-soft">
+                        <p class="text-sm text-gray-500"><?php echo e(__('ui.dashboard.finance')); ?></p>
+                        <p class="mt-1 text-2xl font-semibold tnum"><?php echo e($cards['finance']['month_net']->format()); ?></p>
+                        <p class="text-sm text-gray-400"><?php echo e(__('ui.dashboard.month_net')); ?></p>
+                        <?php if($cards['finance']['cash'] !== null): ?>
+                            <p class="mt-3 text-sm text-gray-500"><?php echo e(__('ui.dashboard.cash_position')); ?>: <span class="font-medium tnum"><?php echo e($cards['finance']['cash']->format()); ?></span></p>
+                        <?php endif; ?>
+                        <?php if(! empty($cards['finance']['by_branch'])): ?>
+                            <ul class="mt-3 space-y-1 border-t border-gray-50 pt-3 text-sm">
+                                <?php $__currentLoopData = $cards['finance']['by_branch']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <li class="flex items-center justify-between">
+                                        <span class="text-gray-500"><?php echo e($row['branch_id'] === null ? __('ui.financial.no_branch') : ($cards['finance']['branch_names'][$row['branch_id']] ?? '#'.$row['branch_id'])); ?></span>
+                                        <span class="font-medium tnum"><?php echo e($row['net']->format()); ?></span>
+                                    </li>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            </ul>
+                        <?php endif; ?>
+                        <p class="mt-3"><a href="<?php echo e(route('financial.income')); ?>" class="text-sm text-lentera-800 underline"><?php echo e(__('ui.financial.income_statement')); ?></a></p>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

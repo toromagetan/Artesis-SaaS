@@ -5,6 +5,7 @@ namespace App\Modules\Accounting\Services;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Journal;
 use App\Modules\Identity\Models\User;
+use App\Modules\Platform\Services\AuditLogger;
 use App\Support\Money;
 use App\Support\Numbering;
 use Carbon\CarbonInterface;
@@ -28,6 +29,8 @@ use Illuminate\Validation\ValidationException;
  */
 class PostingService
 {
+    public function __construct(private readonly AuditLogger $audit) {}
+
     public function isPeriodLocked(string $period): bool
     {
         $row = DB::table('period_locks')->where('period', $period)->first();
@@ -41,6 +44,8 @@ class PostingService
             ['period' => $period],
             ['locked_by' => $actor->id, 'locked_at' => now(), 'unlocked_by' => null, 'unlock_reason' => null, 'updated_at' => now(), 'created_at' => now()],
         );
+        Journal::whereRaw('substr(journal_date, 1, 7) = ?', [$period])->update(['period_locked' => true]);
+        $this->audit->log(action: 'periods.lock', subjectType: 'period_lock', newValues: ['period' => $period], actor: $actor);
     }
 
     public function unlockPeriod(User $actor, string $period, string $reason): void
@@ -51,6 +56,8 @@ class PostingService
         DB::table('period_locks')->where('period', $period)->update([
             'unlocked_by' => $actor->id, 'unlock_reason' => $reason, 'updated_at' => now(),
         ]);
+        Journal::whereRaw('substr(journal_date, 1, 7) = ?', [$period])->update(['period_locked' => false]);
+        $this->audit->log(action: 'periods.unlock', subjectType: 'period_lock', newValues: ['period' => $period, 'reason' => $reason], actor: $actor);
     }
 
     /**
