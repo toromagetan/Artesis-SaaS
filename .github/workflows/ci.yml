@@ -82,6 +82,13 @@ jobs:
           extensions: mbstring, intl, gd, zip, pdo_mysql, xml, curl, fileinfo, openssl, json
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build aset (dibutuhkan @vite pada view yang dirender test)
+        run: |
+          npm ci
+          npm run build
       - run: |
           cp .env.example .env
           php artisan key:generate

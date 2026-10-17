@@ -11,10 +11,6 @@
         </p>
     </header>
 
-    <form id="send-verification" method="post" action="<?php echo e(route('verification.send')); ?>">
-        <?php echo csrf_field(); ?>
-    </form>
-
     <form method="post" action="<?php echo e(route('profile.update')); ?>" class="mt-6 space-y-6">
         <?php echo csrf_field(); ?>
         <?php echo method_field('patch'); ?>
@@ -143,27 +139,6 @@
 <?php $component = $__componentOriginalf94ed9c5393ef72725d159fe01139746; ?>
 <?php unset($__componentOriginalf94ed9c5393ef72725d159fe01139746); ?>
 <?php endif; ?>
-
-            <?php if($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail()): ?>
-                <div>
-                    <p class="text-sm mt-2 text-gray-800">
-                        <?php echo e(__('Your email address is unverified.')); ?>
-
-
-                        <button form="send-verification" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            <?php echo e(__('Click here to re-send the verification email.')); ?>
-
-                        </button>
-                    </p>
-
-                    <?php if(session('status') === 'verification-link-sent'): ?>
-                        <p class="mt-2 font-medium text-sm text-green-600">
-                            <?php echo e(__('A new verification link has been sent to your email address.')); ?>
-
-                        </p>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
         </div>
 
         <div class="flex items-center gap-4">
