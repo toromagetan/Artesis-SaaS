@@ -150,6 +150,19 @@ class ArchitectureTest extends TestCase
         }
     }
 
+    public function test_foundation_translation_keys_resolve_to_real_strings(): void
+    {
+        // Menjaga tabrakan kunci (skalar vs array dengan nama sama) yang
+        // membuat __() mengembalikan nama kunci — paritas id/en saja tidak
+        // menangkapnya karena tabrakan terjadi identik di kedua berkas.
+        foreach (['ui.search_page.title', 'ui.print_doc.user_list', 'ui.print_doc.user_profile', 'ui.users.last_login', 'ui.users.detail', 'ui.branches.detail'] as $key) {
+            $this->assertNotSame($key, __($key), "Kunci {$key} tidak menghasilkan string terjemahan.");
+            $this->assertNotSame('', trim((string) __($key)));
+        }
+        $this->assertIsString(__('ui.search'));
+        $this->assertIsString(__('ui.print'));
+    }
+
     /** @return string[] */
     private function flattenKeys(array $values, string $prefix = ''): array
     {

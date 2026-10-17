@@ -9,6 +9,19 @@
 return [
     'language' => 'Language',
     'search_placeholder' => 'Search customers, products, transaction numbers…',
+    'search_page' => [
+        'title' => 'Search Results',
+        'for' => 'for',
+        'users' => 'Users',
+        'branches' => 'Branches',
+        'empty' => 'No results for ":q".',
+    ],
+    'print_doc' => [
+        'printed_at' => 'Printed',
+        'by' => 'by',
+        'user_list' => 'User List',
+        'user_profile' => 'User Profile',
+    ],
     'actions' => 'Actions',
     'print' => 'Print',
     'back' => 'Back',
@@ -64,6 +77,12 @@ return [
         'activated' => 'User reactivated.',
         'cannot_deactivate_self' => 'You cannot deactivate your own account.',
         'cannot_change_own_roles' => 'You cannot change your own roles.',
+        'detail' => 'User Detail',
+        'email' => 'Email',
+        'phone' => 'Phone',
+        'last_login' => 'Last Login',
+        'member_since' => 'Registered',
+        'never' => 'Never',
     ],
 
     'roles' => [
@@ -92,5 +111,7 @@ return [
         'activated' => 'Branch activated.',
         'deactivated' => 'Branch deactivated.',
         'deactivation_blocked' => 'Branch cannot be deactivated yet: :blockers',
+        'detail' => 'Branch Detail',
+        'user_count' => 'Users in Branch',
     ],
 ];

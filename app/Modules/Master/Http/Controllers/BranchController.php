@@ -18,6 +18,14 @@ class BranchController extends Controller
         ]);
     }
 
+    /** Detail cabang — HALAMAN PENUH dengan rute sendiri (F.2 butir 7). */
+    public function show(Branch $branch): View
+    {
+        $branch->loadCount('users');
+
+        return view('master.branches.show', compact('branch'));
+    }
+
     public function create(): View
     {
         return view('master.branches.create');

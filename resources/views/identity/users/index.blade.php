@@ -1,31 +1,33 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ __('ui.users.title') }}</h2>
+        <h1 class="text-xl font-semibold leading-tight text-lentera-950">{{ __('ui.users.title') }}</h1>
     </x-slot>
 
     <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
             @if (session('status'))
-                <div class="mb-4 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 text-sm">{{ session('status') }}</div>
+                <div class="mb-4 rounded-lg border border-lentera-200 bg-lentera-50 px-4 py-3 text-sm text-lentera-800">{{ session('status') }}</div>
             @endif
 
-            <div class="flex items-center justify-between mb-4">
+            <div class="mb-4 flex items-center justify-between">
                 <form method="GET" class="flex gap-2">
                     <x-text-input name="q" :value="$q" :placeholder="__('ui.users.search_placeholder')" class="w-72" />
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
-                <div x-data="{ open: false }" class="relative">
-                    <x-primary-button type="button" @click="open = !open">{{ __('ui.actions') }} ▾</x-primary-button>
-                    <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 py-1 z-10">
-                        <a href="{{ route('users.create') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">{{ __('ui.users.create') }}</a>
-                    </div>
+                <div class="flex items-center gap-2">
+                    <x-lentera.dropdown-cetak>
+                        <x-lentera.menu-item :href="route('users.print')" target="_blank">{{ __('ui.print_doc.user_list') }}</x-lentera.menu-item>
+                    </x-lentera.dropdown-cetak>
+                    <x-lentera.dropdown-aksi>
+                        <x-lentera.menu-item :href="route('users.create')">{{ __('ui.users.create') }}</x-lentera.menu-item>
+                    </x-lentera.dropdown-aksi>
                 </div>
             </div>
 
-            <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+            <div class="overflow-hidden rounded-lg bg-white shadow-soft">
                 <table class="min-w-full text-sm">
                     <thead>
-                        <tr class="text-left text-gray-500 border-b">
+                        <tr class="border-b border-gray-100 text-left text-gray-500">
                             <th class="px-4 py-3 font-medium">{{ __('ui.users.name') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.users.username') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.users.roles') }}</th>
@@ -36,33 +38,28 @@
                     </thead>
                     <tbody>
                         @forelse ($users as $user)
-                            <tr class="border-b last:border-0">
-                                <td class="px-4 py-3 font-medium text-gray-800">{{ $user->name }}@if ($user->is_platform) <span class="text-xs text-gray-400">(platform)</span>@endif</td>
+                            <tr class="border-b border-gray-50 last:border-0">
+                                <td class="px-4 py-3 font-medium text-gray-800">
+                                    <a href="{{ route('users.show', $user) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $user->name }}</a>@if ($user->is_platform) <span class="text-xs text-gray-400">(platform)</span>@endif
+                                </td>
                                 <td class="px-4 py-3">{{ $user->username }}</td>
                                 <td class="px-4 py-3">{{ $user->roles->pluck('label')->join(', ') ?: '—' }}</td>
                                 <td class="px-4 py-3">{{ $user->hasGlobalAccess() ? __('ui.users.all_branches') : ($user->branches->pluck('name')->join(', ') ?: '—') }}</td>
-                                <td class="px-4 py-3">
-                                    @if ($user->is_active)
-                                        <span class="text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 text-xs font-semibold">{{ __('ui.active') }}</span>
-                                    @else
-                                        <span class="text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5 text-xs font-semibold">{{ __('ui.inactive') }}</span>
-                                    @endif
-                                </td>
+                                <td class="px-4 py-3"><x-lentera.badge :active="$user->is_active" /></td>
                                 <td class="px-4 py-3 text-right">
-                                    <div x-data="{ open: false }" class="relative inline-block text-left">
-                                        <x-secondary-button type="button" @click="open = !open">{{ __('ui.actions') }} ▾</x-secondary-button>
-                                        <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 py-1 z-10">
-                                            <a href="{{ route('users.edit', $user) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">{{ __('ui.edit') }}</a>
-                                            <form method="POST" action="{{ route('users.toggle-active', $user) }}">
-                                                @csrf
-                                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm {{ $user->is_active ? 'text-red-600' : 'text-emerald-700' }} hover:bg-gray-50">{{ $user->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
-                                            </form>
-                                        </div>
-                                    </div>
+                                    <x-lentera.row-actions>
+                                        <x-lentera.menu-item :href="route('users.show', $user)">{{ __('ui.users.detail') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('users.edit', $user)">{{ __('ui.edit') }}</x-lentera.menu-item>
+                                        <div class="my-1 border-t border-gray-100"></div>
+                                        <form method="POST" action="{{ route('users.toggle-active', $user) }}">
+                                            @csrf
+                                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm transition duration-150 hover:bg-lentera-50 {{ $user->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $user->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                                        </form>
+                                    </x-lentera.row-actions>
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">{{ __('ui.users.empty') }}</td></tr>
+                            <tr><td colspan="6"><x-lentera.empty-state>{{ __('ui.users.empty') }}</x-lentera.empty-state></td></tr>
                         @endforelse
                     </tbody>
                 </table>

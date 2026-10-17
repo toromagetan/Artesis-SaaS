@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    /* Token dasar Lentera (Blueprint F.2.0): latar netral terang,
+       teks abu pekat, angka uang/tabel tabular. */
+    body {
+        @apply bg-[#f7f8f7] text-gray-800;
+    }
+
+    .tnum {
+        font-variant-numeric: tabular-nums;
+    }
+}

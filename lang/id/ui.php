@@ -9,6 +9,19 @@
 return [
     'language' => 'Bahasa',
     'search_placeholder' => 'Cari pelanggan, produk, nomor transaksi…',
+    'search_page' => [
+        'title' => 'Hasil Pencarian',
+        'for' => 'untuk',
+        'users' => 'Pengguna',
+        'branches' => 'Cabang',
+        'empty' => 'Tidak ada hasil untuk ":q".',
+    ],
+    'print_doc' => [
+        'printed_at' => 'Dicetak',
+        'by' => 'oleh',
+        'user_list' => 'Daftar Pengguna',
+        'user_profile' => 'Profil Pengguna',
+    ],
     'actions' => 'Aksi',
     'print' => 'Cetak',
     'back' => 'Kembali',
@@ -64,6 +77,12 @@ return [
         'activated' => 'Pengguna diaktifkan kembali.',
         'cannot_deactivate_self' => 'Anda tidak dapat menonaktifkan akun Anda sendiri.',
         'cannot_change_own_roles' => 'Anda tidak dapat mengubah peran Anda sendiri.',
+        'detail' => 'Detail Pengguna',
+        'email' => 'Email',
+        'phone' => 'Telepon',
+        'last_login' => 'Terakhir Masuk',
+        'member_since' => 'Terdaftar Sejak',
+        'never' => 'Belum pernah',
     ],
 
     'roles' => [
@@ -92,5 +111,7 @@ return [
         'activated' => 'Cabang diaktifkan.',
         'deactivated' => 'Cabang dinonaktifkan.',
         'deactivation_blocked' => 'Cabang belum dapat dinonaktifkan: :blockers',
+        'detail' => 'Detail Cabang',
+        'user_count' => 'Pengguna di Cabang',
     ],
 ];

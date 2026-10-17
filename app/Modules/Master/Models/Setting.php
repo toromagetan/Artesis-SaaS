@@ -11,4 +11,10 @@ use Illuminate\Database\Eloquent\Model;
 class Setting extends Model
 {
     protected $fillable = ['key', 'value'];
+
+    /** Akses baca kanonis satu nilai pengaturan. */
+    public static function value(string $key, ?string $default = null): ?string
+    {
+        return static::query()->where('key', $key)->value('value') ?? $default;
+    }
 }

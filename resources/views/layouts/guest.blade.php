@@ -5,25 +5,40 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name', 'Lentera') }}</title>
 
-        <!-- Fonts -->
+        <!-- Fonts: Plus Jakarta Sans (token tipografi F.2.0) -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans text-gray-900 antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-            <div>
-                <a href="/">
-                    <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
-                </a>
+        <div class="flex min-h-screen flex-col items-center pt-6 sm:justify-center sm:pt-0">
+            <a href="/" class="flex items-center gap-2">
+                <span class="flex h-10 w-10 items-center justify-center rounded-full bg-lentera-800">
+                    <span class="h-3 w-3 rounded-full bg-gold"></span>
+                </span>
+                <span class="text-2xl font-extrabold tracking-tight text-lentera-950">Lentera</span>
+            </a>
+
+            <div class="mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-soft sm:max-w-md sm:rounded-xl">
+                {{ $slot }}
             </div>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
-                {{ $slot }}
+            {{-- Pengalih bahasa untuk tamu (ADR-011: preferensi via sesi) --}}
+            <div class="mt-4 flex items-center gap-2 text-sm text-gray-500">
+                <span>{{ __('ui.language') }}:</span>
+                <form method="POST" action="{{ route('locale.switch', 'id') }}">
+                    @csrf
+                    <button type="submit" class="underline-offset-2 hover:underline {{ app()->getLocale() === 'id' ? 'font-semibold text-lentera-800' : '' }}">Bahasa Indonesia</button>
+                </form>
+                <span aria-hidden="true">·</span>
+                <form method="POST" action="{{ route('locale.switch', 'en') }}">
+                    @csrf
+                    <button type="submit" class="underline-offset-2 hover:underline {{ app()->getLocale() === 'en' ? 'font-semibold text-lentera-800' : '' }}">English</button>
+                </form>
             </div>
         </div>
     </body>

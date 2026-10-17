@@ -9,19 +9,19 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
      <?php $__env->slot('header', null, []); ?> 
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight"><?php echo e(__('ui.roles.title')); ?></h2>
+        <h1 class="text-xl font-semibold leading-tight text-lentera-950"><?php echo e(__('ui.roles.title')); ?></h1>
      <?php $__env->endSlot(); ?>
 
     <div class="py-8">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-5xl sm:px-6 lg:px-8">
             <?php if(session('status')): ?>
-                <div class="mb-4 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 text-sm"><?php echo e(session('status')); ?></div>
+                <div class="mb-4 rounded-lg border border-lentera-200 bg-lentera-50 px-4 py-3 text-sm text-lentera-800"><?php echo e(session('status')); ?></div>
             <?php endif; ?>
 
-            <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+            <div class="overflow-hidden rounded-lg bg-white shadow-soft">
                 <table class="min-w-full text-sm">
                     <thead>
-                        <tr class="text-left text-gray-500 border-b">
+                        <tr class="border-b border-gray-100 text-left text-gray-500">
                             <th class="px-4 py-3 font-medium"><?php echo e(__('ui.roles.role')); ?></th>
                             <th class="px-4 py-3 font-medium"><?php echo e(__('ui.roles.permission_count')); ?></th>
                             <th class="px-4 py-3 font-medium"><?php echo e(__('ui.roles.user_count')); ?></th>
@@ -30,35 +30,50 @@
                     </thead>
                     <tbody>
                         <?php $__currentLoopData = $roles; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $role): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <tr class="border-b last:border-0">
+                            <tr class="border-b border-gray-50 last:border-0">
                                 <td class="px-4 py-3 font-medium text-gray-800"><?php echo e($role->label); ?> <span class="text-xs text-gray-400">(<?php echo e($role->name); ?>)</span></td>
-                                <td class="px-4 py-3"><?php echo e($role->permissions_count); ?></td>
-                                <td class="px-4 py-3"><?php echo e($role->users_count); ?></td>
+                                <td class="px-4 py-3 tnum"><?php echo e($role->permissions_count); ?></td>
+                                <td class="px-4 py-3 tnum"><?php echo e($role->users_count); ?></td>
                                 <td class="px-4 py-3 text-right">
-                                    <div x-data="{ open: false }" class="relative inline-block text-left">
-                                        <?php if (isset($component)) { $__componentOriginal3b0e04e43cf890250cc4d85cff4d94af = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal3b0e04e43cf890250cc4d85cff4d94af = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.secondary-button','data' => ['type' => 'button','@click' => 'open = !open']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('secondary-button'); ?>
+                                    <?php if (isset($component)) { $__componentOriginal645c48eba03eed14da3653ca82ef58a2 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal645c48eba03eed14da3653ca82ef58a2 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.row-actions','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.row-actions'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['type' => 'button','@click' => 'open = !open']); ?><?php echo e(__('ui.actions')); ?> ▾ <?php echo $__env->renderComponent(); ?>
+<?php $component->withAttributes([]); ?>
+                                        <?php if (isset($component)) { $__componentOriginal462fb62fb1260a0c7276ba80b762793e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal462fb62fb1260a0c7276ba80b762793e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.menu-item','data' => ['href' => route('roles.edit', $role)]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.menu-item'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php if (isset($__attributesOriginal3b0e04e43cf890250cc4d85cff4d94af)): ?>
-<?php $attributes = $__attributesOriginal3b0e04e43cf890250cc4d85cff4d94af; ?>
-<?php unset($__attributesOriginal3b0e04e43cf890250cc4d85cff4d94af); ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('roles.edit', $role))]); ?><?php echo e(__('ui.roles.edit')); ?> <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
-<?php if (isset($__componentOriginal3b0e04e43cf890250cc4d85cff4d94af)): ?>
-<?php $component = $__componentOriginal3b0e04e43cf890250cc4d85cff4d94af; ?>
-<?php unset($__componentOriginal3b0e04e43cf890250cc4d85cff4d94af); ?>
+<?php if (isset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $attributes = $__attributesOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e); ?>
 <?php endif; ?>
-                                        <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 py-1 z-10">
-                                            <a href="<?php echo e(route('roles.edit', $role)); ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"><?php echo e(__('ui.roles.edit')); ?></a>
-                                        </div>
-                                    </div>
+<?php if (isset($__componentOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $component = $__componentOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__componentOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
+                                     <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal645c48eba03eed14da3653ca82ef58a2)): ?>
+<?php $attributes = $__attributesOriginal645c48eba03eed14da3653ca82ef58a2; ?>
+<?php unset($__attributesOriginal645c48eba03eed14da3653ca82ef58a2); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal645c48eba03eed14da3653ca82ef58a2)): ?>
+<?php $component = $__componentOriginal645c48eba03eed14da3653ca82ef58a2; ?>
+<?php unset($__componentOriginal645c48eba03eed14da3653ca82ef58a2); ?>
+<?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>

@@ -7,6 +7,7 @@ use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\UserService;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Master\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -29,6 +30,38 @@ class UserController extends Controller
         return view('identity.users.index', [
             'users' => $query->paginate(20)->withQueryString(),
             'q' => $search,
+        ]);
+    }
+
+    /** Detail pengguna — HALAMAN PENUH dengan rute sendiri (F.2 butir 7). */
+    public function show(User $user): View
+    {
+        $user->load(['roles', 'branches']);
+
+        return view('identity.users.show', compact('user'));
+    }
+
+    /** Dokumen cetak: daftar pengguna (A5, tab baru). */
+    public function printList(Request $request): View
+    {
+        $users = User::with(['roles', 'branches'])->orderBy('name')->get();
+
+        return view('identity.users.print-list', [
+            'users' => $users,
+            'storeName' => Setting::value('store.name', 'Lentera'),
+            'printedBy' => $request->user(),
+        ]);
+    }
+
+    /** Dokumen cetak: profil satu pengguna (A5, tab baru). */
+    public function printProfile(User $user): View
+    {
+        $user->load(['roles', 'branches']);
+
+        return view('identity.users.print-profile', [
+            'user' => $user,
+            'storeName' => Setting::value('store.name', 'Lentera'),
+            'printedBy' => request()->user(),
         ]);
     }
 

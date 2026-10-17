@@ -5,45 +5,41 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
 
-        <title><?php echo e(config('app.name', 'Laravel')); ?></title>
+        <title><?php echo e(config('app.name', 'Lentera')); ?></title>
 
-        <!-- Fonts -->
+        <!-- Fonts: Plus Jakarta Sans (token tipografi F.2.0) -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
     </head>
     <body class="font-sans text-gray-900 antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-            <div>
-                <a href="/">
-                    <?php if (isset($component)) { $__componentOriginal8892e718f3d0d7a916180885c6f012e7 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal8892e718f3d0d7a916180885c6f012e7 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.application-logo','data' => ['class' => 'w-20 h-20 fill-current text-gray-500']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('application-logo'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['class' => 'w-20 h-20 fill-current text-gray-500']); ?>
-<?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal8892e718f3d0d7a916180885c6f012e7)): ?>
-<?php $attributes = $__attributesOriginal8892e718f3d0d7a916180885c6f012e7; ?>
-<?php unset($__attributesOriginal8892e718f3d0d7a916180885c6f012e7); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal8892e718f3d0d7a916180885c6f012e7)): ?>
-<?php $component = $__componentOriginal8892e718f3d0d7a916180885c6f012e7; ?>
-<?php unset($__componentOriginal8892e718f3d0d7a916180885c6f012e7); ?>
-<?php endif; ?>
-                </a>
-            </div>
+        <div class="flex min-h-screen flex-col items-center pt-6 sm:justify-center sm:pt-0">
+            <a href="/" class="flex items-center gap-2">
+                <span class="flex h-10 w-10 items-center justify-center rounded-full bg-lentera-800">
+                    <span class="h-3 w-3 rounded-full bg-gold"></span>
+                </span>
+                <span class="text-2xl font-extrabold tracking-tight text-lentera-950">Lentera</span>
+            </a>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
+            <div class="mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-soft sm:max-w-md sm:rounded-xl">
                 <?php echo e($slot); ?>
 
+            </div>
+
+            
+            <div class="mt-4 flex items-center gap-2 text-sm text-gray-500">
+                <span><?php echo e(__('ui.language')); ?>:</span>
+                <form method="POST" action="<?php echo e(route('locale.switch', 'id')); ?>">
+                    <?php echo csrf_field(); ?>
+                    <button type="submit" class="underline-offset-2 hover:underline <?php echo e(app()->getLocale() === 'id' ? 'font-semibold text-lentera-800' : ''); ?>">Bahasa Indonesia</button>
+                </form>
+                <span aria-hidden="true">·</span>
+                <form method="POST" action="<?php echo e(route('locale.switch', 'en')); ?>">
+                    <?php echo csrf_field(); ?>
+                    <button type="submit" class="underline-offset-2 hover:underline <?php echo e(app()->getLocale() === 'en' ? 'font-semibold text-lentera-800' : ''); ?>">English</button>
+                </form>
             </div>
         </div>
     </body>

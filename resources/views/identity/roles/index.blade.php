@@ -1,18 +1,18 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ __('ui.roles.title') }}</h2>
+        <h1 class="text-xl font-semibold leading-tight text-lentera-950">{{ __('ui.roles.title') }}</h1>
     </x-slot>
 
     <div class="py-8">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-5xl sm:px-6 lg:px-8">
             @if (session('status'))
-                <div class="mb-4 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 text-sm">{{ session('status') }}</div>
+                <div class="mb-4 rounded-lg border border-lentera-200 bg-lentera-50 px-4 py-3 text-sm text-lentera-800">{{ session('status') }}</div>
             @endif
 
-            <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+            <div class="overflow-hidden rounded-lg bg-white shadow-soft">
                 <table class="min-w-full text-sm">
                     <thead>
-                        <tr class="text-left text-gray-500 border-b">
+                        <tr class="border-b border-gray-100 text-left text-gray-500">
                             <th class="px-4 py-3 font-medium">{{ __('ui.roles.role') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.roles.permission_count') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.roles.user_count') }}</th>
@@ -21,17 +21,14 @@
                     </thead>
                     <tbody>
                         @foreach ($roles as $role)
-                            <tr class="border-b last:border-0">
+                            <tr class="border-b border-gray-50 last:border-0">
                                 <td class="px-4 py-3 font-medium text-gray-800">{{ $role->label }} <span class="text-xs text-gray-400">({{ $role->name }})</span></td>
-                                <td class="px-4 py-3">{{ $role->permissions_count }}</td>
-                                <td class="px-4 py-3">{{ $role->users_count }}</td>
+                                <td class="px-4 py-3 tnum">{{ $role->permissions_count }}</td>
+                                <td class="px-4 py-3 tnum">{{ $role->users_count }}</td>
                                 <td class="px-4 py-3 text-right">
-                                    <div x-data="{ open: false }" class="relative inline-block text-left">
-                                        <x-secondary-button type="button" @click="open = !open">{{ __('ui.actions') }} ▾</x-secondary-button>
-                                        <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 py-1 z-10">
-                                            <a href="{{ route('roles.edit', $role) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">{{ __('ui.roles.edit') }}</a>
-                                        </div>
-                                    </div>
+                                    <x-lentera.row-actions>
+                                        <x-lentera.menu-item :href="route('roles.edit', $role)">{{ __('ui.roles.edit') }}</x-lentera.menu-item>
+                                    </x-lentera.row-actions>
                                 </td>
                             </tr>
                         @endforeach

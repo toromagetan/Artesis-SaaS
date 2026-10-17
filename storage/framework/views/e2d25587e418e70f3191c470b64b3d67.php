@@ -9,7 +9,7 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
      <?php $__env->slot('header', null, []); ?> 
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight"><?php echo e(__('ui.users.create')); ?></h2>
+        <h1 class="text-xl font-semibold leading-tight text-lentera-950"><?php echo e(__('ui.users.create')); ?></h1>
      <?php $__env->endSlot(); ?>
 
     <div class="py-8">
