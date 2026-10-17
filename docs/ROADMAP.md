@@ -73,7 +73,7 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 - [ ] CI hijau penuh pada run yang dikutip.
 - [ ] Matriks keamanan 6 kasus lulus pada modul Identity (termasuk aktor platform ditolak dari aksi bisnis & IDOR antar cabang).
 - [ ] Pemindai pola terlarang terbukti bekerja (commit uji berisi `bcadd(` ditolak CI — lalu dicabut).
-- [ ] Owner menyetujui pola UI pada modul contoh — termasuk tampilan clean/modern/elegan dan pola halaman detail penuh (bukan model preview) — serta **memilih varian tata letak (header ramping vs tanpa header) dari pratinjau perbandingan** yang diserahkan bersama modul contoh (judul tetap tampil satu kali; pencarian global selalu di atas pada kedua varian).
+- [ ] Owner menyetujui pola UI pada modul contoh — termasuk tampilan clean/modern/elegan dan pola halaman detail penuh (bukan model preview) — dengan tata letak **Varian A (header ramping)** yang sudah diputuskan owner 2026-10-17 dari pratinjau perbandingan (judul tampil satu kali di header; pencarian global selalu di header).
 - [ ] Laporan gerbang memenuhi standar bukti Blueprint G.4.
 **Risiko & mitigasi:** godaan memulai fitur sebelum fondasi selesai → gerbang ini eksplisit; tidak ada pengecualian "sekalian".
 
