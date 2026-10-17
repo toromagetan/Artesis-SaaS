@@ -28,6 +28,7 @@ Sebuah tugas/modul dinyatakan selesai hanya bila SEMUA terpenuhi:
 - [ ] Test perilaku untuk operasi tulis utama lulus.
 - [ ] Matriks keamanan 6 kasus (Blueprint G.1.2) lulus untuk modul itu.
 - [ ] Test rekonsiliasi lulus bila modul menyentuh uang/stok.
+- [ ] **Uji regresi penuh + uji konkurensi lulus** (Blueprint G.1 butir 7) — wajib untuk setiap tugas yang menyentuh hitungan uang/stok dan di setiap gerbang fase; kegagalan satu skenario konkurensi = tugas belum selesai.
 - [ ] CI penuh hijau pada run yang dikutip ID-nya.
 - [ ] Commit bersih: hanya berkas modul itu; pesan commit menyebut nomor tugas roadmap.
 - [ ] Laporan tugas disampaikan (hasil, cakupan, test, git, sisa risiko).

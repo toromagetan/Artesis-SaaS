@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: "1. Lint & format (Pint)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, gd, zip, pdo_mysql, xml, curl, fileinfo, openssl, json
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist
+      - run: vendor/bin/pint --test
+
+  static-scan:
+    name: "2. Pindai statis (pola terlarang + arsitektur)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, gd, zip, pdo_mysql, xml, curl, fileinfo, openssl, json
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist
+      - name: Pemindai pola terlarang (bc*, di luar registry, float-uang)
+        run: bash tools/scan-forbidden.sh
+      - name: ArchitectureTest
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          vendor/bin/phpunit --filter ArchitectureTest
+
+  unit:
+    name: "3. Unit tests"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, gd, zip, pdo_mysql, xml, curl, fileinfo, openssl, json
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist
+      - run: |
+          cp .env.example .env
+          php artisan key:generate
+          vendor/bin/phpunit --testsuite=Unit
+
+  feature:
+    name: "4. Feature + matriks keamanan"
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: lentera_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: lentera_test
+      DB_USERNAME: root
+      DB_PASSWORD: password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, gd, zip, pdo_mysql, xml, curl, fileinfo, openssl, json
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist
+      - run: |
+          cp .env.example .env
+          php artisan key:generate
+          vendor/bin/phpunit --testsuite=Feature
+
+  build-assets:
+    name: "5. Build aset (Tailwind/Vite)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm run build
