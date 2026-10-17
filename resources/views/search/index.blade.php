@@ -5,7 +5,7 @@
 
     <div class="py-8">
         <div class="mx-auto max-w-5xl sm:px-6 lg:px-8">
-            @if ($users->isEmpty() && $branches->isEmpty() && $products->isEmpty() && $customers->isEmpty())
+            @if ($users->isEmpty() && $branches->isEmpty() && $products->isEmpty() && $customers->isEmpty() && $sales->isEmpty())
                 <div class="rounded-lg bg-white shadow-soft">
                     <x-lentera.empty-state>{{ __('ui.search_page.empty', ['q' => $q]) }}</x-lentera.empty-state>
                 </div>
@@ -21,6 +21,21 @@
                                 <span class="block text-xs text-gray-400">{{ $user->username }}@if ($user->email) · {{ $user->email }}@endif</span>
                             </span>
                             <x-lentera.badge :active="$user->is_active" />
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+
+            @if ($sales->isNotEmpty())
+                <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">{{ __('ui.search_page.sales') }}</h2>
+                <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                    @foreach ($sales as $sale)
+                        <a href="{{ route('sales.show', $sale) }}" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 transition duration-150 last:border-0 hover:bg-lentera-50">
+                            <span>
+                                <span class="block font-medium text-gray-800">{{ $sale->number }}</span>
+                                <span class="block text-xs text-gray-400">{{ $sale->customer->name }} · {{ $sale->sale_date->format('d/m/Y') }}</span>
+                            </span>
+                            <span class="tnum text-sm text-gray-600">{{ \App\Support\Money::fromDecimal((string) $sale->total_amount)->format() }}</span>
                         </a>
                     @endforeach
                 </div>

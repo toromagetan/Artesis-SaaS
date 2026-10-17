@@ -91,6 +91,35 @@ final class Money
      * Persentase dari nilai ini, dibulatkan half-up ke sen terdekat.
      * $percent string desimal, mis. "11" atau "2.5".
      */
+    /**
+     * Bagian pajak yang SUDAH TERMASUK di dalam nilai ini pada tarif
+     * persen tertentu: tax = cents × rate / (100 + rate), half-up,
+     * integer murni. Untuk mode pajak inklusif.
+     */
+    public function inclusiveTaxShare(string $percent): self
+    {
+        $percent = trim($percent);
+        if (! preg_match('/^\d+([.,]\d+)?$/', $percent)) {
+            throw new InvalidArgumentException("Format persen tidak valid: {$percent}");
+        }
+        $percent = str_replace(',', '.', $percent);
+        [$pWhole, $pFraction] = array_pad(explode('.', $percent, 2), 2, '');
+        $scale = strlen($pFraction);
+        $numerator = (int) ($pWhole.$pFraction);
+        $denominator = 100 * (10 ** $scale) + $numerator;
+
+        $product = $this->cents * $numerator;
+        $sign = $product < 0 ? -1 : 1;
+        $abs = abs($product);
+        $quotient = intdiv($abs, $denominator);
+        $remainder = $abs % $denominator;
+        if (2 * $remainder >= $denominator) {
+            $quotient++;
+        }
+
+        return new self($sign * $quotient);
+    }
+
     public function percent(string $percent): self
     {
         $percent = trim($percent);

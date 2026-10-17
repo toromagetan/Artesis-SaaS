@@ -62,6 +62,16 @@ class MoneyTest extends TestCase
         $this->assertSame('0.00', $a->sub($a)->toDecimalString());
     }
 
+    public function test_inclusive_tax_share_extracts_embedded_tax(): void
+    {
+        // 111.000 inklusif 11% → pajak 11.000 tepat.
+        $this->assertSame('11000.00', Money::fromDecimal('111000')->inclusiveTaxShare('11')->toDecimalString());
+        // 100.000 inklusif 11% → 100.000 × 11/111 = 9.909,9099… → 9.909,91 (half-up).
+        $this->assertSame('9909.91', Money::fromDecimal('100000')->inclusiveTaxShare('11')->toDecimalString());
+        // Tarif 0 → nol.
+        $this->assertSame('0.00', Money::fromDecimal('50000')->inclusiveTaxShare('0')->toDecimalString());
+    }
+
     public function test_percent_rounds_half_up(): void
     {
         // 11% dari 100.05 = 11.0055 → 11.01

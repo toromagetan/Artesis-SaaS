@@ -8,7 +8,9 @@ use App\Modules\Clinical\Http\Controllers\PrescriptionController;
 use App\Modules\CRM\Http\Controllers\CustomerController;
 use App\Modules\Identity\Http\Controllers\RoleController;
 use App\Modules\Identity\Http\Controllers\UserController;
+use App\Modules\Inventory\Http\Controllers\StockController;
 use App\Modules\Master\Http\Controllers\BranchController;
+use App\Modules\Sales\Http\Controllers\SaleController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -47,6 +49,25 @@ Route::middleware('auth')->group(function () {
         Route::get('/peran/{role}/ubah', [RoleController::class, 'edit'])->name('roles.edit');
         Route::put('/peran/{role}', [RoleController::class, 'update'])->name('roles.update');
     });
+
+    // ---- Stok (M.4) ----
+    Route::get('/stok', [StockController::class, 'index'])->middleware('permission:stock.view')->name('stock.index');
+    Route::get('/stok/pergerakan', [StockController::class, 'movements'])->middleware('permission:stock.view')->name('stock.movements');
+
+    // ---- Penjualan (M.3) ----
+    Route::get('/penjualan', [SaleController::class, 'index'])->middleware('permission:sales.view')->name('sales.index');
+    Route::get('/penjualan/baru', [SaleController::class, 'create'])->middleware('permission:sales.create')->name('sales.create');
+    Route::post('/penjualan', [SaleController::class, 'store'])->middleware('permission:sales.create')->name('sales.store');
+    Route::get('/penjualan/{sale}', [SaleController::class, 'show'])->middleware('permission:sales.view')->name('sales.show');
+    Route::get('/penjualan/{sale}/bayar', [SaleController::class, 'paymentForm'])->middleware('permission:sales.pay')->name('sales.payment');
+    Route::post('/penjualan/{sale}/bayar', [SaleController::class, 'storePayment'])->middleware('permission:sales.pay')->name('sales.payment.store');
+    Route::get('/penjualan/{sale}/void', [SaleController::class, 'voidForm'])->middleware('permission:sales.void')->name('sales.void');
+    Route::post('/penjualan/{sale}/void', [SaleController::class, 'storeVoid'])->middleware('permission:sales.void')->name('sales.void.store');
+    Route::get('/penjualan/{sale}/retur', [SaleController::class, 'returnForm'])->middleware('permission:sales.return')->name('sales.return');
+    Route::post('/penjualan/{sale}/retur', [SaleController::class, 'storeReturn'])->middleware('permission:sales.return')->name('sales.return.store');
+    Route::get('/penjualan/{sale}/cetak/orderan', [SaleController::class, 'printOrder'])->middleware('permission:sales.view')->name('sales.print-order');
+    Route::get('/penjualan/{sale}/cetak/invoice', [SaleController::class, 'printInvoice'])->middleware('permission:sales.view')->name('sales.print-invoice');
+    Route::get('/penjualan/{sale}/cetak/resep', [SaleController::class, 'printPrescription'])->middleware('permission:sales.view')->name('sales.print-prescription');
 
     // ---- Pelanggan & Resep (M.2) ----
     Route::get('/pelanggan', [CustomerController::class, 'index'])->middleware('permission:customers.view')->name('customers.index');

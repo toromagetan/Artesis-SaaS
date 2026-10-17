@@ -7,6 +7,7 @@ use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Sales\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -28,6 +29,7 @@ class SearchController extends Controller
         $branches = collect();
         $products = collect();
         $customers = collect();
+        $sales = collect();
 
         if ($q !== '') {
             if ($user->hasPermission('users.manage')) {
@@ -43,6 +45,18 @@ class SearchController extends Controller
                         $query->whereHas('branches', fn ($b) => $b->whereIn('branches.id', $context->managedBranchIds()));
                     })
                     ->orderBy('name')
+                    ->limit(10)
+                    ->get();
+            }
+
+            if ($user->hasPermission('sales.view')) {
+                // Penjualan terpagar cabang lewat BranchScope pada model.
+                $sales = Sale::with('customer')
+                    ->where(function ($query) use ($q) {
+                        $query->where('number', 'like', "%{$q}%")
+                            ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$q}%"));
+                    })
+                    ->orderByDesc('id')
                     ->limit(10)
                     ->get();
             }
@@ -82,6 +96,6 @@ class SearchController extends Controller
             }
         }
 
-        return view('search.index', compact('q', 'users', 'branches', 'products', 'customers'));
+        return view('search.index', compact('q', 'users', 'branches', 'products', 'customers', 'sales'));
     }
 }

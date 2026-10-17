@@ -14,6 +14,14 @@
         <div class="hidden items-center gap-1 md:flex">
             <a href="{{ route('dashboard') }}"
                class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('dashboard') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.dashboard') }}</a>
+            @if (Auth::user()->hasPermission('stock.view'))
+                <a href="{{ route('stock.index') }}"
+                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('stock.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.stock') }}</a>
+            @endif
+            @if (Auth::user()->hasPermission('sales.view'))
+                <a href="{{ route('sales.index') }}"
+                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('sales.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.sales') }}</a>
+            @endif
             @if (Auth::user()->hasPermission('customers.view'))
                 <a href="{{ route('customers.index') }}"
                    class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('customers.*') || request()->routeIs('prescriptions.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.customers') }}</a>
@@ -107,6 +115,12 @@
         </div>
         <div class="space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">{{ __('ui.nav.dashboard') }}</x-responsive-nav-link>
+            @if (Auth::user()->hasPermission('stock.view'))
+                <x-responsive-nav-link :href="route('stock.index')" :active="request()->routeIs('stock.*')">{{ __('ui.nav.stock') }}</x-responsive-nav-link>
+            @endif
+            @if (Auth::user()->hasPermission('sales.view'))
+                <x-responsive-nav-link :href="route('sales.index')" :active="request()->routeIs('sales.*')">{{ __('ui.nav.sales') }}</x-responsive-nav-link>
+            @endif
             @if (Auth::user()->hasPermission('customers.view'))
                 <x-responsive-nav-link :href="route('customers.index')" :active="request()->routeIs('customers.*')">{{ __('ui.nav.customers') }}</x-responsive-nav-link>
             @endif
