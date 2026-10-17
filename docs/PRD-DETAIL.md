@@ -16,6 +16,13 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 
 ---
 
+## Prinsip Tampilan — Clean, Modern, Elegan (keputusan owner 2026-10-17, mengikat semua menu)
+
+- **Bahasa visual:** bersih (banyak ruang lega, sedikit garis, tanpa ornamen berlebihan), modern (tipografi sans masa kini — Plus Jakarta Sans; sudut membulat halus; bayangan sangat tipis; ikon garis yang konsisten), elegan (palet Lentera: emerald pekat sebagai warna utama, emas hanya sebagai aksen terbatas pada tombol utama & penanda aktif, latar netral terang dominan). Angka uang memakai angka tabular agar rapi sejajar.
+- **Detail BUKAN model preview:** setiap layar "Detail" (transaksi, pelanggan, PO, PR, produk, jurnal, transfer, opname, member) adalah **halaman penuh tersendiri dengan rutenya sendiri**, memuat seluruh isi dan aksinya. **Dilarang** menyajikan detail sebagai modal, drawer/slide-over, quick-view, kartu melayang, atau pratinjau ringkas — mengklik baris/nomor di daftar selalu menavigasi ke halaman detail penuh. Satu-satunya pengecualian: dialog konfirmasi singkat untuk aksi berbahaya (itu dialog keputusan, bukan detail).
+- **Dokumen cetak** dibuka sebagai dokumen penuh di tab baru (bukan thumbnail/pratinjau mini).
+- Kepadatan informasi seimbang — tidak sesak; mode terang adalah bawaan; tampilan tetap rapi di tablet kasir maupun desktop.
+
 ## 1. DASHBOARD — MVP
 - **Tujuan:** ringkasan keadaan bisnis hari ini dalam sekali pandang.
 - **Akses:** semua peran (isi menyesuaikan peran & pagar cabang).
@@ -39,7 +46,7 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 - **Aturan kunci:** stok berkurang hanya dari cabang transaksi & tercatat sebagai pergerakan; total pembayaran tidak boleh melebihi total (kelebihan = kembalian tunai, bukan selisih diam); transaksi tersimpan mengunci harga & resep saat itu (snapshot) — perubahan master sesudahnya tidak mengubah transaksi lama.
 
 ### 2.3 Detail Transaksi — MVP
-- **Tujuan:** satu layar kebenaran untuk satu transaksi.
+- **Tujuan:** satu layar kebenaran untuk satu transaksi — **halaman penuh tersendiri** (bukan preview/modal/drawer, sesuai Prinsip Tampilan).
 - **Isi:** kepala (nomor, tanggal, pelanggan, cabang, kasir); resep tertempel (ringkasan OD/OS); baris item; rincian pembayaran & riwayat cicilan (F3); status proses lensa + **durasi hari** (berjalan selama proses, **membeku** saat Complete) + tombol **Selesaikan (Complete)**; dokumen: tepat satu tombol **Cetak Orderan** di sebelah Kembali (dokumen ada → buka tab baru; belum ada → buat lalu buka), Cetak Resep, Cetak Invoice.
 - **Aksi:** Tambah Pembayaran; Void Transaksi (ber-alasan, peran terbatas, membalik stok & jurnal secara otomatis); Buka Lab (menembus 5.1 untuk orderan ini).
 - **Aturan kunci:** penyelesaian ulang ditolak sistem; Complete hanya sesudah QC wajib lulus (F2); Void tidak menghapus baris — status berubah & seluruh jejak (stok, jurnal, pembayaran) dibalik dengan dokumen penyeimbang.

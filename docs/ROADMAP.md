@@ -24,7 +24,7 @@
 Sebuah tugas/modul dinyatakan selesai hanya bila SEMUA terpenuhi:
 - [ ] Skema & migrasi sesuai kamus data Blueprint (atau deviasi tercatat sebagai revisi Blueprint).
 - [ ] Service + validasi + policy terimplementasi sesuai spesifikasi perilaku modul (Blueprint Bagian D).
-- [ ] UI sesuai PRD Detail untuk menu terkait + konvensi UI bersama (Blueprint F.2).
+- [ ] UI sesuai PRD Detail untuk menu terkait + konvensi UI bersama (Blueprint F.2) — termasuk bahasa desain clean/modern/elegan (F.2.0) dan aturan detail halaman penuh, bukan model preview.
 - [ ] Test perilaku untuk operasi tulis utama lulus.
 - [ ] Matriks keamanan 6 kasus (Blueprint G.1.2) lulus untuk modul itu.
 - [ ] Test rekonsiliasi lulus bila modul menyentuh uang/stok.
@@ -66,14 +66,14 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 | F0.2 Identity & Master dasar | Migrasi + seeder Bagian B.1 & registry izin Bagian C; UI: login, daftar pengguna, peran & matriks izin, cabang; aktor `is_platform` terpisah dari pelaku bisnis | F0.1 |
 | F0.3 Pagar cabang | `BranchContext`, global scope cabang, pola Policy per sumber daya, helper `managedBranchIds()` | F0.2 |
 | F0.4 Perkakas lintas | Helper `Money` (integer-sen), `AuditLogger`, pemindai pola terlarang (bc*, float-uang, izin di luar registry) sebagai job CI + `ArchitectureTest` | F0.1 |
-| F0.5 Pola UI & dokumen | Layout bersama (header, filter bar, tabel sort, paginasi), satu modul contoh ujung-ke-ujung, mesin cetak dasar + satu dokumen contoh (A5) | F0.2 |
+| F0.5 Pola UI & dokumen | Token desain + komponen bersama bahasa **clean/modern/elegan** (Blueprint F.2.0) terimplementasi; layout bersama (header, filter bar, tabel sort, paginasi); pola **halaman detail penuh** (bukan preview/modal/drawer) dibuktikan pada satu modul contoh ujung-ke-ujung; mesin cetak dasar + satu dokumen contoh (A5) | F0.2 |
 | F0.6 Lingkungan uji | Instalasi uji (staging lokal/server uji) dengan checklist paritas lingkungan (Blueprint G.3) terdokumentasi | F0.1 |
 
 **Gerbang keluar Fase 0 (semua wajib):**
 - [ ] CI hijau penuh pada run yang dikutip.
 - [ ] Matriks keamanan 6 kasus lulus pada modul Identity (termasuk aktor platform ditolak dari aksi bisnis & IDOR antar cabang).
 - [ ] Pemindai pola terlarang terbukti bekerja (commit uji berisi `bcadd(` ditolak CI — lalu dicabut).
-- [ ] Owner menyetujui pola UI pada modul contoh.
+- [ ] Owner menyetujui pola UI pada modul contoh — termasuk tampilan clean/modern/elegan dan pola halaman detail penuh (bukan model preview).
 - [ ] Laporan gerbang memenuhi standar bukti Blueprint G.4.
 **Risiko & mitigasi:** godaan memulai fitur sebelum fondasi selesai → gerbang ini eksplisit; tidak ada pengecualian "sekalian".
 
