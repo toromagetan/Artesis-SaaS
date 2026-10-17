@@ -71,30 +71,29 @@ class CustomerManagementTest extends TestCase
         $this->assertDatabaseMissing('customers', ['name' => 'Penyusup']);
     }
 
-    public function test_branch_fencing_hides_other_branch_customers(): void
+    public function test_customers_are_global_across_branches(): void
     {
         $customerB = Customer::factory()->create(['branch_id' => $this->branchB->id, 'name' => 'Pelanggan Jauh']);
         $kasirA = $this->kasirFor($this->branchA);
 
-        $this->actingAs($kasirA)->get('/pelanggan')->assertOk()->assertDontSee('Pelanggan Jauh');
-        $this->actingAs($kasirA)->get('/pelanggan/'.$customerB->id)->assertNotFound();
-        $this->actingAs($kasirA)->get('/cari?q=Jauh')->assertOk()->assertDontSee('Pelanggan Jauh');
-
-        // Pemilik global tetap melihatnya.
-        $this->actingAs($this->owner)->get('/pelanggan/'.$customerB->id)->assertOk()->assertSee('Pelanggan Jauh');
+        // ADR-012: pelanggan berlaku GLOBAL — kasir cabang A melihat,
+        // membuka, dan menemukan pelanggan asal cabang B; paganya izin.
+        $this->actingAs($kasirA)->get('/pelanggan')->assertOk()->assertSee('Pelanggan Jauh');
+        $this->actingAs($kasirA)->get('/pelanggan/'.$customerB->id)->assertOk()->assertSee('Pelanggan Jauh');
+        $this->actingAs($kasirA)->get('/cari?q=Jauh')->assertOk()->assertSee('Pelanggan Jauh');
     }
 
-    public function test_filter_by_foreign_branch_yields_empty_for_scoped_user(): void
+    public function test_filter_by_origin_branch_works_for_any_user(): void
     {
         Customer::factory()->create(['branch_id' => $this->branchA->id, 'name' => 'Pelanggan Sendiri']);
         Customer::factory()->create(['branch_id' => $this->branchB->id, 'name' => 'Pelanggan Tetangga']);
         $kasirA = $this->kasirFor($this->branchA);
 
-        // Filter cabang asing tidak membocorkan apa pun: hasil kosong,
-        // karena pagar scope memotong irisan filter.
+        // Filter cabang = saringan cabang PENDAFTARAN (atribut asal),
+        // bukan pagar: kasir A dapat menyaring pelanggan asal cabang B.
         $this->actingAs($kasirA)->get('/pelanggan?cabang='.$this->branchB->id)
             ->assertOk()
-            ->assertDontSee('Pelanggan Tetangga')
+            ->assertSee('Pelanggan Tetangga')
             ->assertDontSee('Pelanggan Sendiri');
 
         $this->actingAs($kasirA)->get('/pelanggan?cabang='.$this->branchA->id)

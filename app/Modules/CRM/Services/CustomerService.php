@@ -34,13 +34,15 @@ class CustomerService
                 'insurance_id' => $data['insurance_id'] ?? null,
                 'is_active' => true,
             ]);
-            // BranchScoped mengisi branch_id dari konteks aktor; nilai
-            // eksplisit dari formulir hanya diterima bila aktor berhak
-            // atas cabang itu (assertCanAccess di model event tidak
-            // menimpa nilai yang sudah terisi dan sah).
+            // branch_id = cabang pendaftaran (atribut asal, ADR-012 —
+            // pelanggan sendiri GLOBAL). Pilihan eksplisit dari
+            // formulir hanya diterima bila aktor berhak atas cabang
+            // itu; tanpa pilihan, cabang aktif aktor yang dipakai.
             if (! empty($data['branch_id'])) {
                 BranchContext::for($actor)->assertCanAccess((int) $data['branch_id']);
                 $customer->branch_id = (int) $data['branch_id'];
+            } else {
+                $customer->branch_id = BranchContext::for($actor)->currentBranchId();
             }
             $customer->save();
 
@@ -108,7 +110,7 @@ class CustomerService
 
     private function phoneSharedByOther(string $phone, ?int $exceptId): bool
     {
-        return Customer::withoutGlobalScopes()
+        return Customer::query()
             ->where('phone', $phone)
             ->where('is_active', true)
             ->when($exceptId !== null, fn ($q) => $q->where('id', '!=', $exceptId))

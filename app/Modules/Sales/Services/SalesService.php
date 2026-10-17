@@ -7,6 +7,7 @@ use App\Modules\Clinical\Models\Prescription;
 use App\Modules\Clinical\Services\PrescriptionService;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Sales\Events\SaleCompleted;
@@ -50,7 +51,18 @@ class SalesService
 
         return DB::transaction(function () use ($actor, $data, $items, $payments) {
             $customer = Customer::findOrFail($data['customer_id']);
-            $branchId = $customer->branch_id;
+            // Cabang transaksi (tempat stok keluar & pendapatan
+            // tercatat) — BUKAN cabang asal pelanggan (ADR-012:
+            // pelanggan global). Prioritas: (1) branch_id eksplisit
+            // yang aktor berhak atasnya; (2) cabang aktif aktor;
+            // (3) cabang asal pelanggan sebagai cadangan terakhir.
+            $context = BranchContext::for($actor);
+            if (! empty($data['branch_id'])) {
+                $context->assertCanAccess((int) $data['branch_id']);
+                $branchId = (int) $data['branch_id'];
+            } else {
+                $branchId = $context->currentBranchId() ?? $customer->branch_id;
+            }
 
             $prescription = null;
             if (! empty($data['prescription_id'])) {

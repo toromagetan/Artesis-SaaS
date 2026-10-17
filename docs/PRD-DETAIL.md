@@ -23,7 +23,7 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 - **Dokumen cetak** dibuka sebagai dokumen penuh di tab baru (bukan thumbnail/pratinjau mini).
 - **Tombol terkelompok — anti spam tombol (keputusan owner 2026-10-17):** dalam satu layar, seluruh perintah masuk sebagai item di dalam **tepat satu dropdown "Aksi"**, dan seluruh pilihan dokumen masuk sebagai item di dalam **tepat satu dropdown "Cetak"**. Tidak ada tombol aksi/cetak lain yang berdiri sendiri di view; yang boleh berdiri sendiri hanya navigasi murni (Kembali, paginasi, tautan ke halaman detail). Di daftar, aksi per baris juga satu dropdown per baris — bukan deretan tombol/ikon. Tombol "Baru/Buat" pada daftar menjadi item pertama dropdown Aksi. Item berbahaya (void, nonaktif, hapus) ditaruh di kelompok bawah dropdown Aksi dengan garis pemisah + warna merah + tetap wajib konfirmasi dan alasan. Karena itu, semua "Aksi" yang tercantum per menu dalam dokumen ini **dibaca sebagai item dropdown**, bukan tombol tersendiri.
 - **Judul tidak ganda (keputusan owner 2026-10-17):** judul halaman tampil **tepat satu kali** — tidak boleh muncul bersamaan di header atas dan di body. Tata letak resmi yang terpilih adalah **Varian A — header ramping** (diputuskan owner 2026-10-17 dari pratinjau perbandingan): judul tinggal di header, body langsung berisi konten tanpa mengulang judul. Varian tanpa header (B) **tidak dipakai**.
-- **Pencarian global selalu di atas (keputusan owner 2026-10-17):** **global search wajib selalu tersedia di header** pada setiap halaman. Cakupannya lintas modul: pelanggan, produk, nomor transaksi, nomor PR/PO — selalu menghormati pagar cabang dan izin peran; hasil dikelompokkan per jenis dengan tautan ke halaman detail penuh.
+- **Pencarian global selalu di atas (keputusan owner 2026-10-17):** **global search wajib selalu tersedia di header** pada setiap halaman. Cakupannya lintas modul: pelanggan, produk, nomor transaksi, nomor PR/PO — selalu menghormati izin peran dan, untuk data transaksional, pagar cabang (pelanggan & produk adalah master global, ADR-012 — cukup digerbang izin); hasil dikelompokkan per jenis dengan tautan ke halaman detail penuh.
 - Kepadatan informasi seimbang — tidak sesak; mode terang adalah bawaan; tampilan tetap rapi di tablet kasir maupun desktop.
 
 ## 1. DASHBOARD — MVP
@@ -69,7 +69,7 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 ### 3.1 Daftar Pelanggan — MVP
 - **Daftar:** Nama, Kontak (WA), Cabang asal, Jumlah Transaksi, Member (F3: level & poin), Terakhir Berkunjung. Pencarian nama/nomor WA. Filter cabang.
 - **Aksi:** Pelanggan Baru; Buka Detail; Ekspor.
-- **Aturan kunci:** pelanggan tidak dapat dihapus — hanya dinonaktifkan (patuh aturan tanpa-hapus); data pelanggan terpagari cabang kecuali peran global.
+- **Aturan kunci:** pelanggan tidak dapat dihapus — hanya dinonaktifkan (patuh aturan tanpa-hapus); **pelanggan adalah master GLOBAL (ADR-012): berlaku dan dapat dilayani di semua cabang** — filter cabang pada daftar adalah saringan cabang asal (pendaftaran), bukan pagar; akses digerbang izin `customers.*`, bukan cabang.
 
 ### 3.2 Detail Pelanggan — MVP
 - **Isi:** profil & kontak; **riwayat resep** (semua resep, kronologis); **riwayat refraksi** (perubahan ukuran dari waktu ke waktu); riwayat transaksi; riwayat pembayaran/cicilan; (F3) level member, saldo poin, riwayat poin; catatan rekam medis (akses terbatas: Owner/Admin/Refraksionis).
@@ -79,7 +79,7 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 - **Tujuan:** mencatat hasil refraksi secara lengkap & menjadi sumber kebenaran ukuran.
 - **Formulir (grid OD/OS):** SPH, CYL, AXIS, ADD, PD (PDR/PDL di sini — **di resep inilah tempatnya**), prisma & keterangan bila ada, tanggal periksa, pemeriksa (Refraksionis), pelanggan (wajib tertempel), cabang.
 - **Aksi:** Simpan; Gunakan di Transaksi Baru; Cetak Resep (A5); Duplikat sebagai resep baru (untuk periksa ulang — resep lama tidak diubah).
-- **Aturan kunci:** resep yang sudah dipakai transaksi tidak dapat diedit (perubahan = resep baru); memilih pelanggan di formulir resep selalu mengisi kaitan pelanggan secara nyata sebelum simpan (pelajaran bug combobox: pilihan harus ter-registrasi, bukan sekadar tampil).
+- **Aturan kunci:** resep yang sudah dipakai transaksi tidak dapat diedit (perubahan = resep baru); memilih pelanggan di formulir resep selalu mengisi kaitan pelanggan secara nyata sebelum simpan (pelajaran bug combobox: pilihan harus ter-registrasi, bukan sekadar tampil); **resep berlaku GLOBAL mengikuti pelanggan (ADR-012)** — dapat dipakai transaksi di cabang mana pun; kolom cabang pada resep adalah cabang pemeriksaan (atribut asal).
 
 ### 3.4 Precal — MVP
 - **Tujuan:** hitung awal kebutuhan lensa dari resep (pra-pemesanan/pra-faset).

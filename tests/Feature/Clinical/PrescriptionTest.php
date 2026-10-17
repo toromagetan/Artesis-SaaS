@@ -111,7 +111,7 @@ class PrescriptionTest extends TestCase
         $this->assertNotNull($rx->refresh()->used_at);
     }
 
-    public function test_prescription_of_other_branch_is_not_found(): void
+    public function test_prescription_of_other_branch_is_globally_visible(): void
     {
         $branchB = Branch::create(['name' => 'Cabang B']);
         $customerB = Customer::factory()->create(['branch_id' => $branchB->id]);
@@ -121,7 +121,9 @@ class PrescriptionTest extends TestCase
         $kasir->roles()->sync([Role::where('name', 'kasir')->firstOrFail()->id]);
         $kasir->branches()->sync([$this->branchA->id]);
 
-        $this->actingAs($kasir)->get('/resep/'.$rxB->id)->assertNotFound();
+        // ADR-012: resep berlaku GLOBAL mengikuti pelanggan — kasir
+        // cabang A dapat membuka resep yang diperiksa di cabang B.
+        $this->actingAs($kasir)->get('/resep/'.$rxB->id)->assertOk();
     }
 
     public function test_clinical_notes_require_medical_notes_permission(): void

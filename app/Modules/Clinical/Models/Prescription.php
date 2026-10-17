@@ -5,20 +5,22 @@ namespace App\Modules\Clinical\Models;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
-use App\Support\Concerns\BranchScoped;
 use Database\Factories\PrescriptionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Resep / hasil refraksi (Blueprint B.2 + D.5).
+ * Resep / hasil refraksi (Blueprint B.2 + D.5 + ADR-012).
+ * MASTER GLOBAL mengikuti pelanggan: resep berlaku di semua
+ * cabang dan dapat dipakai transaksi di cabang mana pun.
+ * branch_id adalah atribut asal (cabang pemeriksaan), bukan pagar.
  * Satu-satunya tempat PDR/PDL hidup. Terkunci dari edit begitu
  * used_at terisi (pertama kali dipakai transaksi).
  */
 class Prescription extends Model
 {
-    use BranchScoped, HasFactory;
+    use HasFactory;
 
     protected $fillable = [
         'customer_id', 'branch_id', 'examined_at', 'examiner_id',

@@ -5,7 +5,6 @@ namespace App\Modules\CRM\Models;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Insurance;
-use App\Support\Concerns\BranchScoped;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,13 +12,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Pelanggan (Blueprint B.2 + D.4). Terpagar cabang lewat BranchScoped:
- * pengguna non-global hanya melihat pelanggan cabang kelolaannya.
- * Tidak pernah dihapus — hanya dinonaktifkan.
+ * Pelanggan (Blueprint B.2 + D.4 + ADR-012). MASTER GLOBAL:
+ * pelanggan berlaku di semua cabang — terlihat dan dapat dilayani
+ * di cabang mana pun (pagarnya izin customers.*, bukan cabang).
+ * Kolom branch_id adalah atribut asal (cabang pendaftaran), bukan
+ * pagar. Tidak pernah dihapus — hanya dinonaktifkan.
  */
 class Customer extends Model
 {
-    use BranchScoped, HasFactory;
+    use HasFactory;
 
     protected $fillable = [
         'name', 'phone', 'email', 'address', 'birth_date',

@@ -5,6 +5,7 @@ namespace App\Modules\Clinical\Services;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -45,7 +46,10 @@ class PrescriptionService
                 'notes' => $data['notes'] ?? null,
             ]);
             $prescription->customer_id = $customer->id;
-            $prescription->branch_id = $customer->branch_id;
+            // branch_id = cabang pemeriksaan (atribut asal, ADR-012 —
+            // resep sendiri GLOBAL mengikuti pelanggan): cabang aktif
+            // aktor, atau cabang asal pelanggan bila aktor tak punya.
+            $prescription->branch_id = BranchContext::for($actor)->currentBranchId() ?? $customer->branch_id;
             $prescription->save();
 
             app(AuditLogger::class)->log(
@@ -110,6 +114,8 @@ class PrescriptionService
             $copy = $source->replicate(['used_at']);
             $copy->used_at = null;
             $copy->examined_at = now()->toDateString();
+            // Periksa ulang terjadi di cabang aktif aktor (ADR-012).
+            $copy->branch_id = BranchContext::for($actor)->currentBranchId() ?? $source->branch_id;
             $copy->save();
 
             app(AuditLogger::class)->log(

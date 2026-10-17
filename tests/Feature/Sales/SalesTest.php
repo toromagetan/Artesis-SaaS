@@ -290,4 +290,29 @@ class SalesTest extends TestCase
         $platform = User::where('username', 'platform')->firstOrFail();
         $this->actingAs($platform)->get('/penjualan')->assertForbidden();
     }
+
+    public function test_sale_can_use_customer_and_prescription_from_other_branch(): void
+    {
+        // ADR-012: pelanggan & resep adalah master GLOBAL — pelanggan
+        // yang terdaftar dan diperiksa di cabang B dapat dilayani dan
+        // ditransaksikan di cabang A; transaksi tercatat di cabang A.
+        $branchB = Branch::create(['name' => 'Cabang B']);
+        $customerB = Customer::factory()->create(['branch_id' => $branchB->id]);
+        $rxB = Prescription::factory()->create([
+            'customer_id' => $customerB->id, 'branch_id' => $branchB->id, 'od_sph' => -1.50,
+        ]);
+
+        $sale = $this->service()->createSale($this->kasir, [
+            'customer_id' => $customerB->id,
+            'prescription_id' => $rxB->id,
+            'tax_mode' => 'inclusive',
+        ], [
+            ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
+        ]);
+
+        $this->assertSame($this->branchA->id, $sale->branch_id);
+        $this->assertSame($customerB->id, $sale->customer_id);
+        $this->assertSame('-1.50', $sale->prescription_snapshot['od']['sph']);
+        $this->assertNotNull($rxB->refresh()->used_at);
+    }
 }

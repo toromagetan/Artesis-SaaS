@@ -83,7 +83,7 @@ class SearchController extends Controller
             }
 
             if ($user->hasPermission('customers.view')) {
-                // Pelanggan terpagar cabang lewat BranchScope pada model.
+                // Pelanggan adalah master GLOBAL (ADR-012): cukup pagar izin.
                 $customers = Customer::query()
                     ->where(function ($query) use ($q) {
                         $query->where('name', 'like', "%{$q}%")

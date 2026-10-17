@@ -22,6 +22,12 @@ konteks aktor; UI bukan pagar).
    `branch_id` pada query bisnis hanya berasal dari
    `App\Modules\Identity\Services\BranchContext`, tidak pernah dari input
    request mentah (dijaga `ArchitectureTest`).
+   **Pengecualian (ADR-012):** `Customer` dan `Prescription` adalah
+   master GLOBAL — tidak memakai `BranchScoped`; `branch_id` pada
+   keduanya adalah atribut asal (cabang pendaftaran / cabang
+   pemeriksaan). Pagarnya lapisan 1–3 (izin + penolakan platform).
+   Produk (`Product`) juga global sejak awal (stoknya yang bercabang,
+   lewat `stock_movements`).
 
 ## Aturan yang selalu berlaku
 

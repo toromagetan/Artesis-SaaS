@@ -14,8 +14,10 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Pelanggan (Blueprint D.4 + PRD Detail 3.1/3.2).
- * Daftar & detail terpagar cabang lewat BranchScope pada model.
+ * Pelanggan (Blueprint D.4 + PRD Detail 3.1/3.2 + ADR-012).
+ * MASTER GLOBAL: daftar & detail berlaku semua cabang; pagarnya
+ * izin customers.* (middleware rute). Filter `cabang` menyaring
+ * berdasarkan cabang pendaftaran (atribut asal), bukan pagar.
  */
 class CustomerController extends Controller
 {
@@ -38,10 +40,9 @@ class CustomerController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $context = BranchContext::current();
-        $branches = $context->hasGlobalAccess()
-            ? Branch::orderBy('name')->get()
-            : Branch::whereIn('id', $context->managedBranchIds())->orderBy('name')->get();
+        // Pelanggan global: daftar cabang untuk filter asal memuat
+        // semua cabang (master tenant), untuk semua pengguna berizin.
+        $branches = Branch::orderBy('name')->get();
 
         return view('crm.customers.index', compact('customers', 'q', 'branchId', 'branches'));
     }
