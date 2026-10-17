@@ -277,7 +277,7 @@ Format `PREFIX-YYYYMM-NNNN` (urut per bulan per tipe, dihitung dalam transaksi d
 | Invoice | A4/A5 | rincian penuh + pajak + pembayaran |
 | PO ke supplier | A4 | item, qty, harga, syarat, identitas cabang tujuan |
 | Label harga/barcode | label 38×25mm (bawaan) | nama, SKU barcode EAN-13/Code 128, harga |
-Setiap konteks dokumen memiliki **tepat satu tombol cetak utama** di layar detailnya (dokumen belum ada → dibuat lalu dibuka di tab baru; sudah ada → dibuka).
+Setiap konteks dokumen memiliki **tepat satu dropdown Cetak** di layar detailnya yang memuat seluruh dokumen konteks itu (dokumen belum ada → dibuat lalu dibuka di tab baru; sudah ada → dibuka) — tidak ada tombol cetak yang berdiri sendiri-sendiri.
 
 # BAGIAN F — PETA RUTE & KONVENSI UI
 
@@ -291,16 +291,17 @@ Token desain dikunci di satu tempat (variabel tema Tailwind) dan dipakai semua m
 - **Warna:** emerald pekat = warna utama (aksi primer, tautan, keadaan aktif); emas = aksen terbatas (maksimal satu elemen penekanan per layar: tombol utama atau penanda aktif); latar dominan netral terang (putih/abu sangat muda); teks abu pekat. Dilarang menambah warna dekoratif di luar token.
 - **Tipografi:** Plus Jakarta Sans; skala 12/14/16/20/24/32; angka uang & tabel memakai `font-variant-numeric: tabular-nums`.
 - **Bentuk & ruang:** radius sudut 8–12px; bayangan maksimal satu tingkat sangat tipis; spasi mengikuti skala 4px (4/8/12/16/24/32/48); garis pemisah 1px abu muda.
-- **Komponen bersama (satu implementasi, dipakai semua modul):** PageHeader, FilterBar, DataTable (sort di header), FormField (label + error), Badge status, Tombol (primer emas/emerald, sekunder garis, bahaya merah teks), Kartu ringkasan, EmptyState, DialogKonfirmasi.
+- **Komponen bersama (satu implementasi, dipakai semua modul):** PageHeader, FilterBar, DataTable (sort di header), FormField (label + error), Badge status, Tombol (primer emas/emerald, sekunder garis, bahaya merah teks), **DropdownAksi** (satu-satunya wadah perintah per layar), **DropdownCetak** (satu-satunya wadah pilihan dokumen per layar), Kartu ringkasan, EmptyState, DialogKonfirmasi.
 - **Gerak:** transisi 120–200ms pada hover/fokus saja; tanpa animasi dekoratif.
 - **Detail = halaman penuh (kontrak):** setiap sumber daya memiliki rute detail sendiri yang me-render halaman penuh; **dilarang** pola preview untuk detail — tanpa modal detail, drawer/slide-over, quick-view, atau popover berisi detail. Klik pada baris/nomor di daftar selalu `GET` ke rute detail. Dialog hanya untuk konfirmasi aksi (dengan alasan bila wajib), bukan untuk menampilkan isi.
 1. Daftar: header halaman bersama (judul + tombol aksi utama kanan), bar filter (pencarian, cabang bila global, rentang tanggal, status), tabel dengan **header kolom dapat diklik untuk mengurutkan** (bawaan: terbaru di atas untuk daftar bertanggal), paginasi 25/baris bawaan, keadaan kosong yang menjelaskan + tombol buat.
-2. Detail: kepala ringkas, tab/bagian per sub-entitas, tombol cetak utama tunggal per konteks dokumen, aksi berbahaya (void/nonaktif) di zona terpisah dengan konfirmasi + alasan wajib.
+2. Detail: kepala ringkas, tab/bagian per sub-entitas, satu **dropdown Cetak** per konteks dokumen, dan seluruh perintah di dalam satu **dropdown Aksi** (aksi berbahaya void/nonaktif di kelompok bawah dropdown dengan pemisah, warna merah, konfirmasi + alasan wajib).
 3. Formulir: kesalahan validasi tampil di samping field ( Bahasa Indonesia), tidak pernah halaman error mentah; semua pengiriman yang gagal di server mengembalikan pengguna ke formulir dengan isian utuh.
 4. POS: footer ringkasan pembayaran **tetap** (fixed) di bagian bawah layar kasir; antrean lab: penyegaran berkala tanpa muat ulang penuh.
 5. Pesan sistem memakai istilah bisnis (bukan istilah teknis): mis. "Periode 2026-09 sudah ditutup" — bukan nama pengecualian.
 6. Aksesibilitas dasar: label form eksplisit, kontras teks memenuhi WCAG AA pada teks isi.
 7. **Detail halaman penuh, bukan preview:** mengikuti F.2.0 — tidak ada implementasi detail dalam modal/drawer/quick-view di modul mana pun; uji penerimaan UI memeriksa bahwa setiap tautan detail menavigasi ke halaman penuh dan tidak ada komponen preview-detail yang terdaftar di inventaris komponen bersama.
+8. **Tombol terkelompok — satu dropdown per kelompok fungsi (keputusan owner 2026-10-17):** dalam satu layar hanya ada tepat satu `DropdownAksi` (berisi seluruh perintah layar itu, termasuk "Buat Baru" sebagai item pertama pada layar daftar, dan aksi per baris pada tabel sebagai satu dropdown per baris) dan tepat satu `DropdownCetak` (berisi seluruh dokumen konteks itu). Tidak ada tombol aksi/cetak lain yang dirender berdiri sendiri; pengecualian hanya navigasi murni (Kembali, paginasi, tautan baris ke detail). Item berbahaya berada di kelompok bawah dropdown dengan pemisah + gaya bahaya + konfirmasi. Uji penerimaan UI memeriksa jumlah elemen tombol per layar terhadap aturan ini.
 
 # BAGIAN G — PENGUJIAN, CI, DEPLOY, BUKTI
 

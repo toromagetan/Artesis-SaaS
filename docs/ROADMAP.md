@@ -24,7 +24,7 @@
 Sebuah tugas/modul dinyatakan selesai hanya bila SEMUA terpenuhi:
 - [ ] Skema & migrasi sesuai kamus data Blueprint (atau deviasi tercatat sebagai revisi Blueprint).
 - [ ] Service + validasi + policy terimplementasi sesuai spesifikasi perilaku modul (Blueprint Bagian D).
-- [ ] UI sesuai PRD Detail untuk menu terkait + konvensi UI bersama (Blueprint F.2) — termasuk bahasa desain clean/modern/elegan (F.2.0) dan aturan detail halaman penuh, bukan model preview.
+- [ ] UI sesuai PRD Detail untuk menu terkait + konvensi UI bersama (Blueprint F.2) — termasuk bahasa desain clean/modern/elegan (F.2.0), aturan detail halaman penuh (bukan model preview), dan model tombol terkelompok (tepat satu dropdown Aksi + satu dropdown Cetak per layar, tanpa spam tombol).
 - [ ] Test perilaku untuk operasi tulis utama lulus.
 - [ ] Matriks keamanan 6 kasus (Blueprint G.1.2) lulus untuk modul itu.
 - [ ] Test rekonsiliasi lulus bila modul menyentuh uang/stok.
