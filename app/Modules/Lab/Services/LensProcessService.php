@@ -3,6 +3,7 @@
 namespace App\Modules\Lab\Services;
 
 use App\Modules\Identity\Models\User;
+use App\Modules\Lab\Events\LensProcessCompleted;
 use App\Modules\Lab\Models\LensProcess;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Sales\Models\Sale;
@@ -140,6 +141,7 @@ class LensProcessService
                 branchId: $this->branchIdOf($locked),
                 actor: $actor,
             );
+            LensProcessCompleted::dispatch($locked);
 
             return $locked;
         });

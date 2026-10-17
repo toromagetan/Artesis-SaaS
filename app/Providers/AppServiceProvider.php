@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
+use App\Modules\Accounting\Listeners\AccrueCommissions;
 use App\Modules\Accounting\Listeners\PostJournalForDomainEvents;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Policies\UserPolicy;
 use App\Modules\Inventory\Events\InitialStockImported;
 use App\Modules\Inventory\Listeners\SyncStockWithSales;
 use App\Modules\Inventory\Policies\InitialStockImportPolicy;
+use App\Modules\Lab\Events\LensProcessCompleted;
 use App\Modules\Lab\Listeners\SyncLensProcessWithSales;
 use App\Modules\Purchasing\Events\PurchasePaymentPosted;
 use App\Modules\Purchasing\Events\PurchaseReturned;
@@ -72,5 +74,9 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen(SaleCompleted::class, [SyncLensProcessWithSales::class, 'onSaleCompleted']);
         Event::listen(SaleVoided::class, [SyncLensProcessWithSales::class, 'onSaleVoided']);
+        // Komisi (F1.7): akrual dokter/teknisi dari data final.
+        Event::listen(SaleCompleted::class, [AccrueCommissions::class, 'onSaleCompleted']);
+        Event::listen(SaleVoided::class, [AccrueCommissions::class, 'onSaleVoided']);
+        Event::listen(LensProcessCompleted::class, [AccrueCommissions::class, 'onLensProcessCompleted']);
     }
 }

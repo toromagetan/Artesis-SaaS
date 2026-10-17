@@ -61,6 +61,10 @@
                 <a href="{{ route('periods.index') }}"
                    class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('periods.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.periods') }}</a>
             @endif
+            @if (Auth::user()->hasPermission('payroll.manage'))
+                <a href="{{ route('payroll.index') }}"
+                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('payroll.*') || request()->routeIs('commissions.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.payroll') }}</a>
+            @endif
             @if (Auth::user()->hasPermission('stock.view'))
                 <a href="{{ route('transfers.index') }}"
                    class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('transfers.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.transfers') }}</a>
@@ -189,6 +193,9 @@
             @endif
             @if (Auth::user()->hasPermission('periods.lock'))
                 <x-responsive-nav-link :href="route('periods.index')" :active="request()->routeIs('periods.*')">{{ __('ui.nav.periods') }}</x-responsive-nav-link>
+            @endif
+            @if (Auth::user()->hasPermission('payroll.manage'))
+                <x-responsive-nav-link :href="route('payroll.index')" :active="request()->routeIs('payroll.*') || request()->routeIs('commissions.*')">{{ __('ui.nav.payroll') }}</x-responsive-nav-link>
             @endif
             @if (Auth::user()->hasPermission('reports.sales') || Auth::user()->hasPermission('reports.purchases') || Auth::user()->hasPermission('reports.stock') || Auth::user()->hasPermission('reports.financial'))
                 <x-responsive-nav-link :href="route('reports.sales')" :active="request()->routeIs('reports.*')">{{ __('ui.nav.reports') }}</x-responsive-nav-link>
