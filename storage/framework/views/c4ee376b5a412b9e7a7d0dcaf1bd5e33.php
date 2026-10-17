@@ -9,19 +9,84 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
      <?php $__env->slot('header', null, []); ?> 
-        <h1 class="text-xl font-semibold leading-tight text-lentera-950">
-            <?php echo e(__('Dashboard')); ?>
-
-        </h1>
+        <h1 class="text-xl font-semibold leading-tight text-lentera-950"><?php echo e(__('ui.dashboard.title')); ?></h1>
      <?php $__env->endSlot(); ?>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    <?php echo e(__("You're logged in!")); ?>
+    <div class="py-8">
+        <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <?php if(empty($cards)): ?>
+                <div class="rounded-lg bg-white shadow-soft"><?php if (isset($component)) { $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.empty-state','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.empty-state'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?><?php echo e(__('ui.dashboard.empty')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
+<?php $attributes = $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
+<?php unset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
+<?php $component = $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
+<?php unset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
+<?php endif; ?></div>
+            <?php endif; ?>
 
-                </div>
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <?php if(isset($cards['sales'])): ?>
+                    <a href="<?php echo e(route('sales.index')); ?>" class="rounded-lg bg-white p-6 shadow-soft transition duration-150 hover:shadow">
+                        <p class="text-sm text-gray-500"><?php echo e(__('ui.dashboard.sales_today')); ?></p>
+                        <p class="mt-1 text-2xl font-semibold tnum"><?php echo e($cards['sales']['today_total']->format()); ?></p>
+                        <p class="text-sm text-gray-400"><?php echo e($cards['sales']['today_count']); ?> <?php echo e(__('ui.dashboard.transactions')); ?></p>
+                        <p class="mt-3 text-sm text-gray-500"><?php echo e(__('ui.dashboard.receivable')); ?>: <span class="font-medium tnum"><?php echo e($cards['sales']['receivable']->format()); ?></span></p>
+                    </a>
+                <?php endif; ?>
+
+                <?php if(isset($cards['lab'])): ?>
+                    <a href="<?php echo e(route('lab.index')); ?>" class="rounded-lg bg-white p-6 shadow-soft transition duration-150 hover:shadow">
+                        <p class="text-sm text-gray-500"><?php echo e(__('ui.dashboard.lab_queue')); ?></p>
+                        <p class="mt-1 text-2xl font-semibold tnum"><?php echo e($cards['lab']['waiting'] + $cards['lab']['edging'] + $cards['lab']['qc'] + $cards['lab']['ready']); ?></p>
+                        <p class="text-sm text-gray-400">
+                            <?php echo e(__('ui.dashboard.lab_waiting')); ?> <?php echo e($cards['lab']['waiting']); ?> ·
+                            <?php echo e(__('ui.dashboard.lab_edging')); ?> <?php echo e($cards['lab']['edging']); ?> ·
+                            <?php echo e(__('ui.dashboard.lab_qc')); ?> <?php echo e($cards['lab']['qc']); ?> ·
+                            <?php echo e(__('ui.dashboard.lab_ready')); ?> <?php echo e($cards['lab']['ready']); ?>
+
+                        </p>
+                    </a>
+                <?php endif; ?>
+
+                <?php if(isset($cards['stock'])): ?>
+                    <a href="<?php echo e(route('stock.index')); ?>" class="rounded-lg bg-white p-6 shadow-soft transition duration-150 hover:shadow">
+                        <p class="text-sm text-gray-500"><?php echo e(__('ui.dashboard.stock_alerts')); ?></p>
+                        <p class="mt-1 text-2xl font-semibold tnum"><?php echo e($cards['stock']['low'] + $cards['stock']['out'] + $cards['stock']['backorder']); ?></p>
+                        <p class="text-sm text-gray-400">
+                            <?php echo e(__('ui.dashboard.stock_low')); ?> <?php echo e($cards['stock']['low']); ?> ·
+                            <?php echo e(__('ui.dashboard.stock_out')); ?> <?php echo e($cards['stock']['out']); ?> ·
+                            <?php echo e(__('ui.dashboard.stock_backorder')); ?> <?php echo e($cards['stock']['backorder']); ?>
+
+                        </p>
+                        <p class="mt-3 text-sm text-gray-500"><?php echo e(__('ui.dashboard.transfers_in')); ?>: <span class="font-medium tnum"><?php echo e($cards['transfers_in']); ?></span></p>
+                    </a>
+                <?php endif; ?>
+
+                <?php if(isset($cards['pr_pending'])): ?>
+                    <a href="<?php echo e(route('pr.index')); ?>" class="rounded-lg bg-white p-6 shadow-soft transition duration-150 hover:shadow">
+                        <p class="text-sm text-gray-500"><?php echo e(__('ui.dashboard.pr_pending')); ?></p>
+                        <p class="mt-1 text-2xl font-semibold tnum"><?php echo e($cards['pr_pending']); ?></p>
+                    </a>
+                <?php endif; ?>
+
+                <?php if(isset($cards['payables'])): ?>
+                    <a href="<?php echo e(route('reports.payables')); ?>" class="rounded-lg bg-white p-6 shadow-soft transition duration-150 hover:shadow">
+                        <p class="text-sm text-gray-500"><?php echo e(__('ui.dashboard.payables')); ?></p>
+                        <p class="mt-1 text-2xl font-semibold tnum"><?php echo e($cards['payables']->format()); ?></p>
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
     </div>

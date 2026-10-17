@@ -10,6 +10,7 @@ use App\Modules\Master\Models\Branch;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\SaleReturnService;
 use App\Modules\Sales\Services\SalesService;
+use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -30,7 +31,7 @@ class SaleReturnTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(IdentitySeeder::class);
+        $this->seed([IdentitySeeder::class, AccountingSeeder::class]);
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->customer = Customer::factory()->create(['branch_id' => $branch->id]);

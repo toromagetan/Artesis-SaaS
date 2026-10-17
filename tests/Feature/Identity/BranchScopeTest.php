@@ -6,6 +6,7 @@ use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
 use App\Support\Concerns\BranchScoped;
+use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,7 +42,7 @@ class BranchScopeTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(IdentitySeeder::class);
+        $this->seed([IdentitySeeder::class, AccountingSeeder::class]);
         $this->pusat = Branch::where('name', 'Pusat')->firstOrFail();
         $this->timur = Branch::create(['name' => 'Timur']);
 

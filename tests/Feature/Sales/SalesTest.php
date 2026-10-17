@@ -13,6 +13,7 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SalePayment;
 use App\Modules\Sales\Services\SalesService;
 use App\Support\Money;
+use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -41,7 +42,7 @@ class SalesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(IdentitySeeder::class);
+        $this->seed([IdentitySeeder::class, AccountingSeeder::class]);
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branchA = Branch::where('name', 'Pusat')->firstOrFail();
 

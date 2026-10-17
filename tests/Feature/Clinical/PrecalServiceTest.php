@@ -7,6 +7,7 @@ use App\Modules\Clinical\Services\PrecalService;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
+use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -25,7 +26,7 @@ class PrecalServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(IdentitySeeder::class);
+        $this->seed([IdentitySeeder::class, AccountingSeeder::class]);
         $branch = Branch::where('name', 'Pusat')->firstOrFail();
         $customer = Customer::factory()->create(['branch_id' => $branch->id]);
         $this->rx = Prescription::factory()->create([

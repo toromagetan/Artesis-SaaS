@@ -43,6 +43,14 @@
                 <a href="{{ route('stock.index') }}"
                    class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('stock.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.stock') }}</a>
             @endif
+            @if (Auth::user()->hasPermission('reports.sales') || Auth::user()->hasPermission('reports.purchases') || Auth::user()->hasPermission('reports.stock'))
+                <a href="{{ route('reports.sales') }}"
+                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('reports.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.reports') }}</a>
+            @endif
+            @if (Auth::user()->hasPermission('journals.view'))
+                <a href="{{ route('journals.index') }}"
+                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('journals.*') || request()->routeIs('accounts.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.journals') }}</a>
+            @endif
             @if (Auth::user()->hasPermission('stock.view'))
                 <a href="{{ route('transfers.index') }}"
                    class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('transfers.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.transfers') }}</a>
@@ -161,6 +169,12 @@
             @endif
             @if (Auth::user()->hasPermission('stock.view'))
                 <x-responsive-nav-link :href="route('transfers.index')" :active="request()->routeIs('transfers.*')">{{ __('ui.nav.transfers') }}</x-responsive-nav-link>
+            @endif
+            @if (Auth::user()->hasPermission('journals.view'))
+                <x-responsive-nav-link :href="route('journals.index')" :active="request()->routeIs('journals.*')">{{ __('ui.nav.journals') }}</x-responsive-nav-link>
+            @endif
+            @if (Auth::user()->hasPermission('reports.sales') || Auth::user()->hasPermission('reports.purchases') || Auth::user()->hasPermission('reports.stock'))
+                <x-responsive-nav-link :href="route('reports.sales')" :active="request()->routeIs('reports.*')">{{ __('ui.nav.reports') }}</x-responsive-nav-link>
             @endif
             @if (Auth::user()->hasPermission('sales.view'))
                 <x-responsive-nav-link :href="route('sales.index')" :active="request()->routeIs('sales.*')">{{ __('ui.nav.sales') }}</x-responsive-nav-link>

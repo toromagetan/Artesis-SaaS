@@ -5,6 +5,8 @@ namespace App\Modules\Purchasing\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Inventory\Models\StockTransfer;
+use App\Modules\Inventory\Services\TransferService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
@@ -87,7 +89,17 @@ class PurchaseOrderController extends Controller
     {
         $po->load(['supplier', 'branch', 'creator', 'items.product', 'receipts.items', 'receipts.allocations']);
 
-        return view('purchasing.orders.show', compact('po'));
+        // Panel distribusi (M.7): riwayat transfer dari PO ini + sisa
+        // yang masih dapat dikirim per produk + pilihan cabang tujuan.
+        $transfers = StockTransfer::with(['toBranch', 'fromBranch', 'items'])
+            ->where('source_type', 'purchase_order')
+            ->where('source_id', $po->id)
+            ->orderByDesc('id')
+            ->get();
+        $distributable = app(TransferService::class)->distributableFromPo($po);
+        $branches = Branch::orderBy('name')->get();
+
+        return view('purchasing.orders.show', compact('po', 'transfers', 'distributable', 'branches'));
     }
 
     public function send(Request $request, PurchaseOrder $po): RedirectResponse

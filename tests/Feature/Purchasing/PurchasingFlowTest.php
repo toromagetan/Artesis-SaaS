@@ -13,6 +13,7 @@ use App\Modules\Purchasing\Models\PurchaseRequest;
 use App\Modules\Purchasing\Services\PurchaseOrderService;
 use App\Modules\Purchasing\Services\PurchaseRequestService;
 use App\Modules\Purchasing\Services\ReceiptService;
+use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -38,7 +39,7 @@ class PurchasingFlowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(IdentitySeeder::class);
+        $this->seed([IdentitySeeder::class, AccountingSeeder::class]);
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->supplier = Supplier::create(['name' => 'PT Lensa Uji', 'is_active' => true]);

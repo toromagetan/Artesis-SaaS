@@ -8,6 +8,7 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\RoleService;
 use App\Modules\Master\Models\Branch;
 use App\Support\Concerns\BranchScoped;
+use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
@@ -37,7 +38,7 @@ class IdentitySecurityMatrixTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(IdentitySeeder::class);
+        $this->seed([IdentitySeeder::class, AccountingSeeder::class]);
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branchA = Branch::where('name', 'Pusat')->firstOrFail();
         $this->branchB = Branch::create(['name' => 'Cabang B']);

@@ -21,7 +21,12 @@
                     </select>
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
-                <a href="{{ route('stock.movements') }}" class="text-sm text-lentera-800 underline">{{ __('ui.stock.movements') }}</a>
+                <div class="flex items-center gap-4">
+                    <a href="{{ route('stock.movements') }}" class="text-sm text-lentera-800 underline">{{ __('ui.stock.movements') }}</a>
+                    @can('stock.import-initial')
+                        <a href="{{ route('stock.import.form') }}" class="text-sm text-lentera-800 underline">{{ __('ui.import.title') }}</a>
+                    @endcan
+                </div>
             </div>
 
             <div class="overflow-hidden rounded-lg bg-white shadow-soft">

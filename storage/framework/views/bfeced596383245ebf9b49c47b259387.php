@@ -67,7 +67,12 @@
 <?php unset($__componentOriginal3b0e04e43cf890250cc4d85cff4d94af); ?>
 <?php endif; ?>
                 </form>
-                <a href="<?php echo e(route('stock.movements')); ?>" class="text-sm text-lentera-800 underline"><?php echo e(__('ui.stock.movements')); ?></a>
+                <div class="flex items-center gap-4">
+                    <a href="<?php echo e(route('stock.movements')); ?>" class="text-sm text-lentera-800 underline"><?php echo e(__('ui.stock.movements')); ?></a>
+                    <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('stock.import-initial')): ?>
+                        <a href="<?php echo e(route('stock.import.form')); ?>" class="text-sm text-lentera-800 underline"><?php echo e(__('ui.import.title')); ?></a>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <div class="overflow-hidden rounded-lg bg-white shadow-soft">

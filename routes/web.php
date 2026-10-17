@@ -3,19 +3,24 @@
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
+use App\Modules\Accounting\Http\Controllers\AccountController;
+use App\Modules\Accounting\Http\Controllers\JournalController;
 use App\Modules\Catalog\Http\Controllers\ProductController;
 use App\Modules\Clinical\Http\Controllers\PrescriptionController;
 use App\Modules\CRM\Http\Controllers\CustomerController;
 use App\Modules\Identity\Http\Controllers\RoleController;
 use App\Modules\Identity\Http\Controllers\UserController;
+use App\Modules\Inventory\Http\Controllers\InitialStockImportController;
 use App\Modules\Inventory\Http\Controllers\StockController;
 use App\Modules\Inventory\Http\Controllers\TransferController;
 use App\Modules\Lab\Http\Controllers\LabController;
 use App\Modules\Master\Http\Controllers\BranchController;
+use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Purchasing\Http\Controllers\CollectivePaymentController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseRequestController;
 use App\Modules\Purchasing\Http\Controllers\ReceiptController;
+use App\Modules\Reporting\Http\Controllers\ReportController;
 use App\Modules\Sales\Http\Controllers\SaleController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,9 +30,8 @@ Route::get('/', function () {
 
 Route::post('/bahasa/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth'])->name('dashboard');
+Route::get('/dashboard', DashboardController::class)
+    ->middleware(['auth'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     // Pencarian global (Blueprint F.2 butir 9)
@@ -105,6 +109,22 @@ Route::middleware('auth')->group(function () {
     Route::post('/transfer/{transfer}/batal', [TransferController::class, 'cancel'])->middleware('permission:stock.transfer')->name('transfers.cancel');
     Route::get('/transfer/{transfer}/cetak', [TransferController::class, 'print'])->middleware('permission:stock.view')->name('transfers.print');
     Route::post('/pembelian/po/{po}/transfer', [TransferController::class, 'storeFromPo'])->middleware('permission:stock.transfer')->name('po.transfer.store');
+    Route::get('/stok/impor', [InitialStockImportController::class, 'form'])->name('stock.import.form');
+    Route::get('/stok/impor/template', [InitialStockImportController::class, 'template'])->name('stock.import.template');
+    Route::post('/stok/impor/pratinjau', [InitialStockImportController::class, 'preview'])->name('stock.import.preview');
+    Route::post('/stok/impor/komitmen', [InitialStockImportController::class, 'commit'])->name('stock.import.commit');
+
+    // ---- Akuntansi (M.9) ----
+    Route::get('/jurnal', [JournalController::class, 'index'])->middleware('permission:journals.view')->name('journals.index');
+    Route::get('/jurnal/{journal}', [JournalController::class, 'show'])->middleware('permission:journals.view')->name('journals.show');
+    Route::post('/jurnal/{journal}/balik', [JournalController::class, 'reverse'])->middleware('permission:journals.reverse')->name('journals.reverse');
+    Route::get('/akun', [AccountController::class, 'index'])->middleware('permission:accounts.view')->name('accounts.index');
+
+    // ---- Laporan inti (M.10) ----
+    Route::get('/laporan/penjualan', [ReportController::class, 'sales'])->middleware('permission:reports.sales')->name('reports.sales');
+    Route::get('/laporan/pembelian', [ReportController::class, 'purchases'])->middleware('permission:reports.purchases')->name('reports.purchases');
+    Route::get('/laporan/stok', [ReportController::class, 'stock'])->middleware('permission:reports.stock')->name('reports.stock');
+    Route::get('/laporan/utang', [ReportController::class, 'payables'])->middleware('permission:reports.purchases')->name('reports.payables');
 
     // ---- Penjualan (M.3) ----
     Route::get('/penjualan', [SaleController::class, 'index'])->middleware('permission:sales.view')->name('sales.index');

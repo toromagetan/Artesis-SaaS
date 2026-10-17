@@ -10,6 +10,7 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Sales\Events\SaleCompleted;
+use App\Modules\Sales\Events\SalePaymentRecorded;
 use App\Modules\Sales\Events\SaleVoided;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SalePayment;
@@ -229,6 +230,8 @@ class SalesService
                 branchId: $sale->branch_id,
                 actor: $actor,
             );
+
+            SalePaymentRecorded::dispatch($payment, $sale);
 
             return $payment;
         });
