@@ -14,7 +14,7 @@
 
     <div class="py-8">
         <div class="mx-auto max-w-5xl sm:px-6 lg:px-8">
-            <?php if($users->isEmpty() && $branches->isEmpty() && $products->isEmpty() && $customers->isEmpty() && $sales->isEmpty()): ?>
+            <?php if($users->isEmpty() && $branches->isEmpty() && $products->isEmpty() && $customers->isEmpty() && $sales->isEmpty() && $purchaseRequests->isEmpty() && $purchaseOrders->isEmpty()): ?>
                 <div class="rounded-lg bg-white shadow-soft">
                     <?php if (isset($component)) { $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $attributes; } ?>
@@ -82,6 +82,35 @@
                                 <span class="block text-xs text-gray-400"><?php echo e($sale->customer->name); ?> · <?php echo e($sale->sale_date->format('d/m/Y')); ?></span>
                             </span>
                             <span class="tnum text-sm text-gray-600"><?php echo e(\App\Support\Money::fromDecimal((string) $sale->total_amount)->format()); ?></span>
+                        </a>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if($purchaseRequests->isNotEmpty()): ?>
+                <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500"><?php echo e(__('ui.search_page.purchase_requests')); ?></h2>
+                <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                    <?php $__currentLoopData = $purchaseRequests; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pr): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <a href="<?php echo e(route('pr.show', $pr)); ?>" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 transition duration-150 last:border-0 hover:bg-lentera-50">
+                            <span>
+                                <span class="block font-medium text-gray-800"><?php echo e($pr->number); ?></span>
+                                <span class="block text-xs text-gray-400"><?php echo e($pr->branch->name); ?> · <?php echo e(__('ui.purchasing.pr_statuses.'.$pr->status)); ?></span>
+                            </span>
+                        </a>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if($purchaseOrders->isNotEmpty()): ?>
+                <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500"><?php echo e(__('ui.search_page.purchase_orders')); ?></h2>
+                <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                    <?php $__currentLoopData = $purchaseOrders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $po): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <a href="<?php echo e(route('po.show', $po)); ?>" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 transition duration-150 last:border-0 hover:bg-lentera-50">
+                            <span>
+                                <span class="block font-medium text-gray-800"><?php echo e($po->number); ?></span>
+                                <span class="block text-xs text-gray-400"><?php echo e($po->supplier->name); ?> · <?php echo e($po->branch->name); ?></span>
+                            </span>
+                            <span class="tnum text-sm text-gray-600"><?php echo e(\App\Support\Money::fromDecimal((string) $po->total_amount)->format()); ?></span>
                         </a>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </div>

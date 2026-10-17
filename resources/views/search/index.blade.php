@@ -5,7 +5,7 @@
 
     <div class="py-8">
         <div class="mx-auto max-w-5xl sm:px-6 lg:px-8">
-            @if ($users->isEmpty() && $branches->isEmpty() && $products->isEmpty() && $customers->isEmpty() && $sales->isEmpty())
+            @if ($users->isEmpty() && $branches->isEmpty() && $products->isEmpty() && $customers->isEmpty() && $sales->isEmpty() && $purchaseRequests->isEmpty() && $purchaseOrders->isEmpty())
                 <div class="rounded-lg bg-white shadow-soft">
                     <x-lentera.empty-state>{{ __('ui.search_page.empty', ['q' => $q]) }}</x-lentera.empty-state>
                 </div>
@@ -36,6 +36,35 @@
                                 <span class="block text-xs text-gray-400">{{ $sale->customer->name }} · {{ $sale->sale_date->format('d/m/Y') }}</span>
                             </span>
                             <span class="tnum text-sm text-gray-600">{{ \App\Support\Money::fromDecimal((string) $sale->total_amount)->format() }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+
+            @if ($purchaseRequests->isNotEmpty())
+                <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">{{ __('ui.search_page.purchase_requests') }}</h2>
+                <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                    @foreach ($purchaseRequests as $pr)
+                        <a href="{{ route('pr.show', $pr) }}" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 transition duration-150 last:border-0 hover:bg-lentera-50">
+                            <span>
+                                <span class="block font-medium text-gray-800">{{ $pr->number }}</span>
+                                <span class="block text-xs text-gray-400">{{ $pr->branch->name }} · {{ __('ui.purchasing.pr_statuses.'.$pr->status) }}</span>
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+
+            @if ($purchaseOrders->isNotEmpty())
+                <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">{{ __('ui.search_page.purchase_orders') }}</h2>
+                <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                    @foreach ($purchaseOrders as $po)
+                        <a href="{{ route('po.show', $po) }}" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 transition duration-150 last:border-0 hover:bg-lentera-50">
+                            <span>
+                                <span class="block font-medium text-gray-800">{{ $po->number }}</span>
+                                <span class="block text-xs text-gray-400">{{ $po->supplier->name }} · {{ $po->branch->name }}</span>
+                            </span>
+                            <span class="tnum text-sm text-gray-600">{{ \App\Support\Money::fromDecimal((string) $po->total_amount)->format() }}</span>
                         </a>
                     @endforeach
                 </div>

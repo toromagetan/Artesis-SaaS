@@ -7,6 +7,8 @@ use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Purchasing\Models\PurchaseOrder;
+use App\Modules\Purchasing\Models\PurchaseRequest;
 use App\Modules\Sales\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -30,6 +32,8 @@ class SearchController extends Controller
         $products = collect();
         $customers = collect();
         $sales = collect();
+        $purchaseRequests = collect();
+        $purchaseOrders = collect();
 
         if ($q !== '') {
             if ($user->hasPermission('users.manage')) {
@@ -56,6 +60,23 @@ class SearchController extends Controller
                         $query->where('number', 'like', "%{$q}%")
                             ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$q}%"));
                     })
+                    ->orderByDesc('id')
+                    ->limit(10)
+                    ->get();
+            }
+
+            if ($user->hasPermission('pr.view')) {
+                // PR terpagar cabang lewat BranchScope pada model.
+                $purchaseRequests = PurchaseRequest::with('branch')
+                    ->where('number', 'like', "%{$q}%")
+                    ->orderByDesc('id')
+                    ->limit(10)
+                    ->get();
+            }
+
+            if ($user->hasPermission('po.view')) {
+                $purchaseOrders = PurchaseOrder::with(['supplier', 'branch'])
+                    ->where('number', 'like', "%{$q}%")
                     ->orderByDesc('id')
                     ->limit(10)
                     ->get();
@@ -96,6 +117,6 @@ class SearchController extends Controller
             }
         }
 
-        return view('search.index', compact('q', 'users', 'branches', 'products', 'customers', 'sales'));
+        return view('search.index', compact('q', 'users', 'branches', 'products', 'customers', 'sales', 'purchaseRequests', 'purchaseOrders'));
     }
 }

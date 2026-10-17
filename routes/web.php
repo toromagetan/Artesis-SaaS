@@ -9,7 +9,13 @@ use App\Modules\CRM\Http\Controllers\CustomerController;
 use App\Modules\Identity\Http\Controllers\RoleController;
 use App\Modules\Identity\Http\Controllers\UserController;
 use App\Modules\Inventory\Http\Controllers\StockController;
+use App\Modules\Inventory\Http\Controllers\TransferController;
+use App\Modules\Lab\Http\Controllers\LabController;
 use App\Modules\Master\Http\Controllers\BranchController;
+use App\Modules\Purchasing\Http\Controllers\CollectivePaymentController;
+use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
+use App\Modules\Purchasing\Http\Controllers\PurchaseRequestController;
+use App\Modules\Purchasing\Http\Controllers\ReceiptController;
 use App\Modules\Sales\Http\Controllers\SaleController;
 use Illuminate\Support\Facades\Route;
 
@@ -50,9 +56,55 @@ Route::middleware('auth')->group(function () {
         Route::put('/peran/{role}', [RoleController::class, 'update'])->name('roles.update');
     });
 
-    // ---- Stok (M.4) ----
+    // ---- Pembelian (M.6) ----
+    Route::get('/pembelian/pr', [PurchaseRequestController::class, 'index'])->middleware('permission:pr.view')->name('pr.index');
+    Route::get('/pembelian/pr/baru', [PurchaseRequestController::class, 'create'])->middleware('permission:pr.create')->name('pr.create');
+    Route::post('/pembelian/pr', [PurchaseRequestController::class, 'store'])->middleware('permission:pr.create')->name('pr.store');
+    Route::post('/pembelian/pr/gabung', [PurchaseRequestController::class, 'convertMultiple'])->middleware('permission:pr.approve')->name('pr.convert-multiple');
+    Route::get('/pembelian/pr/{pr}', [PurchaseRequestController::class, 'show'])->middleware('permission:pr.view')->name('pr.show');
+    Route::post('/pembelian/pr/{pr}/submit', [PurchaseRequestController::class, 'submit'])->middleware('permission:pr.create')->name('pr.submit');
+    Route::post('/pembelian/pr/{pr}/approve', [PurchaseRequestController::class, 'approve'])->middleware('permission:pr.approve')->name('pr.approve');
+    Route::post('/pembelian/pr/{pr}/batal', [PurchaseRequestController::class, 'cancel'])->middleware('permission:pr.create')->name('pr.cancel');
+    Route::post('/pembelian/pr/{pr}/konversi', [PurchaseRequestController::class, 'convert'])->middleware('permission:pr.approve')->name('pr.convert');
+
+    Route::get('/pembelian/po', [PurchaseOrderController::class, 'index'])->middleware('permission:po.view')->name('po.index');
+    Route::get('/pembelian/po/baru', [PurchaseOrderController::class, 'create'])->middleware('permission:po.create')->name('po.create');
+    Route::post('/pembelian/po', [PurchaseOrderController::class, 'store'])->middleware('permission:po.create')->name('po.store');
+    Route::get('/pembelian/po/{po}', [PurchaseOrderController::class, 'show'])->middleware('permission:po.view')->name('po.show');
+    Route::post('/pembelian/po/{po}/kirim', [PurchaseOrderController::class, 'send'])->middleware('permission:po.update')->name('po.send');
+    Route::post('/pembelian/po/{po}/void', [PurchaseOrderController::class, 'void'])->middleware('permission:po.void')->name('po.void');
+    Route::get('/pembelian/po/{po}/terima', [PurchaseOrderController::class, 'receiveForm'])->middleware('permission:receipts.create')->name('po.receive');
+    Route::post('/pembelian/po/{po}/terima', [PurchaseOrderController::class, 'storeReceipt'])->middleware('permission:receipts.create')->name('po.receive.store');
+    Route::get('/pembelian/po/{po}/cetak', [PurchaseOrderController::class, 'print'])->middleware('permission:po.view')->name('po.print');
+
+    Route::get('/pembelian/penerimaan/{receipt}', [ReceiptController::class, 'show'])->middleware('permission:po.view')->name('receipts.show');
+    Route::get('/pembelian/penerimaan/{receipt}/bayar', [ReceiptController::class, 'payForm'])->middleware('permission:payments.create')->name('receipts.pay');
+    Route::post('/pembelian/penerimaan/{receipt}/bayar', [ReceiptController::class, 'storePayment'])->middleware('permission:payments.create')->name('receipts.pay.store');
+    Route::get('/pembelian/penerimaan/{receipt}/retur', [ReceiptController::class, 'returnForm'])->middleware('permission:purchases.return')->name('receipts.return');
+    Route::post('/pembelian/penerimaan/{receipt}/retur', [ReceiptController::class, 'storeReturn'])->middleware('permission:purchases.return')->name('receipts.return.store');
+
+    Route::get('/pembelian/bayar-kolektif', [CollectivePaymentController::class, 'form'])->middleware('permission:payments.collective')->name('payments.collective');
+    Route::post('/pembelian/bayar-kolektif', [CollectivePaymentController::class, 'process'])->middleware('permission:payments.collective')->name('payments.collective.process');
+    Route::get('/pembelian/bayar-kolektif/{payment}', [CollectivePaymentController::class, 'result'])->middleware('permission:payments.collective')->name('payments.collective.result');
+
+    // ---- Lab (M.5) ----
+    Route::get('/lab', [LabController::class, 'index'])->middleware('permission:lab.view')->name('lab.index');
+    Route::get('/lab/{process}', [LabController::class, 'show'])->middleware('permission:lab.view')->name('lab.show');
+    Route::post('/lab/{process}/tugaskan', [LabController::class, 'assign'])->middleware('permission:lab.assign')->name('lab.assign');
+    Route::post('/lab/{process}/status', [LabController::class, 'transition'])->middleware('permission:lab.assign')->name('lab.transition');
+    Route::post('/lab/{process}/selesai', [LabController::class, 'complete'])->middleware('permission:lab.complete')->name('lab.complete');
+
+    // ---- Stok (M.4) & Transfer (M.7) ----
     Route::get('/stok', [StockController::class, 'index'])->middleware('permission:stock.view')->name('stock.index');
     Route::get('/stok/pergerakan', [StockController::class, 'movements'])->middleware('permission:stock.view')->name('stock.movements');
+    Route::get('/transfer', [TransferController::class, 'index'])->middleware('permission:stock.view')->name('transfers.index');
+    Route::get('/transfer/baru', [TransferController::class, 'create'])->middleware('permission:stock.transfer')->name('transfers.create');
+    Route::post('/transfer', [TransferController::class, 'store'])->middleware('permission:stock.transfer')->name('transfers.store');
+    Route::get('/transfer/{transfer}', [TransferController::class, 'show'])->middleware('permission:stock.view')->name('transfers.show');
+    Route::post('/transfer/{transfer}/terima', [TransferController::class, 'receive'])->middleware('permission:stock.receive_transfer')->name('transfers.receive');
+    Route::post('/transfer/{transfer}/batal', [TransferController::class, 'cancel'])->middleware('permission:stock.transfer')->name('transfers.cancel');
+    Route::get('/transfer/{transfer}/cetak', [TransferController::class, 'print'])->middleware('permission:stock.view')->name('transfers.print');
+    Route::post('/pembelian/po/{po}/transfer', [TransferController::class, 'storeFromPo'])->middleware('permission:stock.transfer')->name('po.transfer.store');
 
     // ---- Penjualan (M.3) ----
     Route::get('/penjualan', [SaleController::class, 'index'])->middleware('permission:sales.view')->name('sales.index');

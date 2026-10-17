@@ -14,9 +14,38 @@
         <div class="hidden items-center gap-1 md:flex">
             <a href="{{ route('dashboard') }}"
                class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('dashboard') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.dashboard') }}</a>
+            @if (Auth::user()->hasPermission('pr.view') || Auth::user()->hasPermission('po.view'))
+                <x-dropdown align="left" width="56">
+                    <x-slot name="trigger">
+                        <button class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('pr.*') || request()->routeIs('po.*') || request()->routeIs('receipts.*') || request()->routeIs('payments.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">
+                            {{ __('ui.nav.purchasing') }}
+                            <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </x-slot>
+                    <x-slot name="content">
+                        @if (Auth::user()->hasPermission('pr.view'))
+                            <x-dropdown-link :href="route('pr.index')">{{ __('ui.purchasing.pr_title') }}</x-dropdown-link>
+                        @endif
+                        @if (Auth::user()->hasPermission('po.view'))
+                            <x-dropdown-link :href="route('po.index')">{{ __('ui.purchasing.po_title') }}</x-dropdown-link>
+                        @endif
+                        @if (Auth::user()->hasPermission('payments.collective'))
+                            <x-dropdown-link :href="route('payments.collective')">{{ __('ui.purchasing.collective') }}</x-dropdown-link>
+                        @endif
+                    </x-slot>
+                </x-dropdown>
+            @endif
+            @if (Auth::user()->hasPermission('lab.view'))
+                <a href="{{ route('lab.index') }}"
+                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('lab.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.lab') }}</a>
+            @endif
             @if (Auth::user()->hasPermission('stock.view'))
                 <a href="{{ route('stock.index') }}"
                    class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('stock.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.stock') }}</a>
+            @endif
+            @if (Auth::user()->hasPermission('stock.view'))
+                <a href="{{ route('transfers.index') }}"
+                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('transfers.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.transfers') }}</a>
             @endif
             @if (Auth::user()->hasPermission('sales.view'))
                 <a href="{{ route('sales.index') }}"
@@ -115,8 +144,23 @@
         </div>
         <div class="space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">{{ __('ui.nav.dashboard') }}</x-responsive-nav-link>
+            @if (Auth::user()->hasPermission('pr.view'))
+                <x-responsive-nav-link :href="route('pr.index')" :active="request()->routeIs('pr.*')">{{ __('ui.purchasing.pr_title') }}</x-responsive-nav-link>
+            @endif
+            @if (Auth::user()->hasPermission('po.view'))
+                <x-responsive-nav-link :href="route('po.index')" :active="request()->routeIs('po.*')">{{ __('ui.purchasing.po_title') }}</x-responsive-nav-link>
+            @endif
+            @if (Auth::user()->hasPermission('payments.collective'))
+                <x-responsive-nav-link :href="route('payments.collective')" :active="request()->routeIs('payments.*')">{{ __('ui.purchasing.collective') }}</x-responsive-nav-link>
+            @endif
+            @if (Auth::user()->hasPermission('lab.view'))
+                <x-responsive-nav-link :href="route('lab.index')" :active="request()->routeIs('lab.*')">{{ __('ui.nav.lab') }}</x-responsive-nav-link>
+            @endif
             @if (Auth::user()->hasPermission('stock.view'))
                 <x-responsive-nav-link :href="route('stock.index')" :active="request()->routeIs('stock.*')">{{ __('ui.nav.stock') }}</x-responsive-nav-link>
+            @endif
+            @if (Auth::user()->hasPermission('stock.view'))
+                <x-responsive-nav-link :href="route('transfers.index')" :active="request()->routeIs('transfers.*')">{{ __('ui.nav.transfers') }}</x-responsive-nav-link>
             @endif
             @if (Auth::user()->hasPermission('sales.view'))
                 <x-responsive-nav-link :href="route('sales.index')" :active="request()->routeIs('sales.*')">{{ __('ui.nav.sales') }}</x-responsive-nav-link>
