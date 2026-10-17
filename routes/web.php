@@ -3,6 +3,7 @@
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
+use App\Modules\Catalog\Http\Controllers\ProductController;
 use App\Modules\Identity\Http\Controllers\RoleController;
 use App\Modules\Identity\Http\Controllers\UserController;
 use App\Modules\Master\Http\Controllers\BranchController;
@@ -44,6 +45,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/peran/{role}/ubah', [RoleController::class, 'edit'])->name('roles.edit');
         Route::put('/peran/{role}', [RoleController::class, 'update'])->name('roles.update');
     });
+
+    // ---- Katalog (M.1) ----
+    Route::get('/katalog/{type}', [ProductController::class, 'index'])->middleware('permission:products.view')->name('products.index');
+    Route::get('/katalog/{type}/buat', [ProductController::class, 'create'])->middleware('permission:products.create')->name('products.create');
+    Route::post('/katalog/{type}', [ProductController::class, 'store'])->middleware('permission:products.create')->name('products.store');
+    Route::get('/produk/{product}', [ProductController::class, 'show'])->middleware('permission:products.view')->name('products.show');
+    Route::get('/produk/{product}/ubah', [ProductController::class, 'edit'])->middleware('permission:products.update')->name('products.edit');
+    Route::put('/produk/{product}', [ProductController::class, 'update'])->middleware('permission:products.update')->name('products.update');
+    Route::post('/produk/{product}/alih-aktif', [ProductController::class, 'toggleActive'])->middleware('permission:products.deactivate')->name('products.toggle-active');
 
     Route::middleware('permission:branches.manage')->group(function () {
         Route::get('/cabang', [BranchController::class, 'index'])->name('branches.index');

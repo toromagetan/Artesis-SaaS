@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
@@ -24,6 +25,7 @@ class SearchController extends Controller
 
         $users = collect();
         $branches = collect();
+        $products = collect();
 
         if ($q !== '') {
             if ($user->hasPermission('users.manage')) {
@@ -43,6 +45,19 @@ class SearchController extends Controller
                     ->get();
             }
 
+            if ($user->hasPermission('products.view')) {
+                // Produk adalah data master level tenant: pagarnya izin.
+                $products = Product::query()
+                    ->where(function ($query) use ($q) {
+                        $query->where('name', 'like', "%{$q}%")
+                            ->orWhere('sku', 'like', "%{$q}%")
+                            ->orWhere('brand', 'like', "%{$q}%");
+                    })
+                    ->orderBy('name')
+                    ->limit(10)
+                    ->get();
+            }
+
             if ($user->hasPermission('branches.manage')) {
                 $branches = Branch::query()
                     ->where('name', 'like', "%{$q}%")
@@ -53,6 +68,6 @@ class SearchController extends Controller
             }
         }
 
-        return view('search.index', compact('q', 'users', 'branches'));
+        return view('search.index', compact('q', 'users', 'branches', 'products'));
     }
 }
