@@ -39,6 +39,6 @@ class RoleController extends Controller
 
         $this->roles->syncPermissions($role, $data['permissions'] ?? [], $request->user());
 
-        return redirect()->route('roles.index')->with('status', 'Izin peran diperbarui.');
+        return redirect()->route('roles.index')->with('status', __('ui.roles.updated'));
     }
 }

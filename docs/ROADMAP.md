@@ -26,6 +26,7 @@ Sebuah tugas/modul dinyatakan selesai hanya bila SEMUA terpenuhi:
 - [ ] Service + validasi + policy terimplementasi sesuai spesifikasi perilaku modul (Blueprint Bagian D).
 - [ ] UI sesuai PRD Detail untuk menu terkait + konvensi UI bersama (Blueprint F.2) — termasuk bahasa desain clean/modern/elegan (F.2.0), aturan detail halaman penuh (bukan model preview), dan model tombol terkelompok (tepat satu dropdown Aksi + satu dropdown Cetak per layar, tanpa spam tombol). Judul halaman tampil tepat satu kali (tidak ganda di header dan body) dan pencarian global selalu tersedia di bagian atas.
 - [ ] Test perilaku untuk operasi tulis utama lulus.
+- [ ] Semua teks UI lewat kunci lokalisasi dengan berkas `id` + `en` lengkap (ADR-011); tidak ada string tampilan keras.
 - [ ] Matriks keamanan 6 kasus (Blueprint G.1.2) lulus untuk modul itu.
 - [ ] Test rekonsiliasi lulus bila modul menyentuh uang/stok.
 - [ ] **Uji regresi penuh + uji konkurensi lulus** (Blueprint G.1 butir 7) — wajib untuk setiap tugas yang menyentuh hitungan uang/stok dan di setiap gerbang fase; kegagalan satu skenario konkurensi = tugas belum selesai.

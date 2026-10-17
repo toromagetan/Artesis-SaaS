@@ -23,7 +23,7 @@ class EnsureUserIsActive
             $request->session()->regenerateToken();
 
             return redirect()->route('login')->withErrors([
-                'login' => 'Akun ini nonaktif. Hubungi pengelola.',
+                'login' => __('auth.inactive'),
             ]);
         }
 

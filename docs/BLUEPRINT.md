@@ -71,7 +71,7 @@ Konvensi umum semua tabel: `id BIGINT UNSIGNED` PK; `created_at/updated_at TIMES
 
 ## B.1 Identity & Master
 - **branches**: `name VARCHAR(100)` (tanpa kolom kode — keputusan terkunci), `address TEXT NULL`, `phone VARCHAR(30) NULL`, `is_active BOOL default 1`. Indeks: `name`.
-- **users**: `name`, `username VARCHAR(50) UNIQUE`, `email VARCHAR(150) UNIQUE NULL`, `password` (hash), `phone NULL`, `is_active`, `is_platform BOOL default 0` (aktor teknis — bukan pelaku bisnis), `last_login_at NULL`.
+- **users**: `name`, `username VARCHAR(50) UNIQUE`, `email VARCHAR(150) UNIQUE NULL`, `password` (hash), `phone NULL`, `locale VARCHAR(5) default 'id'` (preferensi bahasa — ADR-011), `is_active`, `is_platform BOOL default 0` (aktor teknis — bukan pelaku bisnis), `last_login_at NULL`.
 - **roles**: `name VARCHAR(50) UNIQUE` (Owner, Admin, Kasir, Gudang, Cabang, Refraksionis, Teknisi), `label`. **permissions**: `name VARCHAR(100) UNIQUE` (registry Bagian C), `group_name`. **role_permission** (role_id, permission_id) PK komposit. **user_role** (user_id, role_id). **user_branch** (user_id, branch_id) = cabang yang dikelola; kosong + peran Owner = akses global.
 - **suppliers**: `name`, `contact_person NULL`, `phone NULL`, `email NULL`, `address NULL`, `is_active`. **insurances**: `name`, `phone NULL`, `is_active`. **doctors**: `name`, `clinic NULL`, `phone NULL`, `commission_rate DECIMAL(5,2) default 0` (%), `is_active`.
 - **settings**: `key VARCHAR(100) UNIQUE`, `value TEXT NULL` — pasangan kunci-nilai untuk Pengaturan Umum (identitas toko, tarif PPN bawaan, mode PPN, ukuran kertas bawaan, format tanggal). Nilai yang bersifat rahasia (kredensial gateway) TIDAK di sini — lihat `wa_gateways`.
@@ -408,6 +408,7 @@ Notasi: `[F<fase>.<nomor>]` tugas; "→" bergantung pada. Fase tidak dimulai seb
 - **ADR-008** Penomoran dokumen per bulan per tipe, tidak didaur ulang, void tercatat.
 - **ADR-009** WhatsApp di belakang antarmuka gateway yang dapat diganti penyedianya; async, tidak menggagalkan transaksi.
 - **ADR-010** Dokumen dulu, kode kemudian: PRD → PRD Detail → Blueprint → persetujuan owner → Fase 0.
+- **ADR-011** Multi-bahasa sejak Fase 0 (keputusan owner 2026-10-17): antarmuka dwibahasa Indonesia (bawaan) + Inggris. Semua teks UI lewat mekanisme lokalisasi Laravel (`lang/id`, `lang/en`, kunci `ui.*`); tidak ada string tampilan keras di Blade/controller/service. Preferensi bahasa per pengguna tersimpan di `users.locale`; tamu memakai sesi; locale di luar daftar dukungan (`config('app.supported_locales')`) ditolak. Modul baru WAJIB melengkapi kedua berkas bahasa untuk setiap kunci yang ditambahkannya.
 - **Terbuka untuk owner:** (1) persetujuan Blueprint v2.0 ini; (2) payroll di F1 atau F4; (3) penyedia gateway WA (F3.4); (4) metode costing (gerbang F4.2); (5) kata "mulai Fase 0".
 
 ---

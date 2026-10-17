@@ -78,7 +78,19 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'id'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bahasa yang didukung (ADR-011)
+    |--------------------------------------------------------------------------
+    |
+    | Lentera dwibahasa sejak Fase 0: Indonesia (bawaan) dan Inggris.
+    | Locale di luar daftar ini ditolak oleh SetLocale/LocaleController.
+    |
+    */
+
+    'supported_locales' => ['id', 'en'],
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 

@@ -30,7 +30,7 @@ class RoleService
         // ia sandang sendiri (itu mengubah izinnya sendiri).
         if ($actor && $actor->roles()->where('roles.id', $role->id)->exists()) {
             throw ValidationException::withMessages([
-                'permissions' => 'Anda tidak dapat mengubah izin peran yang Anda sandang sendiri.',
+                'permissions' => __('ui.roles.cannot_change_own_permissions'),
             ]);
         }
 

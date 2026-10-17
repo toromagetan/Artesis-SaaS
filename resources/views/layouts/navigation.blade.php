@@ -13,13 +13,58 @@
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
+                        {{ __('ui.nav.dashboard') }}
                     </x-nav-link>
+                    @if (Auth::user()->hasPermission('users.manage'))
+                        <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
+                            {{ __('ui.nav.users') }}
+                        </x-nav-link>
+                    @endif
+                    @if (Auth::user()->hasPermission('roles.manage'))
+                        <x-nav-link :href="route('roles.index')" :active="request()->routeIs('roles.*')">
+                            {{ __('ui.nav.roles') }}
+                        </x-nav-link>
+                    @endif
+                    @if (Auth::user()->hasPermission('branches.manage'))
+                        <x-nav-link :href="route('branches.index')" :active="request()->routeIs('branches.*')">
+                            {{ __('ui.nav.branches') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
-            <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
+            <div class="hidden sm:flex sm:items-center">
+                <!-- Language Dropdown (ADR-011) -->
+                <x-dropdown align="right" width="48">
+                    <x-slot name="trigger">
+                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                            <div>{{ __('ui.language') }}: {{ strtoupper(app()->getLocale()) }}</div>
+                            <div class="ms-1">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </button>
+                    </x-slot>
+
+                    <x-slot name="content">
+                        <form method="POST" action="{{ route('locale.switch', 'id') }}">
+                            @csrf
+                            <x-dropdown-link :href="route('locale.switch', 'id')" onclick="event.preventDefault(); this.closest('form').submit();">
+                                Bahasa Indonesia
+                            </x-dropdown-link>
+                        </form>
+                        <form method="POST" action="{{ route('locale.switch', 'en') }}">
+                            @csrf
+                            <x-dropdown-link :href="route('locale.switch', 'en')" onclick="event.preventDefault(); this.closest('form').submit();">
+                                English
+                            </x-dropdown-link>
+                        </form>
+                    </x-slot>
+                </x-dropdown>
+
+                <!-- Settings Dropdown -->
+                <div class="sm:ms-6">
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
@@ -35,7 +80,7 @@
 
                     <x-slot name="content">
                         <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
+                            {{ __('ui.nav.profile') }}
                         </x-dropdown-link>
 
                         <!-- Authentication -->
@@ -45,11 +90,12 @@
                             <x-dropdown-link :href="route('logout')"
                                     onclick="event.preventDefault();
                                                 this.closest('form').submit();">
-                                {{ __('Log Out') }}
+                                {{ __('ui.nav.logout') }}
                             </x-dropdown-link>
                         </form>
                     </x-slot>
                 </x-dropdown>
+                </div>
             </div>
 
             <!-- Hamburger -->
@@ -68,7 +114,7 @@
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
+                {{ __('ui.nav.dashboard') }}
             </x-responsive-nav-link>
         </div>
 
@@ -81,7 +127,7 @@
 
             <div class="mt-3 space-y-1">
                 <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profile') }}
+                    {{ __('ui.nav.profile') }}
                 </x-responsive-nav-link>
 
                 <!-- Authentication -->
@@ -91,7 +137,7 @@
                     <x-responsive-nav-link :href="route('logout')"
                             onclick="event.preventDefault();
                                         this.closest('form').submit();">
-                        {{ __('Log Out') }}
+                        {{ __('ui.nav.logout') }}
                     </x-responsive-nav-link>
                 </form>
             </div>

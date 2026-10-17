@@ -56,7 +56,7 @@ class UserController extends Controller
 
         $this->users->createUser($data, $request->user());
 
-        return redirect()->route('users.index')->with('status', 'Pengguna dibuat.');
+        return redirect()->route('users.index')->with('status', __('ui.users.created'));
     }
 
     public function edit(User $user): View
@@ -83,17 +83,17 @@ class UserController extends Controller
 
         $this->users->updateUser($user, $data, $request->user());
 
-        return redirect()->route('users.index')->with('status', 'Pengguna diperbarui.');
+        return redirect()->route('users.index')->with('status', __('ui.users.updated'));
     }
 
     public function toggleActive(Request $request, User $user): RedirectResponse
     {
         if ($user->is_active) {
             $this->users->deactivateUser($user, $request->user());
-            $message = 'Pengguna dinonaktifkan.';
+            $message = __('ui.users.deactivated');
         } else {
             $this->users->activateUser($user, $request->user());
-            $message = 'Pengguna diaktifkan kembali.';
+            $message = __('ui.users.activated');
         }
 
         return back()->with('status', $message);

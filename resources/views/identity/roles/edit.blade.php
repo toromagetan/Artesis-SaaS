@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Ubah Izin — {{ $role->label }}</h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ __('ui.roles.edit') }} — {{ $role->label }}</h2>
     </x-slot>
 
     <div class="py-8">
@@ -26,8 +26,8 @@
                         @endforeach
                     </div>
                     <div class="flex items-center gap-3 mt-6">
-                        <a href="{{ route('roles.index') }}" class="text-sm text-gray-600 underline">Kembali</a>
-                        <x-primary-button>Simpan Izin</x-primary-button>
+                        <a href="{{ route('roles.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
+                        <x-primary-button>{{ __('ui.roles.save') }}</x-primary-button>
                     </div>
                 </form>
             </div>

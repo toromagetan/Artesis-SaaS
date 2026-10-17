@@ -33,7 +33,7 @@ class BranchController extends Controller
 
         Branch::create($data);
 
-        return redirect()->route('branches.index')->with('status', 'Cabang dibuat.');
+        return redirect()->route('branches.index')->with('status', __('ui.branches.created'));
     }
 
     public function edit(Branch $branch): View
@@ -51,7 +51,7 @@ class BranchController extends Controller
 
         $branch->update($data);
 
-        return redirect()->route('branches.index')->with('status', 'Cabang diperbarui.');
+        return redirect()->route('branches.index')->with('status', __('ui.branches.updated'));
     }
 
     public function toggleActive(Branch $branch): RedirectResponse
@@ -60,14 +60,14 @@ class BranchController extends Controller
             $blockers = $this->deactivationBlockers($branch);
             if ($blockers !== []) {
                 throw ValidationException::withMessages([
-                    'branch' => 'Cabang belum dapat dinonaktifkan: '.implode('; ', $blockers),
+                    'branch' => __('ui.branches.deactivation_blocked', ['blockers' => implode('; ', $blockers)]),
                 ]);
             }
         }
 
         $branch->update(['is_active' => ! $branch->is_active]);
 
-        return back()->with('status', $branch->is_active ? 'Cabang diaktifkan.' : 'Cabang dinonaktifkan.');
+        return back()->with('status', $branch->is_active ? __('ui.branches.activated') : __('ui.branches.deactivated'));
     }
 
     /**

@@ -59,7 +59,7 @@ class LoginRequest extends FormRequest
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'login' => 'Akun ini nonaktif. Hubungi pengelola.',
+                'login' => __('auth.inactive'),
             ]);
         }
 

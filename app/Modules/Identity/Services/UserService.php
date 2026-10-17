@@ -84,7 +84,7 @@ class UserService
     {
         if ($actor && $actor->id === $user->id) {
             throw ValidationException::withMessages([
-                'user' => 'Anda tidak dapat menonaktifkan akun Anda sendiri.',
+                'user' => __('ui.users.cannot_deactivate_self'),
             ]);
         }
 
@@ -110,7 +110,7 @@ class UserService
         if (array_key_exists('roles', $data)) {
             if ($checkSelf && $actor && $actor->id === $user->id) {
                 throw ValidationException::withMessages([
-                    'roles' => 'Anda tidak dapat mengubah peran Anda sendiri.',
+                    'roles' => __('ui.users.cannot_change_own_roles'),
                 ]);
             }
             $roleIds = Role::whereIn('name', $data['roles'])->pluck('id');

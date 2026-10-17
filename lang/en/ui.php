@@ -1,0 +1,96 @@
+<?php
+
+/*
+ * Lentera UI strings (multi-language id/en — ADR-011).
+ * Every UI text MUST go through keys in this file (or lang/*.json for
+ * Breeze's literal strings). New keys are added to id AND en together.
+ */
+
+return [
+    'language' => 'Language',
+    'search_placeholder' => 'Search customers, products, transaction numbers…',
+    'actions' => 'Actions',
+    'print' => 'Print',
+    'back' => 'Back',
+    'save' => 'Save',
+    'save_changes' => 'Save Changes',
+    'search' => 'Search',
+    'active' => 'Active',
+    'inactive' => 'Inactive',
+    'activate' => 'Activate',
+    'deactivate' => 'Deactivate',
+    'edit' => 'Edit',
+    'empty' => 'No data yet.',
+
+    'nav' => [
+        'dashboard' => 'Dashboard',
+        'users' => 'Users',
+        'roles' => 'Roles & Permissions',
+        'branches' => 'Branches',
+        'profile' => 'Profile',
+        'logout' => 'Log Out',
+    ],
+
+    'auth' => [
+        'login' => 'Log In',
+        'login_id' => 'Username or Email',
+        'password' => 'Password',
+        'remember' => 'Remember me',
+        'forgot' => 'Forgot your password?',
+    ],
+
+    'users' => [
+        'title' => 'Users',
+        'create' => 'Create User',
+        'edit' => 'Edit User',
+        'name' => 'Name',
+        'username' => 'Username',
+        'email_optional' => 'Email (optional)',
+        'phone_optional' => 'Phone (optional)',
+        'password' => 'Password',
+        'password_new_optional' => 'New Password (leave blank to keep current)',
+        'username_immutable' => 'Username cannot be changed.',
+        'roles' => 'Roles',
+        'branches' => 'Branches',
+        'managed_branches' => 'Managed Branches',
+        'branches_owner_hint' => 'Leave empty for Owner (access to all branches).',
+        'all_branches' => 'All branches',
+        'status' => 'Status',
+        'search_placeholder' => 'Search name, username, email…',
+        'empty' => 'No users yet.',
+        'created' => 'User created.',
+        'updated' => 'User updated.',
+        'deactivated' => 'User deactivated.',
+        'activated' => 'User reactivated.',
+        'cannot_deactivate_self' => 'You cannot deactivate your own account.',
+        'cannot_change_own_roles' => 'You cannot change your own roles.',
+    ],
+
+    'roles' => [
+        'title' => 'Roles & Permissions',
+        'edit' => 'Edit Permissions',
+        'role' => 'Role',
+        'permission_count' => 'Permissions',
+        'user_count' => 'Users',
+        'save' => 'Save Permissions',
+        'updated' => 'Role permissions updated.',
+        'cannot_change_own_permissions' => 'You cannot change the permissions of a role you hold.',
+    ],
+
+    'branches' => [
+        'title' => 'Branches',
+        'create' => 'Create Branch',
+        'edit' => 'Edit Branch',
+        'name' => 'Branch Name',
+        'phone' => 'Phone',
+        'phone_optional' => 'Phone (optional)',
+        'address_optional' => 'Address (optional)',
+        'status' => 'Status',
+        'empty' => 'No branches yet.',
+        'created' => 'Branch created.',
+        'updated' => 'Branch updated.',
+        'activated' => 'Branch activated.',
+        'deactivated' => 'Branch deactivated.',
+        'deactivation_blocked' => 'Branch cannot be deactivated yet: :blockers',
+    ],
+];

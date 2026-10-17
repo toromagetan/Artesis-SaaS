@@ -9,7 +9,7 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
      <?php $__env->slot('header', null, []); ?> 
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Cabang</h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight"><?php echo e(__('ui.branches.title')); ?></h2>
      <?php $__env->endSlot(); ?>
 
     <div class="py-8">
@@ -29,7 +29,7 @@
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['type' => 'button','@click' => 'open = !open']); ?>Aksi ▾ <?php echo $__env->renderComponent(); ?>
+<?php $component->withAttributes(['type' => 'button','@click' => 'open = !open']); ?><?php echo e(__('ui.actions')); ?> ▾ <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginald411d1792bd6cc877d687758b753742c)): ?>
 <?php $attributes = $__attributesOriginald411d1792bd6cc877d687758b753742c; ?>
@@ -40,7 +40,7 @@
 <?php unset($__componentOriginald411d1792bd6cc877d687758b753742c); ?>
 <?php endif; ?>
                     <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 py-1 z-10">
-                        <a href="<?php echo e(route('branches.create')); ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Buat Cabang</a>
+                        <a href="<?php echo e(route('branches.create')); ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"><?php echo e(__('ui.branches.create')); ?></a>
                     </div>
                 </div>
             </div>
@@ -49,9 +49,9 @@
                 <table class="min-w-full text-sm">
                     <thead>
                         <tr class="text-left text-gray-500 border-b">
-                            <th class="px-4 py-3 font-medium">Nama</th>
-                            <th class="px-4 py-3 font-medium">Telepon</th>
-                            <th class="px-4 py-3 font-medium">Status</th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.branches.name')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.branches.phone')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.branches.status')); ?></th>
                             <th class="px-4 py-3"></th>
                         </tr>
                     </thead>
@@ -62,9 +62,9 @@
                                 <td class="px-4 py-3"><?php echo e($branch->phone ?: '—'); ?></td>
                                 <td class="px-4 py-3">
                                     <?php if($branch->is_active): ?>
-                                        <span class="text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 text-xs font-semibold">Aktif</span>
+                                        <span class="text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 text-xs font-semibold"><?php echo e(__('ui.active')); ?></span>
                                     <?php else: ?>
-                                        <span class="text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5 text-xs font-semibold">Nonaktif</span>
+                                        <span class="text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5 text-xs font-semibold"><?php echo e(__('ui.inactive')); ?></span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="px-4 py-3 text-right">
@@ -78,7 +78,7 @@
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['type' => 'button','@click' => 'open = !open']); ?>Aksi ▾ <?php echo $__env->renderComponent(); ?>
+<?php $component->withAttributes(['type' => 'button','@click' => 'open = !open']); ?><?php echo e(__('ui.actions')); ?> ▾ <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal3b0e04e43cf890250cc4d85cff4d94af)): ?>
 <?php $attributes = $__attributesOriginal3b0e04e43cf890250cc4d85cff4d94af; ?>
@@ -89,17 +89,17 @@
 <?php unset($__componentOriginal3b0e04e43cf890250cc4d85cff4d94af); ?>
 <?php endif; ?>
                                         <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 py-1 z-10">
-                                            <a href="<?php echo e(route('branches.edit', $branch)); ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Ubah</a>
+                                            <a href="<?php echo e(route('branches.edit', $branch)); ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"><?php echo e(__('ui.edit')); ?></a>
                                             <form method="POST" action="<?php echo e(route('branches.toggle-active', $branch)); ?>">
                                                 <?php echo csrf_field(); ?>
-                                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm <?php echo e($branch->is_active ? 'text-red-600' : 'text-emerald-700'); ?> hover:bg-gray-50"><?php echo e($branch->is_active ? 'Nonaktifkan' : 'Aktifkan'); ?></button>
+                                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm <?php echo e($branch->is_active ? 'text-red-600' : 'text-emerald-700'); ?> hover:bg-gray-50"><?php echo e($branch->is_active ? __('ui.deactivate') : __('ui.activate')); ?></button>
                                             </form>
                                         </div>
                                     </div>
                                 </td>
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                            <tr><td colspan="4" class="px-4 py-8 text-center text-gray-400">Belum ada cabang.</td></tr>
+                            <tr><td colspan="4" class="px-4 py-8 text-center text-gray-400"><?php echo e(__('ui.branches.empty')); ?></td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
