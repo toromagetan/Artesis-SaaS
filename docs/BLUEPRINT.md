@@ -17,8 +17,8 @@
 
 | Lapisan | Pilihan terkunci | Catatan |
 |---|---|---|
-| Bahasa | PHP 8.3.x | Dinyatakan di `composer.json` (`"php": "^8.3"`) |
-| Framework | Laravel 12.x | Rilis stabil terbaru saat Fase 0 dimulai; dikunci di `composer.lock` |
+| Bahasa | PHP 8.3+ (didukung s.d. 8.5) | Dinyatakan di `composer.json` (`"php": "^8.3"`) |
+| Framework | Laravel 13.x | Mayor terbaru (rilis 17 Maret 2026; perbaikan bug s.d. Q3 2027, keamanan s.d. 17 Maret 2028); rilis stabil 13.x terbaru saat Fase 0 dimulai, dikunci di `composer.lock`. *Direvisi dari Laravel 12 atas keputusan owner 2026-10-17.* |
 | Database | MySQL 8.0 (InnoDB, utf8mb4) | Satu-satunya DB yang didukung |
 | Frontend | Blade + Alpine.js; Livewire hanya untuk POS & Antrean Lab | Tanpa SPA; tanpa build-step wajib untuk halaman biasa |
 | CSS | Tailwind (build lokal, di-commit hasilnya tidak — lewat pipeline CI) | Palet emerald + emas sebagai token desain |
@@ -331,7 +331,7 @@ Setiap laporan merge/deploy WAJIB melampirkan output mentah yang dapat ditanya u
 Notasi: `[F<fase>.<nomor>]` tugas; "→" bergantung pada. Fase tidak dimulai sebelum gerbang keluar fase sebelumnya lulus dan owner memberi kata mulai.
 
 ## Fase 0 — Fondasi
-- [F0.1] Scaffold Laravel 12 + struktur modul `app/Modules/*` + CI (G.2) hijau pada commit kerangka.
+- [F0.1] Scaffold Laravel 13 + struktur modul `app/Modules/*` + CI (G.2) hijau pada commit kerangka.
 - [F0.2] Skema Identity & Master (B.1) + seeder peran/izin (Bagian C) + UI login, pengguna, peran, cabang.
 - [F0.3] `BranchContext` + global scope + pola Policy + `ArchitectureTest` awal → F0.2.
 - [F0.4] Audit log + helper `Money` + pemindai pola terlarang di CI → F0.1.

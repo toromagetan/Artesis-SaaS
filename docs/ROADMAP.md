@@ -62,7 +62,7 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 
 | Tugas | Hasil yang diserahkan | Dependensi |
 |---|---|---|
-| F0.1 Scaffold & CI | Repo berisi aplikasi Laravel 12 terstruktur `app/Modules/*`; workflow CI 5 job (Blueprint G.2) berjalan dan hijau pada commit kerangka; aturan branch: PR ke `main`, tanpa push langsung | — |
+| F0.1 Scaffold & CI | Repo berisi aplikasi Laravel 13 terstruktur `app/Modules/*`; workflow CI 5 job (Blueprint G.2) berjalan dan hijau pada commit kerangka; aturan branch: PR ke `main`, tanpa push langsung | — |
 | F0.2 Identity & Master dasar | Migrasi + seeder Bagian B.1 & registry izin Bagian C; UI: login, daftar pengguna, peran & matriks izin, cabang; aktor `is_platform` terpisah dari pelaku bisnis | F0.1 |
 | F0.3 Pagar cabang | `BranchContext`, global scope cabang, pola Policy per sumber daya, helper `managedBranchIds()` | F0.2 |
 | F0.4 Perkakas lintas | Helper `Money` (integer-sen), `AuditLogger`, pemindai pola terlarang (bc*, float-uang, izin di luar registry) sebagai job CI + `ArchitectureTest` | F0.1 |
