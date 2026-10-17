@@ -4,7 +4,9 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
 use App\Modules\Accounting\Http\Controllers\AccountController;
+use App\Modules\Accounting\Http\Controllers\FinancialReportController;
 use App\Modules\Accounting\Http\Controllers\JournalController;
+use App\Modules\Accounting\Http\Controllers\LedgerController;
 use App\Modules\Catalog\Http\Controllers\ProductController;
 use App\Modules\Clinical\Http\Controllers\PrescriptionController;
 use App\Modules\CRM\Http\Controllers\CustomerController;
@@ -116,15 +118,27 @@ Route::middleware('auth')->group(function () {
 
     // ---- Akuntansi (M.9) ----
     Route::get('/jurnal', [JournalController::class, 'index'])->middleware('permission:journals.view')->name('journals.index');
+    Route::get('/jurnal/buat', [JournalController::class, 'create'])->middleware('permission:journals.manual')->name('journals.create');
+    Route::post('/jurnal', [JournalController::class, 'store'])->middleware('permission:journals.manual')->name('journals.store');
+    Route::get('/buku-besar', [LedgerController::class, 'index'])->middleware('permission:journals.view')->name('ledger.index');
     Route::get('/jurnal/{journal}', [JournalController::class, 'show'])->middleware('permission:journals.view')->name('journals.show');
     Route::post('/jurnal/{journal}/balik', [JournalController::class, 'reverse'])->middleware('permission:journals.reverse')->name('journals.reverse');
     Route::get('/akun', [AccountController::class, 'index'])->middleware('permission:accounts.view')->name('accounts.index');
+    Route::get('/akun/buat', [AccountController::class, 'create'])->middleware('permission:accounts.manage')->name('accounts.create');
+    Route::post('/akun', [AccountController::class, 'store'])->middleware('permission:accounts.manage')->name('accounts.store');
+    Route::get('/akun/{account}', [AccountController::class, 'show'])->middleware('permission:accounts.view')->name('accounts.show');
+    Route::get('/akun/{account}/ubah', [AccountController::class, 'edit'])->middleware('permission:accounts.manage')->name('accounts.edit');
+    Route::put('/akun/{account}', [AccountController::class, 'update'])->middleware('permission:accounts.manage')->name('accounts.update');
+    Route::post('/akun/{account}/aktif', [AccountController::class, 'toggleActive'])->middleware('permission:accounts.manage')->name('accounts.toggle-active');
 
     // ---- Laporan inti (M.10) ----
     Route::get('/laporan/penjualan', [ReportController::class, 'sales'])->middleware('permission:reports.sales')->name('reports.sales');
     Route::get('/laporan/pembelian', [ReportController::class, 'purchases'])->middleware('permission:reports.purchases')->name('reports.purchases');
     Route::get('/laporan/stok', [ReportController::class, 'stock'])->middleware('permission:reports.stock')->name('reports.stock');
     Route::get('/laporan/utang', [ReportController::class, 'payables'])->middleware('permission:reports.purchases')->name('reports.payables');
+    Route::get('/laporan/neraca', [FinancialReportController::class, 'balanceSheet'])->middleware('permission:reports.financial')->name('financial.balance-sheet');
+    Route::get('/laporan/laba-rugi', [FinancialReportController::class, 'incomeStatement'])->middleware('permission:reports.financial')->name('financial.income');
+    Route::get('/laporan/arus-kas', [FinancialReportController::class, 'cashFlow'])->middleware('permission:reports.financial')->name('financial.cash-flow');
 
     // ---- Penjualan (M.3) ----
     Route::get('/penjualan', [SaleController::class, 'index'])->middleware('permission:sales.view')->name('sales.index');

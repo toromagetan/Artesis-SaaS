@@ -116,13 +116,15 @@
                 <a href="<?php echo e(route('stock.index')); ?>"
                    class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('stock.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.stock')); ?></a>
             <?php endif; ?>
-            <?php if(Auth::user()->hasPermission('reports.sales') || Auth::user()->hasPermission('reports.purchases') || Auth::user()->hasPermission('reports.stock')): ?>
+            <?php if(Auth::user()->hasPermission('reports.sales') || Auth::user()->hasPermission('reports.purchases') || Auth::user()->hasPermission('reports.stock') || Auth::user()->hasPermission('reports.financial')): ?>
                 <a href="<?php echo e(route('reports.sales')); ?>"
                    class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('reports.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.reports')); ?></a>
             <?php endif; ?>
             <?php if(Auth::user()->hasPermission('journals.view')): ?>
                 <a href="<?php echo e(route('journals.index')); ?>"
                    class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('journals.*') || request()->routeIs('accounts.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.journals')); ?></a>
+                <a href="<?php echo e(route('ledger.index')); ?>"
+                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('ledger.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.ledger')); ?></a>
             <?php endif; ?>
             <?php if(Auth::user()->hasPermission('stock.view')): ?>
                 <a href="<?php echo e(route('transfers.index')); ?>"
@@ -574,8 +576,27 @@
 <?php $component = $__componentOriginald69b52d99510f1e7cd3d80070b28ca18; ?>
 <?php unset($__componentOriginald69b52d99510f1e7cd3d80070b28ca18); ?>
 <?php endif; ?>
+                <?php if (isset($component)) { $__componentOriginald69b52d99510f1e7cd3d80070b28ca18 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginald69b52d99510f1e7cd3d80070b28ca18 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.responsive-nav-link','data' => ['href' => route('ledger.index'),'active' => request()->routeIs('ledger.*')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('responsive-nav-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('ledger.index')),'active' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('ledger.*'))]); ?><?php echo e(__('ui.nav.ledger')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginald69b52d99510f1e7cd3d80070b28ca18)): ?>
+<?php $attributes = $__attributesOriginald69b52d99510f1e7cd3d80070b28ca18; ?>
+<?php unset($__attributesOriginald69b52d99510f1e7cd3d80070b28ca18); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginald69b52d99510f1e7cd3d80070b28ca18)): ?>
+<?php $component = $__componentOriginald69b52d99510f1e7cd3d80070b28ca18; ?>
+<?php unset($__componentOriginald69b52d99510f1e7cd3d80070b28ca18); ?>
+<?php endif; ?>
             <?php endif; ?>
-            <?php if(Auth::user()->hasPermission('reports.sales') || Auth::user()->hasPermission('reports.purchases') || Auth::user()->hasPermission('reports.stock')): ?>
+            <?php if(Auth::user()->hasPermission('reports.sales') || Auth::user()->hasPermission('reports.purchases') || Auth::user()->hasPermission('reports.stock') || Auth::user()->hasPermission('reports.financial')): ?>
                 <?php if (isset($component)) { $__componentOriginald69b52d99510f1e7cd3d80070b28ca18 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginald69b52d99510f1e7cd3d80070b28ca18 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.responsive-nav-link','data' => ['href' => route('reports.sales'),'active' => request()->routeIs('reports.*')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>

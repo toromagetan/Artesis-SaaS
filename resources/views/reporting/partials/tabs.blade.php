@@ -10,4 +10,7 @@
     @can('reports.stock')
         <a href="{{ route('reports.stock') }}" class="rounded-lg px-3 py-1.5 {{ request()->routeIs('reports.stock') ? 'bg-lentera-700 text-white' : 'bg-white text-gray-600 shadow-soft hover:text-lentera-800' }}">{{ __('ui.reports.stock') }}</a>
     @endcan
+    @can('reports.financial')
+        <a href="{{ route('financial.balance-sheet') }}" class="rounded-lg px-3 py-1.5 {{ request()->routeIs('financial.*') ? 'bg-lentera-700 text-white' : 'bg-white text-gray-600 shadow-soft hover:text-lentera-800' }}">{{ __('ui.financial.title') }}</a>
+    @endcan
 </div>

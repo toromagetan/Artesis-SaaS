@@ -16,9 +16,15 @@
                     <x-text-input name="periode" value="{{ $period }}" placeholder="YYYY-MM" class="w-28" />
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
-                @can('accounts.view')
-                    <a href="{{ route('accounts.index') }}" class="text-sm text-lentera-800 underline">{{ __('ui.accounting.accounts') }}</a>
-                @endcan
+                <x-lentera.dropdown-aksi>
+                    @can('journals.manual')
+                        <x-lentera.menu-item :href="route('journals.create')">{{ __('ui.accounting.manual_journal') }}</x-lentera.menu-item>
+                    @endcan
+                    <x-lentera.menu-item :href="route('ledger.index')">{{ __('ui.accounting.ledger') }}</x-lentera.menu-item>
+                    @can('accounts.view')
+                        <x-lentera.menu-item :href="route('accounts.index')">{{ __('ui.accounting.accounts') }}</x-lentera.menu-item>
+                    @endcan
+                </x-lentera.dropdown-aksi>
             </div>
 
             <div class="overflow-hidden rounded-lg bg-white shadow-soft">

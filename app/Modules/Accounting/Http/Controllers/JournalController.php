@@ -3,10 +3,15 @@
 namespace App\Modules\Accounting\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Journal;
+use App\Modules\Accounting\Services\ManualJournalService;
 use App\Modules\Accounting\Services\PostingService;
+use App\Modules\Master\Models\Branch;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
@@ -48,5 +53,46 @@ class JournalController extends Controller
         $reversal = $posting->reverse($journal->load('lines.account'), $validated['reason'], $request->user());
 
         return redirect()->route('journals.show', $reversal)->with('status', __('ui.saved'));
+    }
+
+    /** Formulir jurnal manual (F1.2, izin journals.manual). */
+    public function create(): View
+    {
+        return view('accounting.journals.create', [
+            'accounts' => Account::where('is_active', true)->orderBy('code')->get(),
+            'branches' => Branch::orderBy('name')->get(),
+        ]);
+    }
+
+    public function store(Request $request, ManualJournalService $manual): RedirectResponse
+    {
+        $validated = $request->validate([
+            'journal_date' => ['required', 'date'],
+            'description' => ['nullable', 'string', 'max:255'],
+            'lines' => ['required', 'array'],
+            'lines.*.account_id' => ['nullable', Rule::exists('accounts', 'id')],
+            'lines.*.branch_id' => ['nullable', Rule::exists('branches', 'id')],
+            'lines.*.debit' => ['nullable', 'numeric', 'min:0'],
+            'lines.*.credit' => ['nullable', 'numeric', 'min:0'],
+            'lines.*.memo' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $lines = collect($validated['lines'])
+            ->filter(fn ($line) => ! empty($line['account_id']))
+            ->values()
+            ->all();
+
+        if (count($lines) < 2) {
+            throw ValidationException::withMessages(['lines' => __('ui.accounting.lines_min')]);
+        }
+
+        $journal = $manual->postManual(
+            $request->user(),
+            $validated['journal_date'],
+            $validated['description'] ?? null,
+            $lines,
+        );
+
+        return redirect()->route('journals.show', $journal)->with('status', __('ui.accounting.manual_created'));
     }
 }

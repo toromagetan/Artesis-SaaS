@@ -62,9 +62,87 @@
 <?php unset($__componentOriginal3b0e04e43cf890250cc4d85cff4d94af); ?>
 <?php endif; ?>
                 </form>
-                <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('accounts.view')): ?>
-                    <a href="<?php echo e(route('accounts.index')); ?>" class="text-sm text-lentera-800 underline"><?php echo e(__('ui.accounting.accounts')); ?></a>
-                <?php endif; ?>
+                <?php if (isset($component)) { $__componentOriginald1b6773295f170ebd8a8786911868804 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginald1b6773295f170ebd8a8786911868804 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.dropdown-aksi','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.dropdown-aksi'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+                    <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('journals.manual')): ?>
+                        <?php if (isset($component)) { $__componentOriginal462fb62fb1260a0c7276ba80b762793e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal462fb62fb1260a0c7276ba80b762793e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.menu-item','data' => ['href' => route('journals.create')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.menu-item'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('journals.create'))]); ?><?php echo e(__('ui.accounting.manual_journal')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $attributes = $__attributesOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $component = $__componentOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__componentOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
+                    <?php endif; ?>
+                    <?php if (isset($component)) { $__componentOriginal462fb62fb1260a0c7276ba80b762793e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal462fb62fb1260a0c7276ba80b762793e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.menu-item','data' => ['href' => route('ledger.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.menu-item'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('ledger.index'))]); ?><?php echo e(__('ui.accounting.ledger')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $attributes = $__attributesOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $component = $__componentOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__componentOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
+                    <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('accounts.view')): ?>
+                        <?php if (isset($component)) { $__componentOriginal462fb62fb1260a0c7276ba80b762793e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal462fb62fb1260a0c7276ba80b762793e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.menu-item','data' => ['href' => route('accounts.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.menu-item'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('accounts.index'))]); ?><?php echo e(__('ui.accounting.accounts')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $attributes = $__attributesOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $component = $__componentOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__componentOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
+                    <?php endif; ?>
+                 <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginald1b6773295f170ebd8a8786911868804)): ?>
+<?php $attributes = $__attributesOriginald1b6773295f170ebd8a8786911868804; ?>
+<?php unset($__attributesOriginald1b6773295f170ebd8a8786911868804); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginald1b6773295f170ebd8a8786911868804)): ?>
+<?php $component = $__componentOriginald1b6773295f170ebd8a8786911868804; ?>
+<?php unset($__componentOriginald1b6773295f170ebd8a8786911868804); ?>
+<?php endif; ?>
             </div>
 
             <div class="overflow-hidden rounded-lg bg-white shadow-soft">
