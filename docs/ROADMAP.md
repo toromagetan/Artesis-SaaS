@@ -24,7 +24,7 @@
 Sebuah tugas/modul dinyatakan selesai hanya bila SEMUA terpenuhi:
 - [ ] Skema & migrasi sesuai kamus data Blueprint (atau deviasi tercatat sebagai revisi Blueprint).
 - [ ] Service + validasi + policy terimplementasi sesuai spesifikasi perilaku modul (Blueprint Bagian D).
-- [ ] UI sesuai PRD Detail untuk menu terkait + konvensi UI bersama (Blueprint F.2) — termasuk bahasa desain clean/modern/elegan (F.2.0), aturan detail halaman penuh (bukan model preview), dan model tombol terkelompok (tepat satu dropdown Aksi + satu dropdown Cetak per layar, tanpa spam tombol).
+- [ ] UI sesuai PRD Detail untuk menu terkait + konvensi UI bersama (Blueprint F.2) — termasuk bahasa desain clean/modern/elegan (F.2.0), aturan detail halaman penuh (bukan model preview), dan model tombol terkelompok (tepat satu dropdown Aksi + satu dropdown Cetak per layar, tanpa spam tombol). Judul halaman tampil tepat satu kali (tidak ganda di header dan body) dan pencarian global selalu tersedia di bagian atas.
 - [ ] Test perilaku untuk operasi tulis utama lulus.
 - [ ] Matriks keamanan 6 kasus (Blueprint G.1.2) lulus untuk modul itu.
 - [ ] Test rekonsiliasi lulus bila modul menyentuh uang/stok.
@@ -73,7 +73,7 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 - [ ] CI hijau penuh pada run yang dikutip.
 - [ ] Matriks keamanan 6 kasus lulus pada modul Identity (termasuk aktor platform ditolak dari aksi bisnis & IDOR antar cabang).
 - [ ] Pemindai pola terlarang terbukti bekerja (commit uji berisi `bcadd(` ditolak CI — lalu dicabut).
-- [ ] Owner menyetujui pola UI pada modul contoh — termasuk tampilan clean/modern/elegan dan pola halaman detail penuh (bukan model preview).
+- [ ] Owner menyetujui pola UI pada modul contoh — termasuk tampilan clean/modern/elegan dan pola halaman detail penuh (bukan model preview) — serta **memilih varian tata letak (header ramping vs tanpa header) dari pratinjau perbandingan** yang diserahkan bersama modul contoh (judul tetap tampil satu kali; pencarian global selalu di atas pada kedua varian).
 - [ ] Laporan gerbang memenuhi standar bukti Blueprint G.4.
 **Risiko & mitigasi:** godaan memulai fitur sebelum fondasi selesai → gerbang ini eksplisit; tidak ada pengecualian "sekalian".
 

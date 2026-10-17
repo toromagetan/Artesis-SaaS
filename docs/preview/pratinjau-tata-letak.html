@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pratinjau Tata Letak Lentera — Dengan Header vs Tanpa Header</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif; }
+  body { background:#f4f5f3; color:#1f2937; padding:28px; }
+  h1.page { font-size:22px; color:#064e3b; margin-bottom:4px; }
+  p.sub { color:#6b7280; font-size:14px; margin-bottom:24px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  @media (max-width:980px){ .grid{ grid-template-columns:1fr; } }
+  .variant-label { font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#065f46; margin-bottom:10px; }
+  .variant-label span { color:#b45309; }
+  .frame { background:#ffffff; border:1px solid #e5e7eb; border-radius:14px; overflow:hidden; box-shadow:0 1px 3px rgba(6,78,59,.06); }
+  /* ===== Header variant ===== */
+  .topbar { display:flex; align-items:center; gap:16px; padding:12px 18px; border-bottom:1px solid #eef0ee; }
+  .logo { display:flex; align-items:center; gap:8px; font-weight:800; color:#064e3b; font-size:16px; }
+  .logo .dot { width:22px; height:22px; border-radius:50%; background:radial-gradient(circle at center,#f59e0b 0 26%,#065f46 27% 100%); display:inline-block; }
+  .topbar .title { font-size:15px; font-weight:700; color:#111827; }
+  .search { flex:1; display:flex; align-items:center; gap:8px; background:#f6f7f6; border:1px solid #e5e7eb; border-radius:10px; padding:8px 12px; color:#6b7280; font-size:13px; }
+  .avatar { width:30px; height:30px; border-radius:50%; background:#065f46; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .body { padding:18px; }
+  .search-sticky { position:sticky; top:0; display:flex; align-items:center; gap:8px; background:#f6f7f6; border:1px solid #e5e7eb; border-radius:10px; padding:9px 12px; color:#6b7280; font-size:13px; margin-bottom:16px; }
+  .bodytitle { font-size:19px; font-weight:800; color:#111827; margin-bottom:2px; }
+  .crumb { font-size:12px; color:#9ca3af; margin-bottom:14px; }
+  .toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .filters { display:flex; gap:8px; }
+  .chip { font-size:12px; padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; color:#4b5563; background:#fff; }
+  .dropdown { font-size:13px; font-weight:700; padding:8px 14px; border-radius:10px; border:none; cursor:pointer; }
+  .dd-gold { background:#d97706; color:#fff; }
+  .dd-line { background:#fff; color:#065f46; border:1px solid #a7f3d0; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; color:#6b7280; font-weight:600; padding:8px 10px; border-bottom:1px solid #eef0ee; }
+  td { padding:10px; border-bottom:1px solid #f3f4f3; font-variant-numeric:tabular-nums; }
+  .badge { font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px; }
+  .b-green { background:#ecfdf5; color:#065f46; }
+  .b-amber { background:#fffbeb; color:#b45309; }
+  .inv { color:#065f46; font-weight:700; }
+  .note { margin-top:14px; font-size:12.5px; color:#4b5563; background:#f9faf9; border:1px dashed #d1d5db; border-radius:10px; padding:10px 12px; line-height:1.55; }
+  .detailbar { display:flex; justify-content:space-between; align-items:center; margin-top:18px; padding-top:14px; border-top:1px solid #eef0ee; }
+  .back { font-size:13px; color:#065f46; font-weight:600; }
+  .group { display:flex; gap:8px; }
+</style>
+</head>
+<body>
+  <h1 class="page">Pratinjau Tata Letak Lentera</h1>
+  <p class="sub">Dua varian resmi (Blueprint F.2 butir 9). Konten contoh sama: daftar Penjualan + kepala halaman Detail. Judul tampil tepat satu kali pada masing-masing varian; pencarian global selalu di atas.</p>
+
+  <div class="grid">
+    <!-- ================= VARIANT A ================= -->
+    <div>
+      <div class="variant-label">Varian A — <span>Dengan Header Ramping</span></div>
+      <div class="frame">
+        <div class="topbar">
+          <div class="logo"><span class="dot"></span>Lentera</div>
+          <div class="title">Penjualan</div>
+          <div class="search">🔍 Cari pelanggan, produk, nomor transaksi, PO…</div>
+          <div class="avatar">O</div>
+        </div>
+        <div class="body">
+          <div class="toolbar">
+            <div class="filters"><span class="chip">Hari ini</span><span class="chip">Semua Cabang</span><span class="chip">Status: Semua</span></div>
+            <button class="dropdown dd-gold">Aksi ▾</button>
+          </div>
+          <table>
+            <tr><th>Nomor</th><th>Pelanggan</th><th>Total</th><th>Status</th><th></th></tr>
+            <tr><td class="inv">INV-202610-0142</td><td>Budi Waluyo</td><td>Rp2.450.000</td><td><span class="badge b-green">Lunas</span></td><td><button class="dropdown dd-line">Aksi ▾</button></td></tr>
+            <tr><td class="inv">INV-202610-0141</td><td>Sari Melati</td><td>Rp1.875.000</td><td><span class="badge b-amber">Proses Lensa</span></td><td><button class="dropdown dd-line">Aksi ▾</button></td></tr>
+            <tr><td class="inv">INV-202610-0140</td><td>Andi Pratama</td><td>Rp3.210.000</td><td><span class="badge b-green">Lunas</span></td><td><button class="dropdown dd-line">Aksi ▾</button></td></tr>
+          </table>
+          <div class="detailbar">
+            <span class="back">← Kembali</span>
+            <div class="group"><button class="dropdown dd-line">Cetak ▾</button><button class="dropdown dd-gold">Aksi ▾</button></div>
+          </div>
+          <div class="note"><b>Ciri varian A:</b> judul "Penjualan" hidup di header — body langsung berisi konten, tidak ada judul kedua. Pencarian global menempel di header. Di contoh kepala Detail (bawah), judul detail tidak diulang; hanya Kembali + dropdown Cetak + dropdown Aksi.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= VARIANT B ================= -->
+    <div>
+      <div class="variant-label">Varian B — <span>Tanpa Header</span></div>
+      <div class="frame">
+        <div class="body">
+          <div class="search-sticky">🔍 Cari pelanggan, produk, nomor transaksi, PO…</div>
+          <div class="bodytitle">Penjualan</div>
+          <div class="crumb">Beranda / Penjualan</div>
+          <div class="toolbar">
+            <div class="filters"><span class="chip">Hari ini</span><span class="chip">Semua Cabang</span><span class="chip">Status: Semua</span></div>
+            <button class="dropdown dd-gold">Aksi ▾</button>
+          </div>
+          <table>
+            <tr><th>Nomor</th><th>Pelanggan</th><th>Total</th><th>Status</th><th></th></tr>
+            <tr><td class="inv">INV-202610-0142</td><td>Budi Waluyo</td><td>Rp2.450.000</td><td><span class="badge b-green">Lunas</span></td><td><button class="dropdown dd-line">Aksi ▾</button></td></tr>
+            <tr><td class="inv">INV-202610-0141</td><td>Sari Melati</td><td>Rp1.875.000</td><td><span class="badge b-amber">Proses Lensa</span></td><td><button class="dropdown dd-line">Aksi ▾</button></td></tr>
+            <tr><td class="inv">INV-202610-0140</td><td>Andi Pratama</td><td>Rp3.210.000</td><td><span class="badge b-green">Lunas</span></td><td><button class="dropdown dd-line">Aksi ▾</button></td></tr>
+          </table>
+          <div class="detailbar">
+            <span class="back">← Kembali</span>
+            <div class="group"><button class="dropdown dd-line">Cetak ▾</button><button class="dropdown dd-gold">Aksi ▾</button></div>
+          </div>
+          <div class="note"><b>Ciri varian B:</b> tidak ada bar header sama sekali — layar terasa lebih lapang. Judul "Penjualan" tampil satu kali di body. Pencarian global tetap wajib di posisi paling atas (sticky). Navigasi modul berpindah ke sidebar kiri (tidak digambar di pratinjau ringkas ini).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
