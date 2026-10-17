@@ -2,6 +2,7 @@
 
 namespace App\Modules\Identity\Models;
 
+use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
 use App\Support\PermissionRegistry;
 use Database\Factories\UserFactory;
@@ -106,26 +107,21 @@ class User extends Authenticatable
     }
 
     /**
-     * Akses global lintas cabang: peran Owner (Blueprint B.1:
-     * user_branch kosong + Owner = akses global).
+     * Akses global lintas cabang: peran Owner (Blueprint B.1).
+     * Didelegasikan ke BranchContext — sumber kebenaran tunggal (F0.3).
      */
     public function hasGlobalAccess(): bool
     {
-        return ! $this->is_platform && $this->hasRole('Owner');
+        return BranchContext::for($this)->hasGlobalAccess();
     }
 
     /**
-     * ID cabang yang boleh diakses pengguna.
-     * Implementasi dasar F0.2 — BranchContext (F0.3) menjadi jalur kanonis.
+     * ID cabang yang boleh diakses pengguna (delegasi BranchContext).
      *
      * @return int[]
      */
     public function managedBranchIds(): array
     {
-        if ($this->hasGlobalAccess()) {
-            return Branch::query()->pluck('id')->all();
-        }
-
-        return $this->branches()->pluck('branches.id')->all();
+        return BranchContext::for($this)->managedBranchIds();
     }
 }
