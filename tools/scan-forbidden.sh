@@ -23,4 +23,12 @@ else
   echo "bersih."
 fi
 
+echo "== Pindai 3: cast (float)/(double) di kode aplikasi =="
+if grep -rnE '\((float|double)\)' app routes config database --include='*.php' 2>/dev/null; then
+  echo "DITOLAK: cast float dilarang di kode aplikasi (Blueprint A.5)."
+  fail=1
+else
+  echo "bersih."
+fi
+
 exit $fail

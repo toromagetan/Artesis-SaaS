@@ -5,7 +5,7 @@ namespace App\Modules\Identity\Services;
 use App\Modules\Identity\Models\Permission;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
-use App\Modules\Platform\Models\AuditLog;
+use App\Modules\Platform\Services\AuditLogger;
 use App\Support\PermissionRegistry;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -39,15 +39,14 @@ class RoleService
             $ids = Permission::whereIn('name', $permissionNames)->pluck('id');
             $role->permissions()->sync($ids);
 
-            AuditLog::create([
-                'user_id' => $actor?->id,
-                'action' => 'roles.sync_permissions',
-                'subject_type' => 'role',
-                'subject_id' => $role->id,
-                'old_values' => ['permissions' => $old],
-                'new_values' => ['permissions' => array_values($permissionNames)],
-                'ip' => request()?->ip(),
-            ]);
+            app(AuditLogger::class)->log(
+                action: 'roles.sync_permissions',
+                subjectType: 'role',
+                subjectId: $role->id,
+                oldValues: ['permissions' => $old],
+                newValues: ['permissions' => array_values($permissionNames)],
+                actor: $actor,
+            );
 
             return $role;
         });

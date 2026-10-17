@@ -5,7 +5,7 @@ namespace App\Modules\Identity\Services;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
-use App\Modules\Platform\Models\AuditLog;
+use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -125,14 +125,13 @@ class UserService
 
     private function audit(?User $actor, string $action, User $subject, ?array $old, ?array $new): void
     {
-        AuditLog::create([
-            'user_id' => $actor?->id,
-            'action' => $action,
-            'subject_type' => 'user',
-            'subject_id' => $subject->id,
-            'old_values' => $old,
-            'new_values' => $new,
-            'ip' => request()?->ip(),
-        ]);
+        app(AuditLogger::class)->log(
+            action: $action,
+            subjectType: 'user',
+            subjectId: $subject->id,
+            oldValues: $old,
+            newValues: $new,
+            actor: $actor,
+        );
     }
 }

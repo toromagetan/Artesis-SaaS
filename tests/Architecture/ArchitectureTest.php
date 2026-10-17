@@ -101,4 +101,68 @@ class ArchitectureTest extends TestCase
         // (revisi Blueprint), bukan selipan diam-diam.
         $this->assertCount(75, PermissionRegistry::all());
     }
+
+    public function test_no_float_casts_in_application_code(): void
+    {
+        $violations = [];
+        foreach ($this->phpFiles(['app', 'routes', 'config', 'database']) as $file) {
+            if (preg_match('/\((float|double)\)/', file_get_contents($file))) {
+                $violations[] = $file;
+            }
+        }
+
+        $this->assertSame([], $violations, 'Cast float dilarang (Blueprint A.5): '.implode(', ', $violations));
+    }
+
+    public function test_blade_views_contain_no_business_logic(): void
+    {
+        // A.3 butir 6: tidak ada logika bisnis di Blade — tidak ada akses
+        // DB langsung, tidak ada pembuatan/pembaruan model dari view.
+        $violations = [];
+        $views = [];
+        $path = resource_path('views');
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path));
+        foreach ($it as $file) {
+            if ($file->isFile() && str_ends_with($file->getFilename(), '.blade.php')) {
+                $views[] = $file->getPathname();
+            }
+        }
+
+        foreach ($views as $file) {
+            $code = file_get_contents($file);
+            if (preg_match('/\bDB::|::create\(|::query\(|->update\(|->delete\(|->save\(/', $code)) {
+                $violations[] = $file;
+            }
+        }
+
+        $this->assertSame([], $violations, 'Logika bisnis terlarang di Blade: '.implode(', ', $violations));
+    }
+
+    public function test_locale_files_have_matching_keys(): void
+    {
+        // ADR-011: kunci id dan en harus selalu berpasangan.
+        foreach (['ui', 'auth', 'validation', 'pagination', 'passwords'] as $file) {
+            $id = $this->flattenKeys(require lang_path("id/{$file}.php"));
+            $en = $this->flattenKeys(require lang_path("en/{$file}.php"));
+            sort($id);
+            sort($en);
+            $this->assertSame($id, $en, "Kunci lang/{$file} tidak berpasangan antara id dan en.");
+        }
+    }
+
+    /** @return string[] */
+    private function flattenKeys(array $values, string $prefix = ''): array
+    {
+        $keys = [];
+        foreach ($values as $key => $value) {
+            $full = $prefix === '' ? (string) $key : "{$prefix}.{$key}";
+            if (is_array($value)) {
+                $keys = array_merge($keys, $this->flattenKeys($value, $full));
+            } else {
+                $keys[] = $full;
+            }
+        }
+
+        return $keys;
+    }
 }
