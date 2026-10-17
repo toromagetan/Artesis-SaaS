@@ -21,11 +21,11 @@
     </div>
     @isset($type)
         <div>
-            <x-input-label for="tipe" :value="__('ui.stock.type')" />
+            <x-input-label for="tipe" :value="__('ui.products.type')" />
             <select id="tipe" name="tipe" class="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
                 <option value="">—</option>
                 @foreach (['frame', 'lens', 'rx', 'softlens', 'accessory'] as $t)
-                    <option value="{{ $t }}" @selected($type === $t)>{{ __('ui.sales.types.'.$t) }}</option>
+                    <option value="{{ $t }}" @selected($type === $t)>{{ __('ui.products.types.'.$t) }}</option>
                 @endforeach
             </select>
         </div>

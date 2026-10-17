@@ -1,5 +1,5 @@
-<nav x-data="{ open: false }" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="flex h-16 items-center gap-4">
+<nav x-data="{ open: false }" class="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+    <div class="flex h-16 items-center gap-2">
         <!-- Brand -->
         <div class="flex shrink-0 items-center gap-2">
             <a href="<?php echo e(route('dashboard')); ?>" class="flex items-center gap-2">
@@ -11,9 +11,17 @@
         </div>
 
         <!-- Navigation Links -->
-        <div class="hidden items-center gap-1 md:flex">
+        <div class="hidden min-w-0 flex-nowrap items-center gap-1 overflow-x-auto md:flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&_a]:whitespace-nowrap [&_button]:whitespace-nowrap">
             <a href="<?php echo e(route('dashboard')); ?>"
-               class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('dashboard') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.dashboard')); ?></a>
+               class="rounded-lg px-2 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('dashboard') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.dashboard')); ?></a>
+            <?php if(Auth::user()->hasPermission('sales.view')): ?>
+                <a href="<?php echo e(route('sales.index')); ?>"
+                   class="rounded-lg px-2 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('sales.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.sales')); ?></a>
+            <?php endif; ?>
+            <?php if(Auth::user()->hasPermission('customers.view')): ?>
+                <a href="<?php echo e(route('customers.index')); ?>"
+                   class="rounded-lg px-2 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('customers.*') || request()->routeIs('prescriptions.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.customers')); ?></a>
+            <?php endif; ?>
             <?php if(Auth::user()->hasPermission('pr.view') || Auth::user()->hasPermission('po.view')): ?>
                 <?php if (isset($component)) { $__componentOriginaldf8083d4a852c446488d8d384bbc7cbe = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe = $attributes; } ?>
@@ -26,7 +34,7 @@
 <?php endif; ?>
 <?php $component->withAttributes(['align' => 'left','width' => '56']); ?>
                      <?php $__env->slot('trigger', null, []); ?> 
-                        <button class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('pr.*') || request()->routeIs('po.*') || request()->routeIs('receipts.*') || request()->routeIs('payments.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>">
+                        <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('pr.*') || request()->routeIs('po.*') || request()->routeIs('receipts.*') || request()->routeIs('payments.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>">
                             <?php echo e(__('ui.nav.purchasing')); ?>
 
                             <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
@@ -110,57 +118,350 @@
             <?php endif; ?>
             <?php if(Auth::user()->hasPermission('lab.view')): ?>
                 <a href="<?php echo e(route('lab.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('lab.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.lab')); ?></a>
+                   class="rounded-lg px-2 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('lab.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.lab')); ?></a>
             <?php endif; ?>
             <?php if(Auth::user()->hasPermission('stock.view')): ?>
-                <a href="<?php echo e(route('stock.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('stock.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.stock')); ?></a>
+                <?php if (isset($component)) { $__componentOriginaldf8083d4a852c446488d8d384bbc7cbe = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown','data' => ['align' => 'left','width' => '48']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['align' => 'left','width' => '48']); ?>
+                     <?php $__env->slot('trigger', null, []); ?> 
+                        <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('stock.*') || request()->routeIs('transfers.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>">
+                            <?php echo e(__('ui.nav.stock')); ?>
+
+                            <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
+                        </button>
+                     <?php $__env->endSlot(); ?>
+                     <?php $__env->slot('content', null, []); ?> 
+                        <?php if (isset($component)) { $__componentOriginal68cb1971a2b92c9735f83359058f7108 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal68cb1971a2b92c9735f83359058f7108 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown-link','data' => ['href' => route('stock.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('stock.index'))]); ?><?php echo e(__('ui.nav.stock')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $attributes = $__attributesOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__attributesOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $component = $__componentOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__componentOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+                        <?php if (isset($component)) { $__componentOriginal68cb1971a2b92c9735f83359058f7108 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal68cb1971a2b92c9735f83359058f7108 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown-link','data' => ['href' => route('transfers.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('transfers.index'))]); ?><?php echo e(__('ui.nav.transfers')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $attributes = $__attributesOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__attributesOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $component = $__componentOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__componentOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+                        <?php if(Auth::user()->can('stock.import-initial')): ?>
+                            <?php if (isset($component)) { $__componentOriginal68cb1971a2b92c9735f83359058f7108 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal68cb1971a2b92c9735f83359058f7108 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown-link','data' => ['href' => route('stock.import.form')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('stock.import.form'))]); ?><?php echo e(__('ui.import.title')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $attributes = $__attributesOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__attributesOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $component = $__componentOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__componentOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+                        <?php endif; ?>
+                     <?php $__env->endSlot(); ?>
+                 <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe)): ?>
+<?php $attributes = $__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe; ?>
+<?php unset($__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginaldf8083d4a852c446488d8d384bbc7cbe)): ?>
+<?php $component = $__componentOriginaldf8083d4a852c446488d8d384bbc7cbe; ?>
+<?php unset($__componentOriginaldf8083d4a852c446488d8d384bbc7cbe); ?>
+<?php endif; ?>
             <?php endif; ?>
             <?php if(Auth::user()->hasPermission('reports.sales') || Auth::user()->hasPermission('reports.purchases') || Auth::user()->hasPermission('reports.stock') || Auth::user()->hasPermission('reports.financial')): ?>
                 <a href="<?php echo e(route('reports.sales')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('reports.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.reports')); ?></a>
+                   class="rounded-lg px-2 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('reports.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.reports')); ?></a>
             <?php endif; ?>
-            <?php if(Auth::user()->hasPermission('journals.view')): ?>
-                <a href="<?php echo e(route('journals.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('journals.*') || request()->routeIs('accounts.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.journals')); ?></a>
-                <a href="<?php echo e(route('ledger.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('ledger.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.ledger')); ?></a>
+            <?php if(Auth::user()->hasPermission('journals.view') || Auth::user()->hasPermission('assets.manage') || Auth::user()->hasPermission('periods.lock') || Auth::user()->hasPermission('payroll.manage')): ?>
+                <?php if (isset($component)) { $__componentOriginaldf8083d4a852c446488d8d384bbc7cbe = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown','data' => ['align' => 'left','width' => '56']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['align' => 'left','width' => '56']); ?>
+                     <?php $__env->slot('trigger', null, []); ?> 
+                        <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('journals.*') || request()->routeIs('ledger.*') || request()->routeIs('accounts.*') || request()->routeIs('assets.*') || request()->routeIs('periods.*') || request()->routeIs('payroll.*') || request()->routeIs('commissions.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>">
+                            <?php echo e(__('ui.nav.accounting')); ?>
+
+                            <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
+                        </button>
+                     <?php $__env->endSlot(); ?>
+                     <?php $__env->slot('content', null, []); ?> 
+                        <?php if(Auth::user()->hasPermission('journals.view')): ?>
+                            <?php if (isset($component)) { $__componentOriginal68cb1971a2b92c9735f83359058f7108 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal68cb1971a2b92c9735f83359058f7108 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown-link','data' => ['href' => route('journals.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('journals.index'))]); ?><?php echo e(__('ui.nav.journals')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $attributes = $__attributesOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__attributesOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $component = $__componentOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__componentOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+                            <?php if (isset($component)) { $__componentOriginal68cb1971a2b92c9735f83359058f7108 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal68cb1971a2b92c9735f83359058f7108 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown-link','data' => ['href' => route('ledger.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('ledger.index'))]); ?><?php echo e(__('ui.nav.ledger')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $attributes = $__attributesOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__attributesOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $component = $__componentOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__componentOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+                        <?php endif; ?>
+                        <?php if(Auth::user()->hasPermission('accounts.view')): ?>
+                            <?php if (isset($component)) { $__componentOriginal68cb1971a2b92c9735f83359058f7108 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal68cb1971a2b92c9735f83359058f7108 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown-link','data' => ['href' => route('accounts.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('accounts.index'))]); ?><?php echo e(__('ui.accounting.accounts')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $attributes = $__attributesOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__attributesOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $component = $__componentOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__componentOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+                        <?php endif; ?>
+                        <?php if(Auth::user()->hasPermission('assets.manage')): ?>
+                            <?php if (isset($component)) { $__componentOriginal68cb1971a2b92c9735f83359058f7108 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal68cb1971a2b92c9735f83359058f7108 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown-link','data' => ['href' => route('assets.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('assets.index'))]); ?><?php echo e(__('ui.nav.assets')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $attributes = $__attributesOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__attributesOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $component = $__componentOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__componentOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+                        <?php endif; ?>
+                        <?php if(Auth::user()->hasPermission('periods.lock')): ?>
+                            <?php if (isset($component)) { $__componentOriginal68cb1971a2b92c9735f83359058f7108 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal68cb1971a2b92c9735f83359058f7108 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown-link','data' => ['href' => route('periods.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('periods.index'))]); ?><?php echo e(__('ui.nav.periods')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $attributes = $__attributesOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__attributesOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $component = $__componentOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__componentOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+                        <?php endif; ?>
+                        <?php if(Auth::user()->hasPermission('payroll.manage')): ?>
+                            <?php if (isset($component)) { $__componentOriginal68cb1971a2b92c9735f83359058f7108 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal68cb1971a2b92c9735f83359058f7108 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown-link','data' => ['href' => route('payroll.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('payroll.index'))]); ?><?php echo e(__('ui.nav.payroll')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $attributes = $__attributesOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__attributesOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $component = $__componentOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__componentOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+                        <?php endif; ?>
+                     <?php $__env->endSlot(); ?>
+                 <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe)): ?>
+<?php $attributes = $__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe; ?>
+<?php unset($__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginaldf8083d4a852c446488d8d384bbc7cbe)): ?>
+<?php $component = $__componentOriginaldf8083d4a852c446488d8d384bbc7cbe; ?>
+<?php unset($__componentOriginaldf8083d4a852c446488d8d384bbc7cbe); ?>
+<?php endif; ?>
             <?php endif; ?>
-            <?php if(Auth::user()->hasPermission('assets.manage')): ?>
-                <a href="<?php echo e(route('assets.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('assets.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.assets')); ?></a>
-            <?php endif; ?>
-            <?php if(Auth::user()->hasPermission('periods.lock')): ?>
-                <a href="<?php echo e(route('periods.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('periods.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.periods')); ?></a>
-            <?php endif; ?>
-            <?php if(Auth::user()->hasPermission('payroll.manage')): ?>
-                <a href="<?php echo e(route('payroll.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('payroll.*') || request()->routeIs('commissions.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.payroll')); ?></a>
-            <?php endif; ?>
-            <?php if(Auth::user()->hasPermission('stock.view')): ?>
-                <a href="<?php echo e(route('transfers.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('transfers.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.transfers')); ?></a>
-            <?php endif; ?>
-            <?php if(Auth::user()->hasPermission('sales.view')): ?>
-                <a href="<?php echo e(route('sales.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('sales.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.sales')); ?></a>
-            <?php endif; ?>
-            <?php if(Auth::user()->hasPermission('customers.view')): ?>
-                <a href="<?php echo e(route('customers.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('customers.*') || request()->routeIs('prescriptions.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.customers')); ?></a>
-            <?php endif; ?>
-            <?php if(Auth::user()->hasPermission('users.manage')): ?>
-                <a href="<?php echo e(route('users.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('users.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.users')); ?></a>
-            <?php endif; ?>
-            <?php if(Auth::user()->hasPermission('roles.manage')): ?>
-                <a href="<?php echo e(route('roles.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('roles.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.roles')); ?></a>
-            <?php endif; ?>
-            <?php if(Auth::user()->hasPermission('branches.manage')): ?>
-                <a href="<?php echo e(route('branches.index')); ?>"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('branches.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>"><?php echo e(__('ui.nav.branches')); ?></a>
+            <?php if(Auth::user()->hasPermission('users.manage') || Auth::user()->hasPermission('roles.manage') || Auth::user()->hasPermission('branches.manage')): ?>
+                <?php if (isset($component)) { $__componentOriginaldf8083d4a852c446488d8d384bbc7cbe = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown','data' => ['align' => 'left','width' => '48']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['align' => 'left','width' => '48']); ?>
+                     <?php $__env->slot('trigger', null, []); ?> 
+                        <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('users.*') || request()->routeIs('roles.*') || request()->routeIs('branches.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?>">
+                            <?php echo e(__('ui.nav.settings')); ?>
+
+                            <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
+                        </button>
+                     <?php $__env->endSlot(); ?>
+                     <?php $__env->slot('content', null, []); ?> 
+                        <?php if(Auth::user()->hasPermission('users.manage')): ?>
+                            <?php if (isset($component)) { $__componentOriginal68cb1971a2b92c9735f83359058f7108 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal68cb1971a2b92c9735f83359058f7108 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown-link','data' => ['href' => route('users.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('users.index'))]); ?><?php echo e(__('ui.nav.users')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $attributes = $__attributesOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__attributesOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $component = $__componentOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__componentOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+                        <?php endif; ?>
+                        <?php if(Auth::user()->hasPermission('roles.manage')): ?>
+                            <?php if (isset($component)) { $__componentOriginal68cb1971a2b92c9735f83359058f7108 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal68cb1971a2b92c9735f83359058f7108 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown-link','data' => ['href' => route('roles.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('roles.index'))]); ?><?php echo e(__('ui.nav.roles')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $attributes = $__attributesOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__attributesOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $component = $__componentOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__componentOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+                        <?php endif; ?>
+                        <?php if(Auth::user()->hasPermission('branches.manage')): ?>
+                            <?php if (isset($component)) { $__componentOriginal68cb1971a2b92c9735f83359058f7108 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal68cb1971a2b92c9735f83359058f7108 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.dropdown-link','data' => ['href' => route('branches.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('dropdown-link'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('branches.index'))]); ?><?php echo e(__('ui.nav.branches')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $attributes = $__attributesOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__attributesOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal68cb1971a2b92c9735f83359058f7108)): ?>
+<?php $component = $__componentOriginal68cb1971a2b92c9735f83359058f7108; ?>
+<?php unset($__componentOriginal68cb1971a2b92c9735f83359058f7108); ?>
+<?php endif; ?>
+                        <?php endif; ?>
+                     <?php $__env->endSlot(); ?>
+                 <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe)): ?>
+<?php $attributes = $__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe; ?>
+<?php unset($__attributesOriginaldf8083d4a852c446488d8d384bbc7cbe); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginaldf8083d4a852c446488d8d384bbc7cbe)): ?>
+<?php $component = $__componentOriginaldf8083d4a852c446488d8d384bbc7cbe; ?>
+<?php unset($__componentOriginaldf8083d4a852c446488d8d384bbc7cbe); ?>
+<?php endif; ?>
             <?php endif; ?>
             <?php if(Auth::user()->hasPermission('products.view')): ?>
                 <?php if (isset($component)) { $__componentOriginaldf8083d4a852c446488d8d384bbc7cbe = $component; } ?>
@@ -174,7 +475,7 @@
 <?php endif; ?>
 <?php $component->withAttributes(['align' => 'left','width' => '48']); ?>
                      <?php $__env->slot('trigger', null, []); ?> 
-                        <button class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('products.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?> focus:outline-none">
+                        <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium transition duration-150 <?php echo e(request()->routeIs('products.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800'); ?> focus:outline-none">
                             <?php echo e(__('ui.nav.catalog')); ?>
 
                             <svg class="ms-1 h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
@@ -217,7 +518,7 @@
         </div>
 
         <!-- Global Search (selalu di header) -->
-        <div class="mx-auto hidden w-full max-w-md sm:block">
+        <div class="mx-auto hidden w-40 shrink-0 sm:block">
             <?php if (isset($component)) { $__componentOriginal28e011f81b300c8f378a326525eb59f5 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal28e011f81b300c8f378a326525eb59f5 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.global-search','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -253,8 +554,8 @@
 <?php endif; ?>
 <?php $component->withAttributes(['align' => 'right','width' => '48']); ?>
                  <?php $__env->slot('trigger', null, []); ?> 
-                    <button class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-500 transition duration-150 hover:text-lentera-800 focus:outline-none">
-                        <?php echo e(__('ui.language')); ?>: <?php echo e(strtoupper(app()->getLocale())); ?>
+                    <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium text-gray-500 transition duration-150 hover:text-lentera-800 focus:outline-none">
+                        <?php echo e(strtoupper(app()->getLocale())); ?>
 
                         <svg class="ms-1 h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                     </button>
@@ -328,7 +629,7 @@
 <?php endif; ?>
 <?php $component->withAttributes(['align' => 'right','width' => '48']); ?>
                  <?php $__env->slot('trigger', null, []); ?> 
-                    <button class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-500 transition duration-150 hover:text-lentera-800 focus:outline-none">
+                    <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium text-gray-500 transition duration-150 hover:text-lentera-800 focus:outline-none">
                         <?php echo e(Auth::user()->name); ?>
 
                         <svg class="ms-1 h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>

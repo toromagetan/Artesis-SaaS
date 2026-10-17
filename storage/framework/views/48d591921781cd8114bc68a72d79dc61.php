@@ -118,14 +118,14 @@
         <div>
             <?php if (isset($component)) { $__componentOriginale3da9d84bb64e4bc2eeebaafabfb2581 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginale3da9d84bb64e4bc2eeebaafabfb2581 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.input-label','data' => ['for' => 'tipe','value' => __('ui.stock.type')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.input-label','data' => ['for' => 'tipe','value' => __('ui.products.type')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('input-label'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['for' => 'tipe','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('ui.stock.type'))]); ?>
+<?php $component->withAttributes(['for' => 'tipe','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('ui.products.type'))]); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginale3da9d84bb64e4bc2eeebaafabfb2581)): ?>
@@ -139,7 +139,7 @@
             <select id="tipe" name="tipe" class="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
                 <option value="">—</option>
                 <?php $__currentLoopData = ['frame', 'lens', 'rx', 'softlens', 'accessory']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $t): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <option value="<?php echo e($t); ?>" <?php if($type === $t): echo 'selected'; endif; ?>><?php echo e(__('ui.sales.types.'.$t)); ?></option>
+                    <option value="<?php echo e($t); ?>" <?php if($type === $t): echo 'selected'; endif; ?>><?php echo e(__('ui.products.types.'.$t)); ?></option>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </select>
         </div>

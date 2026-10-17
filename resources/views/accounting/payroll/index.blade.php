@@ -58,7 +58,7 @@
                                     @if ($entry->journal_id)
                                         <a href="{{ route('journals.show', $entry->journal_id) }}" class="text-lentera-800 underline">{{ __('ui.payroll.posted_badge') }}</a>
                                     @else
-                                        <x-lentera.badge tone="gray">{{ __('ui.payroll.unposted') }}</x-lentera.badge>
+                                        <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-500">{{ __('ui.payroll.unposted') }}</span>
                                     @endif
                                 </td>
                             </tr>

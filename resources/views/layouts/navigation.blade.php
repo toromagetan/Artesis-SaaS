@@ -1,5 +1,5 @@
-<nav x-data="{ open: false }" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="flex h-16 items-center gap-4">
+<nav x-data="{ open: false }" class="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+    <div class="flex h-16 items-center gap-2">
         <!-- Brand -->
         <div class="flex shrink-0 items-center gap-2">
             <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
@@ -11,13 +11,21 @@
         </div>
 
         <!-- Navigation Links -->
-        <div class="hidden items-center gap-1 md:flex">
+        <div class="hidden min-w-0 flex-nowrap items-center gap-1 overflow-x-auto md:flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&_a]:whitespace-nowrap [&_button]:whitespace-nowrap">
             <a href="{{ route('dashboard') }}"
-               class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('dashboard') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.dashboard') }}</a>
+               class="rounded-lg px-2 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('dashboard') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.dashboard') }}</a>
+            @if (Auth::user()->hasPermission('sales.view'))
+                <a href="{{ route('sales.index') }}"
+                   class="rounded-lg px-2 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('sales.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.sales') }}</a>
+            @endif
+            @if (Auth::user()->hasPermission('customers.view'))
+                <a href="{{ route('customers.index') }}"
+                   class="rounded-lg px-2 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('customers.*') || request()->routeIs('prescriptions.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.customers') }}</a>
+            @endif
             @if (Auth::user()->hasPermission('pr.view') || Auth::user()->hasPermission('po.view'))
                 <x-dropdown align="left" width="56">
                     <x-slot name="trigger">
-                        <button class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('pr.*') || request()->routeIs('po.*') || request()->routeIs('receipts.*') || request()->routeIs('payments.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">
+                        <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('pr.*') || request()->routeIs('po.*') || request()->routeIs('receipts.*') || request()->routeIs('payments.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">
                             {{ __('ui.nav.purchasing') }}
                             <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
                         </button>
@@ -37,62 +45,82 @@
             @endif
             @if (Auth::user()->hasPermission('lab.view'))
                 <a href="{{ route('lab.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('lab.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.lab') }}</a>
+                   class="rounded-lg px-2 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('lab.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.lab') }}</a>
             @endif
             @if (Auth::user()->hasPermission('stock.view'))
-                <a href="{{ route('stock.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('stock.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.stock') }}</a>
+                <x-dropdown align="left" width="48">
+                    <x-slot name="trigger">
+                        <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('stock.*') || request()->routeIs('transfers.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">
+                            {{ __('ui.nav.stock') }}
+                            <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </x-slot>
+                    <x-slot name="content">
+                        <x-dropdown-link :href="route('stock.index')">{{ __('ui.nav.stock') }}</x-dropdown-link>
+                        <x-dropdown-link :href="route('transfers.index')">{{ __('ui.nav.transfers') }}</x-dropdown-link>
+                        @if (Auth::user()->can('stock.import-initial'))
+                            <x-dropdown-link :href="route('stock.import.form')">{{ __('ui.import.title') }}</x-dropdown-link>
+                        @endif
+                    </x-slot>
+                </x-dropdown>
             @endif
             @if (Auth::user()->hasPermission('reports.sales') || Auth::user()->hasPermission('reports.purchases') || Auth::user()->hasPermission('reports.stock') || Auth::user()->hasPermission('reports.financial'))
                 <a href="{{ route('reports.sales') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('reports.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.reports') }}</a>
+                   class="rounded-lg px-2 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('reports.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.reports') }}</a>
             @endif
-            @if (Auth::user()->hasPermission('journals.view'))
-                <a href="{{ route('journals.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('journals.*') || request()->routeIs('accounts.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.journals') }}</a>
-                <a href="{{ route('ledger.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('ledger.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.ledger') }}</a>
+            @if (Auth::user()->hasPermission('journals.view') || Auth::user()->hasPermission('assets.manage') || Auth::user()->hasPermission('periods.lock') || Auth::user()->hasPermission('payroll.manage'))
+                <x-dropdown align="left" width="56">
+                    <x-slot name="trigger">
+                        <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('journals.*') || request()->routeIs('ledger.*') || request()->routeIs('accounts.*') || request()->routeIs('assets.*') || request()->routeIs('periods.*') || request()->routeIs('payroll.*') || request()->routeIs('commissions.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">
+                            {{ __('ui.nav.accounting') }}
+                            <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </x-slot>
+                    <x-slot name="content">
+                        @if (Auth::user()->hasPermission('journals.view'))
+                            <x-dropdown-link :href="route('journals.index')">{{ __('ui.nav.journals') }}</x-dropdown-link>
+                            <x-dropdown-link :href="route('ledger.index')">{{ __('ui.nav.ledger') }}</x-dropdown-link>
+                        @endif
+                        @if (Auth::user()->hasPermission('accounts.view'))
+                            <x-dropdown-link :href="route('accounts.index')">{{ __('ui.accounting.accounts') }}</x-dropdown-link>
+                        @endif
+                        @if (Auth::user()->hasPermission('assets.manage'))
+                            <x-dropdown-link :href="route('assets.index')">{{ __('ui.nav.assets') }}</x-dropdown-link>
+                        @endif
+                        @if (Auth::user()->hasPermission('periods.lock'))
+                            <x-dropdown-link :href="route('periods.index')">{{ __('ui.nav.periods') }}</x-dropdown-link>
+                        @endif
+                        @if (Auth::user()->hasPermission('payroll.manage'))
+                            <x-dropdown-link :href="route('payroll.index')">{{ __('ui.nav.payroll') }}</x-dropdown-link>
+                        @endif
+                    </x-slot>
+                </x-dropdown>
             @endif
-            @if (Auth::user()->hasPermission('assets.manage'))
-                <a href="{{ route('assets.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('assets.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.assets') }}</a>
-            @endif
-            @if (Auth::user()->hasPermission('periods.lock'))
-                <a href="{{ route('periods.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('periods.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.periods') }}</a>
-            @endif
-            @if (Auth::user()->hasPermission('payroll.manage'))
-                <a href="{{ route('payroll.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('payroll.*') || request()->routeIs('commissions.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.payroll') }}</a>
-            @endif
-            @if (Auth::user()->hasPermission('stock.view'))
-                <a href="{{ route('transfers.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('transfers.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.transfers') }}</a>
-            @endif
-            @if (Auth::user()->hasPermission('sales.view'))
-                <a href="{{ route('sales.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('sales.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.sales') }}</a>
-            @endif
-            @if (Auth::user()->hasPermission('customers.view'))
-                <a href="{{ route('customers.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('customers.*') || request()->routeIs('prescriptions.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.customers') }}</a>
-            @endif
-            @if (Auth::user()->hasPermission('users.manage'))
-                <a href="{{ route('users.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('users.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.users') }}</a>
-            @endif
-            @if (Auth::user()->hasPermission('roles.manage'))
-                <a href="{{ route('roles.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('roles.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.roles') }}</a>
-            @endif
-            @if (Auth::user()->hasPermission('branches.manage'))
-                <a href="{{ route('branches.index') }}"
-                   class="rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('branches.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">{{ __('ui.nav.branches') }}</a>
+            @if (Auth::user()->hasPermission('users.manage') || Auth::user()->hasPermission('roles.manage') || Auth::user()->hasPermission('branches.manage'))
+                <x-dropdown align="left" width="48">
+                    <x-slot name="trigger">
+                        <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('users.*') || request()->routeIs('roles.*') || request()->routeIs('branches.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }}">
+                            {{ __('ui.nav.settings') }}
+                            <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </x-slot>
+                    <x-slot name="content">
+                        @if (Auth::user()->hasPermission('users.manage'))
+                            <x-dropdown-link :href="route('users.index')">{{ __('ui.nav.users') }}</x-dropdown-link>
+                        @endif
+                        @if (Auth::user()->hasPermission('roles.manage'))
+                            <x-dropdown-link :href="route('roles.index')">{{ __('ui.nav.roles') }}</x-dropdown-link>
+                        @endif
+                        @if (Auth::user()->hasPermission('branches.manage'))
+                            <x-dropdown-link :href="route('branches.index')">{{ __('ui.nav.branches') }}</x-dropdown-link>
+                        @endif
+                    </x-slot>
+                </x-dropdown>
             @endif
             @if (Auth::user()->hasPermission('products.view'))
                 <x-dropdown align="left" width="48">
                     <x-slot name="trigger">
-                        <button class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('products.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }} focus:outline-none">
+                        <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium transition duration-150 {{ request()->routeIs('products.*') ? 'bg-lentera-50 text-lentera-800' : 'text-gray-600 hover:bg-gray-50 hover:text-lentera-800' }} focus:outline-none">
                             {{ __('ui.nav.catalog') }}
                             <svg class="ms-1 h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                         </button>
@@ -107,7 +135,7 @@
         </div>
 
         <!-- Global Search (selalu di header) -->
-        <div class="mx-auto hidden w-full max-w-md sm:block">
+        <div class="mx-auto hidden w-40 shrink-0 sm:block">
             <x-lentera.global-search />
         </div>
 
@@ -115,8 +143,8 @@
             <!-- Language Dropdown (ADR-011) -->
             <x-dropdown align="right" width="48">
                 <x-slot name="trigger">
-                    <button class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-500 transition duration-150 hover:text-lentera-800 focus:outline-none">
-                        {{ __('ui.language') }}: {{ strtoupper(app()->getLocale()) }}
+                    <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium text-gray-500 transition duration-150 hover:text-lentera-800 focus:outline-none">
+                        {{ strtoupper(app()->getLocale()) }}
                         <svg class="ms-1 h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                     </button>
                 </x-slot>
@@ -135,7 +163,7 @@
             <!-- User Dropdown -->
             <x-dropdown align="right" width="48">
                 <x-slot name="trigger">
-                    <button class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-500 transition duration-150 hover:text-lentera-800 focus:outline-none">
+                    <button class="inline-flex items-center rounded-lg px-2 py-2 text-sm font-medium text-gray-500 transition duration-150 hover:text-lentera-800 focus:outline-none">
                         {{ Auth::user()->name }}
                         <svg class="ms-1 h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                     </button>

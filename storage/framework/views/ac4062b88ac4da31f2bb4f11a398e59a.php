@@ -159,25 +159,7 @@
                                     <?php if($entry->journal_id): ?>
                                         <a href="<?php echo e(route('journals.show', $entry->journal_id)); ?>" class="text-lentera-800 underline"><?php echo e(__('ui.payroll.posted_badge')); ?></a>
                                     <?php else: ?>
-                                        <?php if (isset($component)) { $__componentOriginal1a10f463ba2873b939123688d39cb7c8 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal1a10f463ba2873b939123688d39cb7c8 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.badge','data' => ['tone' => 'gray']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('lentera.badge'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['tone' => 'gray']); ?><?php echo e(__('ui.payroll.unposted')); ?> <?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal1a10f463ba2873b939123688d39cb7c8)): ?>
-<?php $attributes = $__attributesOriginal1a10f463ba2873b939123688d39cb7c8; ?>
-<?php unset($__attributesOriginal1a10f463ba2873b939123688d39cb7c8); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal1a10f463ba2873b939123688d39cb7c8)): ?>
-<?php $component = $__componentOriginal1a10f463ba2873b939123688d39cb7c8; ?>
-<?php unset($__componentOriginal1a10f463ba2873b939123688d39cb7c8); ?>
-<?php endif; ?>
+                                        <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-500"><?php echo e(__('ui.payroll.unposted')); ?></span>
                                     <?php endif; ?>
                                 </td>
                             </tr>

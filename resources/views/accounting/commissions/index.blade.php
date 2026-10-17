@@ -57,7 +57,7 @@
                         <tr class="border-b border-gray-100 text-left text-gray-500">
                             <th class="px-4 py-3 font-medium">{{ __('ui.payroll.beneficiary') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.payroll.source') }}</th>
-                            <th class="px-4 py-3 font-medium text-right">{{ __('ui.payroll.base') }}</th>
+                            <th class="px-4 py-3 font-medium text-right">{{ __('ui.payroll.commission_base') }}</th>
                             <th class="px-4 py-3 font-medium text-right">{{ __('ui.payroll.rate') }}</th>
                             <th class="px-4 py-3 font-medium text-right">{{ __('ui.payroll.amount') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.payroll.status') }}</th>
@@ -79,11 +79,11 @@
                                 <td class="px-4 py-3 text-right font-medium tnum">{{ $row->amountMoney()->format() }}</td>
                                 <td class="px-4 py-3">
                                     @if ($row->status === 'paid')
-                                        <x-lentera.badge tone="green">{{ __('ui.payroll.status_paid') }}</x-lentera.badge>
+                                        <span class="inline-flex items-center rounded-full border border-lentera-200 bg-lentera-50 px-2 py-0.5 text-xs font-semibold text-lentera-700">{{ __('ui.payroll.status_paid') }}</span>
                                     @elseif ($row->status === 'corrected')
-                                        <x-lentera.badge tone="red">{{ __('ui.payroll.status_corrected') }}</x-lentera.badge>
+                                        <span class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">{{ __('ui.payroll.status_corrected') }}</span>
                                     @else
-                                        <x-lentera.badge tone="gray">{{ __('ui.payroll.status_accrued') }}</x-lentera.badge>
+                                        <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-500">{{ __('ui.payroll.status_accrued') }}</span>
                                     @endif
                                 </td>
                             </tr>

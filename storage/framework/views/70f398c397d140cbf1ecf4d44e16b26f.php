@@ -176,7 +176,7 @@
                         <tr class="border-b border-gray-100 text-left text-gray-500">
                             <th class="px-4 py-3 font-medium"><?php echo e(__('ui.payroll.beneficiary')); ?></th>
                             <th class="px-4 py-3 font-medium"><?php echo e(__('ui.payroll.source')); ?></th>
-                            <th class="px-4 py-3 font-medium text-right"><?php echo e(__('ui.payroll.base')); ?></th>
+                            <th class="px-4 py-3 font-medium text-right"><?php echo e(__('ui.payroll.commission_base')); ?></th>
                             <th class="px-4 py-3 font-medium text-right"><?php echo e(__('ui.payroll.rate')); ?></th>
                             <th class="px-4 py-3 font-medium text-right"><?php echo e(__('ui.payroll.amount')); ?></th>
                             <th class="px-4 py-3 font-medium"><?php echo e(__('ui.payroll.status')); ?></th>
@@ -199,65 +199,11 @@
                                 <td class="px-4 py-3 text-right font-medium tnum"><?php echo e($row->amountMoney()->format()); ?></td>
                                 <td class="px-4 py-3">
                                     <?php if($row->status === 'paid'): ?>
-                                        <?php if (isset($component)) { $__componentOriginal1a10f463ba2873b939123688d39cb7c8 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal1a10f463ba2873b939123688d39cb7c8 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.badge','data' => ['tone' => 'green']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('lentera.badge'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['tone' => 'green']); ?><?php echo e(__('ui.payroll.status_paid')); ?> <?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal1a10f463ba2873b939123688d39cb7c8)): ?>
-<?php $attributes = $__attributesOriginal1a10f463ba2873b939123688d39cb7c8; ?>
-<?php unset($__attributesOriginal1a10f463ba2873b939123688d39cb7c8); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal1a10f463ba2873b939123688d39cb7c8)): ?>
-<?php $component = $__componentOriginal1a10f463ba2873b939123688d39cb7c8; ?>
-<?php unset($__componentOriginal1a10f463ba2873b939123688d39cb7c8); ?>
-<?php endif; ?>
+                                        <span class="inline-flex items-center rounded-full border border-lentera-200 bg-lentera-50 px-2 py-0.5 text-xs font-semibold text-lentera-700"><?php echo e(__('ui.payroll.status_paid')); ?></span>
                                     <?php elseif($row->status === 'corrected'): ?>
-                                        <?php if (isset($component)) { $__componentOriginal1a10f463ba2873b939123688d39cb7c8 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal1a10f463ba2873b939123688d39cb7c8 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.badge','data' => ['tone' => 'red']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('lentera.badge'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['tone' => 'red']); ?><?php echo e(__('ui.payroll.status_corrected')); ?> <?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal1a10f463ba2873b939123688d39cb7c8)): ?>
-<?php $attributes = $__attributesOriginal1a10f463ba2873b939123688d39cb7c8; ?>
-<?php unset($__attributesOriginal1a10f463ba2873b939123688d39cb7c8); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal1a10f463ba2873b939123688d39cb7c8)): ?>
-<?php $component = $__componentOriginal1a10f463ba2873b939123688d39cb7c8; ?>
-<?php unset($__componentOriginal1a10f463ba2873b939123688d39cb7c8); ?>
-<?php endif; ?>
+                                        <span class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600"><?php echo e(__('ui.payroll.status_corrected')); ?></span>
                                     <?php else: ?>
-                                        <?php if (isset($component)) { $__componentOriginal1a10f463ba2873b939123688d39cb7c8 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal1a10f463ba2873b939123688d39cb7c8 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.badge','data' => ['tone' => 'gray']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('lentera.badge'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['tone' => 'gray']); ?><?php echo e(__('ui.payroll.status_accrued')); ?> <?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal1a10f463ba2873b939123688d39cb7c8)): ?>
-<?php $attributes = $__attributesOriginal1a10f463ba2873b939123688d39cb7c8; ?>
-<?php unset($__attributesOriginal1a10f463ba2873b939123688d39cb7c8); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal1a10f463ba2873b939123688d39cb7c8)): ?>
-<?php $component = $__componentOriginal1a10f463ba2873b939123688d39cb7c8; ?>
-<?php unset($__componentOriginal1a10f463ba2873b939123688d39cb7c8); ?>
-<?php endif; ?>
+                                        <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-500"><?php echo e(__('ui.payroll.status_accrued')); ?></span>
                                     <?php endif; ?>
                                 </td>
                             </tr>
