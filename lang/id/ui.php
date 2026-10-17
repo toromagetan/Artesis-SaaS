@@ -496,6 +496,26 @@ return [
         ],
     ],
 
+    'dashboard' => [
+        'title' => 'Dashboard',
+        'sales_today' => 'Penjualan Hari Ini',
+        'transactions' => 'transaksi',
+        'receivable' => 'Piutang Beredar',
+        'lab_queue' => 'Antrean Lab',
+        'lab_waiting' => 'Menunggu',
+        'lab_edging' => 'Edging',
+        'lab_qc' => 'QC',
+        'lab_ready' => 'Siap Ambil',
+        'stock_alerts' => 'Peringatan Stok',
+        'stock_low' => 'Menipis (≤5)',
+        'stock_out' => 'Habis',
+        'stock_backorder' => 'Backorder',
+        'transfers_in' => 'Transfer Masuk Menunggu',
+        'pr_pending' => 'PR Menunggu Persetujuan',
+        'payables' => 'Utang Supplier',
+        'empty' => 'Tidak ada kartu untuk peran Anda.',
+    ],
+
     'reports' => [
         'title' => 'Laporan',
         'sales' => 'Laporan Penjualan',

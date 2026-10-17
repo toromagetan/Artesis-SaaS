@@ -62,29 +62,39 @@ class PurchaseRequestService
 
     public function submit(User $actor, PurchaseRequest $pr): PurchaseRequest
     {
-        $this->mustBe($pr, ['draft'], 'pr.submit');
-        $pr->update(['status' => 'submitted']);
-        $this->audit->log(action: 'pr.submit', subjectType: 'purchase_request', subjectId: $pr->id, branchId: $pr->branch_id, actor: $actor);
-
-        return $pr;
+        return $this->transition($actor, $pr, ['draft'], 'submitted', 'pr.submit');
     }
 
     public function approve(User $actor, PurchaseRequest $pr): PurchaseRequest
     {
-        $this->mustBe($pr, ['submitted'], 'pr.approve');
-        $pr->update(['status' => 'approved']);
-        $this->audit->log(action: 'pr.approve', subjectType: 'purchase_request', subjectId: $pr->id, branchId: $pr->branch_id, actor: $actor);
-
-        return $pr;
+        return $this->transition($actor, $pr, ['submitted'], 'approved', 'pr.approve');
     }
 
     public function cancel(User $actor, PurchaseRequest $pr): PurchaseRequest
     {
-        $this->mustBe($pr, ['draft', 'submitted'], 'pr.cancel');
-        $pr->update(['status' => 'cancelled']);
-        $this->audit->log(action: 'pr.cancel', subjectType: 'purchase_request', subjectId: $pr->id, branchId: $pr->branch_id, actor: $actor);
+        return $this->transition($actor, $pr, ['draft', 'submitted'], 'cancelled', 'pr.cancel');
+    }
 
-        return $pr;
+    /**
+     * Transisi status PR aman-konkurensi: baris dikunci ulang di
+     * dalam transaksi sebelum status diperiksa — submit/approve/
+     * cancel ganda serentak hanya boleh berhasil SATU kali
+     * (gerbang konkurensi G.1.7).
+     *
+     * @param  string[]  $allowed
+     */
+    private function transition(User $actor, PurchaseRequest $pr, array $allowed, string $to, string $action): PurchaseRequest
+    {
+        return DB::transaction(function () use ($actor, $pr, $allowed, $to, $action) {
+            $locked = PurchaseRequest::where('id', $pr->id)->lockForUpdate()->firstOrFail();
+            $this->mustBe($locked, $allowed, $action);
+            $locked->update(['status' => $to]);
+            $this->audit->log(action: $action, subjectType: 'purchase_request', subjectId: $locked->id, branchId: $locked->branch_id, actor: $actor);
+            // Cerminkan ke instance pemanggil (semantik in-place lama).
+            $pr->forceFill($locked->getAttributes())->syncOriginal();
+
+            return $locked;
+        });
     }
 
     /**

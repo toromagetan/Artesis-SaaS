@@ -496,6 +496,26 @@ return [
         ],
     ],
 
+    'dashboard' => [
+        'title' => 'Dashboard',
+        'sales_today' => "Today's Sales",
+        'transactions' => 'transactions',
+        'receivable' => 'Outstanding Receivables',
+        'lab_queue' => 'Lab Queue',
+        'lab_waiting' => 'Waiting',
+        'lab_edging' => 'Edging',
+        'lab_qc' => 'QC',
+        'lab_ready' => 'Ready for Pickup',
+        'stock_alerts' => 'Stock Alerts',
+        'stock_low' => 'Low (≤5)',
+        'stock_out' => 'Out of Stock',
+        'stock_backorder' => 'Backorder',
+        'transfers_in' => 'Incoming Transfers Pending',
+        'pr_pending' => 'PRs Awaiting Approval',
+        'payables' => 'Supplier Payables',
+        'empty' => 'No cards for your role.',
+    ],
+
     'reports' => [
         'title' => 'Reports',
         'sales' => 'Sales Report',

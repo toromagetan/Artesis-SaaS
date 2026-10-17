@@ -92,13 +92,17 @@ class PurchaseOrderService
 
     public function markSent(User $actor, PurchaseOrder $po): PurchaseOrder
     {
-        if ($po->status !== 'draft') {
-            throw ValidationException::withMessages(['status' => __('ui.purchasing.po_send_invalid', ['status' => $po->status])]);
-        }
-        $po->update(['status' => 'sent']);
-        $this->audit->log(action: 'po.send', subjectType: 'purchase_order', subjectId: $po->id, branchId: $po->branch_id, actor: $actor);
+        return DB::transaction(function () use ($actor, $po) {
+            $locked = PurchaseOrder::where('id', $po->id)->lockForUpdate()->firstOrFail();
+            if ($locked->status !== 'draft') {
+                throw ValidationException::withMessages(['status' => __('ui.purchasing.po_send_invalid', ['status' => $locked->status])]);
+            }
+            $locked->update(['status' => 'sent']);
+            $this->audit->log(action: 'po.send', subjectType: 'purchase_order', subjectId: $locked->id, branchId: $locked->branch_id, actor: $actor);
+            $po->forceFill($locked->getAttributes())->syncOriginal();
 
-        return $po;
+            return $locked;
+        });
     }
 
     public function void(User $actor, PurchaseOrder $po, string $reason): PurchaseOrder
@@ -106,14 +110,19 @@ class PurchaseOrderService
         if (trim($reason) === '') {
             throw ValidationException::withMessages(['reason' => __('ui.purchasing.void_reason_required')]);
         }
-        if (! in_array($po->status, ['draft', 'sent'], true) || $po->receipts()->exists()) {
-            throw ValidationException::withMessages(['status' => __('ui.purchasing.po_void_invalid')]);
-        }
-        $po->update(['status' => 'void', 'void_reason' => $reason]);
-        $this->audit->log(action: 'po.void', subjectType: 'purchase_order', subjectId: $po->id,
-            newValues: ['reason' => $reason], branchId: $po->branch_id, actor: $actor);
 
-        return $po;
+        return DB::transaction(function () use ($actor, $po, $reason) {
+            $locked = PurchaseOrder::where('id', $po->id)->lockForUpdate()->firstOrFail();
+            if (! in_array($locked->status, ['draft', 'sent'], true) || $locked->receipts()->exists()) {
+                throw ValidationException::withMessages(['status' => __('ui.purchasing.po_void_invalid')]);
+            }
+            $locked->update(['status' => 'void', 'void_reason' => $reason]);
+            $this->audit->log(action: 'po.void', subjectType: 'purchase_order', subjectId: $locked->id,
+                newValues: ['reason' => $reason], branchId: $locked->branch_id, actor: $actor);
+            $po->forceFill($locked->getAttributes())->syncOriginal();
+
+            return $locked;
+        });
     }
 
     /** Status turunan dari kemajuan penerimaan (dipanggil ReceiptService). */
