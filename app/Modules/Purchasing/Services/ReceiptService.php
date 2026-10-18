@@ -64,10 +64,23 @@ class ReceiptService
                 if ($qty > $poItem->remainingQty()) {
                     $overReceiving = true;
                 }
+                // F4.3: softlens terlacak WAJIB bertanggal kedaluwarsa.
+                $expiryDate = $line['expiry_date'] ?? null;
+                $product = $poItem->product;
+                if ($product !== null
+                    && $product->type === 'softlens'
+                    && $product->attributeValue('expiry_tracked') === '1'
+                    && ($expiryDate === null || $expiryDate === '')
+                ) {
+                    throw ValidationException::withMessages([
+                        'items' => __('ui.purchasing.expiry_required', ['product' => $product->name]),
+                    ]);
+                }
                 $prepared[] = [
                     'item' => $poItem,
                     'qty' => $qty,
                     'unit_cost_actual' => $line['unit_cost_actual'] ?? $poItem->unit_cost,
+                    'expiry_date' => $expiryDate !== '' ? $expiryDate : null,
                 ];
             }
             if ($prepared === []) {
@@ -88,15 +101,17 @@ class ReceiptService
             ]);
 
             foreach ($prepared as $row) {
-                $receipt->items()->create([
+                $receiptItem = $receipt->items()->create([
                     'purchase_order_item_id' => $row['item']->id,
                     'qty' => $row['qty'],
                     'unit_cost_actual' => $row['unit_cost_actual'],
+                    'expiry_date' => $row['expiry_date'],
                 ]);
                 $row['item']->increment('qty_received', $row['qty']);
                 $this->inventory->recordMovement(
                     $actor, $row['item']->product, $branch, 'receipt',
                     $row['qty'], 'receipt', $receipt->id,
+                    ['inboundUnitCost' => (string) $row['unit_cost_actual'], 'receiptItemId' => $receiptItem->id],
                 );
             }
 

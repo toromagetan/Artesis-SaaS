@@ -6,6 +6,10 @@ use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Accounting\Support\Chart;
 use App\Modules\Inventory\Events\InitialStockImported;
+use App\Modules\Inventory\Events\OpnameApproved;
+use App\Modules\Inventory\Models\StockLayer;
+use App\Modules\Inventory\Models\StockMovement;
+use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Purchasing\Events\PurchasePaymentPosted;
 use App\Modules\Purchasing\Events\PurchaseReturned;
 use App\Modules\Purchasing\Events\ReceiptStored;
@@ -61,14 +65,21 @@ class PostJournalForDomainEvents
         if ($tax->isPositive()) {
             $lines[] = ['account' => Chart::PPN_KELUARAN, 'branch_id' => $sale->branch_id, 'credit' => $tax->toDecimalString(), 'memo' => $sale->number];
         }
-        // HPP pada nilai modal item.
-        $cogs = Money::zero();
-        foreach ($sale->items as $item) {
-            $cost = $item->product !== null
-                ? Money::fromDecimal((string) $item->product->cost_price)->mul($item->qty - $item->returnedQty())
-                : Money::zero();
-            $cogs = $cogs->add($cost);
-        }
+        // HPP FIFO (ADR-014): jumlah total_cost gerakan 'sale'
+        // penjualan ini (konsumsi lapisan saat transaksi; bagian
+        // backorder yang belum teralokasi menyusul sebagai jurnal
+        // fifo_coverage saat penerimaan penutup tiba). returnedQty
+        // tidak dikurangkan di sini — retur berjalan sebagai jurnal
+        // sale_return terpisah yang mengkredit HPP kembali.
+        // (Satu-satunya sumber: gerakan yang ditulis SyncStockWithSales
+        // pada transaksi yang sama. Nol di sini berarti backorder
+        // murni — HPP-nya DITANGGUHKAN per ADR-014, bukan ditebak
+        // dari cost_price master.)
+        $cogs = Money::fromDecimal((string) StockMovement::withoutGlobalScopes()
+            ->where('reference_type', 'sale')
+            ->where('reference_id', $sale->id)
+            ->where('reason', 'sale')
+            ->sum('total_cost'));
         if ($cogs->isPositive()) {
             $lines[] = ['account' => Chart::HPP, 'branch_id' => $sale->branch_id, 'debit' => $cogs->toDecimalString(), 'memo' => $sale->number];
             $lines[] = ['account' => Chart::PERSEDIAAN, 'branch_id' => $sale->branch_id, 'credit' => $cogs->toDecimalString(), 'memo' => $sale->number];
@@ -116,17 +127,14 @@ class PostJournalForDomainEvents
             $creditAccount = $return->refund_method === 'store_credit' ? Chart::KREDIT_TOKO : Chart::tenderAccount($return->refund_method);
             $lines[] = ['account' => $creditAccount, 'branch_id' => $sale->branch_id, 'credit' => $total->toDecimalString(), 'memo' => $return->number];
         }
-        // Restock hanya item resale pada nilai modal.
-        $restock = Money::zero();
-        foreach ($return->items as $returnItem) {
-            if ($returnItem->condition !== 'resale') {
-                continue;
-            }
-            $saleItem = $sale->items->firstWhere('id', $returnItem->sale_item_id);
-            if ($saleItem?->product !== null) {
-                $restock = $restock->add(Money::fromDecimal((string) $saleItem->product->cost_price)->mul($returnItem->qty));
-            }
-        }
+        // Restock hanya item resale, pada biaya FIFO asal gerakan
+        // masuknya (ADR-014) — dicap InventoryService ke gerakan
+        // 'sale_return' retur ini.
+        $restock = Money::fromDecimal((string) StockMovement::withoutGlobalScopes()
+            ->where('reference_type', 'sale_return')
+            ->where('reference_id', $return->id)
+            ->where('reason', 'sale_return')
+            ->sum('total_cost'));
         if ($restock->isPositive()) {
             $lines[] = ['account' => Chart::PERSEDIAAN, 'branch_id' => $sale->branch_id, 'debit' => $restock->toDecimalString(), 'memo' => $return->number];
             $lines[] = ['account' => Chart::HPP, 'branch_id' => $sale->branch_id, 'credit' => $restock->toDecimalString(), 'memo' => $return->number];
@@ -149,6 +157,18 @@ class PostJournalForDomainEvents
             ['account' => Chart::PERSEDIAAN, 'branch_id' => $po->branch_id, 'debit' => $total->toDecimalString(), 'memo' => $receipt->number],
             ['account' => Chart::UTANG_SUPPLIER, 'branch_id' => $po->branch_id, 'credit' => $total->toDecimalString(), 'memo' => $receipt->number],
         ], 'Penerimaan '.$receipt->number);
+
+        // HPP tertangguh (ADR-014): lapisan penerimaan ini pertama
+        // menutupi backorder lama — nilai penutupnya adalah HPP
+        // penjualan-penjualan terdahulu yang baru kini tercatat.
+        $layerIds = StockLayer::whereIn('receipt_item_id', $receipt->items()->pluck('id'))->pluck('id')->all();
+        $coverage = app(FifoService::class)->coverageValueForLayers($layerIds);
+        if ($coverage->isPositive()) {
+            $this->posting->postOnce('fifo_coverage', $receipt->id, $receipt->received_date, [
+                ['account' => Chart::HPP, 'branch_id' => $po->branch_id, 'debit' => $coverage->toDecimalString(), 'memo' => $receipt->number],
+                ['account' => Chart::PERSEDIAAN, 'branch_id' => $po->branch_id, 'credit' => $coverage->toDecimalString(), 'memo' => $receipt->number],
+            ], 'HPP tertangguh penerimaan '.$receipt->number);
+        }
     }
 
     public function onPurchaseReturned(PurchaseReturned $event): void
@@ -163,10 +183,26 @@ class PostJournalForDomainEvents
         $debitAccount = $return->credit_status === 'supplier_credit'
             ? Chart::PIUTANG_KREDIT_SUPPLIER
             : Chart::UTANG_SUPPLIER;
-        $this->posting->postOnce('purchase_return', $return->id, $return->created_at ?? now(), [
+        // Kredit Persediaan = nilai tercatat FIFO yang keluar
+        // (ADR-014); sisi klaim supplier tetap nilai dokumen retur.
+        // Selisih keduanya (bila konsumsi tumpah ke lapisan lain)
+        // diselesaikan ke HPP agar jurnal selalu seimbang.
+        $carrying = Money::fromDecimal((string) StockMovement::withoutGlobalScopes()
+            ->where('reference_type', 'purchase_return')
+            ->where('reference_id', $return->id)
+            ->where('reason', 'purchase_return')
+            ->sum('total_cost'));
+        $lines = [
             ['account' => $debitAccount, 'branch_id' => $po->branch_id, 'debit' => $total->toDecimalString(), 'memo' => $return->number],
-            ['account' => Chart::PERSEDIAAN, 'branch_id' => $po->branch_id, 'credit' => $total->toDecimalString(), 'memo' => $return->number],
-        ], 'Retur pembelian '.$return->number);
+            ['account' => Chart::PERSEDIAAN, 'branch_id' => $po->branch_id, 'credit' => $carrying->toDecimalString(), 'memo' => $return->number],
+        ];
+        $diff = $total->sub($carrying);
+        if ($diff->isPositive()) {
+            $lines[] = ['account' => Chart::HPP, 'branch_id' => $po->branch_id, 'credit' => $diff->toDecimalString(), 'memo' => $return->number];
+        } elseif ($diff->isNegative()) {
+            $lines[] = ['account' => Chart::HPP, 'branch_id' => $po->branch_id, 'debit' => $diff->abs()->toDecimalString(), 'memo' => $return->number];
+        }
+        $this->posting->postOnce('purchase_return', $return->id, $return->created_at ?? now(), $lines, 'Retur pembelian '.$return->number);
     }
 
     public function onPurchasePaymentPosted(PurchasePaymentPosted $event): void
@@ -178,11 +214,66 @@ class PostJournalForDomainEvents
         ], 'Pembayaran supplier '.$payment->number);
     }
 
+    /**
+     * Opname disetujui (F4.1, peta E.1): nilai selisih neto dari
+     * gerakan 'opname' opname ini. Harga gerakan dibaca dari
+     * total_cost gerakan bila sudah terisi (FIFO, F4.2); sebelum
+     * itu fallback = selisih × cost_price master — keduanya bertanda
+     * mengikuti arah selisih (kurang negatif, lebih positif).
+     * Neto kurang → Dr Beban Selisih Opname / Cr Persediaan;
+     * neto lebih sebaliknya.
+     */
+    public function onOpnameApproved(OpnameApproved $event): void
+    {
+        $opname = $event->opname;
+        $net = Money::zero();
+        foreach ($opname->items()->with(['movement', 'product'])->get() as $item) {
+            if ($item->difference === 0) {
+                continue;
+            }
+            if ($item->movement !== null && $item->movement->total_cost !== null) {
+                $value = Money::fromDecimal((string) $item->movement->total_cost);
+                $net = $item->difference < 0 ? $net->sub($value) : $net->add($value);
+            } elseif ($item->product !== null) {
+                $net = $net->add(Money::fromDecimal((string) $item->product->cost_price)->mul($item->difference));
+            }
+        }
+        if ($net->isZero()) {
+            return;
+        }
+        $amount = $net->isNegative() ? $net->mul(-1) : $net;
+        $lines = $net->isNegative()
+            ? [
+                ['account' => Chart::BEBAN_SELIH_OPNAME, 'branch_id' => $opname->branch_id, 'debit' => $amount->toDecimalString(), 'memo' => 'Opname #'.$opname->id],
+                ['account' => Chart::PERSEDIAAN, 'branch_id' => $opname->branch_id, 'credit' => $amount->toDecimalString(), 'memo' => 'Opname #'.$opname->id],
+            ]
+            : [
+                ['account' => Chart::PERSEDIAAN, 'branch_id' => $opname->branch_id, 'debit' => $amount->toDecimalString(), 'memo' => 'Opname #'.$opname->id],
+                ['account' => Chart::BEBAN_SELIH_OPNAME, 'branch_id' => $opname->branch_id, 'credit' => $amount->toDecimalString(), 'memo' => 'Opname #'.$opname->id],
+            ];
+        $this->posting->postOnce('stock_opname', $opname->id, $opname->approved_at ?? now(), $lines, 'Opname #'.$opname->id);
+    }
+
     public function onInitialStockImported(InitialStockImported $event): void
     {
         $this->posting->postOnce('initial_stock_import', $event->batchReferenceId, now(), [
             ['account' => Chart::PERSEDIAAN, 'branch_id' => $event->branch->id, 'debit' => $event->totalValue, 'memo' => $event->branch->name],
             ['account' => Chart::MODAL_PERSEDIAAN_AWAL, 'branch_id' => $event->branch->id, 'credit' => $event->totalValue, 'memo' => $event->branch->name],
         ], 'Impor stok awal '.$event->branch->name);
+
+        // Penutup backorder oleh lapisan impor (ADR-014), sama
+        // seperti penerimaan: HPP tertangguh penjualan terdahulu.
+        $layerIds = StockLayer::whereHas('sourceMovement', function ($q) use ($event) {
+            $q->where('reference_type', 'initial_stock_import')
+                ->where('reference_id', $event->batchReferenceId)
+                ->where('branch_id', $event->branch->id);
+        })->pluck('id')->all();
+        $coverage = app(FifoService::class)->coverageValueForLayers($layerIds);
+        if ($coverage->isPositive()) {
+            $this->posting->postOnce('fifo_coverage_import', $event->batchReferenceId, now(), [
+                ['account' => Chart::HPP, 'branch_id' => $event->branch->id, 'debit' => $coverage->toDecimalString(), 'memo' => $event->branch->name],
+                ['account' => Chart::PERSEDIAAN, 'branch_id' => $event->branch->id, 'credit' => $coverage->toDecimalString(), 'memo' => $event->branch->name],
+            ], 'HPP tertangguh impor stok awal '.$event->branch->name);
+        }
     }
 }

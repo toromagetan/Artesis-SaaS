@@ -13,4 +13,7 @@
     @can('reports.financial')
         <a href="{{ route('financial.balance-sheet') }}" class="rounded-lg px-3 py-1.5 {{ request()->routeIs('financial.*') ? 'bg-lentera-700 text-white' : 'bg-white text-gray-600 shadow-soft hover:text-lentera-800' }}">{{ __('ui.financial.title') }}</a>
     @endcan
+    @can('reports.sales')
+        <a href="{{ route('reports.analytics') }}" class="rounded-lg px-3 py-1.5 {{ request()->routeIs('reports.analytics') ? 'bg-lentera-700 text-white' : 'bg-white text-gray-600 shadow-soft hover:text-lentera-800' }}">{{ __('ui.analytics.title') }}</a>
+    @endcan
 </div>

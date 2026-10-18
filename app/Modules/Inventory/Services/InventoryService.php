@@ -5,6 +5,7 @@ namespace App\Modules\Inventory\Services;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
+use App\Modules\Inventory\Models\StockOpname;
 use App\Modules\Master\Models\Branch;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -23,6 +24,15 @@ use Illuminate\Validation\ValidationException;
  */
 class InventoryService
 {
+    public function __construct(private readonly FifoService $fifo) {}
+
+    /**
+     * $fifoContext (F4.2, ADR-014): inboundUnitCost (harga lapisan
+     * masuk), receiptItemId (tautan lapisan ke item penerimaan),
+     * preferReceiptItemId (retur pembelian: dahulukan lapisan
+     * receipt ini), mirrorMovementId (transfer masuk: tiru rincian
+     * konsumsi gerakan keluar ini).
+     */
     public function recordMovement(
         User $actor,
         Product $product,
@@ -31,9 +41,27 @@ class InventoryService
         int $qty,
         string $referenceType,
         int $referenceId,
+        array $fifoContext = [],
     ): StockMovement {
         if (! in_array($reason, StockMovement::REASONS, true)) {
             throw ValidationException::withMessages(['reason' => __('ui.stock.reason_invalid')]);
+        }
+
+        // Kunci opname (PRD 7.4, F4.1): selama opname cabang berstatus
+        // counting/review, mutasi stok cabang itu terkunci kecuali
+        // Owner. Gerakan 'opname' sendiri dikecualikan — approval
+        // sudah mengangkat kunci lewat transisi status lebih dulu,
+        // pengecualian ini pagar kedua untuk jalur internal.
+        if ($reason !== 'opname' && ! $actor->hasRole('Owner')) {
+            $lockedByOpname = StockOpname::withoutGlobalScopes()
+                ->where('branch_id', $branch->id)
+                ->whereIn('status', StockOpname::LOCKING_STATUSES)
+                ->exists();
+            if ($lockedByOpname) {
+                throw ValidationException::withMessages([
+                    'qty' => __('ui.opname.branch_locked', ['branch' => $branch->name]),
+                ]);
+            }
         }
         if ($qty === 0) {
             throw ValidationException::withMessages(['qty' => __('ui.stock.qty_zero')]);
@@ -54,7 +82,7 @@ class InventoryService
             ]);
         }
 
-        return StockMovement::create([
+        $movement = StockMovement::create([
             'product_id' => $product->id,
             'branch_id' => $branch->id,
             'reason' => $reason,
@@ -64,6 +92,12 @@ class InventoryService
             'balance_after' => $newBalance,
             'created_by' => $actor->id,
         ]);
+
+        // FIFO (ADR-014): cap biaya + efek lapisan pada transaksi
+        // pembuatan yang sama — baris tidak pernah diubah sesudahnya.
+        $this->fifo->applyMovement($movement, $fifoContext);
+
+        return $movement;
     }
 
     /** Saldo resmi satu produk di satu cabang (0 bila belum ada gerakan). */

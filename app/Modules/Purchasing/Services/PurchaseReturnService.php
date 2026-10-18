@@ -86,6 +86,7 @@ class PurchaseReturnService
                 $this->inventory->recordMovement(
                     $actor, $product, $branch, 'purchase_return',
                     -$row['qty'], 'purchase_return', $retur->id,
+                    ['preferReceiptItemId' => $row['item']->id],
                 );
             }
 

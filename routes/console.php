@@ -1,10 +1,15 @@
 <?php
 
 use App\Modules\Accounting\Services\FixedAssetService;
+use App\Modules\Accounting\Services\PostingService;
+use App\Modules\Accounting\Support\Chart;
 use App\Modules\Comms\Services\WaAutomationService;
+use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Membership\Services\PointsService;
+use App\Support\Money;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -57,3 +62,49 @@ Artisan::command('lentera:poin-kedaluwarsa', function () {
 })->purpose('Kedaluwarsakan poin membership yang masa berlakunya lewat');
 
 Schedule::command('lentera:poin-kedaluwarsa')->dailyAt('00:30');
+
+/*
+ * Migrasi costing FIFO (F4.2, ADR-014): memainkan ulang seluruh
+ * riwayat stock_movements dari keadaan kosong dengan aturan live
+ * yang sama (FifoService::rebuildFromHistory), lalu menjurnal
+ * selisih nilai lapisan vs saldo Persediaan buku besar per cabang
+ * sebagai penyesuaian pembuka lewat HPP (postOnce 'fifo_opening'
+ * per cabang — aman dijalankan ulang).
+ */
+Artisan::command('lentera:fifo-migrasi', function () {
+    $fifo = app(FifoService::class);
+    $posting = app(PostingService::class);
+    $adjusted = DB::transaction(function () use ($fifo, $posting) {
+        $values = $fifo->rebuildFromHistory();
+        $count = 0;
+        foreach ($values as $branchId => $layerValue) {
+            $gl = Money::fromDecimal((string) DB::table('journal_lines as jl')
+                ->join('accounts as a', 'a.id', '=', 'jl.account_id')
+                ->where('a.code', Chart::PERSEDIAAN)
+                ->where('jl.branch_id', $branchId)
+                ->selectRaw('COALESCE(SUM(jl.debit - jl.credit), 0) as balance')
+                ->value('balance'));
+            $diff = $layerValue->sub($gl);
+            if ($diff->isZero()) {
+                continue;
+            }
+            $amount = $diff->abs()->toDecimalString();
+            $lines = $diff->isPositive()
+                ? [
+                    ['account' => Chart::PERSEDIAAN, 'branch_id' => $branchId, 'debit' => $amount, 'memo' => 'Penyesuaian pembuka FIFO'],
+                    ['account' => Chart::HPP, 'branch_id' => $branchId, 'credit' => $amount, 'memo' => 'Penyesuaian pembuka FIFO'],
+                ]
+                : [
+                    ['account' => Chart::HPP, 'branch_id' => $branchId, 'debit' => $amount, 'memo' => 'Penyesuaian pembuka FIFO'],
+                    ['account' => Chart::PERSEDIAAN, 'branch_id' => $branchId, 'credit' => $amount, 'memo' => 'Penyesuaian pembuka FIFO'],
+                ];
+            $posting->postOnce('fifo_opening', $branchId, now(), $lines, 'Penyesuaian pembuka FIFO');
+            $count++;
+        }
+
+        return $count;
+    });
+    $this->info("Migrasi FIFO selesai: {$adjusted} cabang dengan jurnal penyesuaian pembuka.");
+
+    return 0;
+})->purpose('Bangun lapisan FIFO dari riwayat gerakan + jurnal penyesuaian pembuka');

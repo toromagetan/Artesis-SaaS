@@ -29,6 +29,11 @@
                             <x-input-error :messages="$errors->get('sku')" class="mt-2" />
                         </div>
                         <div>
+                            <x-input-label for="barcode" :value="__('ui.products.barcode')" />
+                            <x-text-input id="barcode" name="barcode" class="mt-1 block w-full" :value="old('barcode', $product->barcode)" maxlength="50" />
+                            <x-input-error :messages="$errors->get('barcode')" class="mt-2" />
+                        </div>
+                        <div>
                             <x-input-label for="name" :value="__('ui.products.name')" />
                             <x-text-input id="name" name="name" class="mt-1 block w-full" :value="old('name', $product->name)" required />
                             <x-input-error :messages="$errors->get('name')" class="mt-2" />

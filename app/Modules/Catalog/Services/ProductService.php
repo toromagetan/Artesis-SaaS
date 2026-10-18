@@ -41,6 +41,7 @@ class ProductService
         return DB::transaction(function () use ($actor, $data, $attributes) {
             $product = Product::create([
                 'sku' => $data['sku'],
+                'barcode' => $data['barcode'] ?? null,
                 'type' => $data['type'],
                 'name' => $data['name'],
                 'brand' => $data['brand'] ?? null,
@@ -88,6 +89,7 @@ class ProductService
 
             $product->update([
                 'sku' => $data['sku'] ?? $product->sku,
+                'barcode' => $data['barcode'] ?? null,
                 'type' => $newType,
                 'name' => $data['name'] ?? $product->name,
                 'brand' => $data['brand'] ?? null,

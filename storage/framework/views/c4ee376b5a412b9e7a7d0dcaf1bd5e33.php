@@ -72,6 +72,19 @@
                         </p>
                         <p class="mt-3 text-sm text-gray-500"><?php echo e(__('ui.dashboard.transfers_in')); ?>: <span class="font-medium tnum"><?php echo e($cards['transfers_in']); ?></span></p>
                     </a>
+                    <?php if(! empty($cards['stock']['expiring'])): ?>
+                        <div class="rounded-lg border border-gold/50 bg-gold/10 p-6">
+                            <p class="text-sm font-medium text-gold-dark"><?php echo e(__('ui.dashboard.expiring_title')); ?></p>
+                            <ul class="mt-2 space-y-1 text-sm text-gold-dark">
+                                <?php $__currentLoopData = array_slice($cards['stock']['expiring'], 0, 5); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <li class="flex items-center justify-between gap-2">
+                                        <span><?php echo e($row['product_name']); ?> · <?php echo e($row['branch_name']); ?></span>
+                                        <span class="font-medium tnum"><?php echo e($row['qty']); ?> · <?php echo e(\Illuminate\Support\Carbon::parse($row['expiry_date'])->format('d/m/Y')); ?><?php if($row['expired']): ?> (<?php echo e(__('ui.dashboard.expired')); ?>)<?php endif; ?></span>
+                                    </li>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
                 <?php endif; ?>
 
                 <?php if(isset($cards['pr_pending'])): ?>

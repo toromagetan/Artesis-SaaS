@@ -43,6 +43,19 @@
                         </p>
                         <p class="mt-3 text-sm text-gray-500">{{ __('ui.dashboard.transfers_in') }}: <span class="font-medium tnum">{{ $cards['transfers_in'] }}</span></p>
                     </a>
+                    @if (! empty($cards['stock']['expiring']))
+                        <div class="rounded-lg border border-gold/50 bg-gold/10 p-6">
+                            <p class="text-sm font-medium text-gold-dark">{{ __('ui.dashboard.expiring_title') }}</p>
+                            <ul class="mt-2 space-y-1 text-sm text-gold-dark">
+                                @foreach (array_slice($cards['stock']['expiring'], 0, 5) as $row)
+                                    <li class="flex items-center justify-between gap-2">
+                                        <span>{{ $row['product_name'] }} · {{ $row['branch_name'] }}</span>
+                                        <span class="font-medium tnum">{{ $row['qty'] }} · {{ \Illuminate\Support\Carbon::parse($row['expiry_date'])->format('d/m/Y') }}@if ($row['expired']) ({{ __('ui.dashboard.expired') }})@endif</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                 @endisset
 
                 @isset($cards['pr_pending'])

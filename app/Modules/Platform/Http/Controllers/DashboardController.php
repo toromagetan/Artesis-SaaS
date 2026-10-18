@@ -7,6 +7,7 @@ use App\Modules\Accounting\Services\FinancialReportService;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Models\StockTransfer;
+use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Lab\Models\LensProcess;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Purchasing\Models\PurchaseRequest;
@@ -77,6 +78,9 @@ class DashboardController extends Controller
                 'low' => $balances->filter(fn ($q) => $q >= 1 && $q <= 5)->count(),
                 'out' => $balances->filter(fn ($q) => $q === 0)->count(),
                 'backorder' => $balances->filter(fn ($q) => $q < 0)->count(),
+                // Peringatan kedaluwarsa softlens (F4.3, PRD 4.4):
+                // lapisan kedaluwarsa / < 90 hari di cabang terlihat.
+                'expiring' => app(FifoService::class)->expiringLayers($branchIds, 90),
             ];
             $data['cards']['transfers_in'] = StockTransfer::where('status', 'sent')
                 ->whereIn('to_branch_id', $branchIds)

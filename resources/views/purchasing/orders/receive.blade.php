@@ -41,6 +41,12 @@
                                     <x-input-label :value="__('ui.purchasing.unit_cost_actual')" />
                                     <x-text-input name="items[{{ $i }}][unit_cost_actual]" type="number" step="0.01" min="0" class="mt-1 block w-full tnum" :value="old('items.'.$i.'.unit_cost_actual', (string) $item->unit_cost)" />
                                 </div>
+                                @if ($item->product->type === 'softlens')
+                                    <div class="col-span-3">
+                                        <x-input-label :value="__('ui.purchasing.expiry_date')" />
+                                        <x-text-input name="items[{{ $i }}][expiry_date]" type="date" class="mt-1 block w-full tnum" :value="old('items.'.$i.'.expiry_date')" />
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>

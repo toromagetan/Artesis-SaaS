@@ -8,6 +8,7 @@ use App\Modules\Master\Models\Branch;
 use App\Support\Concerns\BranchScoped;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Gerakan stok (Blueprint B.4). APPEND-ONLY secara struktural:
@@ -29,7 +30,7 @@ class StockMovement extends Model
     public const STRICT_TYPES = ['frame', 'accessory'];
 
     protected $fillable = [
-        'product_id', 'branch_id', 'reason', 'qty',
+        'product_id', 'branch_id', 'reason', 'qty', 'unit_cost', 'total_cost',
         'reference_type', 'reference_id', 'balance_after', 'created_by',
     ];
 
@@ -37,6 +38,8 @@ class StockMovement extends Model
     {
         return [
             'qty' => 'integer',
+            'unit_cost' => 'decimal:2',
+            'total_cost' => 'decimal:2',
             'balance_after' => 'integer',
             'created_at' => 'datetime',
         ];
@@ -55,5 +58,17 @@ class StockMovement extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** Konsumsi lapisan FIFO oleh gerakan ini (F4.2, ADR-014). */
+    public function consumptions(): HasMany
+    {
+        return $this->hasMany(StockLayerConsumption::class, 'movement_id');
+    }
+
+    /** Lapisan FIFO yang lahir dari gerakan masuk ini (F4.2). */
+    public function layers(): HasMany
+    {
+        return $this->hasMany(StockLayer::class, 'source_movement_id');
     }
 }

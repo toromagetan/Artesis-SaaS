@@ -155,6 +155,10 @@
                         <a href="{{ route('stock.index') }}" class="{{ $sub }} {{ request()->routeIs('stock.index') ? $subActive : '' }}">@if (request()->routeIs('stock.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.stock') }}</a>
                         <a href="{{ route('stock.movements') }}" class="{{ $sub }} {{ request()->routeIs('stock.movements') ? $subActive : '' }}">@if (request()->routeIs('stock.movements')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.stock_movements') }}</a>
                         <a href="{{ route('transfers.index') }}" class="{{ $sub }} {{ request()->routeIs('transfers.*') ? $subActive : '' }}">@if (request()->routeIs('transfers.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.transfers') }}</a>
+                        @if ($u->can('stock.opname'))
+                            <a href="{{ route('opnames.index') }}" class="{{ $sub }} {{ request()->routeIs('opnames.*') ? $subActive : '' }}">@if (request()->routeIs('opnames.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.opname') }}</a>
+                        @endif
+                        <a href="{{ route('labels.index') }}" class="{{ $sub }} {{ request()->routeIs('labels.*') ? $subActive : '' }}">@if (request()->routeIs('labels.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.labels') }}</a>
                         @if ($u->can('stock.import-initial'))
                             <a href="{{ route('stock.import.form') }}" class="{{ $sub }} {{ request()->routeIs('stock.import.*') ? $subActive : '' }}">@if (request()->routeIs('stock.import.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.import.title') }}</a>
                         @endif
@@ -243,6 +247,9 @@
                         @if ($can('reports.stock'))
                             <a href="{{ route('reports.stock') }}" class="{{ $sub }} {{ request()->routeIs('reports.stock') ? $subActive : '' }}">@if (request()->routeIs('reports.stock')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.stock') }}</a>
                         @endif
+                        @if ($can('reports.sales'))
+                            <a href="{{ route('reports.analytics') }}" class="{{ $sub }} {{ request()->routeIs('reports.analytics') ? $subActive : '' }}">@if (request()->routeIs('reports.analytics')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.analytics') }}</a>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -290,6 +297,9 @@
                     @endif
                     @if ($can('settings.manage'))
                         <a href="{{ route('wa-gateway.edit') }}" class="{{ $sub }} {{ request()->routeIs('wa-gateway.*') ? $subActive : '' }}">@if (request()->routeIs('wa-gateway.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_gateway') }}</a>
+                    @endif
+                    @if ($can('api_tokens.manage'))
+                        <a href="{{ route('api-tokens.index') }}" class="{{ $sub }} {{ request()->routeIs('api-tokens.*') ? $subActive : '' }}">@if (request()->routeIs('api-tokens.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.api_tokens') }}</a>
                     @endif
                 </div>
             </div>

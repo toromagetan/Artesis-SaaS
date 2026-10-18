@@ -29,6 +29,9 @@
                             <th class="px-4 py-3 font-medium">{{ __('ui.products.sku') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.products.brand') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.products.sale_price') }}</th>
+                            @if ($type === 'softlens')
+                                <th class="px-4 py-3 font-medium">{{ __('ui.products.nearest_expiry') }}</th>
+                            @endif
                             <th class="px-4 py-3 font-medium">{{ __('ui.products.status') }}</th>
                             <th class="px-4 py-3"></th>
                         </tr>
@@ -42,6 +45,15 @@
                                 <td class="px-4 py-3">{{ $product->sku }}</td>
                                 <td class="px-4 py-3">{{ $product->brand ?: '—' }}</td>
                                 <td class="px-4 py-3 tnum">{{ \App\Support\Money::fromDecimal((string) $product->sale_price)->format() }}</td>
+                                @if ($type === 'softlens')
+                                    <td class="px-4 py-3">
+                                        @isset($expiries[$product->id])
+                                            <span class="tnum {{ $expiries[$product->id]['expired'] ? 'font-semibold text-red-600' : ($expiries[$product->id]['soon'] ? 'font-medium text-gold-dark' : '') }}">{{ \Illuminate\Support\Carbon::parse($expiries[$product->id]['date'])->format('d/m/Y') }}</span>
+                                        @else
+                                            <span class="text-gray-400">—</span>
+                                        @endisset
+                                    </td>
+                                @endif
                                 <td class="px-4 py-3"><x-lentera.badge :active="$product->is_active" /></td>
                                 <td class="px-4 py-3 text-right">
                                     <x-lentera.row-actions>
@@ -60,7 +72,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="6"><x-lentera.empty-state>{{ __('ui.products.empty') }}</x-lentera.empty-state></td></tr>
+                            <tr><td colspan="{{ $type === 'softlens' ? 7 : 6 }}"><x-lentera.empty-state>{{ __('ui.products.empty') }}</x-lentera.empty-state></td></tr>
                         @endforelse
                     </tbody>
                 </table>

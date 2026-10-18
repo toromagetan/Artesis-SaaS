@@ -9,6 +9,7 @@ use App\Modules\Comms\Listeners\SendSaleInvoiceMessage;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Policies\UserPolicy;
 use App\Modules\Inventory\Events\InitialStockImported;
+use App\Modules\Inventory\Events\OpnameApproved;
 use App\Modules\Inventory\Listeners\SyncStockWithSales;
 use App\Modules\Inventory\Policies\InitialStockImportPolicy;
 use App\Modules\Lab\Events\LensProcessCompleted;
@@ -74,6 +75,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(PurchaseReturned::class, [PostJournalForDomainEvents::class, 'onPurchaseReturned']);
         Event::listen(PurchasePaymentPosted::class, [PostJournalForDomainEvents::class, 'onPurchasePaymentPosted']);
         Event::listen(InitialStockImported::class, [PostJournalForDomainEvents::class, 'onInitialStockImported']);
+        Event::listen(OpnameApproved::class, [PostJournalForDomainEvents::class, 'onOpnameApproved']);
 
         Event::listen(SaleCompleted::class, [SyncLensProcessWithSales::class, 'onSaleCompleted']);
         Event::listen(SaleVoided::class, [SyncLensProcessWithSales::class, 'onSaleVoided']);

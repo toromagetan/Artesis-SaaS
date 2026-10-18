@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Models\StockMovement;
+use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
 use App\Support\Money;
@@ -19,7 +20,10 @@ use Illuminate\View\View;
  */
 class StockController extends Controller
 {
-    public function __construct(private readonly InventoryService $inventory) {}
+    public function __construct(
+        private readonly InventoryService $inventory,
+        private readonly FifoService $fifo,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -33,6 +37,7 @@ class StockController extends Controller
         $q = trim((string) $request->query('q', ''));
         $type = (string) $request->query('tipe', '');
         $balances = $branchId !== 0 ? $this->inventory->balancesForBranch($branchId) : [];
+        $values = $branchId !== 0 ? $this->fifo->inventoryValues([$branchId]) : [];
 
         $products = Product::query()
             ->when($q !== '', function ($query) use ($q) {
@@ -44,11 +49,10 @@ class StockController extends Controller
             ->orderBy('type')
             ->orderBy('name')
             ->get()
-            ->map(function (Product $product) use ($balances) {
+            ->map(function (Product $product) use ($balances, $values, $branchId) {
                 $qty = $balances[$product->id] ?? 0;
-                $value = $qty > 0
-                    ? Money::fromDecimal((string) $product->cost_price)->mul($qty)
-                    : Money::zero();
+                // Nilai persediaan FIFO (ADR-014): Σ lapisan tersisa.
+                $value = $values[$branchId.':'.$product->id] ?? Money::zero();
 
                 return [
                     'product' => $product,

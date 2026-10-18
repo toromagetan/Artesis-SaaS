@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Listeners;
 
 use App\Modules\Identity\Models\User;
+use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Sales\Events\SaleCompleted;
@@ -18,7 +19,10 @@ use App\Modules\Sales\Events\SaleVoided;
  */
 class SyncStockWithSales
 {
-    public function __construct(private readonly InventoryService $inventory) {}
+    public function __construct(
+        private readonly InventoryService $inventory,
+        private readonly FifoService $fifo,
+    ) {}
 
     public function onSaleCompleted(SaleCompleted $event): void
     {
@@ -70,9 +74,15 @@ class SyncStockWithSales
             if ($product === null) {
                 continue;
             }
+            // Lapisan retur berharga biaya ASAL konsumsinya (ADR-014);
+            // fallback cost_price master bila penjualan asal belum
+            // terkonsumsi lapisan (mis. data pra-FIFO).
+            $unitCost = $this->fifo->saleMovementUnitCost((int) $return->sale_id, $product->id)
+                ?? (string) $product->cost_price;
             $this->inventory->recordMovement(
                 $actor, $product, $branch, 'sale_return',
                 $returnItem->qty, 'sale_return', $return->id,
+                ['inboundUnitCost' => $unitCost],
             );
         }
     }

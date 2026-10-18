@@ -111,6 +111,9 @@
                             <th class="px-4 py-3 font-medium"><?php echo e(__('ui.products.sku')); ?></th>
                             <th class="px-4 py-3 font-medium"><?php echo e(__('ui.products.brand')); ?></th>
                             <th class="px-4 py-3 font-medium"><?php echo e(__('ui.products.sale_price')); ?></th>
+                            <?php if($type === 'softlens'): ?>
+                                <th class="px-4 py-3 font-medium"><?php echo e(__('ui.products.nearest_expiry')); ?></th>
+                            <?php endif; ?>
                             <th class="px-4 py-3 font-medium"><?php echo e(__('ui.products.status')); ?></th>
                             <th class="px-4 py-3"></th>
                         </tr>
@@ -124,6 +127,15 @@
                                 <td class="px-4 py-3"><?php echo e($product->sku); ?></td>
                                 <td class="px-4 py-3"><?php echo e($product->brand ?: '—'); ?></td>
                                 <td class="px-4 py-3 tnum"><?php echo e(\App\Support\Money::fromDecimal((string) $product->sale_price)->format()); ?></td>
+                                <?php if($type === 'softlens'): ?>
+                                    <td class="px-4 py-3">
+                                        <?php if(isset($expiries[$product->id])): ?>
+                                            <span class="tnum <?php echo e($expiries[$product->id]['expired'] ? 'font-semibold text-red-600' : ($expiries[$product->id]['soon'] ? 'font-medium text-gold-dark' : '')); ?>"><?php echo e(\Illuminate\Support\Carbon::parse($expiries[$product->id]['date'])->format('d/m/Y')); ?></span>
+                                        <?php else: ?>
+                                            <span class="text-gray-400">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                <?php endif; ?>
                                 <td class="px-4 py-3"><?php if (isset($component)) { $__componentOriginal1a10f463ba2873b939123688d39cb7c8 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal1a10f463ba2873b939123688d39cb7c8 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.badge','data' => ['active' => $product->is_active]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -215,7 +227,7 @@
                                 </td>
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                            <tr><td colspan="6"><?php if (isset($component)) { $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $component; } ?>
+                            <tr><td colspan="<?php echo e($type === 'softlens' ? 7 : 6); ?>"><?php if (isset($component)) { $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.empty-state','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('lentera.empty-state'); ?>

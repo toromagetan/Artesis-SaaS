@@ -18,7 +18,7 @@ class Product extends Model
     public const TYPES = ['frame', 'lens', 'rx', 'softlens', 'accessory'];
 
     protected $fillable = [
-        'sku', 'type', 'name', 'brand', 'color',
+        'sku', 'barcode', 'type', 'name', 'brand', 'color',
         'cost_price', 'sale_price', 'is_active',
     ];
 

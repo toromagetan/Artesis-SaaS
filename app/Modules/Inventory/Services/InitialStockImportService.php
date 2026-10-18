@@ -193,6 +193,7 @@ class InitialStockImportService
                 $this->inventory->recordMovement(
                     $actor, $product, $branch, 'initial_stock',
                     $row['qty'], self::REFERENCE_TYPE, $anchor->id,
+                    ['inboundUnitCost' => (string) $product->cost_price],
                 );
                 $value = Money::fromDecimal((string) $product->cost_price)->mul($row['qty']);
                 $totals[$row['branch_id']] = isset($totals[$row['branch_id']])

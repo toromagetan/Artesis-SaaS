@@ -5,6 +5,7 @@ namespace App\Modules\Reporting\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Reporting\Services\AnalyticsService;
 use App\Modules\Reporting\Services\ReportService;
 use App\Support\Money;
 use Illuminate\Http\Request;
@@ -133,6 +134,45 @@ class ReportController extends Controller
     // ---- pembantu ----
 
     /** @return array{0: string, 1: string, 2: int[]} */
+    /**
+     * Analitik (F4.5): halaman memerlukan reports.sales; blok
+     * supplier hanya tampil & terhitung dengan reports.purchases.
+     * Ekspor menghormati filter aktif seperti laporan lain.
+     */
+    public function analytics(Request $request, AnalyticsService $analytics): View|StreamedResponse
+    {
+        [$from, $to, $branchIds] = $this->scope($request);
+        $sales = $analytics->salesAnalytics($branchIds, $from, $to);
+        $suppliers = $request->user()->hasPermission('reports.purchases')
+            ? $analytics->supplierAnalytics($branchIds, $from, $to)
+            : null;
+
+        if ($request->boolean('ekspor')) {
+            $this->authorizeExport();
+            $lines = [[__('ui.analytics.suppliers')], ['Supplier', 'PO', 'LeadTime', 'NilaiBeli', 'QtyTerima', 'QtyRetur', 'ReturPersen', 'PemenuhanPersen']];
+            foreach ($suppliers ?? [] as $row) {
+                $lines[] = [$row['supplier_name'], $row['po_count'], $row['lead_time_days'] ?? '-', $row['purchase_value']->toDecimalString(), $row['received_qty'], $row['returned_qty'], number_format($row['return_rate_bp'] / 100, 2), number_format($row['fulfillment_bp'] / 100, 2)];
+            }
+            $lines[] = [__('ui.analytics.top_products')];
+            $lines[] = ['Produk', 'SKU', 'Qty', 'Pendapatan'];
+            foreach ($sales['top_products'] as $row) {
+                $lines[] = [$row['name'], $row['sku'], $row['qty'], $row['revenue']->toDecimalString()];
+            }
+            $lines[] = [__('ui.analytics.category_margins')];
+            $lines[] = ['Kategori', 'Pendapatan', 'HPP', 'Margin'];
+            foreach ($sales['category_margins'] as $row) {
+                $lines[] = [$row['type'], $row['revenue']->toDecimalString(), $row['cost']->toDecimalString(), $row['margin']->toDecimalString()];
+            }
+
+            return $this->csv('analitik.csv', $lines);
+        }
+
+        return view('reporting.analytics', [
+            'sales' => $sales, 'suppliers' => $suppliers,
+            'from' => $from, 'to' => $to, 'branches' => $this->branchOptions(), 'selected' => $this->selectedBranch($request),
+        ]);
+    }
+
     private function scope(Request $request): array
     {
         $from = (string) $request->query('dari', now()->startOfMonth()->format('Y-m-d'));

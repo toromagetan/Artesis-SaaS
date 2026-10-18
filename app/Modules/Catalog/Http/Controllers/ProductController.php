@@ -5,6 +5,9 @@ namespace App\Modules\Catalog\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Services\ProductService;
+use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Inventory\Services\FifoService;
+use App\Modules\Master\Models\Branch;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -42,7 +45,21 @@ class ProductController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        return view('catalog.products.index', compact('products', 'type', 'q'));
+        // F4.3 (PRD 4.4): daftar softlens menampilkan tanggal
+        // kedaluwarsa terdekat dari lapisan bersisa di cabang yang
+        // terlihat pemanggil.
+        $expiries = [];
+        if ($type === 'softlens') {
+            $context = BranchContext::for($request->user());
+            $branchIds = $context->hasGlobalAccess()
+                ? Branch::pluck('id')->map(fn ($id) => (int) $id)->all()
+                : $context->managedBranchIds();
+            $expiries = app(FifoService::class)->nearestExpiries(
+                $products->map(fn ($p) => (int) $p->id)->all(), $branchIds,
+            );
+        }
+
+        return view('catalog.products.index', compact('products', 'type', 'q', 'expiries'));
     }
 
     public function show(Product $product): View
@@ -68,6 +85,7 @@ class ProductController extends Controller
 
         $validated = $request->validate([
             'sku' => ['required', 'string', 'max:50', Rule::unique('products', 'sku')],
+            'barcode' => ['nullable', 'string', 'max:50', Rule::unique('products', 'barcode')],
             'name' => ['required', 'string', 'max:150'],
             'brand' => ['nullable', 'string', 'max:80'],
             'color' => ['nullable', 'string', 'max:50'],
@@ -101,6 +119,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'sku' => ['required', 'string', 'max:50', Rule::unique('products', 'sku')->ignore($product->id)],
+            'barcode' => ['nullable', 'string', 'max:50', Rule::unique('products', 'barcode')->ignore($product->id)],
             'name' => ['required', 'string', 'max:150'],
             'brand' => ['nullable', 'string', 'max:80'],
             'color' => ['nullable', 'string', 'max:50'],

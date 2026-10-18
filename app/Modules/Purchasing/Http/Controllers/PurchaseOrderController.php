@@ -134,6 +134,7 @@ class PurchaseOrderController extends Controller
             'items.*.purchase_order_item_id' => ['required', 'integer'],
             'items.*.qty' => ['nullable', 'integer', 'min:0'],
             'items.*.unit_cost_actual' => ['nullable', 'numeric', 'min:0'],
+            'items.*.expiry_date' => ['nullable', 'date'],
         ]);
 
         $receipt = $this->receipts->store(
@@ -143,6 +144,7 @@ class PurchaseOrderController extends Controller
                 'purchase_order_item_id' => (int) $row['purchase_order_item_id'],
                 'qty' => (int) ($row['qty'] ?? 0),
                 'unit_cost_actual' => isset($row['unit_cost_actual']) ? (string) $row['unit_cost_actual'] : null,
+                'expiry_date' => $row['expiry_date'] ?? null,
             ])->all(),
             $validated['received_date'] ?? null,
             $validated['delivery_note_no'] ?? null,

@@ -4,6 +4,7 @@ namespace App\Modules\Reporting\Services;
 
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Models\StockTransferItem;
+use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Purchasing\Models\PurchaseReturn;
 use App\Modules\Purchasing\Models\Receipt;
 use App\Modules\Sales\Models\Sale;
@@ -19,6 +20,8 @@ use App\Support\Money;
  */
 class ReportService
 {
+    public function __construct(private readonly FifoService $fifo) {}
+
     /**
      * Penjualan per cabang pada rentang tanggal (status aktif saja;
      * void tidak dihitung sebagai penjualan). Retur dikurangkan
@@ -153,6 +156,9 @@ class ReportService
             ->get();
         $inTransit = $inTransitRows->mapWithKeys(fn ($r) => [$r->branch_id.':'.$r->product_id => (int) $r->qty]);
 
+        // Nilai persediaan FIFO (ADR-014): Σ lapisan tersisa per
+        // produk-cabang — satu sumber dengan halaman Stok & jurnal.
+        $fifoValues = $this->fifo->inventoryValues($branchIds);
         $result = $balances->map(fn ($m) => [
             'branch_id' => $m->branch_id,
             'product_id' => $m->product_id,
@@ -161,9 +167,7 @@ class ReportService
             'type' => $m->type,
             'qty' => (int) $m->balance_after,
             'in_transit' => (int) ($inTransit[$m->branch_id.':'.$m->product_id] ?? 0),
-            'value' => (int) $m->balance_after > 0
-                ? Money::fromDecimal((string) $m->cost_price)->mul((int) $m->balance_after)
-                : Money::zero(),
+            'value' => $fifoValues[$m->branch_id.':'.$m->product_id] ?? Money::zero(),
         ])->all();
 
         // Stok dalam perjalanan tetap terlihat walau cabang tujuan

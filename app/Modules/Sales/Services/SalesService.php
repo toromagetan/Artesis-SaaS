@@ -8,6 +8,7 @@ use App\Modules\Clinical\Services\PrescriptionService;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Membership\Services\PointsService;
@@ -114,6 +115,36 @@ class SalesService
                     'line_total' => $lineTotal,
                     'prescription_ref' => $item['prescription_ref'] ?? null,
                 ];
+            }
+
+            // Blokir softlens kedaluwarsa (F4.3, PRD 4.4): untuk
+            // softlens terlacak-expiry, penjualan yang tidak tertutup
+            // stok layak jual DITOLAK bila cabang masih menyimpan
+            // stok kedaluwarsa produk itu. Lapisan kedaluwarsa tidak
+            // pernah dikonsumsi FifoService; tanpa stok kedaluwarsa,
+            // kekurangan biasa tetap backorder seperti tipe lunak lain.
+            $fifo = app(FifoService::class);
+            $wanted = [];
+            foreach ($lines as $line) {
+                $wanted[$line['product']->id] = ($wanted[$line['product']->id] ?? 0) + $line['qty'];
+            }
+            foreach ($lines as $line) {
+                $product = $line['product'];
+                if ($product->type !== 'softlens'
+                    || $product->attributeValue('expiry_tracked') !== '1'
+                    || ! isset($wanted[$product->id])
+                ) {
+                    continue;
+                }
+                $qtyWanted = $wanted[$product->id];
+                unset($wanted[$product->id]);
+                if ($fifo->sellableQty($product->id, $branchId) < $qtyWanted
+                    && $fifo->expiredQty($product->id, $branchId) > 0
+                ) {
+                    throw ValidationException::withMessages([
+                        'items' => __('ui.sales.softlens_expired', ['product' => $product->name]),
+                    ]);
+                }
             }
 
             $discount = Money::fromDecimal((string) ($data['discount_amount'] ?? '0'));

@@ -13,5 +13,8 @@
     <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reports.financial')): ?>
         <a href="<?php echo e(route('financial.balance-sheet')); ?>" class="rounded-lg px-3 py-1.5 <?php echo e(request()->routeIs('financial.*') ? 'bg-lentera-700 text-white' : 'bg-white text-gray-600 shadow-soft hover:text-lentera-800'); ?>"><?php echo e(__('ui.financial.title')); ?></a>
     <?php endif; ?>
+    <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reports.sales')): ?>
+        <a href="<?php echo e(route('reports.analytics')); ?>" class="rounded-lg px-3 py-1.5 <?php echo e(request()->routeIs('reports.analytics') ? 'bg-lentera-700 text-white' : 'bg-white text-gray-600 shadow-soft hover:text-lentera-800'); ?>"><?php echo e(__('ui.analytics.title')); ?></a>
+    <?php endif; ?>
 </div>
 <?php /**PATH /home/hatch/workspace/lentera/resources/views/reporting/partials/tabs.blade.php ENDPATH**/ ?>

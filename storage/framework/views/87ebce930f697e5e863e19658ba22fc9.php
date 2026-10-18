@@ -159,6 +159,10 @@
                         <a href="<?php echo e(route('stock.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('stock.index') ? $subActive : ''); ?>"><?php if(request()->routeIs('stock.index')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.stock')); ?></a>
                         <a href="<?php echo e(route('stock.movements')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('stock.movements') ? $subActive : ''); ?>"><?php if(request()->routeIs('stock.movements')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.stock_movements')); ?></a>
                         <a href="<?php echo e(route('transfers.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('transfers.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('transfers.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.transfers')); ?></a>
+                        <?php if($u->can('stock.opname')): ?>
+                            <a href="<?php echo e(route('opnames.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('opnames.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('opnames.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.opname')); ?></a>
+                        <?php endif; ?>
+                        <a href="<?php echo e(route('labels.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('labels.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('labels.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.labels')); ?></a>
                         <?php if($u->can('stock.import-initial')): ?>
                             <a href="<?php echo e(route('stock.import.form')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('stock.import.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('stock.import.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.import.title')); ?></a>
                         <?php endif; ?>
@@ -253,6 +257,9 @@
                         <?php if($can('reports.stock')): ?>
                             <a href="<?php echo e(route('reports.stock')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('reports.stock') ? $subActive : ''); ?>"><?php if(request()->routeIs('reports.stock')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.stock')); ?></a>
                         <?php endif; ?>
+                        <?php if($can('reports.sales')): ?>
+                            <a href="<?php echo e(route('reports.analytics')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('reports.analytics') ? $subActive : ''); ?>"><?php if(request()->routeIs('reports.analytics')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.analytics')); ?></a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endif; ?>
@@ -302,6 +309,9 @@
                     <?php endif; ?>
                     <?php if($can('settings.manage')): ?>
                         <a href="<?php echo e(route('wa-gateway.edit')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('wa-gateway.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('wa-gateway.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.wa_gateway')); ?></a>
+                    <?php endif; ?>
+                    <?php if($can('api_tokens.manage')): ?>
+                        <a href="<?php echo e(route('api-tokens.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('api-tokens.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('api-tokens.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.api_tokens')); ?></a>
                     <?php endif; ?>
                 </div>
             </div>
