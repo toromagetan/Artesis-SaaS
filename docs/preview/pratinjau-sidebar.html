@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pratinjau Sidebar Lentera — Klasifikasi Menu & Submenu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif; }
+  body { background:#eef1ee; color:#1f2937; padding:28px; }
+  .wrap { max-width:1320px; margin:0 auto; }
+  h1.page { font-size:24px; font-weight:800; color:#022c22; margin-bottom:6px; }
+  p.sub { color:#5b6b62; font-size:14px; line-height:1.65; max-width:900px; margin-bottom:8px; }
+  p.sub b { color:#064e3b; }
+  .note { display:inline-block; background:#fdf6dd; border:1px solid #e7ce7a; color:#7a5f10; font-size:12.5px; border-radius:8px; padding:6px 10px; margin:10px 0 26px; }
+  h2.sec { font-size:16px; font-weight:800; color:#022c22; margin:30px 0 4px; }
+  p.secsub { font-size:13px; color:#6b7280; margin-bottom:14px; }
+
+  /* ===== Peta klasifikasi ===== */
+  .map { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  @media (max-width:1000px){ .map{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:640px){ .map{ grid-template-columns:1fr; } }
+  .mapcard { background:#fff; border:1px solid #e3e8e3; border-radius:12px; padding:16px 18px; }
+  .mapcard h3 { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#047857; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .mapcard h3::after { content:''; flex:1; height:1px; background:#eef0ee; }
+  .mitem { margin-bottom:10px; }
+  .mitem .mname { font-size:14px; font-weight:700; color:#111827; }
+  .mitem .msub { font-size:12.5px; color:#6b7280; margin-top:2px; line-height:1.55; }
+  .mitem .msub span { color:#9ca3af; }
+
+  /* ===== Rangka aplikasi ===== */
+  .frame { background:#fff; border:1px solid #dde3dd; border-radius:14px; overflow:hidden; box-shadow:0 2px 10px rgba(2,44,34,.07); margin-bottom:26px; }
+  .app { display:flex; min-height:560px; }
+  /* Sidebar */
+  .side { width:248px; flex:0 0 248px; background:#022c22; color:#d7e8e0; display:flex; flex-direction:column; }
+  .brand { display:flex; align-items:center; gap:10px; padding:16px 18px 14px; border-bottom:1px solid rgba(255,255,255,.08); }
+  .brand .dot { width:30px; height:30px; border-radius:50%; background:radial-gradient(circle at center,#e7ce7a 0 24%,#065f46 27% 100%); border:1px solid rgba(231,206,122,.5); flex:0 0 30px; }
+  .brand .bname { color:#fff; font-weight:800; font-size:17px; letter-spacing:-.01em; line-height:1.1; }
+  .brand .btag { font-size:10.5px; color:#7fae9d; }
+  .nav { padding:12px 12px 6px; flex:1; }
+  .group { margin-bottom:14px; }
+  .glabel { font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6fae9b; padding:4px 10px 6px; }
+  .item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; font-size:13.5px; font-weight:500; color:#cfe3da; cursor:pointer; position:relative; }
+  .item:hover { background:rgba(255,255,255,.06); color:#fff; }
+  .item svg { width:17px; height:17px; flex:0 0 17px; opacity:.85; }
+  .item .chev { margin-left:auto; width:14px; height:14px; opacity:.6; transition:transform .15s; }
+  .item.active { background:#065f46; color:#fff; font-weight:600; }
+  .item.active::before { content:''; position:absolute; left:-12px; top:6px; bottom:6px; width:3px; border-radius:2px; background:#c9a227; }
+  .sub { display:none; margin:2px 0 4px; }
+  .open > .sub { display:block; }
+  .open > .item .chev { transform:rotate(180deg); }
+  .sub a { display:flex; align-items:center; gap:8px; padding:6.5px 10px 6.5px 37px; font-size:13px; color:#a9c8ba; text-decoration:none; border-radius:8px; }
+  .sub a::before { content:''; width:5px; height:5px; border-radius:50%; background:#3f7a66; flex:0 0 5px; }
+  .sub a:hover { background:rgba(255,255,255,.05); color:#fff; }
+  .sub a.on { color:#fff; font-weight:600; }
+  .sub a.on::before { background:#c9a227; }
+  .sidefoot { border-top:1px solid rgba(255,255,255,.08); padding:12px 14px; display:flex; align-items:center; gap:10px; }
+  .ava { width:32px; height:32px; border-radius:50%; background:#065f46; border:1px solid rgba(231,206,122,.55); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex:0 0 32px; }
+  .sidefoot .un { font-size:13px; font-weight:600; color:#fff; line-height:1.15; }
+  .sidefoot .ur { font-size:11px; color:#7fae9d; }
+  /* Konten */
+  .main { flex:1; min-width:0; display:flex; flex-direction:column; background:#f7f8f7; }
+  .topbar { height:57px; background:#fff; border-bottom:1px solid #edf0ed; display:flex; align-items:center; gap:16px; padding:0 20px; }
+  .topbar .ttl { font-size:17px; font-weight:700; color:#022c22; white-space:nowrap; }
+  .gsearch { flex:1; max-width:430px; margin:0 auto; display:flex; align-items:center; gap:8px; background:#f6f7f6; border:1px solid #e5e7eb; border-radius:10px; padding:8px 12px; color:#9ca3af; font-size:13px; }
+  .gsearch svg { width:15px; height:15px; }
+  .topright { display:flex; align-items:center; gap:14px; margin-left:auto; }
+  .lang { font-size:13px; font-weight:600; color:#4b5563; }
+  .userchip { display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; color:#374151; }
+  .userchip .ava { background:#065f46; border:none; }
+  .content { padding:20px; }
+  .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .card { background:#fff; border:1px solid #edf0ed; border-radius:12px; padding:16px 18px; }
+  .card .cl { font-size:12.5px; color:#6b7280; margin-bottom:5px; }
+  .card .cv { font-size:21px; font-weight:800; color:#111827; font-variant-numeric:tabular-nums; }
+  .card .cs { font-size:12px; color:#9ca3af; margin-top:4px; }
+  .toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .filters { display:flex; gap:8px; }
+  .chip { font-size:12.5px; padding:7px 11px; border:1px solid #e5e7eb; border-radius:8px; color:#4b5563; background:#fff; }
+  .btn-aksi { background:#065f46; color:#fff; font-size:13px; font-weight:600; border:none; border-radius:9px; padding:8px 14px; cursor:pointer; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid #edf0ed; border-radius:12px; overflow:hidden; font-size:13.5px; }
+  th { text-align:left; font-size:12px; color:#6b7280; font-weight:600; padding:11px 14px; border-bottom:1px solid #f0f2f0; background:#fcfdfc; }
+  td { padding:11px 14px; border-bottom:1px solid #f5f6f5; color:#1f2937; }
+  tr:last-child td { border-bottom:none; }
+  .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .badge { display:inline-block; font-size:11px; font-weight:600; border-radius:999px; padding:2.5px 9px; }
+  .b-green { background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; }
+  .b-gray { background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb; }
+  .link { color:#065f46; font-weight:600; text-decoration:underline; }
+  .rowdots { color:#9ca3af; font-weight:800; letter-spacing:1px; }
+  /* Rangka ponsel */
+  .phone { width:360px; }
+  .phone .app { min-height:480px; }
+  .phone .side { display:none; }
+  .phone .topbar { gap:10px; }
+  .burger { width:34px; height:34px; border:1px solid #e5e7eb; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#374151; background:#fff; font-size:16px; }
+  .phone-note { font-size:12.5px; color:#6b7280; margin-top:8px; max-width:360px; line-height:1.6; }
+  .foot { font-size:12.5px; color:#6b7280; margin-top:6px; line-height:1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="page">Pratinjau Sidebar Lentera</h1>
+  <p class="sub">Usulan pengganti tata letak header (Varian A) menjadi <b>sidebar kiri</b>: menu diklasifikasikan ke dalam <b>6 kelompok</b> dengan submenu yang dapat dibuka-tutup. Topbar ramping tetap memegang kontrak lama — <b>judul tampil satu kali</b> dan <b>pencarian global selalu di atas</b>. Seluruh warna mengikuti token resmi Lentera (emerald pekat <b>#022c22</b> + aksen emas <b>#c9a227</b>, Plus Jakarta Sans). Ini pratinjau untuk dinilai — aplikasi belum diubah.</p>
+  <span class="note">Klik judul menu berkelompok (▾) pada contoh rangka di bawah untuk membuka/menutup submenu.</span>
+
+  <h2 class="sec">1 — Peta Klasifikasi Menu &amp; Submenu</h2>
+  <p class="secsub">Semua tujuan yang ada di aplikasi saat ini, disusun ulang. Menu tanpa submenu berarti langsung satu halaman.</p>
+  <div class="map" id="klasifikasi">
+    <div class="mapcard">
+      <h3>Utama</h3>
+      <div class="mitem"><div class="mname">Dashboard</div><div class="msub">Ringkasan penjualan, antrean lab, peringatan stok, keuangan bulan berjalan.</div></div>
+    </div>
+    <div class="mapcard">
+      <h3>Operasional</h3>
+      <div class="mitem"><div class="mname">Penjualan</div><div class="msub">Daftar Penjualan <span>·</span> Penjualan Baru</div></div>
+      <div class="mitem"><div class="mname">Pelanggan</div><div class="msub">Daftar Pelanggan <span>·</span> Pelanggan Baru <span>·</span> (resep &amp; precal di dalam detail pelanggan)</div></div>
+      <div class="mitem"><div class="mname">Lab</div><div class="msub">Antrean proses lensa: menunggu → edging → QC → siap → selesai.</div></div>
+    </div>
+    <div class="mapcard">
+      <h3>Pembelian &amp; Persediaan</h3>
+      <div class="mitem"><div class="mname">Pembelian</div><div class="msub">Purchase Request <span>·</span> Purchase Order <span>·</span> Bayar Kolektif</div></div>
+      <div class="mitem"><div class="mname">Persediaan</div><div class="msub">Stok <span>·</span> Pergerakan Stok <span>·</span> Transfer Antar Cabang <span>·</span> Impor Stok Awal</div></div>
+    </div>
+    <div class="mapcard">
+      <h3>Akuntansi</h3>
+      <div class="mitem"><div class="mname">Jurnal</div><div class="msub">Daftar Jurnal <span>·</span> Jurnal Manual <span>·</span> Buku Besar</div></div>
+      <div class="mitem"><div class="mname">Bagan Akun</div><div class="msub">Bagan akun terkelola (kode Coretax).</div></div>
+      <div class="mitem"><div class="mname">Aset Tetap</div><div class="msub">Daftar aset &amp; penyusutan bulanan.</div></div>
+      <div class="mitem"><div class="mname">Tutup Buku</div><div class="msub">Kunci / buka periode (buka kunci khusus Owner).</div></div>
+      <div class="mitem"><div class="mname">Payroll &amp; Komisi</div><div class="msub">Payroll <span>·</span> Komisi Dokter &amp; Teknisi</div></div>
+    </div>
+    <div class="mapcard">
+      <h3>Laporan</h3>
+      <div class="mitem"><div class="mname">Laporan Operasional</div><div class="msub">Penjualan <span>·</span> Pembelian <span>·</span> Stok <span>·</span> Utang Supplier</div></div>
+      <div class="mitem"><div class="mname">Laporan Keuangan</div><div class="msub">Neraca <span>·</span> Laba Rugi <span>·</span> Arus Kas</div></div>
+    </div>
+    <div class="mapcard">
+      <h3>Master &amp; Pengaturan</h3>
+      <div class="mitem"><div class="mname">Katalog</div><div class="msub">Frame <span>·</span> Lensa <span>·</span> Lensa RX <span>·</span> Softlens <span>·</span> Aksesori</div></div>
+      <div class="mitem"><div class="mname">Pengguna</div><div class="msub">Akun pengguna &amp; penugasan cabang.</div></div>
+      <div class="mitem"><div class="mname">Peran &amp; Izin</div><div class="msub">Matriks peran dan izin.</div></div>
+      <div class="mitem"><div class="mname">Cabang</div><div class="msub">Data cabang toko.</div></div>
+    </div>
+  </div>
+  <h2 class="sec">2 — Rangka Aplikasi: Dashboard</h2>
+  <p class="secsub">Sidebar emerald pekat; kelompok Operasional terbuka; menu aktif (Dashboard) beraksen emas di sisi kiri. Judul "Dashboard" tampil satu kali di topbar.</p>
+  <div class="frame" id="frame-dashboard"><div class="app">
+    <aside class="side">
+      <div class="brand"><span class="dot"></span><span><span class="bname">Lentera</span><br><span class="btag">Jernih Datanya, Terang Bisnisnya</span></span></div>
+      <div class="nav">
+        <div class="group"><div class="glabel">Utama</div>
+          <div class="item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</div>
+        </div>
+        <div class="group open"><div class="glabel">Operasional</div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/><path d="M2 3h3l2.6 12.5a1.5 1.5 0 0 0 1.5 1.2h7.9a1.5 1.5 0 0 0 1.5-1.2L20.5 7H6"/></svg>Penjualan<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Daftar Penjualan</a><a href="#">Penjualan Baru</a></div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg>Pelanggan<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Daftar Pelanggan</a><a href="#">Pelanggan Baru</a></div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="12" r="4"/><circle cx="18" cy="12" r="4"/><path d="M10 12h4"/></svg>Lab</div>
+        </div>
+        <div class="group"><div class="glabel">Pembelian &amp; Persediaan</div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 7h15l-1.7 8.5a1.5 1.5 0 0 1-1.5 1.2H8.6a1.5 1.5 0 0 1-1.5-1.2L5 3H2"/><circle cx="9" cy="21" r="1.4"/><circle cx="17" cy="21" r="1.4"/></svg>Pembelian<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Purchase Request</a><a href="#">Purchase Order</a><a href="#">Bayar Kolektif</a></div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg>Persediaan<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Stok</a><a href="#">Pergerakan Stok</a><a href="#">Transfer Antar Cabang</a><a href="#">Impor Stok Awal</a></div>
+        </div>
+        <div class="group"><div class="glabel">Akuntansi</div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14Z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>Jurnal<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Daftar Jurnal</a><a href="#">Jurnal Manual</a><a href="#">Buku Besar</a></div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h12"/></svg>Bagan Akun</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Aset Tetap</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Tutup Buku</div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Payroll &amp; Komisi<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Payroll</a><a href="#">Komisi</a></div>
+        </div>
+        <div class="group"><div class="glabel">Laporan</div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15v3"/><path d="M12 10v8"/><path d="M17 6v12"/></svg>Laporan Operasional<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Penjualan</a><a href="#">Pembelian</a><a href="#">Stok</a><a href="#">Utang Supplier</a></div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>Laporan Keuangan<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Neraca</a><a href="#">Laba Rugi</a><a href="#">Arus Kas</a></div>
+        </div>
+        <div class="group"><div class="glabel">Master &amp; Pengaturan</div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>Katalog<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Frame</a><a href="#">Lensa</a><a href="#">Lensa RX</a><a href="#">Softlens</a><a href="#">Aksesori</a></div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M17.5 14.4a6.5 6.5 0 0 1 4 5.6"/></svg>Pengguna</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 4.5 3.4 7.7 8 9 4.6-1.3 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>Peran &amp; Izin</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M10 21v-4h4v4"/></svg>Cabang</div>
+        </div>
+      </div>
+      <div class="sidefoot"><span class="ava">OL</span><span><span class="un">Owner Lentera</span><br><span class="ur">Owner · Cabang Pusat</span></span></div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span class="ttl">Dashboard</span>
+        <div class="gsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Cari pelanggan, produk, nomor transaksi…</div>
+        <div class="topright"><span class="lang">ID ▾</span><span class="userchip"><span class="ava">OL</span>Owner Lentera ▾</span></div>
+      </div>
+      <div class="content">
+        <div class="cards">
+          <div class="card"><div class="cl">Penjualan Hari Ini</div><div class="cv">Rp2.386.500,00</div><div class="cs">1 transaksi · Piutang beredar Rp0,00</div></div>
+          <div class="card"><div class="cl">Antrean Lab</div><div class="cv">0</div><div class="cs">Menunggu 0 · Edging 0 · QC 0 · Siap Ambil 0</div></div>
+          <div class="card"><div class="cl">Peringatan Stok</div><div class="cv">3</div><div class="cs">Menipis 1 · Habis 0 · Backorder 2</div></div>
+          <div class="card"><div class="cl">PR Menunggu Persetujuan</div><div class="cv">0</div><div class="cs">Purchase Request berstatus submitted</div></div>
+          <div class="card"><div class="cl">Utang Supplier</div><div class="cv">Rp4.600.000,00</div><div class="cs">Dari penerimaan yang belum lunas</div></div>
+          <div class="card"><div class="cl">Keuangan Bulan Ini</div><div class="cv">−Rp958.333,33</div><div class="cs">Laba bersih bulan berjalan · Posisi Kas &amp; Bank −Rp8.363.500,00</div></div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+
+  <h2 class="sec">3 — Rangka Aplikasi: Daftar Penjualan</h2>
+  <p class="secsub">Submenu Penjualan terbuka dengan "Daftar Penjualan" aktif. Di dalam konten, kontrak lama tetap berlaku: satu dropdown <b>Aksi</b>, satu dropdown per baris, judul satu kali di topbar.</p>
+  <div class="frame" id="frame-penjualan"><div class="app">
+    <aside class="side">
+      <div class="brand"><span class="dot"></span><span><span class="bname">Lentera</span><br><span class="btag">Jernih Datanya, Terang Bisnisnya</span></span></div>
+      <div class="nav">
+        <div class="group"><div class="glabel">Utama</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</div>
+        </div>
+        <div class="group open"><div class="glabel">Operasional</div>
+          <div class="item active" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/><path d="M2 3h3l2.6 12.5a1.5 1.5 0 0 0 1.5 1.2h7.9a1.5 1.5 0 0 0 1.5-1.2L20.5 7H6"/></svg>Penjualan<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#" class="on">Daftar Penjualan</a><a href="#">Penjualan Baru</a></div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg>Pelanggan<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Daftar Pelanggan</a><a href="#">Pelanggan Baru</a></div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="12" r="4"/><circle cx="18" cy="12" r="4"/><path d="M10 12h4"/></svg>Lab</div>
+        </div>
+        <div class="group"><div class="glabel">Pembelian &amp; Persediaan</div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 7h15l-1.7 8.5a1.5 1.5 0 0 1-1.5 1.2H8.6a1.5 1.5 0 0 1-1.5-1.2L5 3H2"/><circle cx="9" cy="21" r="1.4"/><circle cx="17" cy="21" r="1.4"/></svg>Pembelian<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Purchase Request</a><a href="#">Purchase Order</a><a href="#">Bayar Kolektif</a></div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg>Persediaan<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Stok</a><a href="#">Pergerakan Stok</a><a href="#">Transfer Antar Cabang</a><a href="#">Impor Stok Awal</a></div>
+        </div>
+        <div class="group"><div class="glabel">Akuntansi</div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14Z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>Jurnal<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Daftar Jurnal</a><a href="#">Jurnal Manual</a><a href="#">Buku Besar</a></div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h12"/></svg>Bagan Akun</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Aset Tetap</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Tutup Buku</div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Payroll &amp; Komisi<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Payroll</a><a href="#">Komisi</a></div>
+        </div>
+        <div class="group"><div class="glabel">Laporan</div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15v3"/><path d="M12 10v8"/><path d="M17 6v12"/></svg>Laporan Operasional<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Penjualan</a><a href="#">Pembelian</a><a href="#">Stok</a><a href="#">Utang Supplier</a></div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>Laporan Keuangan<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Neraca</a><a href="#">Laba Rugi</a><a href="#">Arus Kas</a></div>
+        </div>
+        <div class="group"><div class="glabel">Master &amp; Pengaturan</div>
+          <div class="item" onclick="tg(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>Katalog<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="sub"><a href="#">Frame</a><a href="#">Lensa</a><a href="#">Lensa RX</a><a href="#">Softlens</a><a href="#">Aksesori</a></div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M17.5 14.4a6.5 6.5 0 0 1 4 5.6"/></svg>Pengguna</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 4.5 3.4 7.7 8 9 4.6-1.3 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>Peran &amp; Izin</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M10 21v-4h4v4"/></svg>Cabang</div>
+        </div>
+      </div>
+      <div class="sidefoot"><span class="ava">OL</span><span><span class="un">Owner Lentera</span><br><span class="ur">Owner · Cabang Pusat</span></span></div>
+    </aside>
+    <div class="main">
+      <div class="topbar"><span class="ttl">Penjualan</span>
+        <div class="gsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Cari pelanggan, produk, nomor transaksi…</div>
+        <div class="topright"><span class="lang">ID ▾</span><span class="userchip"><span class="ava">OL</span>Owner Lentera ▾</span></div>
+      </div>
+      <div class="content">
+        <div class="toolbar"><div class="filters"><span class="chip">Semua Cabang ▾</span><span class="chip">Oktober 2026</span><span class="chip">Semua Status ▾</span></div><button class="btn-aksi">Aksi ▾</button></div>
+        <table>
+          <tr><th>Nomor</th><th>Tanggal</th><th>Pelanggan</th><th>Cabang</th><th class="num">Total</th><th>Status</th><th></th></tr>
+          <tr><td><span class="link">INV-202610-0001</span></td><td>17/10/2026</td><td>Budi Waluyo</td><td>Pusat</td><td class="num">Rp2.386.500,00</td><td><span class="badge b-green">Aktif</span></td><td class="rowdots">•••</td></tr>
+          <tr><td><span class="link">INV-202610-0002</span></td><td>18/10/2026</td><td>Agus Pratama</td><td>Cabang Timur</td><td class="num">Rp593.850,00</td><td><span class="badge b-green">Aktif</span></td><td class="rowdots">•••</td></tr>
+          <tr><td><span class="link">INV-202610-0003</span></td><td>18/10/2026</td><td>Sinta Maharani</td><td>Pusat</td><td class="num">Rp460.350,00</td><td><span class="badge b-gray">Void</span></td><td class="rowdots">•••</td></tr>
+        </table>
+      </div>
+    </div>
+  </div></div>
+
+  <h2 class="sec">4 — Layar Sempit (Tablet / Ponsel)</h2>
+  <p class="secsub">Di bawah ±900px sidebar disembunyikan; topbar menyisakan tombol hamburger — sidebar muncul sebagai panel geser di atas konten, klasifikasi menu sama persis.</p>
+  <div class="frame phone" id="frame-mobile"><div class="app">
+    <div class="main">
+      <div class="topbar"><span class="burger">☰</span><span class="ttl">Dashboard</span><div class="topright"><span class="lang">ID ▾</span><span class="ava">OL</span></div></div>
+      <div class="content">
+        <div class="gsearch" style="margin:0 0 14px; max-width:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Cari pelanggan, produk…</div>
+        <div class="card" style="margin-bottom:12px;"><div class="cl">Penjualan Hari Ini</div><div class="cv">Rp2.386.500,00</div><div class="cs">1 transaksi</div></div>
+        <div class="card"><div class="cl">Peringatan Stok</div><div class="cv">3</div><div class="cs">Menipis 1 · Habis 0 · Backorder 2</div></div>
+      </div>
+    </div>
+  </div></div>
+  <p class="phone-note">Catatan: pada rangka ponsel di atas sidebar sengaja tidak digambar — perilaku nyatanya adalah panel geser (drawer khusus navigasi, bukan untuk detail; detail tetap halaman penuh sesuai kontrak).</p>
+
+  <p class="foot" style="margin-top:26px;"><b>Yang berubah bila disetujui:</b> hanya rangka luar (layout + navigasi). Seluruh kontrak lain tetap: judul satu kali di topbar, pencarian global selalu di atas, satu dropdown Aksi + satu Cetak per layar, detail halaman penuh, dwibahasa. Keputusan Varian A di Blueprint/PRD/skill akan direvisi ber-commit menjadi "Sidebar" agar tercatat resmi.</p>
+</div>
+<script>
+  function tg(el){ el.parentElement.classList.toggle('open'); }
+</script>
+</body>
+</html>
