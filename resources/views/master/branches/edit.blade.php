@@ -26,6 +26,10 @@
                             <x-input-error :messages="$errors->get('address')" class="mt-2" />
                         </div>
                     </div>
+                    <label class="mt-4 inline-flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="is_main_warehouse" value="1" class="rounded border-gray-300 text-lentera-600 focus:ring-lentera-500" @checked(old('is_main_warehouse', $branch->is_main_warehouse))>
+                        {{ __('ui.branches.is_main_warehouse') }}
+                    </label>
                     <div class="flex items-center gap-3 mt-6">
                         <a href="{{ route('branches.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                         <x-primary-button>{{ __('ui.save_changes') }}</x-primary-button>

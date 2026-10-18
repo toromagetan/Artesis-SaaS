@@ -51,6 +51,10 @@ final class Chart
 
     public const BEBAN_PENYUSUTAN = '5-1600';
 
+    public const BEBAN_GARANSI = '5-1700';
+
+    public const PENDAPATAN_GARANSI = '4-1300';
+
     /** Peta metode bayar → akun kas/bank (E.1: dipilih dari metode). */
     public static function tenderAccount(string $method): string
     {

@@ -16,7 +16,7 @@ class Branch extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'address', 'phone', 'is_active'];
+    protected $fillable = ['name', 'address', 'phone', 'is_active', 'is_main_warehouse'];
 
     protected static function newFactory()
     {
@@ -25,7 +25,7 @@ class Branch extends Model
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return ['is_active' => 'boolean', 'is_main_warehouse' => 'boolean'];
     }
 
     public function users(): BelongsToMany

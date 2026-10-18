@@ -55,7 +55,13 @@ class BranchController extends Controller
             'name' => ['required', 'string', 'max:100'],
             'address' => ['nullable', 'string'],
             'phone' => ['nullable', 'string', 'max:30'],
+            'is_main_warehouse' => ['nullable', 'boolean'],
         ]);
+        $data['is_main_warehouse'] = (bool) ($data['is_main_warehouse'] ?? false);
+        if ($data['is_main_warehouse']) {
+            // Tepat satu gudang utama: menandai cabang ini melepas tanda cabang lain.
+            Branch::where('id', '!=', $branch->id)->update(['is_main_warehouse' => false]);
+        }
 
         $branch->update($data);
 

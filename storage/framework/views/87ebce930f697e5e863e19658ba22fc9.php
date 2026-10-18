@@ -53,7 +53,7 @@
         <?php endif; ?>
 
         
-        <?php if($can('sales.view') || $can('customers.view') || $can('lab.view')): ?>
+        <?php if($can('sales.view') || $can('customers.view') || $can('lab.view') || $can('stock.view')): ?>
             <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70"><?php echo e(__('ui.nav.group_operations')); ?></p>
             <?php if($can('sales.view')): ?>
                 <?php $act = request()->routeIs('sales.*') || request()->routeIs('receivables.*'); ?>
@@ -70,8 +70,17 @@
                         <a href="<?php echo e(route('sales.create')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('sales.create') ? $subActive : ''); ?>"><?php if(request()->routeIs('sales.create')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.sales_create')); ?></a>
                         <a href="<?php echo e(route('receivables.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('receivables.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('receivables.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.receivables')); ?></a>
                         <a href="<?php echo e(route('offline-exceptions.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('offline-exceptions.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('offline-exceptions.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.offline_exceptions')); ?></a>
+                        <a href="<?php echo e(route('warranties.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('warranties.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('warranties.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.warranties')); ?></a>
                     </div>
                 </div>
+            <?php endif; ?>
+            <?php if(! $can('sales.view') && $can('stock.view')): ?>
+                <a href="<?php echo e(route('warranties.index')); ?>" class="<?php echo e($item); ?> <?php echo e(request()->routeIs('warranties.*') ? $itemActive : ''); ?>">
+                    <?php if(request()->routeIs('warranties.*')): ?> <?php echo $goldBar; ?> <?php endif; ?>
+                    <svg class="<?php echo e($ico); ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15L15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                    <?php echo e(__('ui.nav.warranties')); ?>
+
+                </a>
             <?php endif; ?>
             <?php if($can('customers.view')): ?>
                 <?php $act = request()->routeIs('customers.*') || request()->routeIs('prescriptions.*'); ?>

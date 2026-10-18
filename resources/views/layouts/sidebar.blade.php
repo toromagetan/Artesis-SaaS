@@ -54,7 +54,7 @@
         @endif
 
         {{-- OPERASIONAL --}}
-        @if ($can('sales.view') || $can('customers.view') || $can('lab.view'))
+        @if ($can('sales.view') || $can('customers.view') || $can('lab.view') || $can('stock.view'))
             <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70">{{ __('ui.nav.group_operations') }}</p>
             @if ($can('sales.view'))
                 @php $act = request()->routeIs('sales.*') || request()->routeIs('receivables.*'); @endphp
@@ -70,8 +70,16 @@
                         <a href="{{ route('sales.create') }}" class="{{ $sub }} {{ request()->routeIs('sales.create') ? $subActive : '' }}">@if (request()->routeIs('sales.create')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.sales_create') }}</a>
                         <a href="{{ route('receivables.index') }}" class="{{ $sub }} {{ request()->routeIs('receivables.*') ? $subActive : '' }}">@if (request()->routeIs('receivables.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.receivables') }}</a>
                         <a href="{{ route('offline-exceptions.index') }}" class="{{ $sub }} {{ request()->routeIs('offline-exceptions.*') ? $subActive : '' }}">@if (request()->routeIs('offline-exceptions.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.offline_exceptions') }}</a>
+                        <a href="{{ route('warranties.index') }}" class="{{ $sub }} {{ request()->routeIs('warranties.*') ? $subActive : '' }}">@if (request()->routeIs('warranties.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.warranties') }}</a>
                     </div>
                 </div>
+            @endif
+            @if (! $can('sales.view') && $can('stock.view'))
+                <a href="{{ route('warranties.index') }}" class="{{ $item }} {{ request()->routeIs('warranties.*') ? $itemActive : '' }}">
+                    @if (request()->routeIs('warranties.*')) {!! $goldBar !!} @endif
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15L15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                    {{ __('ui.nav.warranties') }}
+                </a>
             @endif
             @if ($can('customers.view'))
                 @php $act = request()->routeIs('customers.*') || request()->routeIs('prescriptions.*'); @endphp

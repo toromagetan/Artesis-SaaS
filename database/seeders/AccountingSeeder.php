@@ -35,6 +35,8 @@ class AccountingSeeder extends Seeder
             ['5-1400', 'Beban Komisi', 'expense'],
             ['5-1500', 'Beban Gaji', 'expense'],
             ['5-1600', 'Beban Penyusutan', 'expense'],
+            ['5-1700', 'Beban Garansi', 'expense'],
+            ['4-1300', 'Pendapatan Garansi', 'revenue'],
         ];
         foreach ($accounts as [$code, $name, $group]) {
             Account::updateOrCreate(['code' => $code], ['name' => $name, 'group' => $group, 'is_active' => true]);

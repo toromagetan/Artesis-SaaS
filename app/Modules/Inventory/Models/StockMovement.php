@@ -24,6 +24,7 @@ class StockMovement extends Model
     public const REASONS = [
         'initial_stock', 'sale', 'sale_void', 'receipt', 'purchase_return',
         'transfer_out', 'transfer_in', 'sale_return', 'opname', 'correction',
+        'warranty_return', 'warranty_out', 'warranty_in',
     ];
 
     /** Tipe produk yang saldonya TIDAK BOLEH negatif (D.6/D.8). */

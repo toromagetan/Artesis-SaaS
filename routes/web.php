@@ -48,6 +48,7 @@ use App\Modules\Sales\Http\Controllers\OfflineExceptionController;
 use App\Modules\Sales\Http\Controllers\ReceivableController;
 use App\Modules\Sales\Http\Controllers\SaleController;
 use App\Modules\Sales\Http\Controllers\Settings\OfflineDeviceController;
+use App\Modules\Sales\Http\Controllers\WarrantyController;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
@@ -205,6 +206,20 @@ Route::middleware('auth')->group(function () {
 
     // ---- Penjualan (M.3) ----
     Route::get('/penjualan', [SaleController::class, 'index'])->middleware('permission:sales.view')->name('sales.index');
+    Route::get('/penjualan/garansi', [WarrantyController::class, 'index'])->name('warranties.index');
+    Route::get('/penjualan/garansi/baru', [WarrantyController::class, 'create'])->middleware('permission:sales.create')->name('warranties.create');
+    Route::post('/penjualan/garansi', [WarrantyController::class, 'store'])->middleware('permission:sales.create')->name('warranties.store');
+    Route::get('/penjualan/garansi/{warranty}', [WarrantyController::class, 'show'])->name('warranties.show');
+    Route::post('/penjualan/garansi/{warranty}/kirim-barang-lama', [WarrantyController::class, 'sendOld'])->middleware('permission:sales.create')->name('warranties.send-old');
+    Route::post('/penjualan/garansi/{warranty}/terima-barang-lama', [WarrantyController::class, 'receiveOld'])->middleware('permission:sales.view')->name('warranties.receive-old');
+    Route::post('/penjualan/garansi/{warranty}/siapkan-pengganti', [WarrantyController::class, 'prepare'])->middleware('permission:sales.view')->name('warranties.prepare');
+    Route::post('/penjualan/garansi/{warranty}/po-pengganti', [WarrantyController::class, 'replacementPo'])->middleware('permission:sales.view')->name('warranties.replacement-po');
+    Route::post('/penjualan/garansi/{warranty}/kirim-pengganti', [WarrantyController::class, 'ship'])->middleware('permission:sales.view')->name('warranties.ship');
+    Route::post('/penjualan/garansi/{warranty}/terima-pengganti', [WarrantyController::class, 'receiveReplacement'])->middleware('permission:sales.view')->name('warranties.receive-replacement');
+    Route::post('/penjualan/garansi/{warranty}/bayar', [WarrantyController::class, 'pay'])->middleware('permission:sales.pay')->name('warranties.pay');
+    Route::post('/penjualan/garansi/{warranty}/selesai', [WarrantyController::class, 'complete'])->middleware('permission:sales.create')->name('warranties.complete');
+    Route::post('/penjualan/stok-rusak/{brokenStock}/inspeksi', [WarrantyController::class, 'inspect'])->middleware('permission:stock.view')->name('warranties.inspect');
+    Route::post('/penjualan/stok-rusak/{brokenStock}/sesuaikan', [WarrantyController::class, 'adjust'])->middleware('permission:stock.view')->name('warranties.adjust');
     Route::get('/penjualan/pengecualian-sinkron', [OfflineExceptionController::class, 'index'])->middleware('permission:sales.view')->name('offline-exceptions.index');
     Route::get('/kasir-offline', [OfflineCashierController::class, 'show'])->middleware('permission:sales.create')->name('offline-cashier.show');
     Route::post('/penjualan/pengecualian-sinkron/{exception}/coba-lagi', [OfflineExceptionController::class, 'retry'])->middleware('permission:sales.create')->name('offline-exceptions.retry');
