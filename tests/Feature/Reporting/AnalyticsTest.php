@@ -6,6 +6,7 @@ use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
 use App\Modules\Purchasing\Services\PurchaseOrderService;
 use App\Modules\Purchasing\Services\PurchaseReturnService;
@@ -39,7 +40,7 @@ class AnalyticsTest extends TestCase
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         // Tarif pajak dibaca dari Setting (bukan data penjualan) —
         // nolkan agar aritmetika analitik bersih.
-        \App\Modules\Master\Models\Setting::set('tax.rate_default', '0');
+        Setting::set('tax.rate_default', '0');
     }
 
     public function test_supplier_and_sales_analytics_reconcile_with_sources(): void
