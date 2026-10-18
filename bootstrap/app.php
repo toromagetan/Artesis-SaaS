@@ -1,10 +1,10 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiToken;
-use App\Modules\Sales\Http\Middleware\AuthenticateOfflineDevice;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\SetLocale;
+use App\Modules\Sales\Http\Middleware\AuthenticateOfflineDevice;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;

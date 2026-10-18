@@ -40,6 +40,7 @@ use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseRequestController;
 use App\Modules\Purchasing\Http\Controllers\ReceiptController;
 use App\Modules\Reporting\Http\Controllers\ReportController;
+use App\Modules\Sales\Http\Controllers\OfflineCashierController;
 use App\Modules\Sales\Http\Controllers\OfflineExceptionController;
 use App\Modules\Sales\Http\Controllers\ReceivableController;
 use App\Modules\Sales\Http\Controllers\SaleController;
@@ -202,6 +203,7 @@ Route::middleware('auth')->group(function () {
     // ---- Penjualan (M.3) ----
     Route::get('/penjualan', [SaleController::class, 'index'])->middleware('permission:sales.view')->name('sales.index');
     Route::get('/penjualan/pengecualian-sinkron', [OfflineExceptionController::class, 'index'])->middleware('permission:sales.view')->name('offline-exceptions.index');
+    Route::get('/kasir-offline', [OfflineCashierController::class, 'show'])->middleware('permission:sales.create')->name('offline-cashier.show');
     Route::post('/penjualan/pengecualian-sinkron/{exception}/coba-lagi', [OfflineExceptionController::class, 'retry'])->middleware('permission:sales.create')->name('offline-exceptions.retry');
     Route::post('/penjualan/pengecualian-sinkron/{exception}/buang', [OfflineExceptionController::class, 'discard'])->middleware('permission:sales.view')->name('offline-exceptions.discard');
     Route::get('/penjualan/baru', [SaleController::class, 'create'])->middleware('permission:sales.create')->name('sales.create');
