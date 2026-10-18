@@ -94,6 +94,7 @@
             <div class="mb-4 rounded-lg bg-white p-6 shadow-soft">
                 <dl class="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
                     <div><dt class="text-gray-500"><?php echo e(__('ui.products.type')); ?></dt><dd class="mt-1 font-medium text-gray-800"><?php echo e($parent->typeLabel()); ?></dd></div>
+                    <div><dt class="text-gray-500"><?php echo e(__('ui.categories.title')); ?></dt><dd class="mt-1 font-medium text-gray-800"><?php echo e($parent->category?->name ?: '—'); ?></dd></div>
                     <div><dt class="text-gray-500"><?php echo e(__('ui.products.brand')); ?></dt><dd class="mt-1 font-medium text-gray-800"><?php echo e($parent->brand ?: '—'); ?></dd></div>
                     <div><dt class="text-gray-500"><?php echo e(__('ui.products.status')); ?></dt><dd class="mt-1"><?php if (isset($component)) { $__componentOriginal1a10f463ba2873b939123688d39cb7c8 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal1a10f463ba2873b939123688d39cb7c8 = $attributes; } ?>

@@ -4,6 +4,7 @@ namespace App\Modules\Catalog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\ProductCategory;
 use App\Modules\Catalog\Models\ProductParent;
 use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Identity\Services\BranchContext;
@@ -11,6 +12,7 @@ use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -25,7 +27,10 @@ class ProductParentController extends Controller
     {
         abort_unless(in_array($type, Product::TYPES, true), 404);
 
-        return view('catalog.parents.create', compact('type'));
+        $categories = ProductCategory::where('type', $type)
+            ->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
+
+        return view('catalog.parents.create', compact('type', 'categories'));
     }
 
     public function store(Request $request, string $type): RedirectResponse
@@ -35,6 +40,7 @@ class ProductParentController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'brand' => ['nullable', 'string', 'max:80'],
+            'category_id' => ['nullable', 'integer', Rule::exists('product_categories', 'id')],
         ]);
 
         $parent = $this->service->createParent($request->user(), [...$validated, 'type' => $type]);
@@ -44,7 +50,7 @@ class ProductParentController extends Controller
 
     public function show(Request $request, ProductParent $parent): View
     {
-        $parent->load(['variants' => fn ($q) => $q->orderBy('sku')]);
+        $parent->load(['category', 'variants' => fn ($q) => $q->orderBy('sku')]);
 
         $context = BranchContext::for($request->user());
         $branchIds = $context->hasGlobalAccess()
@@ -65,7 +71,10 @@ class ProductParentController extends Controller
 
     public function edit(ProductParent $parent): View
     {
-        return view('catalog.parents.edit', compact('parent'));
+        $categories = ProductCategory::where('type', $parent->type)
+            ->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
+
+        return view('catalog.parents.edit', compact('parent', 'categories'));
     }
 
     public function update(Request $request, ProductParent $parent): RedirectResponse
@@ -73,6 +82,7 @@ class ProductParentController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'brand' => ['nullable', 'string', 'max:80'],
+            'category_id' => ['nullable', 'integer', Rule::exists('product_categories', 'id')],
         ]);
 
         $this->service->updateParent($request->user(), $parent, $validated);

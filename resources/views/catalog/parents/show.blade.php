@@ -31,6 +31,7 @@
             <div class="mb-4 rounded-lg bg-white p-6 shadow-soft">
                 <dl class="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
                     <div><dt class="text-gray-500">{{ __('ui.products.type') }}</dt><dd class="mt-1 font-medium text-gray-800">{{ $parent->typeLabel() }}</dd></div>
+                    <div><dt class="text-gray-500">{{ __('ui.categories.title') }}</dt><dd class="mt-1 font-medium text-gray-800">{{ $parent->category?->name ?: '—' }}</dd></div>
                     <div><dt class="text-gray-500">{{ __('ui.products.brand') }}</dt><dd class="mt-1 font-medium text-gray-800">{{ $parent->brand ?: '—' }}</dd></div>
                     <div><dt class="text-gray-500">{{ __('ui.products.status') }}</dt><dd class="mt-1"><x-lentera.badge :active="$parent->is_active" /></dd></div>
                     <div><dt class="text-gray-500">{{ __('ui.products.variants') }}</dt><dd class="mt-1 font-medium text-gray-800">{{ $parent->variants->count() }}</dd></div>

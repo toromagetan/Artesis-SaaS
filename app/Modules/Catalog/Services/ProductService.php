@@ -3,6 +3,7 @@
 namespace App\Modules\Catalog\Services;
 
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\ProductCategory;
 use App\Modules\Catalog\Models\ProductParent;
 use App\Modules\Identity\Models\User;
 use App\Modules\Platform\Services\AuditLogger;
@@ -132,13 +133,86 @@ class ProductService
         });
     }
 
+    /** Buat kategori produk (paritas Artesis); tipe = kunci perilaku. */
+    public function createCategory(User $actor, array $data): ProductCategory
+    {
+        $category = ProductCategory::create([
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
+            'type' => $data['type'],
+            'is_active' => true,
+            'sort_order' => (int) ($data['sort_order'] ?? 0),
+        ]);
+
+        app(AuditLogger::class)->log(
+            action: 'products.category.create',
+            subjectType: 'product_category',
+            subjectId: $category->id,
+            newValues: ['name' => $category->name, 'type' => $category->type],
+            actor: $actor,
+        );
+
+        return $category;
+    }
+
+    public function updateCategory(User $actor, ProductCategory $category, array $data): ProductCategory
+    {
+        // Tipe kategori terkunci bila sudah dipakai induk — tipe adalah
+        // kunci perilaku sistem dan tidak boleh bergeser diam-diam.
+        if (isset($data['type']) && $data['type'] !== $category->type && $category->parents()->exists()) {
+            throw ValidationException::withMessages(['type' => __('ui.categories.type_locked')]);
+        }
+
+        $category->update([
+            'name' => $data['name'] ?? $category->name,
+            'description' => array_key_exists('description', $data) ? $data['description'] : $category->description,
+            'type' => $data['type'] ?? $category->type,
+            'sort_order' => (int) ($data['sort_order'] ?? $category->sort_order),
+        ]);
+
+        app(AuditLogger::class)->log(
+            action: 'products.category.update',
+            subjectType: 'product_category',
+            subjectId: $category->id,
+            newValues: ['name' => $category->name, 'type' => $category->type],
+            actor: $actor,
+        );
+
+        return $category;
+    }
+
+    public function setCategoryActive(User $actor, ProductCategory $category, bool $active): ProductCategory
+    {
+        $category->update(['is_active' => $active]);
+
+        app(AuditLogger::class)->log(
+            action: $active ? 'products.category.activate' : 'products.category.deactivate',
+            subjectType: 'product_category',
+            subjectId: $category->id,
+            newValues: ['is_active' => $active],
+            actor: $actor,
+        );
+
+        return $category;
+    }
+
+    /** Kategori bawaan/aktif untuk sebuah tipe sistem. */
+    public function defaultCategoryFor(string $type): ?ProductCategory
+    {
+        return ProductCategory::where('type', $type)->where('is_active', true)
+            ->orderBy('sort_order')->orderBy('id')->first();
+    }
+
     /** Buat induk produk (ADR-015). */
     public function createParent(User $actor, array $data): ProductParent
     {
+        $category = $this->resolveCategory($data, $data['type']);
+
         $parent = ProductParent::create([
             'name' => $data['name'],
             'brand' => $data['brand'] ?? null,
-            'type' => $data['type'],
+            'category_id' => $category?->id,
+            'type' => $category?->type ?? $data['type'],
             'is_active' => true,
         ]);
 
@@ -153,12 +227,39 @@ class ProductService
         return $parent;
     }
 
+    /**
+     * Tentukan kategori induk: category_id eksplisit wajib setipe
+     * dengan induk; tanpa itu pakai kategori bawaan tipenya.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveCategory(array $data, ?string $mustType = null): ?ProductCategory
+    {
+        if (! empty($data['category_id'])) {
+            $category = ProductCategory::findOrFail((int) $data['category_id']);
+            if ($mustType !== null && $category->type !== $mustType) {
+                throw ValidationException::withMessages([
+                    'category_id' => __('ui.categories.type_mismatch'),
+                ]);
+            }
+
+            return $category;
+        }
+
+        return isset($data['type']) ? $this->defaultCategoryFor($data['type']) : null;
+    }
+
     /** Ubah induk produk (ADR-015). */
     public function updateParent(User $actor, ProductParent $parent, array $data): ProductParent
     {
+        $category = array_key_exists('category_id', $data) && $data['category_id'] !== null
+            ? $this->resolveCategory($data, $parent->type)
+            : $parent->category;
+
         $parent->update([
             'name' => $data['name'] ?? $parent->name,
             'brand' => array_key_exists('brand', $data) ? $data['brand'] : $parent->brand,
+            'category_id' => $category?->id,
         ]);
 
         app(AuditLogger::class)->log(
@@ -208,7 +309,7 @@ class ProductService
 
         return ProductParent::firstOrCreate(
             ['type' => $data['type'], 'brand' => $data['brand'] ?? null, 'name' => $data['name']],
-            ['is_active' => true],
+            ['is_active' => true, 'category_id' => $this->defaultCategoryFor($data['type'])?->id],
         );
     }
 

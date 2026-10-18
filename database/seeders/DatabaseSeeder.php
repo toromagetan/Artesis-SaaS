@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             QcPointTemplateSeeder::class,
             WaTemplateSeeder::class,
             MembershipLevelSeeder::class,
+            ProductCategorySeeder::class,
         ]);
     }
 }
