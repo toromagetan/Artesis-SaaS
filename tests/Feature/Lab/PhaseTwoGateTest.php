@@ -10,11 +10,16 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Lab\Models\LensProcess;
 use App\Modules\Lab\Models\QcCheck;
 use App\Modules\Lab\Models\QcPointTemplate;
-use App\Modules\Lab\Services\LabOrderService;
 use App\Modules\Lab\Services\LensProcessService;
+use App\Modules\Lab\Services\ProcurementStatusService;
 use App\Modules\Lab\Services\QcCheckService;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Master\Models\Supplier;
 use App\Modules\Platform\Models\AuditLog;
+use App\Modules\Purchasing\Models\PurchaseRequest;
+use App\Modules\Purchasing\Services\PurchaseOrderService;
+use App\Modules\Purchasing\Services\PurchaseRequestService;
+use App\Modules\Purchasing\Services\ReceiptService;
 use App\Modules\Sales\Services\SalesService;
 use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
@@ -24,21 +29,24 @@ use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 /**
- * GERBANG KELUAR FASE 2 (Roadmap §8): satu orderan uji ujung-ke-ujung —
- * jual → edging → QC gagal 1 titik → perbaiki → lulus → order lab →
- * received → Complete — tercatat lengkap dengan teknisi & waktu,
- * dan biaya lab berakhir di jurnal HPP.
+ * GERBANG KELUAR FASE 2 (Roadmap §8, direvisi koreksi owner 2026-10-18
+ * mengikuti rantai ARTESIS): jual RX -> PR otomatis -> PO -> terima ->
+ * edging -> QC gagal 1 titik -> Complete DITOLAK -> perbaiki -> lulus
+ * -> Complete tercatat lengkap dengan teknisi & waktu. Order lab
+ * BUKAN dokumen tersendiri: pekerjaan lab eksternal berjalan lewat
+ * PR/PO; TIDAK ada jurnal sumber 'lab_order'.
  */
 class PhaseTwoGateTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_end_to_end_order_with_qc_failure_recovery_lab_order_and_completion(): void
+    public function test_end_to_end_artesis_chain_with_qc_failure_recovery_and_completion(): void
     {
         $this->seed([IdentitySeeder::class, AccountingSeeder::class, QcPointTemplateSeeder::class]);
         $owner = User::where('username', 'owner')->firstOrFail();
         $branch = Branch::where('name', 'Pusat')->firstOrFail();
         $customer = Customer::factory()->create(['branch_id' => $branch->id]);
+        $supplier = Supplier::create(['name' => 'PT Lab Uji', 'is_active' => true]);
         $rx = Product::factory()->ofType('rx')->create(['sale_price' => '450000']);
 
         $technician = User::create([
@@ -47,7 +55,7 @@ class PhaseTwoGateTest extends TestCase
         $technician->roles()->attach(Role::where('name', 'Teknisi')->firstOrFail());
         $technician->branches()->attach($branch->id);
 
-        // 1) Jual → proses lab lahir berstatus waiting.
+        // 1) Jual RX -> proses waiting + PR otomatis tertaut (submitted).
         $sale = app(SalesService::class)->createSale($owner, [
             'customer_id' => $customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
         ], [
@@ -55,17 +63,43 @@ class PhaseTwoGateTest extends TestCase
         ]);
         $process = LensProcess::where('sale_id', $sale->id)->firstOrFail();
         $this->assertSame('waiting', $process->status);
+        $pr = PurchaseRequest::where('sale_id', $sale->id)->firstOrFail();
+        $this->assertSame('submitted', $pr->status);
+        $stage = app(ProcurementStatusService::class);
+        $this->assertSame('pr', $stage->stageFor($sale));
 
-        // 2) Tugaskan teknisi + maju ke edging lalu qc.
         $lab = app(LensProcessService::class);
         $lab->assignTechnician($owner, $process, $technician->id, 3);
+
+        // 2) Edging DITOLAK sebelum lensa diterima (gerbang urutan).
+        try {
+            $lab->transition($owner, $process, 'edging');
+            $this->fail('Edging harus ditolak sebelum penerimaan lensa');
+        } catch (ValidationException) {
+            $this->assertSame('waiting', $process->refresh()->status);
+        }
+
+        // 3) Rantai pengadaan: PR -> PO -> kirim -> terima penuh.
+        $prs = app(PurchaseRequestService::class);
+        $prs->approve($owner, $pr);
+        $po = $prs->convertToPo($owner, [$pr->refresh()], $supplier->id);
+        app(PurchaseOrderService::class)->markSent($owner, $po);
+        $poItem = $po->items()->firstOrFail();
+        app(ReceiptService::class)->store($owner, $po->refresh(), [
+            ['purchase_order_item_id' => $poItem->id, 'qty' => 1, 'unit_cost_actual' => '300000'],
+        ]);
+        $this->assertSame('complete', $po->refresh()->status);
+        $this->assertSame('received', $stage->stageFor($sale));
+
+        // 4) Edging -> qc sesudah lensa diterima.
         $lab->transition($owner, $process, 'edging');
         $lab->transition($owner, $process, 'qc');
         $this->assertSame('qc', $process->refresh()->status);
 
-        // 3) QC: satu titik GAGAL ber-catatan; titik lain lulus.
+        // 5) QC: satu titik GAGAL ber-catatan; titik lain lulus.
         $qc = app(QcCheckService::class);
         $points = QcPointTemplate::activeOrdered()->get();
+        $this->assertCount(13, $points);
         $failingPoint = $points->first();
         foreach ($points as $point) {
             if ($point->id === $failingPoint->id) {
@@ -75,56 +109,40 @@ class PhaseTwoGateTest extends TestCase
             }
         }
 
-        // 4) Complete saat ini DITOLAK (gerbang negatif Fase 2).
+        // 6) Complete DITOLAK selama titik wajib terakhirnya gagal.
         try {
             $lab->complete($owner, $process);
-            $this->fail('Complete dengan titik QC gagal seharusnya ditolak.');
+            $this->fail('Complete harus ditolak selama QC wajib belum lulus');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('qc', $e->errors());
         }
+        $this->assertFalse($process->refresh()->isDone());
 
-        // 5) Perbaiki: titik gagal diperiksa ulang → lulus (percobaan 2).
-        $fixed = $qc->record($technician, $process, $failingPoint->id, 'pass', 'Sudah diperbaiki');
-        $this->assertSame(2, $fixed->attempt);
+        // 7) Perbaiki: periksa ulang titik gagal -> lulus (percobaan 2).
+        $qc->record($technician, $process, $failingPoint->id, 'pass', 'Axis sudah tepat sesudah edging ulang');
+        $this->assertSame(2, QcCheck::where('lens_process_id', $process->id)
+            ->where('qc_point_template_id', $failingPoint->id)->max('attempt'));
         $this->assertSame(14, QcCheck::where('lens_process_id', $process->id)->count());
 
-        // 6) Order lab: buat → dipesan → diterima dengan biaya final.
-        $orders = app(LabOrderService::class);
-        $order = $orders->create($owner, $sale, 'Lab Sentral Jakarta', '60000');
-        $orders->transition($owner, $order, 'ordered');
-        $orders->transition($owner, $order, 'received', '65000');
-        $order->refresh();
-        $this->assertSame('received', $order->status);
-        $this->assertNotNull($order->sent_at);
-        $this->assertNotNull($order->received_at);
-
-        // Jurnal biaya lab → HPP tercatat.
-        $journal = Journal::where('source_type', 'lab_order')->where('source_id', $order->id)->firstOrFail();
-        $debit = $journal->lines()->with('account')->get()->firstWhere('account.code', '5-1100');
-        $this->assertSame('65000.00', (string) $debit->debit);
-
-        // 7) Maju ke ready lalu Complete — kini berhasil, teknisi & waktu tercatat.
+        // 8) Ready -> Complete; tercatat teknisi & waktu; tahap 'done'.
         $lab->transition($owner, $process, 'ready');
-        $done = $lab->complete($owner, $process);
-        $this->assertSame('done', $done->status);
-        $this->assertSame($technician->id, $done->technician_id);
-        $this->assertNotNull($done->completed_at);
-        $this->assertNotNull($done->started_at);
-        $this->assertTrue($done->completed_at->greaterThanOrEqualTo($done->started_at));
+        $lab->complete($owner, $process);
+        $process->refresh();
+        $this->assertTrue($process->isDone());
+        $this->assertSame($technician->id, (int) $process->technician_id);
+        $this->assertNotNull($process->completed_at);
+        $this->assertTrue($process->completed_at->greaterThanOrEqualTo($process->started_at));
+        $this->assertSame('done', $stage->stageFor($sale));
 
-        // Jejak audit lengkap untuk rantai peristiwa lab.
-        foreach (['lab.assign', 'lab.qc_record', 'lab_order.create', 'lab_order.transition', 'lab.complete'] as $action) {
+        // 9) Jejak audit rantai penuh ada; jurnal 'lab_order' TIDAK ada.
+        foreach (['pr.auto_create', 'lab.assign', 'lab.qc_record', 'lab.complete'] as $action) {
             $this->assertTrue(
                 AuditLog::where('action', $action)->exists(),
-                "Jejak audit {$action} tidak ditemukan.",
+                "Audit {$action} harus tercatat",
             );
         }
-
-        // Pemeriksaan QC tercatat atas nama teknisi pemeriksa.
-        $this->assertTrue(
-            QcCheck::where('lens_process_id', $process->id)
-                ->where('checked_by', $technician->id)
-                ->exists(),
-        );
+        $this->assertSame(0, Journal::where('source_type', 'lab_order')->count());
+        $this->assertSame($technician->id, (int) QcCheck::where('lens_process_id', $process->id)
+            ->firstOrFail()->checked_by);
     }
 }

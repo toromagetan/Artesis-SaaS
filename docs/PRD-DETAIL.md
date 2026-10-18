@@ -12,7 +12,7 @@
 **Peran:** Owner (pemilik, seluruh cabang) · Admin (pengelola, izin eksplisit) · Kasir · Gudang · Cabang (staf cabang) · Refraksionis · Teknisi Lab. Prinsip tetap: akses diberikan per peran + pagar cabang di server; platform/pemilik teknis tidak otomatis menjadi pelaku bisnis.
 
 **Peta navigasi (sidebar):**
-Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & Resep (Pelanggan, Resep, Precal) · Katalog (Frame, Lensa, Lensa RX, Softlens, Aksesori) · Lab (Antrean Proses, QC Faset, Order Lab) · Pembelian (Purchase Request, Purchase Order, Penerimaan, Pembayaran, Pembayaran Kolektif, Retur, Supplier) · Stok (Stok Cabang, Pergerakan, Transfer Distribusi, Opname, Impor Stok Awal, Label Barcode) · Akuntansi (Chart of Accounts, Jurnal, Buku Besar, Utang & Piutang, Laporan Keuangan, Aset Tetap, Tutup Buku, Payroll & Komisi) · Membership (Member, Poin, Follow-up, Portal Member) · Laporan (Penjualan, Pembelian, Stok, Supplier Analytics, Sales Analytics) · Komunikasi (Gateway WA, Template, Inbox, Kampanye, Log Kirim) · Pengaturan (Cabang, Pengguna & Peran, Asuransi, Dokter Perujuk, Umum & Pajak, Backup, Audit Log, API).
+Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & Resep (Pelanggan, Resep, Precal) · Katalog (Frame, Lensa, Lensa RX, Softlens, Aksesori) · Lab (Antrean Proses, QC Faset) · Pembelian (Purchase Request, Purchase Order, Penerimaan, Pembayaran, Pembayaran Kolektif, Retur, Supplier) · Stok (Stok Cabang, Pergerakan, Transfer Distribusi, Opname, Impor Stok Awal, Label Barcode) · Akuntansi (Chart of Accounts, Jurnal, Buku Besar, Utang & Piutang, Laporan Keuangan, Aset Tetap, Tutup Buku, Payroll & Komisi) · Membership (Member, Poin, Follow-up, Portal Member) · Laporan (Penjualan, Pembelian, Stok, Supplier Analytics, Sales Analytics) · Komunikasi (Gateway WA, Template, Inbox, Kampanye, Log Kirim) · Pengaturan (Cabang, Pengguna & Peran, Asuransi, Dokter Perujuk, Umum & Pajak, Backup, Audit Log, API).
 
 ---
 
@@ -120,10 +120,10 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 - **Aksi:** Simpan pemeriksaan; Ulangi titik gagal (riwayat percobaan tersimpan, tidak ditimpa).
 - **Aturan kunci:** transaksi tidak dapat di-Complete sebelum semua titik wajib Lulus; titik gagal wajib ber-catatan.
 
-### 5.3 Order Lab — F2
-- **Tujuan:** memesan pekerjaan ke lab (internal/eksternal) dan melacaknya.
-- **Daftar:** Nomor Order, Transaksi terkait, Lab Tujuan, Tanggal Kirim, Status (**Menunggu → Dipesan → Diterima**), Biaya Lab, Tanggal Terima.
-- **Aturan kunci:** biaya lab yang diterima mengalir menjadi komponen HPP transaksi; perubahan status tercatat berurutan (tidak melompat mundur).
+### 5.3 Pemesanan Pekerjaan Lab = Rantai PR → PO (koreksi owner 2026-10-18)
+- **Tujuan:** memesan pekerjaan/lensa ke lab eksternal TANPA dokumen baru — memakai rantai pembelian yang sudah ada, persis praktik Artesis.
+- **Alur:** penjualan lensa yang stoknya kurang (atau lensa RX, selalu) melahirkan **PR otomatis** tertaut nomor transaksi → PR disetujui → menjadi PO ke lab/supplier → penerimaan → lensa tiba di cabang → barulah edging & QC (5.2) dimulai, di gudang atau cabang terkait.
+- **Aturan kunci:** TIDAK ada dokumen "order lab" dan TIDAK ada jurnal biaya lab terpisah — biaya pekerjaan adalah harga pokok item PO yang mengalir lewat penerimaan → persediaan → HPP. Status proses lensa di detail penjualan adalah status TURUNAN rantai ini (PR → PO → Sudah Order → Lensa Datang → Lensa Dikirim → Selesai).
 
 ## 6. PEMBELIAN
 ### 6.1 Purchase Request (PR) — MVP

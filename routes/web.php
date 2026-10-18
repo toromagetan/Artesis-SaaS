@@ -20,7 +20,6 @@ use App\Modules\Inventory\Http\Controllers\InitialStockImportController;
 use App\Modules\Inventory\Http\Controllers\StockController;
 use App\Modules\Inventory\Http\Controllers\TransferController;
 use App\Modules\Lab\Http\Controllers\LabController;
-use App\Modules\Lab\Http\Controllers\LabOrderController;
 use App\Modules\Lab\Http\Controllers\QcTemplateController;
 use App\Modules\Master\Http\Controllers\BranchController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
@@ -109,11 +108,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/lab/template-qc/{template}/aktif', [QcTemplateController::class, 'toggleActive'])->middleware('permission:lab.view')->name('qc-templates.toggle');
 
     // Order lab (F2.3) — juga sebelum /lab/{process}.
-    Route::get('/lab/order', [LabOrderController::class, 'index'])->middleware('permission:lab.order.manage')->name('lab-orders.index');
-    Route::get('/lab/order/buat', [LabOrderController::class, 'create'])->middleware('permission:lab.order.manage')->name('lab-orders.create');
-    Route::post('/lab/order', [LabOrderController::class, 'store'])->middleware('permission:lab.order.manage')->name('lab-orders.store');
-    Route::get('/lab/order/{order}', [LabOrderController::class, 'show'])->middleware('permission:lab.order.manage')->name('lab-orders.show');
-    Route::post('/lab/order/{order}/status', [LabOrderController::class, 'transition'])->middleware('permission:lab.order.manage')->name('lab-orders.transition');
 
     Route::get('/lab', [LabController::class, 'index'])->middleware('permission:lab.view')->name('lab.index');
     Route::get('/lab/{process}', [LabController::class, 'show'])->middleware('permission:lab.view')->name('lab.show');

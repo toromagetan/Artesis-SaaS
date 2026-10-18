@@ -69,7 +69,7 @@ MVP adalah inti yang membuat Lentera dapat menjalankan toko optik sungguhan dari
 | Fase | Modul | Isi ringkas |
 |---|---|---|
 | 1 | **Akuntansi Penuh** | Chart of Accounts (pemetaan selaras Coretax DJP), buku besar, neraca, laba rugi (total & per cabang), arus kas, aset & penyusutan, tutup buku berkunci; payroll (sub-modul, per keputusan owner). Dibangun di atas jurnal MVP. |
-| 2 | **QC Faset & Order Lab** | Checklist QC dapat dikonfigurasi (bawaan 13 titik) oleh teknisi bernama; 'Complete' hanya sesudah QC wajib lulus; order lab Menunggu→Dipesan→Diterima, biaya lab → HPP; papan antrean lab. |
+| 2 | **QC Faset & Proses Lab** | Checklist QC dapat dikonfigurasi (bawaan 13 titik) oleh teknisi bernama; 'Complete' hanya sesudah QC wajib lulus; pekerjaan lab eksternal lewat rantai PR → PO — PR lahir otomatis dari penjualan untuk kekurangan lensa (RX selalu lewat PR) dan edging baru dimulai sesudah lensa diterima; papan antrean lab. |
 | 3 | **Penjualan Diperluas** | DP, split payment, piutang & cicilan pelanggan, dokter perujuk + komisi, PPN inklusif/eksklusif. |
 | 3 | **WhatsApp & Otomasi** | Gateway resmi: invoice via WA, reminder pengambilan & after-service, ucapan ulang tahun, lalu inbox dua arah + blast berpagar. Kegagalan gateway tidak pernah menggagalkan transaksi. |
 | 3 | **Membership & Loyalitas** | Level + poin (tercatat sebagai liabilitas akuntansi), riwayat refraksi/rekam medis terpadu, follow-up, portal member ringan ber-token. |

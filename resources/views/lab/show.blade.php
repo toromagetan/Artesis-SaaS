@@ -49,6 +49,10 @@
                     <dd class="font-medium text-gray-800">{{ $process->sale->branch->name }}</dd>
                     <dt class="text-gray-500">{{ __('ui.lab.status') }}</dt>
                     <dd class="font-medium text-gray-800">{{ __('ui.lab.statuses.'.$process->status) }}</dd>
+                    @if ($procurementStage !== null)
+                        <dt class="text-gray-500">{{ __('ui.lab.lens_status') }}</dt>
+                        <dd class="font-medium text-gray-800">{{ __('ui.lab.stages.'.$procurementStage) }}</dd>
+                    @endif
                     <dt class="text-gray-500">{{ __('ui.lab.technician') }}</dt>
                     <dd class="font-medium text-gray-800">{{ $process->technician?->name ?? __('ui.lab.unassigned') }}</dd>
                     <dt class="text-gray-500">{{ __('ui.lab.estimate') }}</dt>
@@ -176,41 +180,6 @@
                         @empty
                             <tr>
                                 <td colspan="6" class="px-4 py-6"><x-lentera.empty-state :message="__('ui.qc.history_empty')" /></td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            {{-- Order lab penjualan ini (F2.3) --}}
-            <h2 class="mb-2 text-base font-semibold text-gray-800">{{ __('ui.lab_orders.title') }}</h2>
-            <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
-                <table class="min-w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-gray-100 text-left text-gray-500">
-                            <th class="px-4 py-3 font-medium">{{ __('ui.lab_orders.number') }}</th>
-                            <th class="px-4 py-3 font-medium">{{ __('ui.lab_orders.lab_name') }}</th>
-                            <th class="px-4 py-3 font-medium">{{ __('ui.lab.status') }}</th>
-                            <th class="px-4 py-3 text-right font-medium">{{ __('ui.lab_orders.cost') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($labOrders as $order)
-                            <tr class="border-b border-gray-50 last:border-0">
-                                <td class="px-4 py-3 font-medium">
-                                    @can('lab.order.manage')
-                                        <a href="{{ route('lab-orders.show', $order) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $order->number }}</a>
-                                    @else
-                                        {{ $order->number }}
-                                    @endcan
-                                </td>
-                                <td class="px-4 py-3 text-gray-800">{{ $order->lab_name }}</td>
-                                <td class="px-4 py-3 text-gray-600">{{ __('ui.lab_orders.statuses.'.$order->status) }}</td>
-                                <td class="px-4 py-3 text-right tnum">{{ $order->labCost()->format() }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="px-4 py-6"><x-lentera.empty-state :message="__('ui.lab_orders.empty')" /></td>
                             </tr>
                         @endforelse
                     </tbody>

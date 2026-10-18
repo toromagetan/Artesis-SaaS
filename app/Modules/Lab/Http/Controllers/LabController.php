@@ -5,11 +5,11 @@ namespace App\Modules\Lab\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
-use App\Modules\Lab\Models\LabOrder;
 use App\Modules\Lab\Models\LensProcess;
 use App\Modules\Lab\Models\QcCheck;
 use App\Modules\Lab\Models\QcPointTemplate;
 use App\Modules\Lab\Services\LensProcessService;
+use App\Modules\Lab\Services\ProcurementStatusService;
 use App\Modules\Lab\Services\QcCheckService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -67,10 +67,10 @@ class LabController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        // Order lab milik penjualan ini (F2.3) — status terlihat pemegang lab.view.
-        $labOrders = LabOrder::where('sale_id', $process->sale_id)->orderByDesc('id')->get();
+        // Status proses turunan dari rantai pengadaan (paritas Artesis).
+        $procurementStage = app(ProcurementStatusService::class)->stageFor($process->sale);
 
-        return view('lab.show', compact('process', 'technicians', 'qcPoints', 'qcLatest', 'qcHistory', 'labOrders'));
+        return view('lab.show', compact('process', 'technicians', 'qcPoints', 'qcLatest', 'qcHistory', 'procurementStage'));
     }
 
     /** Catat satu percobaan QC (F2.2) — pagar izin lab.qc di rute. */

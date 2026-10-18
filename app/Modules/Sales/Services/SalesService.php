@@ -8,8 +8,10 @@ use App\Modules\Clinical\Services\PrescriptionService;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Services\AuditLogger;
+use App\Modules\Purchasing\Services\PurchaseRequestService;
 use App\Modules\Sales\Events\SaleCompleted;
 use App\Modules\Sales\Events\SalePaymentRecorded;
 use App\Modules\Sales\Events\SaleVoided;
@@ -202,6 +204,41 @@ class SalesService
                 actor: $actor,
             );
 
+            // PR OTOMATIS kekurangan lensa (paritas Artesis): lensa RX
+            // selalu diproses melalui PR; lensa stok & softlens dibuatkan
+            // PR hanya untuk qty yang tidak tersedia di cabang transaksi.
+            // Saldo dibaca SEBELUM gerakan keluar penjualan dicatat
+            // listener SaleCompleted. Masih dalam transaksi yang sama —
+            // penjualan gagal, PR ikut gulung.
+            $shortages = [];
+            $available = [];
+            foreach ($lines as $line) {
+                $type = $line['product']->type;
+                if (! in_array($type, ['lens', 'rx', 'softlens'], true)) {
+                    continue;
+                }
+                if ($type === 'rx') {
+                    $shortages[$line['product']->id] = ($shortages[$line['product']->id] ?? 0) + $line['qty'];
+
+                    continue;
+                }
+                $pid = $line['product']->id;
+                $available[$pid] ??= app(InventoryService::class)->currentStock($pid, $branchId);
+                $covered = min($line['qty'], max(0, $available[$pid]));
+                $available[$pid] -= $covered;
+                if ($line['qty'] - $covered > 0) {
+                    $shortages[$pid] = ($shortages[$pid] ?? 0) + ($line['qty'] - $covered);
+                }
+            }
+            if ($shortages !== []) {
+                $prItems = [];
+                foreach ($shortages as $productId => $qty) {
+                    $prItems[] = ['product_id' => $productId, 'qty' => $qty];
+                }
+                app(PurchaseRequestService::class)
+                    ->createAutomatic($actor, $sale, $prItems);
+            }
+
             SaleCompleted::dispatch($sale);
 
             return $sale;
@@ -301,6 +338,10 @@ class SalesService
                 branchId: $sale->branch_id,
                 actor: $actor,
             );
+
+            // PR otomatis yang belum diproses ikut batal (paritas Artesis).
+            app(PurchaseRequestService::class)
+                ->cancelAutomaticForSale($actor, $sale);
 
             SaleVoided::dispatch($sale);
 

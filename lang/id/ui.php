@@ -86,7 +86,6 @@ return [
         'fin_income' => 'Laba Rugi',
         'fin_cashflow' => 'Arus Kas',
         'qc_templates' => 'Template QC',
-        'lab_orders' => 'Order Lab',
     ],
 
     'auth' => [
@@ -847,6 +846,17 @@ return [
     'lab' => [
         'title' => 'Antrean Lab',
         'detail' => 'Detail Proses Lensa',
+        'lens_status' => 'Status Proses Lensa',
+        'lens_not_received' => 'Lensa belum diterima — edging baru dapat dimulai sesudah lensa penjualan ini diterima (rantai PR/PO selesai).',
+        'stages' => [
+            'stock' => 'Lensa dari Stok',
+            'pr' => 'PR',
+            'po' => 'PO',
+            'ordered' => 'Sudah Order',
+            'received' => 'Lensa Datang',
+            'shipped' => 'Lensa Dikirim',
+            'done' => 'Selesai',
+        ],
         'sale_number' => 'Nomor Transaksi',
         'customer' => 'Pelanggan',
         'date' => 'Tanggal',
@@ -908,30 +918,6 @@ return [
         'incomplete' => 'Proses belum dapat diselesaikan: masih ada titik QC wajib yang belum Lulus.',
         'point_inactive' => 'Titik QC nonaktif tidak dapat diperiksa.',
         'process_done' => 'Proses sudah selesai; QC tidak dapat diubah.',
-    ],
-
-    'lab_orders' => [
-        'title' => 'Order Lab',
-        'detail' => 'Detail Order Lab',
-        'create' => 'Order Lab Baru',
-        'number' => 'Nomor Order',
-        'sale' => 'Transaksi',
-        'lab_name' => 'Lab Tujuan',
-        'sent_at' => 'Tanggal Kirim',
-        'received_at' => 'Tanggal Terima',
-        'cost' => 'Biaya Lab',
-        'advance' => 'Majukan Status',
-        'created' => 'Order lab dibuat.',
-        'empty' => 'Belum ada order lab.',
-        'sale_inactive' => 'Order lab hanya untuk penjualan aktif.',
-        'cost_invalid' => 'Biaya lab tidak boleh negatif.',
-        'transition_invalid' => 'Perubahan status :from → :to tidak diizinkan.',
-        'journal' => 'Jurnal Biaya Lab',
-        'statuses' => [
-            'waiting' => 'Menunggu',
-            'ordered' => 'Dipesan',
-            'received' => 'Diterima',
-        ],
     ],
 
     'stock' => [

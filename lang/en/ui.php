@@ -86,7 +86,6 @@ return [
         'fin_income' => 'Income Statement',
         'fin_cashflow' => 'Cash Flow',
         'qc_templates' => 'QC Templates',
-        'lab_orders' => 'Lab Orders',
     ],
 
     'auth' => [
@@ -847,6 +846,17 @@ return [
     'lab' => [
         'title' => 'Lab Queue',
         'detail' => 'Lens Process Detail',
+        'lens_status' => 'Lens Process Status',
+        'lens_not_received' => 'The lenses have not been received yet — edging can only start after this sale\'s lenses are received (the PR/PO chain is complete).',
+        'stages' => [
+            'stock' => 'Lenses from Stock',
+            'pr' => 'PR',
+            'po' => 'PO',
+            'ordered' => 'Ordered',
+            'received' => 'Lenses Arrived',
+            'shipped' => 'Lenses Shipped',
+            'done' => 'Done',
+        ],
         'sale_number' => 'Sale Number',
         'customer' => 'Customer',
         'date' => 'Date',
@@ -908,30 +918,6 @@ return [
         'incomplete' => 'The process cannot be completed yet: a required QC point has not Passed.',
         'point_inactive' => 'An inactive QC point cannot be checked.',
         'process_done' => 'The process is already done; QC can no longer change.',
-    ],
-
-    'lab_orders' => [
-        'title' => 'Lab Orders',
-        'detail' => 'Lab Order Detail',
-        'create' => 'New Lab Order',
-        'number' => 'Order Number',
-        'sale' => 'Transaction',
-        'lab_name' => 'Destination Lab',
-        'sent_at' => 'Sent Date',
-        'received_at' => 'Received Date',
-        'cost' => 'Lab Cost',
-        'advance' => 'Advance Status',
-        'created' => 'Lab order created.',
-        'empty' => 'No lab orders yet.',
-        'sale_inactive' => 'Lab orders are only for active sales.',
-        'cost_invalid' => 'Lab cost cannot be negative.',
-        'transition_invalid' => 'Status change :from → :to is not allowed.',
-        'journal' => 'Lab Cost Journal',
-        'statuses' => [
-            'waiting' => 'Waiting',
-            'ordered' => 'Ordered',
-            'received' => 'Received',
-        ],
     ],
 
     'stock' => [

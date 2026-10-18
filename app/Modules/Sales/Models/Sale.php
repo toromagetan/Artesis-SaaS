@@ -8,6 +8,7 @@ use App\Modules\Lab\Models\LensProcess;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Doctor;
 use App\Modules\Master\Models\Insurance;
+use App\Modules\Purchasing\Models\PurchaseRequest;
 use App\Support\Concerns\BranchScoped;
 use App\Support\Money;
 use Database\Factories\SaleFactory;
@@ -80,6 +81,12 @@ class Sale extends Model
     }
 
     /** Proses lensa penjualan ini (M.5) — satu penjualan maks. satu proses. */
+    /** PR yang tertaut ke penjualan ini (PR otomatis kekurangan lensa). */
+    public function purchaseRequests(): HasMany
+    {
+        return $this->hasMany(PurchaseRequest::class);
+    }
+
     public function lensProcess(): HasOne
     {
         return $this->hasOne(LensProcess::class);

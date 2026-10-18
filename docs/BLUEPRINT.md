@@ -65,7 +65,7 @@ Modul (14, sama seperti Blueprint v1): Identity, Master, Catalog, CRM, Clinical,
 # BAGIAN B — KAMUS DATA (kontrak skema)
 
 ## B.0 Kepemilikan tabel per modul
-Identity: `users, roles, permissions, role_permission, user_role, user_branch`. Master: `branches, suppliers, insurances, doctors, settings`. Catalog: `products, product_attributes`. CRM: `customers`. Clinical: `prescriptions`. Sales: `sales, sale_items, sale_payments, sale_installments, sale_returns, sale_return_items`. Lab: `lens_processes, qc_point_templates, qc_checks, lab_orders`. Purchasing: `purchase_requests, purchase_request_items, purchase_orders, purchase_order_items, receipts, receipt_items, purchase_payments, purchase_payment_allocations, purchase_returns, purchase_return_items`. Inventory: `stock_movements, stock_transfers, stock_transfer_items, stock_opnames, stock_opname_items`. Accounting: `accounts, journals, journal_lines, fixed_assets, period_locks, payrolls, commissions`. Membership: `membership_levels, points_ledger`. Comms: `wa_gateways, wa_templates, wa_messages, wa_campaigns`. Platform: `audit_logs, api_tokens, backups`.
+Identity: `users, roles, permissions, role_permission, user_role, user_branch`. Master: `branches, suppliers, insurances, doctors, settings`. Catalog: `products, product_attributes`. CRM: `customers`. Clinical: `prescriptions`. Sales: `sales, sale_items, sale_payments, sale_installments, sale_returns, sale_return_items`. Lab: `lens_processes, qc_point_templates, qc_checks`. Purchasing: `purchase_requests, purchase_request_items, purchase_orders, purchase_order_items, receipts, receipt_items, purchase_payments, purchase_payment_allocations, purchase_returns, purchase_return_items`. Inventory: `stock_movements, stock_transfers, stock_transfer_items, stock_opnames, stock_opname_items`. Accounting: `accounts, journals, journal_lines, fixed_assets, period_locks, payrolls, commissions`. Membership: `membership_levels, points_ledger`. Comms: `wa_gateways, wa_templates, wa_messages, wa_campaigns`. Platform: `audit_logs, api_tokens, backups`.
 
 Konvensi umum semua tabel: `id BIGINT UNSIGNED` PK; `created_at/updated_at TIMESTAMP`; tabel transaksional membawa `branch_id BIGINT UNSIGNED FK→branches` + indeks komposit `(branch_id, created_at)`; uang `DECIMAL(15,2)`; kuantitas `INT` bertanda hanya di `stock_movements.qty`.
 
@@ -92,7 +92,7 @@ Konvensi umum semua tabel: `id BIGINT UNSIGNED` PK; `created_at/updated_at TIMES
 - **lens_processes**: `sale_id FK UNIQUE`, `status ENUM('waiting','edging','qc','ready','done') default 'waiting'`, `technician_id FK NULL`, `estimated_days SMALLINT NULL`, `started_at TIMESTAMP`, `completed_at TIMESTAMP NULL`. Durasi = accessor: `completed_at ?? now()` − tanggal transaksi, hari kalender penuh; status `done` hanya lewat `complete()` (Bagian D.6).
 - **qc_point_templates**: `name VARCHAR(100)`, `is_required BOOL default 1`, `sort_order INT`, `is_active` — bawaan 13 titik (ditanam seeder, dapat dikelola Admin).
 - **qc_checks**: `lens_process_id FK`, `qc_point_template_id FK`, `attempt SMALLINT default 1`, `result ENUM('pass','fail')`, `notes VARCHAR(255) NULL` (WAJIB bila fail), `checked_by FK`, `checked_at TIMESTAMP`. Riwayat percobaan tidak ditimpa.
-- **lab_orders**: `number UNIQUE`, `sale_id FK`, `lab_name VARCHAR(100)`, `status ENUM('waiting','ordered','received') default 'waiting'`, `sent_at NULL`, `received_at NULL`, `lab_cost DECIMAL(15,2) default 0` (mengalir ke HPP saat received).
+- **lab_orders**: DICABUT (koreksi owner 2026-10-18) — order lab bukan dokumen; pekerjaan lab eksternal berjalan lewat rantai PR -> PO. `purchase_requests` memiliki `sale_id FK NULL` (tautan PR otomatis dari penjualan).
 
 ## B.4 Purchasing
 - **purchase_requests**: `number UNIQUE`, `requester_id FK`, `branch_id FK` (cabang peminta), `status ENUM('draft','submitted','approved','converted','cancelled') default 'draft'`, `notes NULL`. **purchase_request_items**: `purchase_request_id FK`, `product_id FK`, `qty INT`, `estimated_price DECIMAL(15,2) NULL`, `supplier_id FK NULL` (usulan), `purchase_order_id FK NULL` (terisi saat terkonversi — satu baris PR hanya masuk satu PO).
@@ -186,7 +186,7 @@ Format per modul: **Service & method publik** · **Event** · **Validasi & kasus
 ## D.6 Sales & Lab (satu alur, dua modul)
 - `SalesService.createSale(items, payments)` — satu transaksi DB: validasi total (Σ baris − diskon + pajak = total; Σ pembayaran awal ≤ total), stok keluar via Inventory (frame/aksesori tidak boleh negatif; lensa boleh negatif dengan bendera backorder), snapshot resep, jurnal via event `SaleCompleted`.
 - `SalesService.addPayment` (append-only; lunas terhitung dari Σ pembayaran vs total), `voidSale(reason)` — membalik stok, pembayaran (baris pembalik), jurnal (jurnal balik), komisi (baris penyeimbang), poin.
-- `LensProcessService.assignTechnician`, `complete()` — syarat: proses ada, belum done, (F2) semua QC wajib pass; menulis `completed_at` sekali; pemanggilan kedua **ditolak** `ValidationException`. `LabOrderService.transition` hanya maju (waiting→ordered→received); saat received, `lab_cost` diposting ke HPP lewat event `LabOrderReceived`.
+- `LensProcessService.assignTechnician`, `complete()` — syarat: proses ada, belum done, (F2) semua QC wajib pass; menulis `completed_at` sekali; pemanggilan kedua **ditolak** `ValidationException`. `ProcurementStatusService.stageFor` menghitung status proses lensa TURUNAN dari rantai PR->PO->penerimaan->transfer (stock/pr/po/ordered/received/shipped/done); transisi ke `edging` ditolak selama lensa penjualan belum diterima (`lensesAvailable`). `PurchaseRequestService.createAutomatic` membuat PR submitted tertaut `sale_id` dari transaksi penjualan untuk kekurangan lensa (RX selalu; stok/softlens hanya kekurangannya).
 - Kasus tepi: void pada penjualan yang proses lensanya sudah done ditolak — harus lewat retur; diskon di atas ambang settings membutuhkan `sales.discount.high`.
 
 ## D.7 Purchasing
@@ -259,14 +259,14 @@ Semua template membawa `branch_id` dokumen sumber ke `journal_lines` (untuk LR p
 - **PO**: draft → sent → partial → complete; draft/sent → void (ber-alasan; void hanya bila belum ada penerimaan — bila sudah ada, selesaikan lewat retur).
 - **Receipt**: tidak berstatus (dokumen final saat disimpan; koreksi hanya lewat retur pembelian).
 - **Pembayaran (semua jenis)**: final saat disimpan; koreksi hanya baris/jurnal pembalik.
-- **Sale**: active → void (syarat D.6). **LensProcess**: waiting → edging → qc → ready → done (boleh menunggu→done hanya bila tidak ada titik QC wajib aktif; lompatan lain ditolak). **LabOrder**: waiting → ordered → received.
+- **Sale**: active → void (syarat D.6). **LensProcess**: waiting → edging → qc → ready → done (boleh menunggu→done hanya bila tidak ada titik QC wajib aktif; lompatan lain ditolak). **PR otomatis**: lahir `submitted` dari penjualan; dibatalkan otomatis bila penjualan di-void selagi masih submitted.
 - **Transfer**: sent → received; sent → cancelled (mengembalikan stok asal lewat gerakan penyeimbang otomatis).
 - **Opname**: scheduled → counting → review → approved; counting → cancelled (Owner).
 - **Periode**: open → locked → (unlock Owner ber-alasan) → open.
 - **Campaign**: draft → approved → sending → done; approved → cancelled.
 
 ## E.4 Penomoran Dokumen (otomatis, unik, tidak dipakai ulang)
-Format `PREFIX-YYYYMM-NNNN` (urut per bulan per tipe, dihitung dalam transaksi dengan kunci baris penghitung): Sale `INV`, PR `PR`, PO `PO`, Receipt `RCV`, Pembayaran Supplier `PAY`, Pembayaran Kolektif tetap satu `PAY` per dokumen kolektif, Retur Jual `SR`, Retur Beli `BR`, Transfer `TRF`, Order Lab `LAB`, Jurnal `JU`. Nomor void tetap tercatat dan tidak didaur ulang.
+Format `PREFIX-YYYYMM-NNNN` (urut per bulan per tipe, dihitung dalam transaksi dengan kunci baris penghitung): Sale `INV`, PR `PR`, PO `PO`, Receipt `RCV`, Pembayaran Supplier `PAY`, Pembayaran Kolektif tetap satu `PAY` per dokumen kolektif, Retur Jual `SR`, Retur Beli `BR`, Transfer `TRF`, Jurnal `JU`. Nomor void tetap tercatat dan tidak didaur ulang.
 
 ## E.5 Spesifikasi Dokumen Cetak
 | Dokumen | Ukuran | Isi wajib |
@@ -363,11 +363,11 @@ Notasi: `[F<fase>.<nomor>]` tugas; "→" bergantung pada. Fase tidak dimulai seb
 - [F1.7] *(keputusan owner: di sini atau Fase 4)* Payroll + komisi dokter/teknisi dasar → F1.1.
 **Gerbang keluar F1:** satu periode contoh rekonsiliasi 100% jurnal↔laporan; posting ke periode terkunci terbukti ditolak dari minimal tiga modul berbeda; laporan rilis G.4.
 
-## Fase 2 — QC Faset & Order Lab
+## Fase 2 — QC Faset & Proses Lab
 - [F2.1] Template titik QC (seeder 13 titik) + UI kelola → MVP.
 - [F2.2] Perekaman QC per percobaan + syarat Complete menegakkan QC → F2.1.
-- [F2.3] Order lab 3 status + biaya → HPP lewat jurnal → F2.2.
-**Gerbang keluar F2:** test negatif membuktikan Complete mustahil tanpa QC wajib lulus; satu orderan uji ujung-ke-ujung di instalasi uji.
+- [F2.3] **DICABUT & DIGANTI (koreksi owner 2026-10-18)**: order lab sebagai dokumen mandiri + jurnal biaya lab dibuang (di Artesis order lab = rantai PR -> PO; dokumen paralel membuka risiko HPP ganda). Penggantinya paritas Artesis: PR otomatis dari penjualan untuk kekurangan lensa + status proses lensa turunan + edging tergerbang penerimaan lensa.
+**Gerbang keluar F2:** test negatif membuktikan Complete mustahil tanpa QC wajib lulus DAN edging mustahil sebelum lensa diterima; satu orderan uji ujung-ke-ujung mengikuti rantai transaksi → PR → PO → terima → edging → QC → Complete.
 
 ## Fase 3 — Penjualan Diperluas, WhatsApp, Membership
 - [F3.1] DP + split payment + PPN mode per transaksi → MVP.

@@ -7,6 +7,7 @@ use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use App\Modules\Purchasing\Models\PurchaseRequest;
+use App\Modules\Sales\Models\Sale;
 use App\Support\Numbering;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -58,6 +59,56 @@ class PurchaseRequestService
 
             return $pr;
         });
+    }
+
+    /**
+     * PR OTOMATIS dari penjualan (paritas Artesis, koreksi owner
+     * 2026-10-18): dibuat di dalam transaksi penjualan untuk kekurangan
+     * lensa — lensa RX selalu lewat PR; lensa stok/softlens hanya untuk
+     * kebutuhan yang tidak tersedia di cabang. Langsung berstatus
+     * submitted dan tertaut ke penjualannya; BUKAN gerbang izin pr.*
+     * karena ini perbuatan sistem, bukan pengguna (pola Artesis).
+     *
+     * @param  array<int, array{product_id: int, qty: int}>  $items
+     */
+    public function createAutomatic(User $actor, Sale $sale, array $items): PurchaseRequest
+    {
+        $pr = PurchaseRequest::create([
+            'number' => Numbering::next('PR', now()),
+            'requester_id' => $actor->id,
+            'branch_id' => $sale->branch_id,
+            'sale_id' => $sale->id,
+            'status' => 'submitted',
+            'notes' => 'Otomatis dari penjualan '.$sale->number.'. Lensa RX selalu diproses melalui Purchase Request; lensa stok dibuatkan PR untuk kebutuhan yang tidak tersedia di cabang.',
+        ]);
+        foreach ($items as $line) {
+            $pr->items()->create([
+                'product_id' => (int) $line['product_id'],
+                'qty' => (int) $line['qty'],
+            ]);
+        }
+        $this->audit->log(action: 'pr.auto_create', subjectType: 'purchase_request', subjectId: $pr->id,
+            newValues: ['number' => $pr->number, 'sale_id' => $sale->id], branchId: (int) $sale->branch_id, actor: $actor);
+
+        return $pr;
+    }
+
+    /**
+     * Penjualan yang di-void membatalkan PR otomatisnya yang BELUM
+     * diproses (masih submitted). PR yang sudah approved/converted
+     * dibiarkan — barang mungkin sudah dalam perjalanan; gudang yang
+     * memutuskan pembatalannya secara manual.
+     */
+    public function cancelAutomaticForSale(User $actor, Sale $sale): void
+    {
+        PurchaseRequest::where('sale_id', $sale->id)
+            ->where('status', 'submitted')
+            ->get()
+            ->each(function (PurchaseRequest $pr) use ($actor) {
+                $pr->update(['status' => 'cancelled']);
+                $this->audit->log(action: 'pr.auto_cancel', subjectType: 'purchase_request', subjectId: $pr->id,
+                    newValues: ['sale_id' => $pr->sale_id], branchId: (int) $pr->branch_id, actor: $actor);
+            });
     }
 
     public function submit(User $actor, PurchaseRequest $pr): PurchaseRequest

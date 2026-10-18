@@ -33,6 +33,7 @@ class LensProcessService
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly QcCheckService $qc,
+        private readonly ProcurementStatusService $procurement,
     ) {}
 
     private function branchIdOf(LensProcess $process): ?int
@@ -108,6 +109,18 @@ class LensProcessService
             throw ValidationException::withMessages([
                 'status' => __('ui.lab.transition_invalid', ['from' => $process->status, 'to' => $to]),
             ]);
+        }
+
+        // Gerbang urutan kerja (koreksi owner 2026-10-18): edging baru
+        // dimulai SETELAH lensa diterima — penjualan yang lensanya masih
+        // dalam rantai PR/PO belum boleh masuk edging.
+        if ($to === 'edging') {
+            $sale = $process->sale()->withoutGlobalScopes()->first();
+            if ($sale !== null && ! $this->procurement->lensesAvailable($sale)) {
+                throw ValidationException::withMessages([
+                    'status' => __('ui.lab.lens_not_received'),
+                ]);
+            }
         }
 
         $process->update(['status' => $to]);

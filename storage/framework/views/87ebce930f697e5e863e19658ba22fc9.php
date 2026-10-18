@@ -80,7 +80,7 @@
                 </div>
             <?php endif; ?>
             <?php if($can('lab.view')): ?>
-                <?php $act = request()->routeIs('lab.*') || request()->routeIs('qc-templates.*') || request()->routeIs('lab-orders.*'); $isManager = $u->hasRole('Owner') || $u->hasRole('Admin'); ?>
+                <?php $act = request()->routeIs('lab.*') || request()->routeIs('qc-templates.*'); $isManager = $u->hasRole('Owner') || $u->hasRole('Admin'); ?>
                 <div x-data="{ open: <?php echo e($act ? 'true' : 'false'); ?> }">
                     <button type="button" @click="open = !open" class="<?php echo e($item); ?> <?php echo e($act ? $itemActive : ''); ?>">
                         <?php if($act): ?> <?php echo $goldBar; ?> <?php endif; ?>
@@ -93,9 +93,6 @@
                         <a href="<?php echo e(route('lab.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('lab.index') || request()->routeIs('lab.show') ? $subActive : ''); ?>"><?php if(request()->routeIs('lab.index') || request()->routeIs('lab.show')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.lab.title')); ?></a>
                         <?php if($isManager): ?>
                             <a href="<?php echo e(route('qc-templates.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('qc-templates.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('qc-templates.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.qc_templates')); ?></a>
-                        <?php endif; ?>
-                        <?php if($can('lab.order.manage')): ?>
-                            <a href="<?php echo e(route('lab-orders.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('lab-orders.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('lab-orders.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.lab_orders')); ?></a>
                         <?php endif; ?>
                     </div>
                 </div>

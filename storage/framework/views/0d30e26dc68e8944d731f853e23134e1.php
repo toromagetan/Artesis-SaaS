@@ -235,6 +235,16 @@
                     <dd class="font-medium text-gray-800"><?php echo e($sale->cashier->name); ?></dd>
                     <dt class="text-gray-500"><?php echo e(__('ui.sales.pay_status')); ?></dt>
                     <dd class="font-medium text-gray-800"><?php echo e(__('ui.sales.pay_'.$sale->paymentStatus())); ?></dd>
+                    <?php if($procurementStage !== null): ?>
+                        <dt class="text-gray-500"><?php echo e(__('ui.lab.lens_status')); ?></dt>
+                        <dd class="font-medium text-gray-800">
+                            <?php echo e(__('ui.lab.stages.'.$procurementStage)); ?>
+
+                            <?php $__currentLoopData = $linkedPrs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $linkedPr): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                · <a class="text-lentera-800 underline-offset-2 hover:underline" href="<?php echo e(route('pr.show', $linkedPr)); ?>"><?php echo e($linkedPr->number); ?></a>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </dd>
+                    <?php endif; ?>
                     <?php if($sale->doctor): ?>
                         <dt class="text-gray-500"><?php echo e(__('ui.sales.doctor')); ?></dt>
                         <dd class="font-medium text-gray-800"><?php echo e($sale->doctor->name); ?></dd>

@@ -76,6 +76,10 @@
                     <dd class="font-medium text-gray-800"><?php echo e($process->sale->branch->name); ?></dd>
                     <dt class="text-gray-500"><?php echo e(__('ui.lab.status')); ?></dt>
                     <dd class="font-medium text-gray-800"><?php echo e(__('ui.lab.statuses.'.$process->status)); ?></dd>
+                    <?php if($procurementStage !== null): ?>
+                        <dt class="text-gray-500"><?php echo e(__('ui.lab.lens_status')); ?></dt>
+                        <dd class="font-medium text-gray-800"><?php echo e(__('ui.lab.stages.'.$procurementStage)); ?></dd>
+                    <?php endif; ?>
                     <dt class="text-gray-500"><?php echo e(__('ui.lab.technician')); ?></dt>
                     <dd class="font-medium text-gray-800"><?php echo e($process->technician?->name ?? __('ui.lab.unassigned')); ?></dd>
                     <dt class="text-gray-500"><?php echo e(__('ui.lab.estimate')); ?></dt>
@@ -231,61 +235,6 @@
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes(['message' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('ui.qc.history_empty'))]); ?>
-<?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
-<?php $attributes = $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
-<?php unset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
-<?php $component = $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
-<?php unset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
-<?php endif; ?></td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            
-            <h2 class="mb-2 text-base font-semibold text-gray-800"><?php echo e(__('ui.lab_orders.title')); ?></h2>
-            <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
-                <table class="min-w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-gray-100 text-left text-gray-500">
-                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.lab_orders.number')); ?></th>
-                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.lab_orders.lab_name')); ?></th>
-                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.lab.status')); ?></th>
-                            <th class="px-4 py-3 text-right font-medium"><?php echo e(__('ui.lab_orders.cost')); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php $__empty_1 = true; $__currentLoopData = $labOrders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                            <tr class="border-b border-gray-50 last:border-0">
-                                <td class="px-4 py-3 font-medium">
-                                    <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('lab.order.manage')): ?>
-                                        <a href="<?php echo e(route('lab-orders.show', $order)); ?>" class="text-lentera-800 underline-offset-2 hover:underline"><?php echo e($order->number); ?></a>
-                                    <?php else: ?>
-                                        <?php echo e($order->number); ?>
-
-                                    <?php endif; ?>
-                                </td>
-                                <td class="px-4 py-3 text-gray-800"><?php echo e($order->lab_name); ?></td>
-                                <td class="px-4 py-3 text-gray-600"><?php echo e(__('ui.lab_orders.statuses.'.$order->status)); ?></td>
-                                <td class="px-4 py-3 text-right tnum"><?php echo e($order->labCost()->format()); ?></td>
-                            </tr>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                            <tr>
-                                <td colspan="4" class="px-4 py-6"><?php if (isset($component)) { $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.empty-state','data' => ['message' => __('ui.lab_orders.empty')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('lentera.empty-state'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['message' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('ui.lab_orders.empty'))]); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>

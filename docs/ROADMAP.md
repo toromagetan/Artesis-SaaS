@@ -41,7 +41,7 @@ Sebuah tugas/modul dinyatakan selesai hanya bila SEMUA terpenuhi:
 | 0 | Fondasi | Scaffold, CI, Identity, pagar cabang, audit, pola UI | Matriks keamanan Identity lulus; CI wajib hijau | **MS-0 Fondasi Terkunci** |
 | MVP | Inti Operasional | Katalog → Resep → Penjualan → Lab dasar → Pembelian → Stok → Jurnal dasar → Laporan → Dashboard | Siklus toko penuh tanpa selisih; smoke test owner | **MS-1 Toko Berjalan** |
 | 1 | Akuntansi Penuh | CoA Coretax, buku besar, laporan keuangan, aset, tutup buku, (payroll*) | Periode contoh rekonsiliasi 100%; periode terkunci menolak posting | **MS-2 Keuangan Utuh** |
-| 2 | QC & Lab | QC 13 titik, order lab, biaya → HPP | Complete mustahil tanpa QC lulus (test negatif) | **MS-3 Lab Terlacak** |
+| 2 | QC & Lab | QC 13 titik, PR otomatis dari penjualan, status proses turunan | Complete mustahil tanpa QC lulus; edging mustahil sebelum lensa diterima (test negatif) | **MS-3 Lab Terlacak** |
 | 3 | Penjualan+, WA, Member | DP/split/cicilan, komisi dokter, gateway WA, membership & poin, portal | Skenario cicilan rekonsiliasi; log WA 100%; poin seimbang | **MS-4 Pelanggan Terhubung** |
 | 4 | Inventaris+, Analitik, API | Opname, gerbang costing/FIFO, expiry, label, analitik, API | Opname terekonsiliasi; keputusan costing ter-ADR | **MS-5 Gudang Cerdas** |
 | 5 | Riset | Spike AI asisten, fitting AI, offline kasir | Laporan kelayakan per butir | **MS-6 Peta Masa Depan** |
@@ -124,7 +124,7 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 - [ ] Uji paralel: laporan manual (spreadsheet dari data yang sama) cocok dengan laporan sistem untuk periode contoh.
 **Risiko:** kesalahan template posting bersifat sistemik → setiap template E.1 memiliki test debit/kredit sendiri sebelum F1.3 dimulai.
 
-## 8. FASE 2 — QC FASET & ORDER LAB
+## 8. FASE 2 — QC FASET & PROSES LAB
 
 **Tujuan:** proses lensa terlacak titik-demi-titik dengan akuntabilitas teknisi (milestone **MS-3 Lab Terlacak**).
 
@@ -132,11 +132,11 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 |---|---|---|
 | F2.1 Template QC | Seeder 13 titik bawaan + UI kelola titik (wajib/tidak, urutan, aktif) | MVP |
 | F2.2 Perekaman QC | `qc_checks` per percobaan (riwayat tidak ditimpa), catatan wajib saat gagal, syarat Complete menegakkan semua titik wajib lulus | F2.1 |
-| F2.3 Order lab | `lab_orders` 3 status berurutan; saat received, `lab_cost` masuk HPP lewat jurnal | F2.2, F1 (template HPP final) |
+| F2.3 Koreksi paritas Artesis (keputusan owner 2026-10-18) | Order lab sebagai dokumen DICABUT; pengganti: PR otomatis dari penjualan (`purchase_requests.sale_id`; RX selalu, stok hanya kekurangan) + status proses turunan PR→PO→terima + edging tergerbang penerimaan lensa | F2.2, M.6 |
 
 **Gerbang keluar Fase 2:**
 - [ ] Test negatif: Complete ditolak selama ada titik QC wajib yang belum lulus/gagal — untuk semua jalur (UI & service).
-- [ ] Orderan uji ujung-ke-ujung (jual → edging → QC gagal 1 titik → perbaiki → lulus → order lab → received → Complete) tercatat lengkap dengan teknisi & waktu.
+- [ ] Orderan uji ujung-ke-ujung mengikuti rantai Artesis (jual RX → PR otomatis → PO → terima → edging → QC gagal 1 titik → perbaiki → lulus → Complete) tercatat lengkap dengan teknisi & waktu; edging sebelum terima terbukti ditolak.
 
 ## 9. FASE 3 — PENJUALAN DIPERLUAS, WHATSAPP, MEMBERSHIP
 

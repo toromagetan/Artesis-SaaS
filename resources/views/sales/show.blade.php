@@ -64,6 +64,15 @@
                     <dd class="font-medium text-gray-800">{{ $sale->cashier->name }}</dd>
                     <dt class="text-gray-500">{{ __('ui.sales.pay_status') }}</dt>
                     <dd class="font-medium text-gray-800">{{ __('ui.sales.pay_'.$sale->paymentStatus()) }}</dd>
+                    @if ($procurementStage !== null)
+                        <dt class="text-gray-500">{{ __('ui.lab.lens_status') }}</dt>
+                        <dd class="font-medium text-gray-800">
+                            {{ __('ui.lab.stages.'.$procurementStage) }}
+                            @foreach ($linkedPrs as $linkedPr)
+                                · <a class="text-lentera-800 underline-offset-2 hover:underline" href="{{ route('pr.show', $linkedPr) }}">{{ $linkedPr->number }}</a>
+                            @endforeach
+                        </dd>
+                    @endif
                     @if ($sale->doctor)
                         <dt class="text-gray-500">{{ __('ui.sales.doctor') }}</dt>
                         <dd class="font-medium text-gray-800">{{ $sale->doctor->name }}</dd>

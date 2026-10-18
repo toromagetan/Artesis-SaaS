@@ -56,6 +56,23 @@ class LensProcessTest extends TestCase
         ]);
     }
 
+    /** Penjualan lensa STOK yang tersedia di cabang (tanpa PR otomatis). */
+    private function stockedLensSale()
+    {
+        $lens = Product::factory()->ofType('lens')->create(['sale_price' => '200000']);
+        app(InventoryService::class)->recordMovement(
+            $this->owner, $lens, $this->branch, 'initial_stock', 5, 'test_seed', 1,
+        );
+
+        return app(SalesService::class)->createSale($this->owner, [
+            'customer_id' => $this->customer->id,
+            'sale_date' => '2026-10-17',
+            'tax_mode' => 'inclusive',
+        ], [
+            ['product_id' => $lens->id, 'qty' => 1],
+        ]);
+    }
+
     public function test_lens_sale_creates_waiting_process_frame_only_does_not(): void
     {
         $sale = $this->lensSale();
@@ -83,7 +100,9 @@ class LensProcessTest extends TestCase
 
     public function test_assign_and_linear_transitions(): void
     {
-        $sale = $this->lensSale();
+        // Lensa stok tersedia: edging boleh langsung (gerbang ketersediaan
+        // koreksi owner 2026-10-18 hanya menahan lensa yang belum diterima).
+        $sale = $this->stockedLensSale();
         $process = LensProcess::where('sale_id', $sale->id)->firstOrFail();
         $service = app(LensProcessService::class);
 

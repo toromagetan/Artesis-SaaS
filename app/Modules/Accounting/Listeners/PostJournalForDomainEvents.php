@@ -6,7 +6,6 @@ use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Accounting\Support\Chart;
 use App\Modules\Inventory\Events\InitialStockImported;
-use App\Modules\Lab\Events\LabOrderReceived;
 use App\Modules\Purchasing\Events\PurchasePaymentPosted;
 use App\Modules\Purchasing\Events\PurchaseReturned;
 use App\Modules\Purchasing\Events\ReceiptStored;
@@ -136,21 +135,6 @@ class PostJournalForDomainEvents
             return;
         }
         $this->posting->postOnce('sale_return', $return->id, $return->created_at ?? now(), $lines, 'Retur penjualan '.$return->number);
-    }
-
-    /** F2.3: biaya lab yang diterima menjadi komponen HPP transaksi. */
-    public function onLabOrderReceived(LabOrderReceived $event): void
-    {
-        $order = $event->order;
-        $cost = $order->labCost();
-        if (! $cost->isPositive()) {
-            return;
-        }
-        $sale = $order->sale()->withoutGlobalScopes()->firstOrFail();
-        $this->posting->postOnce('lab_order', $order->id, $order->received_at?->toDateString() ?? now()->toDateString(), [
-            ['account' => Chart::HPP, 'branch_id' => (int) $sale->branch_id, 'debit' => $cost->toDecimalString(), 'memo' => $order->number],
-            ['account' => Chart::UTANG_SUPPLIER, 'branch_id' => (int) $sale->branch_id, 'credit' => $cost->toDecimalString(), 'memo' => $order->number],
-        ], 'Biaya lab '.$order->number);
     }
 
     public function onReceiptStored(ReceiptStored $event): void

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Lab\Services\ProcurementStatusService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Doctor;
 use App\Modules\Master\Models\Insurance;
@@ -71,7 +72,13 @@ class SaleController extends Controller
     {
         $sale->load(['customer', 'branch', 'cashier', 'doctor', 'insurance', 'items', 'payments.receivedBy', 'returns.items']);
 
-        return view('sales.show', compact('sale'));
+        // Status proses lensa TURUNAN dari rantai PR->PO (paritas Artesis).
+        $procurementStage = app(ProcurementStatusService::class)->stageFor($sale);
+        $linkedPrs = $procurementStage !== null
+            ? $sale->purchaseRequests()->orderBy('id')->get()
+            : collect();
+
+        return view('sales.show', compact('sale', 'procurementStage', 'linkedPrs'));
     }
 
     public function create(Request $request): View
