@@ -53,6 +53,16 @@ class SalesService
             throw ValidationException::withMessages(['items' => __('ui.sales.items_required')]);
         }
 
+        // Idempotensi sinkronisasi offline (F5.3): client_uuid yang
+        // sudah tercatat mengembalikan penjualan aslinya — sinkron
+        // ulang tidak pernah menggandakan transaksi.
+        if (! empty($data['client_uuid'])) {
+            $existing = Sale::where('client_uuid', (string) $data['client_uuid'])->first();
+            if ($existing !== null) {
+                return $existing;
+            }
+        }
+
         return DB::transaction(function () use ($actor, $data, $items, $payments) {
             $customer = Customer::findOrFail($data['customer_id']);
             // Cabang transaksi (tempat stok keluar & pendapatan
@@ -167,6 +177,7 @@ class SalesService
 
             $sale = new Sale([
                 'number' => Numbering::next('INV', now()),
+                'client_uuid' => $data['client_uuid'] ?? null,
                 'customer_id' => $customer->id,
                 'prescription_id' => $prescription?->id,
                 'prescription_snapshot' => $prescription !== null ? $this->snapshotOf($prescription) : null,

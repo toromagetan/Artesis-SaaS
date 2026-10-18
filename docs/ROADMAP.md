@@ -189,6 +189,11 @@ Setiap butir berjalan sebagai **spike terbatas**: pertanyaan jelas → prototipe
 
 **Gerbang keluar Fase 5:** tiga laporan kelayakan diterima owner; keputusan per butir tercatat sebagai revisi roadmap/ADR.
 
+**Keputusan owner 2026-10-18 (laporan di `docs/spikes/`):**
+- F5.1 Asisten AI bisnis — *menunggu keputusan owner.*
+- F5.2 Fitting AI — **TUNDA + jalankan validasi fisik** (protokol `docs/spikes/F5.2-protokol-validasi.md`). Pembangunan ditunda sampai hasil validasi memenuhi ambang; gagal ambang → fitur turun kelas ke rekomendasi ukuran frame saja.
+- F5.3 Offline kasir — **BANGUN.** Cakupan v1 sesuai laporan: fondasi server (client_uuid idempoten, registri perangkat bertoken, endpoint sinkronisasi, antrean pengecualian + UI resolusi) lalu klien kasir PWA offline-first (snapshot katalog, antrean lokal, tunai-saja offline, satu perangkat per cabang).
+
 ## 12. Kendali Perubahan & Keputusan Eksternal
 
 - **Perubahan cakupan** hanya lewat revisi dokumen ini (atau PRD/Blueprint bila menyangkut perilaku/skema) yang di-commit dan disetujui owner; nomor tugas baru ditambahkan, tidak menyelundup ke tugas berjalan.

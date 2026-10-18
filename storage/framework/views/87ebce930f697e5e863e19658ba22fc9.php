@@ -61,6 +61,7 @@
                         <a href="<?php echo e(route('sales.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('sales.index') ? $subActive : ''); ?>"><?php if(request()->routeIs('sales.index')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.sales_list')); ?></a>
                         <a href="<?php echo e(route('sales.create')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('sales.create') ? $subActive : ''); ?>"><?php if(request()->routeIs('sales.create')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.sales_create')); ?></a>
                         <a href="<?php echo e(route('receivables.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('receivables.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('receivables.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.receivables')); ?></a>
+                        <a href="<?php echo e(route('offline-exceptions.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('offline-exceptions.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('offline-exceptions.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.offline_exceptions')); ?></a>
                     </div>
                 </div>
             <?php endif; ?>
@@ -312,6 +313,7 @@
                     <?php endif; ?>
                     <?php if($can('api_tokens.manage')): ?>
                         <a href="<?php echo e(route('api-tokens.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('api-tokens.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('api-tokens.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.api_tokens')); ?></a>
+                        <a href="<?php echo e(route('offline-devices.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('offline-devices.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('offline-devices.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.offline_devices')); ?></a>
                     <?php endif; ?>
                 </div>
             </div>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiToken;
+use App\Modules\Sales\Http\Middleware\AuthenticateOfflineDevice;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\SetLocale;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => EnsurePermission::class,
             'api.token' => AuthenticateApiToken::class,
+            'device.token' => AuthenticateOfflineDevice::class,
         ]);
         $middleware->web(append: [
             SetLocale::class,

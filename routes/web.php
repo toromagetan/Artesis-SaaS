@@ -40,8 +40,10 @@ use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseRequestController;
 use App\Modules\Purchasing\Http\Controllers\ReceiptController;
 use App\Modules\Reporting\Http\Controllers\ReportController;
+use App\Modules\Sales\Http\Controllers\OfflineExceptionController;
 use App\Modules\Sales\Http\Controllers\ReceivableController;
 use App\Modules\Sales\Http\Controllers\SaleController;
+use App\Modules\Sales\Http\Controllers\Settings\OfflineDeviceController;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
@@ -199,6 +201,9 @@ Route::middleware('auth')->group(function () {
 
     // ---- Penjualan (M.3) ----
     Route::get('/penjualan', [SaleController::class, 'index'])->middleware('permission:sales.view')->name('sales.index');
+    Route::get('/penjualan/pengecualian-sinkron', [OfflineExceptionController::class, 'index'])->middleware('permission:sales.view')->name('offline-exceptions.index');
+    Route::post('/penjualan/pengecualian-sinkron/{exception}/coba-lagi', [OfflineExceptionController::class, 'retry'])->middleware('permission:sales.create')->name('offline-exceptions.retry');
+    Route::post('/penjualan/pengecualian-sinkron/{exception}/buang', [OfflineExceptionController::class, 'discard'])->middleware('permission:sales.view')->name('offline-exceptions.discard');
     Route::get('/penjualan/baru', [SaleController::class, 'create'])->middleware('permission:sales.create')->name('sales.create');
     Route::post('/penjualan', [SaleController::class, 'store'])->middleware('permission:sales.create')->name('sales.store');
     Route::get('/penjualan/{sale}', [SaleController::class, 'show'])->middleware('permission:sales.view')->name('sales.show');
@@ -275,6 +280,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/pengaturan/token-api', [ApiTokenController::class, 'index'])->middleware('permission:api_tokens.manage')->name('api-tokens.index');
     Route::post('/pengaturan/token-api', [ApiTokenController::class, 'store'])->middleware('permission:api_tokens.manage')->name('api-tokens.store');
     Route::post('/pengaturan/token-api/{token}/cabut', [ApiTokenController::class, 'revoke'])->middleware('permission:api_tokens.manage')->name('api-tokens.revoke');
+    Route::get('/pengaturan/perangkat-offline', [OfflineDeviceController::class, 'index'])->middleware('permission:api_tokens.manage')->name('offline-devices.index');
+    Route::post('/pengaturan/perangkat-offline', [OfflineDeviceController::class, 'store'])->middleware('permission:api_tokens.manage')->name('offline-devices.store');
+    Route::post('/pengaturan/perangkat-offline/{device}/cabut', [OfflineDeviceController::class, 'revoke'])->middleware('permission:api_tokens.manage')->name('offline-devices.revoke');
     Route::get('/wa/template', [WaTemplateController::class, 'index'])->middleware('permission:wa.templates')->name('wa-templates.index');
     Route::get('/wa/template/{template}/ubah', [WaTemplateController::class, 'edit'])->middleware('permission:wa.templates')->name('wa-templates.edit');
     Route::put('/wa/template/{template}', [WaTemplateController::class, 'update'])->middleware('permission:wa.templates')->name('wa-templates.update');

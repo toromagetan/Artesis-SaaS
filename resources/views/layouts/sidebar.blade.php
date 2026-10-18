@@ -62,6 +62,7 @@
                         <a href="{{ route('sales.index') }}" class="{{ $sub }} {{ request()->routeIs('sales.index') ? $subActive : '' }}">@if (request()->routeIs('sales.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.sales_list') }}</a>
                         <a href="{{ route('sales.create') }}" class="{{ $sub }} {{ request()->routeIs('sales.create') ? $subActive : '' }}">@if (request()->routeIs('sales.create')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.sales_create') }}</a>
                         <a href="{{ route('receivables.index') }}" class="{{ $sub }} {{ request()->routeIs('receivables.*') ? $subActive : '' }}">@if (request()->routeIs('receivables.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.receivables') }}</a>
+                        <a href="{{ route('offline-exceptions.index') }}" class="{{ $sub }} {{ request()->routeIs('offline-exceptions.*') ? $subActive : '' }}">@if (request()->routeIs('offline-exceptions.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.offline_exceptions') }}</a>
                     </div>
                 </div>
             @endif
@@ -300,6 +301,7 @@
                     @endif
                     @if ($can('api_tokens.manage'))
                         <a href="{{ route('api-tokens.index') }}" class="{{ $sub }} {{ request()->routeIs('api-tokens.*') ? $subActive : '' }}">@if (request()->routeIs('api-tokens.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.api_tokens') }}</a>
+                        <a href="{{ route('offline-devices.index') }}" class="{{ $sub }} {{ request()->routeIs('offline-devices.*') ? $subActive : '' }}">@if (request()->routeIs('offline-devices.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.offline_devices') }}</a>
                     @endif
                 </div>
             </div>
