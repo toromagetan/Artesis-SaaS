@@ -147,7 +147,7 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 | F3.1 DP, split, PPN per transaksi | DP menjadi piutang terjadwal; split multi-metode dalam satu transaksi; mode PPN inklusif/eksklusif per transaksi | MVP |
 | F3.2 Cicilan & piutang | `sale_installments`, daftar umur piutang (lancar/>30/>60/>90), penerimaan cicilan terjurnal | F3.1, F1 |
 | F3.3 Dokter perujuk & komisi | Dokter di transaksi; komisi terakru per periode; koreksi otomatis saat void | F3.1, F1.7 |
-| F3.4 Gateway WA | Antarmuka `MessagingGateway`, implementasi penyedia resmi (pilihan owner), antrean + coba-lagi 3×, log kirim lengkap | Keputusan penyedia (Bagian 11) |
+| F3.4 Gateway WA | Antarmuka `MessagingGateway`, implementasi **Meta Cloud API langsung** (keputusan owner 2026-10-18, sementara — dapat diganti lewat antarmuka), kredensial & konfigurasi diatur via UI Pengaturan, antrean + coba-lagi 3×, log kirim lengkap | F3.1 |
 | F3.5 Otomasi pesan | Invoice via WA dari transaksi; reminder pengambilan & after-service terjadwal; ucapan ulang tahun; kegagalan gateway tidak menggagalkan transaksi | F3.4 |
 | F3.6 Membership & poin | Level member; poin earn/redeem/expire dengan jurnal liabilitas; daftar follow-up after-service | F3.1, F1 |
 | F3.7 Portal member | Halaman publik ber-token (hash disimpan, dapat dicabut): poin, riwayat beli, status orderan | F3.6, F3.4 |
@@ -192,7 +192,7 @@ Setiap butir berjalan sebagai **spike terbatas**: pertanyaan jelas → prototipe
 ## 12. Kendali Perubahan & Keputusan Eksternal
 
 - **Perubahan cakupan** hanya lewat revisi dokumen ini (atau PRD/Blueprint bila menyangkut perilaku/skema) yang di-commit dan disetujui owner; nomor tugas baru ditambahkan, tidak menyelundup ke tugas berjalan.
-- **Keputusan owner yang menjadi dependensi:** (1) persetujuan roadmap ini + kata "mulai Fase 0"; (2) payroll di Fase 1 atau Fase 4 (memengaruhi urutan F1.7/F4.7); (3) penyedia gateway WhatsApp resmi (gerbang F3.4); (4) metode costing (gerbang F4.2); (5) penyediaan instalasi uji & — kelak — server produksi per instalasi bisnis (checklist paritas Blueprint G.3).
+- **Keputusan owner yang menjadi dependensi:** (1) persetujuan roadmap ini + kata "mulai Fase 0"; (2) payroll di Fase 1 atau Fase 4 (memengaruhi urutan F1.7/F4.7); (3) ~~penyedia gateway WhatsApp resmi (gerbang F3.4)~~ DIPUTUSKAN 2026-10-18: Meta Cloud API langsung (sementara); (4) metode costing (gerbang F4.2); (5) penyediaan instalasi uji & — kelak — server produksi per instalasi bisnis (checklist paritas Blueprint G.3).
 - **Pelaporan berjalan:** setiap tugas selesai dilaporkan dengan format tetap (hasil, cakupan berkas, test + ID run CI, commit, sisa risiko); setiap gerbang fase dilaporkan sebagai satu laporan gerbang tersendiri.
 - **Yang tidak dijanjikan roadmap ini:** tanggal kalender. Urutan dan gerbang bersifat mengikat; kecepatan mengikuti lulusnya gerbang, bukan tenggat buatan.
 
