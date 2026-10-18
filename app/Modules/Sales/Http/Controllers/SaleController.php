@@ -13,6 +13,7 @@ use App\Modules\Master\Models\Insurance;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SalePayment;
+use App\Modules\Sales\Services\InstallmentService;
 use App\Modules\Sales\Services\SaleReturnService;
 use App\Modules\Sales\Services\SalesService;
 use Illuminate\Http\RedirectResponse;
@@ -70,7 +71,7 @@ class SaleController extends Controller
 
     public function show(Sale $sale): View
     {
-        $sale->load(['customer', 'branch', 'cashier', 'doctor', 'insurance', 'items', 'payments.receivedBy', 'returns.items']);
+        $sale->load(['customer', 'branch', 'cashier', 'doctor', 'insurance', 'items', 'payments.receivedBy', 'returns.items', 'installments']);
 
         // Status proses lensa TURUNAN dari rantai PR->PO (paritas Artesis).
         $procurementStage = app(ProcurementStatusService::class)->stageFor($sale);
@@ -113,6 +114,13 @@ class SaleController extends Controller
             ->all();
         $request->merge(['items' => $items]);
 
+        // Baris pembayaran split (F3.1): kosong dibuang sebelum validasi.
+        $paymentRows = collect((array) $request->input('payments', []))
+            ->filter(fn ($row) => is_array($row) && ! empty($row['method']) && ! empty($row['amount']))
+            ->values()
+            ->all();
+        $request->merge(['payments' => $paymentRows]);
+
         $validated = $request->validate([
             'customer_id' => ['required', Rule::exists('customers', 'id')],
             'prescription_id' => ['nullable', Rule::exists('prescriptions', 'id')],
@@ -131,10 +139,26 @@ class SaleController extends Controller
             'payment_method' => ['nullable', Rule::in(SalePayment::METHODS)],
             'payment_amount' => ['nullable', 'numeric', 'min:0'],
             'payment_reference' => ['nullable', 'string', 'max:80'],
+            'payments' => ['nullable', 'array'],
+            'payments.*.method' => ['required', Rule::in(SalePayment::METHODS)],
+            'payments.*.amount' => ['required', 'numeric', 'gt:0'],
+            'payments.*.reference' => ['nullable', 'string', 'max:80'],
+            'installment_count' => ['nullable', 'integer', 'min:1', 'max:36'],
+            'installment_first_due' => ['nullable', 'date'],
+            'installment_interval_days' => ['nullable', 'integer', 'min:1', 'max:365'],
         ]);
 
+        // Split payment (F3.1): banyak baris metode; kolom tunggal lama
+        // tetap diterima sebagai cadangan satu baris.
         $payments = [];
-        if (! empty($validated['payment_method']) && ! empty($validated['payment_amount'])) {
+        foreach ($validated['payments'] ?? [] as $row) {
+            $payments[] = [
+                'method' => $row['method'],
+                'amount' => $row['amount'],
+                'reference' => $row['reference'] ?? null,
+            ];
+        }
+        if ($payments === [] && ! empty($validated['payment_method']) && ! empty($validated['payment_amount'])) {
             $payments[] = [
                 'method' => $validated['payment_method'],
                 'amount' => $validated['payment_amount'],
@@ -144,7 +168,7 @@ class SaleController extends Controller
 
         $sale = $this->service->createSale(
             $request->user(),
-            collect($validated)->only(['customer_id', 'prescription_id', 'sale_date', 'doctor_id', 'insurance_id', 'discount_amount', 'tax_mode', 'notes'])->all(),
+            collect($validated)->only(['customer_id', 'prescription_id', 'sale_date', 'doctor_id', 'insurance_id', 'discount_amount', 'tax_mode', 'notes', 'installment_count', 'installment_first_due', 'installment_interval_days'])->all(),
             $validated['items'],
             $payments,
         );
@@ -170,6 +194,33 @@ class SaleController extends Controller
         $this->service->addPayment($request->user(), $sale, $validated['method'], (string) $validated['amount'], $validated['reference'] ?? null);
 
         return redirect()->route('sales.show', $sale)->with('status', __('ui.sales.payment_added'));
+    }
+
+    /** Formulir jadwal cicilan atas sisa piutang (F3.2). */
+    public function installmentForm(Sale $sale): View
+    {
+        $sale->load(['customer', 'installments']);
+
+        return view('sales.installment-form', compact('sale'));
+    }
+
+    public function storeInstallment(Request $request, Sale $sale): RedirectResponse
+    {
+        $validated = $request->validate([
+            'installment_count' => ['required', 'integer', 'min:1', 'max:36'],
+            'installment_first_due' => ['required', 'date'],
+            'installment_interval_days' => ['nullable', 'integer', 'min:1', 'max:365'],
+        ]);
+
+        app(InstallmentService::class)->createSchedule(
+            $request->user(),
+            $sale,
+            (int) $validated['installment_count'],
+            (string) $validated['installment_first_due'],
+            (int) ($validated['installment_interval_days'] ?? 30),
+        );
+
+        return redirect()->route('sales.show', $sale)->with('status', __('ui.sales.schedule_created'));
     }
 
     public function voidForm(Sale $sale): View

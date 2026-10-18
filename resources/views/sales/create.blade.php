@@ -119,25 +119,49 @@
                                 </div>
                             </div>
 
-                            <fieldset class="rounded-lg border border-gray-200 p-4">
+                            <fieldset class="rounded-lg border border-gray-200 p-4" x-data="{ rows: [{ method: '', amount: '', reference: '' }] }">
                                 <legend class="px-1 text-sm font-semibold text-lentera-900">{{ __('ui.sales.initial_payment') }}</legend>
+                                <p class="mb-3 text-xs text-gray-500">{{ __('ui.sales.split_hint') }}</p>
+                                <template x-for="(row, idx) in rows" :key="idx">
+                                    <div class="mb-3 grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-4">
+                                        <div>
+                                            <x-input-label :value="__('ui.sales.method')" />
+                                            <select :name="`payments[${idx}][method]`" x-model="row.method" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                                <option value="">—</option>
+                                                @foreach (\App\Modules\Sales\Models\SalePayment::METHODS as $method)
+                                                    <option value="{{ $method }}">{{ __('ui.sales.methods.'.$method) }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <x-input-label :value="__('ui.sales.amount')" />
+                                            <input :name="`payments[${idx}][amount]`" x-model="row.amount" type="number" step="0.01" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500 tnum">
+                                        </div>
+                                        <div>
+                                            <x-input-label :value="__('ui.sales.reference')" />
+                                            <input :name="`payments[${idx}][reference]`" x-model="row.reference" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                        </div>
+                                        <button type="button" x-show="rows.length > 1" @click="rows.splice(idx, 1)" class="pb-2 text-sm text-red-600 hover:underline">{{ __('ui.sales.remove_row') }}</button>
+                                    </div>
+                                </template>
+                                <button type="button" @click="rows.push({ method: '', amount: '', reference: '' })" class="text-sm font-medium text-lentera-800 hover:underline">+ {{ __('ui.sales.add_method') }}</button>
+                            </fieldset>
+
+                            <fieldset class="rounded-lg border border-gray-200 p-4">
+                                <legend class="px-1 text-sm font-semibold text-lentera-900">{{ __('ui.sales.installment_schedule') }} ({{ __('ui.sales.optional') }})</legend>
+                                <p class="mb-3 text-xs text-gray-500">{{ __('ui.sales.schedule_hint') }}</p>
                                 <div class="grid grid-cols-3 gap-4">
                                     <div>
-                                        <x-input-label for="payment_method" :value="__('ui.sales.method')" />
-                                        <select id="payment_method" name="payment_method" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
-                                            <option value="">—</option>
-                                            @foreach (\App\Modules\Sales\Models\SalePayment::METHODS as $method)
-                                                <option value="{{ $method }}" @selected(old('payment_method') === $method)>{{ __('ui.sales.methods.'.$method) }}</option>
-                                            @endforeach
-                                        </select>
+                                        <x-input-label for="installment_count" :value="__('ui.sales.installment_count')" />
+                                        <x-text-input id="installment_count" name="installment_count" type="number" min="1" max="36" class="mt-1 block w-full tnum" :value="old('installment_count')" />
                                     </div>
                                     <div>
-                                        <x-input-label for="payment_amount" :value="__('ui.sales.amount')" />
-                                        <x-text-input id="payment_amount" name="payment_amount" type="number" step="0.01" min="0" class="mt-1 block w-full tnum" :value="old('payment_amount')" />
+                                        <x-input-label for="installment_first_due" :value="__('ui.sales.first_due_date')" />
+                                        <x-text-input id="installment_first_due" name="installment_first_due" type="date" class="mt-1 block w-full" :value="old('installment_first_due')" />
                                     </div>
                                     <div>
-                                        <x-input-label for="payment_reference" :value="__('ui.sales.reference')" />
-                                        <x-text-input id="payment_reference" name="payment_reference" class="mt-1 block w-full" :value="old('payment_reference')" />
+                                        <x-input-label for="installment_interval_days" :value="__('ui.sales.interval_days')" />
+                                        <x-text-input id="installment_interval_days" name="installment_interval_days" type="number" min="1" max="365" class="mt-1 block w-full tnum" :value="old('installment_interval_days', 30)" />
                                     </div>
                                 </div>
                             </fieldset>

@@ -13,6 +13,12 @@ use App\Modules\Accounting\Http\Controllers\PayrollController;
 use App\Modules\Accounting\Http\Controllers\PeriodController;
 use App\Modules\Catalog\Http\Controllers\ProductController;
 use App\Modules\Clinical\Http\Controllers\PrescriptionController;
+use App\Modules\Comms\Http\Controllers\WaCampaignController;
+use App\Modules\Comms\Http\Controllers\WaGatewayController;
+use App\Modules\Comms\Http\Controllers\WaInboxController;
+use App\Modules\Comms\Http\Controllers\WaLogController;
+use App\Modules\Comms\Http\Controllers\WaTemplateController;
+use App\Modules\Comms\Http\Controllers\WaWebhookController;
 use App\Modules\CRM\Http\Controllers\CustomerController;
 use App\Modules\Identity\Http\Controllers\RoleController;
 use App\Modules\Identity\Http\Controllers\UserController;
@@ -22,13 +28,18 @@ use App\Modules\Inventory\Http\Controllers\TransferController;
 use App\Modules\Lab\Http\Controllers\LabController;
 use App\Modules\Lab\Http\Controllers\QcTemplateController;
 use App\Modules\Master\Http\Controllers\BranchController;
+use App\Modules\Membership\Http\Controllers\MemberController;
+use App\Modules\Membership\Http\Controllers\MemberPortalController;
+use App\Modules\Membership\Http\Controllers\MembershipLevelController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Purchasing\Http\Controllers\CollectivePaymentController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseRequestController;
 use App\Modules\Purchasing\Http\Controllers\ReceiptController;
 use App\Modules\Reporting\Http\Controllers\ReportController;
+use App\Modules\Sales\Http\Controllers\ReceivableController;
 use App\Modules\Sales\Http\Controllers\SaleController;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -178,6 +189,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/penjualan/{sale}', [SaleController::class, 'show'])->middleware('permission:sales.view')->name('sales.show');
     Route::get('/penjualan/{sale}/bayar', [SaleController::class, 'paymentForm'])->middleware('permission:sales.pay')->name('sales.payment');
     Route::post('/penjualan/{sale}/bayar', [SaleController::class, 'storePayment'])->middleware('permission:sales.pay')->name('sales.payment.store');
+    Route::get('/penjualan/{sale}/cicilan', [SaleController::class, 'installmentForm'])->middleware('permission:sales.pay')->name('sales.installment');
+    Route::post('/penjualan/{sale}/cicilan', [SaleController::class, 'storeInstallment'])->middleware('permission:sales.pay')->name('sales.installment.store');
+    Route::get('/piutang', [ReceivableController::class, 'index'])->middleware('permission:sales.view')->name('receivables.index');
     Route::get('/penjualan/{sale}/void', [SaleController::class, 'voidForm'])->middleware('permission:sales.void')->name('sales.void');
     Route::post('/penjualan/{sale}/void', [SaleController::class, 'storeVoid'])->middleware('permission:sales.void')->name('sales.void.store');
     Route::get('/penjualan/{sale}/retur', [SaleController::class, 'returnForm'])->middleware('permission:sales.return')->name('sales.return');
@@ -214,6 +228,40 @@ Route::middleware('auth')->group(function () {
     Route::put('/produk/{product}', [ProductController::class, 'update'])->middleware('permission:products.update')->name('products.update');
     Route::post('/produk/{product}/alih-aktif', [ProductController::class, 'toggleActive'])->middleware('permission:products.deactivate')->name('products.toggle-active');
 
+    // ---- Membership & Poin (F3.6) ----
+    Route::get('/member', [MemberController::class, 'index'])->middleware('permission:members.view')->name('members.index');
+    Route::get('/member/follow-up', [MemberController::class, 'followUp'])->middleware('permission:members.view')->name('members.follow-up');
+    Route::get('/member/level', [MembershipLevelController::class, 'index'])->middleware('permission:members.manage')->name('members.levels');
+    Route::post('/member/level', [MembershipLevelController::class, 'store'])->middleware('permission:members.manage')->name('members.levels.store');
+    Route::put('/member/level/{level}', [MembershipLevelController::class, 'update'])->middleware('permission:members.manage')->name('members.levels.update');
+    Route::post('/member/level/{level}/alih-aktif', [MembershipLevelController::class, 'toggleActive'])->middleware('permission:members.manage')->name('members.levels.toggle');
+    Route::put('/member/pengaturan-poin', [MembershipLevelController::class, 'updateSettings'])->middleware('permission:members.manage')->name('members.points-settings');
+    Route::get('/member/{customer}/sesuaikan', [MemberController::class, 'adjustForm'])->middleware('permission:points.adjust')->name('members.adjust');
+    Route::post('/member/{customer}/sesuaikan', [MemberController::class, 'storeAdjust'])->middleware('permission:points.adjust')->name('members.adjust.store');
+    Route::post('/member/{customer}/portal', [MemberController::class, 'issuePortalToken'])->middleware('permission:members.manage')->name('members.portal.issue');
+    Route::post('/member/{customer}/portal/cabut', [MemberController::class, 'revokePortalToken'])->middleware('permission:members.manage')->name('members.portal.revoke');
+
+    // ---- Inbox & Kampanye WhatsApp (F3.8) ----
+    Route::get('/wa/inbox', [WaInboxController::class, 'index'])->middleware('permission:wa.inbox')->name('wa-inbox.index');
+    Route::get('/wa/inbox/{customer}', [WaInboxController::class, 'show'])->middleware('permission:wa.inbox')->name('wa-inbox.show');
+    Route::post('/wa/inbox/{customer}/balas', [WaInboxController::class, 'reply'])->middleware('permission:wa.inbox')->name('wa-inbox.reply');
+    Route::get('/wa/kampanye', [WaCampaignController::class, 'index'])->middleware('permission:wa.campaigns')->name('wa-campaigns.index');
+    Route::post('/wa/kampanye', [WaCampaignController::class, 'store'])->middleware('permission:wa.campaigns')->name('wa-campaigns.store');
+    Route::get('/wa/kampanye/{campaign}', [WaCampaignController::class, 'show'])->middleware('permission:wa.campaigns')->name('wa-campaigns.show');
+    Route::post('/wa/kampanye/{campaign}/setujui', [WaCampaignController::class, 'approve'])->middleware('permission:wa.campaigns.approve')->name('wa-campaigns.approve');
+    Route::post('/wa/kampanye/{campaign}/kirim', [WaCampaignController::class, 'send'])->middleware('permission:wa.campaigns')->name('wa-campaigns.send');
+    Route::post('/wa/kampanye/{campaign}/batalkan', [WaCampaignController::class, 'cancel'])->middleware('permission:wa.campaigns')->name('wa-campaigns.cancel');
+    Route::post('/wa/template/{template}/setujui', [WaTemplateController::class, 'approve'])->middleware('permission:wa.campaigns.approve')->name('wa-templates.approve');
+
+    // ---- Komunikasi WhatsApp (F3.4) ----
+    Route::get('/pengaturan/wa', [WaGatewayController::class, 'edit'])->middleware('permission:settings.manage')->name('wa-gateway.edit');
+    Route::put('/pengaturan/wa', [WaGatewayController::class, 'update'])->middleware('permission:settings.manage')->name('wa-gateway.update');
+    Route::post('/pengaturan/wa/uji', [WaGatewayController::class, 'test'])->middleware('permission:settings.manage')->name('wa-gateway.test');
+    Route::get('/wa/template', [WaTemplateController::class, 'index'])->middleware('permission:wa.templates')->name('wa-templates.index');
+    Route::get('/wa/template/{template}/ubah', [WaTemplateController::class, 'edit'])->middleware('permission:wa.templates')->name('wa-templates.edit');
+    Route::put('/wa/template/{template}', [WaTemplateController::class, 'update'])->middleware('permission:wa.templates')->name('wa-templates.update');
+    Route::get('/wa/log', [WaLogController::class, 'index'])->middleware('permission:wa.send')->name('wa-log.index');
+
     Route::middleware('permission:branches.manage')->group(function () {
         Route::get('/cabang', [BranchController::class, 'index'])->name('branches.index');
         Route::get('/cabang/buat', [BranchController::class, 'create'])->name('branches.create');
@@ -224,5 +272,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/cabang/{branch}/alih-aktif', [BranchController::class, 'toggleActive'])->name('branches.toggle-active');
     });
 });
+
+// Webhook Meta (publik, tanpa sesi/CSRF — dijaga verify_token & ID pesan).
+Route::get('/wa/webhook', [WaWebhookController::class, 'verify'])->name('wa-webhook.verify');
+Route::post('/wa/webhook', [WaWebhookController::class, 'handle'])
+    ->withoutMiddleware([ValidateCsrfToken::class])
+    ->name('wa-webhook.handle');
+
+// Portal member (F3.7): PUBLIK ber-token — token adalah kredensialnya;
+// hash tersimpan di member_portal_tokens, dapat dicabut dari menu Member.
+Route::get('/m/{token}', [MemberPortalController::class, 'show'])
+    ->middleware('throttle:30,1')
+    ->name('portal.show');
 
 require __DIR__.'/auth.php';

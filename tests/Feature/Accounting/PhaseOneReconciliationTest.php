@@ -148,11 +148,14 @@ class PhaseOneReconciliationTest extends TestCase
         $this->assertSame($earningsIndependent->toDecimalString(), $sheet['earnings']->toDecimalString());
 
         // (c) Laba rugi: jangkar hitungan tangan + agregat independen.
-        // Pendapatan 1.500.000; beban = HPP 1.200.000 + penyusutan 1.000.000 + gaji 750.000.
+        // Pendapatan 1.500.000; beban = HPP 1.200.000 + penyusutan 1.000.000
+        // + gaji 750.000 + beban loyalitas poin F3.6 15.000 (earn atas
+        // penjualan skenario: basis di luar pajak 1.500.000 -> 150 poin
+        // x nilai tukar Rp100, Dr 5-1300 / Cr Liabilitas Poin 2-1200).
         $income = $financial->incomeStatement($from, $to);
         $this->assertSame('1500000.00', $income['total_revenue']->toDecimalString());
-        $this->assertSame('2950000.00', $income['total_expense']->toDecimalString());
-        $this->assertSame('-1450000.00', $income['net']->toDecimalString());
+        $this->assertSame('2965000.00', $income['total_expense']->toDecimalString());
+        $this->assertSame('-1465000.00', $income['net']->toDecimalString());
 
         // (a3) Laporan pembelian (M.10) = jurnal penerimaan − retur pembelian.
         $report = app(ReportService::class)->purchasesNet($from, $to, [$this->branch->id]);

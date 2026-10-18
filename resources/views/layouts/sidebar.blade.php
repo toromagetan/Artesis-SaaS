@@ -50,7 +50,7 @@
         @if ($can('sales.view') || $can('customers.view') || $can('lab.view'))
             <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70">{{ __('ui.nav.group_operations') }}</p>
             @if ($can('sales.view'))
-                @php $act = request()->routeIs('sales.*'); @endphp
+                @php $act = request()->routeIs('sales.*') || request()->routeIs('receivables.*'); @endphp
                 <div x-data="{ open: {{ $act ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" class="{{ $item }} {{ $act ? $itemActive : '' }}">
                         @if ($act) {!! $goldBar !!} @endif
@@ -61,6 +61,7 @@
                     <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         <a href="{{ route('sales.index') }}" class="{{ $sub }} {{ request()->routeIs('sales.index') ? $subActive : '' }}">@if (request()->routeIs('sales.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.sales_list') }}</a>
                         <a href="{{ route('sales.create') }}" class="{{ $sub }} {{ request()->routeIs('sales.create') ? $subActive : '' }}">@if (request()->routeIs('sales.create')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.sales_create') }}</a>
+                        <a href="{{ route('receivables.index') }}" class="{{ $sub }} {{ request()->routeIs('receivables.*') ? $subActive : '' }}">@if (request()->routeIs('receivables.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.receivables') }}</a>
                     </div>
                 </div>
             @endif
@@ -76,6 +77,24 @@
                     <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         <a href="{{ route('customers.index') }}" class="{{ $sub }} {{ request()->routeIs('customers.index') ? $subActive : '' }}">@if (request()->routeIs('customers.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.customers_list') }}</a>
                         <a href="{{ route('customers.create') }}" class="{{ $sub }} {{ request()->routeIs('customers.create') ? $subActive : '' }}">@if (request()->routeIs('customers.create')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.customers_create') }}</a>
+                    </div>
+                </div>
+            @endif
+            @if ($can('members.view'))
+                @php $act = request()->routeIs('members.*'); @endphp
+                <div x-data="{ open: {{ $act ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" class="{{ $item }} {{ $act ? $itemActive : '' }}">
+                        @if ($act) {!! $goldBar !!} @endif
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.2 9.6c.5-.8 1.5-1.2 2.8-1.2 1.7 0 2.9.9 2.9 2.1 0 2.9-5.8 1.6-5.8 4.4 0 1.2 1.3 2.1 3 2.1 1.4 0 2.4-.5 3-1.3"/></svg>
+                        {{ __('ui.nav.members') }}
+                        <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                        <a href="{{ route('members.index') }}" class="{{ $sub }} {{ request()->routeIs('members.index') ? $subActive : '' }}">@if (request()->routeIs('members.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.members_list') }}</a>
+                        <a href="{{ route('members.follow-up') }}" class="{{ $sub }} {{ request()->routeIs('members.follow-up') ? $subActive : '' }}">@if (request()->routeIs('members.follow-up')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.follow_up') }}</a>
+                        @if ($can('members.manage'))
+                            <a href="{{ route('members.levels') }}" class="{{ $sub }} {{ request()->routeIs('members.levels*') ? $subActive : '' }}">@if (request()->routeIs('members.levels*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.member_levels') }}</a>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -243,6 +262,37 @@
                     </div>
                 </div>
             @endif
+        @endif
+
+        {{-- KOMUNIKASI --}}
+        @if ($can('wa.send') || $can('wa.templates') || $can('wa.inbox') || $can('settings.manage'))
+            <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70">{{ __('ui.nav.communication') }}</p>
+            @php $act = request()->routeIs('wa-*'); @endphp
+            <div x-data="{ open: {{ $act ? 'true' : 'false' }} }">
+                <button type="button" @click="open = !open" class="{{ $item }} {{ $act ? $itemActive : '' }}">
+                    @if ($act) {!! $goldBar !!} @endif
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg>
+                    {{ __('ui.nav.whatsapp') }}
+                    <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    @if ($can('wa.inbox'))
+                        <a href="{{ route('wa-inbox.index') }}" class="{{ $sub }} {{ request()->routeIs('wa-inbox.*') ? $subActive : '' }}">@if (request()->routeIs('wa-inbox.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_inbox') }}</a>
+                    @endif
+                    @if ($can('wa.campaigns'))
+                        <a href="{{ route('wa-campaigns.index') }}" class="{{ $sub }} {{ request()->routeIs('wa-campaigns.*') ? $subActive : '' }}">@if (request()->routeIs('wa-campaigns.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_campaigns') }}</a>
+                    @endif
+                    @if ($can('wa.send'))
+                        <a href="{{ route('wa-log.index') }}" class="{{ $sub }} {{ request()->routeIs('wa-log.*') ? $subActive : '' }}">@if (request()->routeIs('wa-log.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_log') }}</a>
+                    @endif
+                    @if ($can('wa.templates'))
+                        <a href="{{ route('wa-templates.index') }}" class="{{ $sub }} {{ request()->routeIs('wa-templates.*') ? $subActive : '' }}">@if (request()->routeIs('wa-templates.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_templates') }}</a>
+                    @endif
+                    @if ($can('settings.manage'))
+                        <a href="{{ route('wa-gateway.edit') }}" class="{{ $sub }} {{ request()->routeIs('wa-gateway.*') ? $subActive : '' }}">@if (request()->routeIs('wa-gateway.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_gateway') }}</a>
+                    @endif
+                </div>
+            </div>
         @endif
 
         {{-- MASTER & PENGATURAN --}}

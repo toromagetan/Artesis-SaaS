@@ -5,6 +5,7 @@ namespace App\Modules\CRM\Models;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Insurance;
+use App\Modules\Membership\Models\MembershipLevel;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +25,7 @@ class Customer extends Model
 
     protected $fillable = [
         'name', 'phone', 'email', 'address', 'birth_date',
-        'branch_id', 'insurance_id', 'membership_level_id', 'is_active',
+        'branch_id', 'insurance_id', 'membership_level_id', 'is_active', 'wa_opt_out',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class Customer extends Model
         return [
             'birth_date' => 'date',
             'is_active' => 'boolean',
+            'wa_opt_out' => 'boolean',
         ];
     }
 
@@ -43,6 +45,12 @@ class Customer extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /** Level membership berjalan (F3.6); null = level aktif terendah. */
+    public function level(): BelongsTo
+    {
+        return $this->belongsTo(MembershipLevel::class, 'membership_level_id');
     }
 
     public function insurance(): BelongsTo

@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Modules\Accounting\Listeners\AccrueCommissions;
 use App\Modules\Accounting\Listeners\PostJournalForDomainEvents;
+use App\Modules\Comms\Listeners\SendPickupReminderMessage;
+use App\Modules\Comms\Listeners\SendSaleInvoiceMessage;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Policies\UserPolicy;
 use App\Modules\Inventory\Events\InitialStockImported;
@@ -11,6 +13,7 @@ use App\Modules\Inventory\Listeners\SyncStockWithSales;
 use App\Modules\Inventory\Policies\InitialStockImportPolicy;
 use App\Modules\Lab\Events\LensProcessCompleted;
 use App\Modules\Lab\Listeners\SyncLensProcessWithSales;
+use App\Modules\Membership\Listeners\SyncPointsWithSales;
 use App\Modules\Purchasing\Events\PurchasePaymentPosted;
 use App\Modules\Purchasing\Events\PurchaseReturned;
 use App\Modules\Purchasing\Events\ReceiptStored;
@@ -78,5 +81,14 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(SaleCompleted::class, [AccrueCommissions::class, 'onSaleCompleted']);
         Event::listen(SaleVoided::class, [AccrueCommissions::class, 'onSaleVoided']);
         Event::listen(LensProcessCompleted::class, [AccrueCommissions::class, 'onLensProcessCompleted']);
+        // Otomasi WhatsApp (F3.5): invoice & pengingat pengambilan.
+        // Kegagalan gateway tidak pernah menggagalkan transaksi pemicu:
+        // pengiriman asinkron lewat antrean (ADR-009) dan layanan
+        // otomasi menelan semua galat pengiriman.
+        Event::listen(SaleCompleted::class, [SendSaleInvoiceMessage::class, 'onSaleCompleted']);
+        Event::listen(LensProcessCompleted::class, [SendPickupReminderMessage::class, 'onLensProcessCompleted']);
+        // Membership & poin (F3.6): earn/reversal mengikuti penjualan.
+        Event::listen(SaleCompleted::class, [SyncPointsWithSales::class, 'onSaleCompleted']);
+        Event::listen(SaleVoided::class, [SyncPointsWithSales::class, 'onSaleVoided']);
     }
 }

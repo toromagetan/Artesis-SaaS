@@ -17,4 +17,10 @@ class Setting extends Model
     {
         return static::query()->where('key', $key)->value('value') ?? $default;
     }
+
+    /** Akses tulis kanonis satu nilai pengaturan. */
+    public static function set(string $key, string $value): void
+    {
+        static::query()->updateOrCreate(['key' => $key], ['value' => $value]);
+    }
 }

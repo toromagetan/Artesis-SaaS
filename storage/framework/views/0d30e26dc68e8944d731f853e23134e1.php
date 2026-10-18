@@ -158,6 +158,27 @@
 <?php $component = $__componentOriginal462fb62fb1260a0c7276ba80b762793e; ?>
 <?php unset($__componentOriginal462fb62fb1260a0c7276ba80b762793e); ?>
 <?php endif; ?>
+                                    <?php if($sale->installments->isEmpty()): ?>
+                                        <?php if (isset($component)) { $__componentOriginal462fb62fb1260a0c7276ba80b762793e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal462fb62fb1260a0c7276ba80b762793e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.menu-item','data' => ['href' => route('sales.installment', $sale)]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.menu-item'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('sales.installment', $sale))]); ?><?php echo e(__('ui.sales.create_schedule')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $attributes = $__attributesOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $component = $__componentOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__componentOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             <?php endif; ?>
                             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('sales.return')): ?>
@@ -368,6 +389,46 @@
                     </tbody>
                 </table>
             </div>
+
+            <?php if($sale->installments->isNotEmpty()): ?>
+                <h2 class="mb-2 text-base font-semibold text-gray-800"><?php echo e(__('ui.sales.installment_schedule')); ?></h2>
+                <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-100 text-left text-gray-500">
+                                <th class="px-4 py-3 font-medium"><?php echo e(__('ui.sales.sequence')); ?></th>
+                                <th class="px-4 py-3 font-medium"><?php echo e(__('ui.sales.due_date')); ?></th>
+                                <th class="px-4 py-3 font-medium"><?php echo e(__('ui.sales.amount')); ?></th>
+                                <th class="px-4 py-3 font-medium"><?php echo e(__('ui.sales.paid')); ?></th>
+                                <th class="px-4 py-3 font-medium"><?php echo e(__('ui.sales.remaining')); ?></th>
+                                <th class="px-4 py-3 font-medium"><?php echo e(__('ui.sales.status')); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $__currentLoopData = $sale->installments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $installment): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <tr class="border-b border-gray-50 last:border-0">
+                                    <td class="px-4 py-3"><?php echo e($installment->sequence); ?></td>
+                                    <td class="px-4 py-3"><?php echo e($installment->due_date->format('d/m/Y')); ?></td>
+                                    <td class="px-4 py-3 tnum"><?php echo e(\App\Support\Money::fromDecimal((string) $installment->amount)->format()); ?></td>
+                                    <td class="px-4 py-3 tnum"><?php echo e(\App\Support\Money::fromDecimal((string) $installment->paid_amount)->format()); ?></td>
+                                    <td class="px-4 py-3 tnum"><?php echo e($installment->remaining()->format()); ?></td>
+                                    <td class="px-4 py-3">
+                                        <?php if($installment->effectiveStatus() === 'overdue'): ?>
+                                            <span class="rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"><?php echo e(__('ui.sales.inst_overdue')); ?></span>
+                                        <?php elseif($installment->status === 'paid'): ?>
+                                            <span class="rounded bg-lentera-50 px-2 py-0.5 text-xs font-medium text-lentera-800"><?php echo e(__('ui.sales.inst_paid')); ?></span>
+                                        <?php elseif($installment->status === 'partial'): ?>
+                                            <span class="rounded bg-gold/10 px-2 py-0.5 text-xs font-medium text-gold-dark"><?php echo e(__('ui.sales.inst_partial')); ?></span>
+                                        <?php else: ?>
+                                            <span class="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"><?php echo e(__('ui.sales.inst_open')); ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
 
             <?php if($sale->returns->isNotEmpty()): ?>
                 <h2 class="mb-2 text-base font-semibold text-gray-800"><?php echo e(__('ui.sales.returns')); ?></h2>

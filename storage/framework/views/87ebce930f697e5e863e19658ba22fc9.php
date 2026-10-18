@@ -48,7 +48,7 @@
         <?php if($can('sales.view') || $can('customers.view') || $can('lab.view')): ?>
             <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70"><?php echo e(__('ui.nav.group_operations')); ?></p>
             <?php if($can('sales.view')): ?>
-                <?php $act = request()->routeIs('sales.*'); ?>
+                <?php $act = request()->routeIs('sales.*') || request()->routeIs('receivables.*'); ?>
                 <div x-data="{ open: <?php echo e($act ? 'true' : 'false'); ?> }">
                     <button type="button" @click="open = !open" class="<?php echo e($item); ?> <?php echo e($act ? $itemActive : ''); ?>">
                         <?php if($act): ?> <?php echo $goldBar; ?> <?php endif; ?>
@@ -60,6 +60,7 @@
                     <div x-show="open" <?php if(! $act): ?> style="display: none;" <?php endif; ?> class="mt-0.5 space-y-0.5">
                         <a href="<?php echo e(route('sales.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('sales.index') ? $subActive : ''); ?>"><?php if(request()->routeIs('sales.index')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.sales_list')); ?></a>
                         <a href="<?php echo e(route('sales.create')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('sales.create') ? $subActive : ''); ?>"><?php if(request()->routeIs('sales.create')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.sales_create')); ?></a>
+                        <a href="<?php echo e(route('receivables.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('receivables.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('receivables.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.receivables')); ?></a>
                     </div>
                 </div>
             <?php endif; ?>
@@ -76,6 +77,25 @@
                     <div x-show="open" <?php if(! $act): ?> style="display: none;" <?php endif; ?> class="mt-0.5 space-y-0.5">
                         <a href="<?php echo e(route('customers.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('customers.index') ? $subActive : ''); ?>"><?php if(request()->routeIs('customers.index')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.customers_list')); ?></a>
                         <a href="<?php echo e(route('customers.create')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('customers.create') ? $subActive : ''); ?>"><?php if(request()->routeIs('customers.create')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.customers_create')); ?></a>
+                    </div>
+                </div>
+            <?php endif; ?>
+            <?php if($can('members.view')): ?>
+                <?php $act = request()->routeIs('members.*'); ?>
+                <div x-data="{ open: <?php echo e($act ? 'true' : 'false'); ?> }">
+                    <button type="button" @click="open = !open" class="<?php echo e($item); ?> <?php echo e($act ? $itemActive : ''); ?>">
+                        <?php if($act): ?> <?php echo $goldBar; ?> <?php endif; ?>
+                        <svg class="<?php echo e($ico); ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.2 9.6c.5-.8 1.5-1.2 2.8-1.2 1.7 0 2.9.9 2.9 2.1 0 2.9-5.8 1.6-5.8 4.4 0 1.2 1.3 2.1 3 2.1 1.4 0 2.4-.5 3-1.3"/></svg>
+                        <?php echo e(__('ui.nav.members')); ?>
+
+                        <svg :class="open ? 'rotate-180' : ''" class="<?php echo e($chev); ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div x-show="open" <?php if(! $act): ?> style="display: none;" <?php endif; ?> class="mt-0.5 space-y-0.5">
+                        <a href="<?php echo e(route('members.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('members.index') ? $subActive : ''); ?>"><?php if(request()->routeIs('members.index')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.members_list')); ?></a>
+                        <a href="<?php echo e(route('members.follow-up')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('members.follow-up') ? $subActive : ''); ?>"><?php if(request()->routeIs('members.follow-up')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.follow_up')); ?></a>
+                        <?php if($can('members.manage')): ?>
+                            <a href="<?php echo e(route('members.levels')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('members.levels*') ? $subActive : ''); ?>"><?php if(request()->routeIs('members.levels*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.member_levels')); ?></a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endif; ?>
@@ -253,6 +273,38 @@
                     </div>
                 </div>
             <?php endif; ?>
+        <?php endif; ?>
+
+        
+        <?php if($can('wa.send') || $can('wa.templates') || $can('wa.inbox') || $can('settings.manage')): ?>
+            <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70"><?php echo e(__('ui.nav.communication')); ?></p>
+            <?php $act = request()->routeIs('wa-*'); ?>
+            <div x-data="{ open: <?php echo e($act ? 'true' : 'false'); ?> }">
+                <button type="button" @click="open = !open" class="<?php echo e($item); ?> <?php echo e($act ? $itemActive : ''); ?>">
+                    <?php if($act): ?> <?php echo $goldBar; ?> <?php endif; ?>
+                    <svg class="<?php echo e($ico); ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg>
+                    <?php echo e(__('ui.nav.whatsapp')); ?>
+
+                    <svg :class="open ? 'rotate-180' : ''" class="<?php echo e($chev); ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div x-show="open" <?php if(! $act): ?> style="display: none;" <?php endif; ?> class="mt-0.5 space-y-0.5">
+                    <?php if($can('wa.inbox')): ?>
+                        <a href="<?php echo e(route('wa-inbox.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('wa-inbox.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('wa-inbox.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.wa_inbox')); ?></a>
+                    <?php endif; ?>
+                    <?php if($can('wa.campaigns')): ?>
+                        <a href="<?php echo e(route('wa-campaigns.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('wa-campaigns.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('wa-campaigns.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.wa_campaigns')); ?></a>
+                    <?php endif; ?>
+                    <?php if($can('wa.send')): ?>
+                        <a href="<?php echo e(route('wa-log.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('wa-log.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('wa-log.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.wa_log')); ?></a>
+                    <?php endif; ?>
+                    <?php if($can('wa.templates')): ?>
+                        <a href="<?php echo e(route('wa-templates.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('wa-templates.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('wa-templates.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.wa_templates')); ?></a>
+                    <?php endif; ?>
+                    <?php if($can('settings.manage')): ?>
+                        <a href="<?php echo e(route('wa-gateway.edit')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('wa-gateway.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('wa-gateway.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.wa_gateway')); ?></a>
+                    <?php endif; ?>
+                </div>
+            </div>
         <?php endif; ?>
 
         

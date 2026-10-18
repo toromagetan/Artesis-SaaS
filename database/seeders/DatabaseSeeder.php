@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             IdentitySeeder::class,
             AccountingSeeder::class,
             QcPointTemplateSeeder::class,
+            WaTemplateSeeder::class,
+            MembershipLevelSeeder::class,
         ]);
     }
 }

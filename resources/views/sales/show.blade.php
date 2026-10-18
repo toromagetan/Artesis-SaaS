@@ -32,6 +32,9 @@
                             @can('sales.pay')
                                 @if ($sale->paymentStatus() !== 'paid')
                                     <x-lentera.menu-item :href="route('sales.payment', $sale)">{{ __('ui.sales.add_payment') }}</x-lentera.menu-item>
+                                    @if ($sale->installments->isEmpty())
+                                        <x-lentera.menu-item :href="route('sales.installment', $sale)">{{ __('ui.sales.create_schedule') }}</x-lentera.menu-item>
+                                    @endif
                                 @endif
                             @endcan
                             @can('sales.return')
@@ -178,6 +181,46 @@
                     </tbody>
                 </table>
             </div>
+
+            @if ($sale->installments->isNotEmpty())
+                <h2 class="mb-2 text-base font-semibold text-gray-800">{{ __('ui.sales.installment_schedule') }}</h2>
+                <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-100 text-left text-gray-500">
+                                <th class="px-4 py-3 font-medium">{{ __('ui.sales.sequence') }}</th>
+                                <th class="px-4 py-3 font-medium">{{ __('ui.sales.due_date') }}</th>
+                                <th class="px-4 py-3 font-medium">{{ __('ui.sales.amount') }}</th>
+                                <th class="px-4 py-3 font-medium">{{ __('ui.sales.paid') }}</th>
+                                <th class="px-4 py-3 font-medium">{{ __('ui.sales.remaining') }}</th>
+                                <th class="px-4 py-3 font-medium">{{ __('ui.sales.status') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($sale->installments as $installment)
+                                <tr class="border-b border-gray-50 last:border-0">
+                                    <td class="px-4 py-3">{{ $installment->sequence }}</td>
+                                    <td class="px-4 py-3">{{ $installment->due_date->format('d/m/Y') }}</td>
+                                    <td class="px-4 py-3 tnum">{{ \App\Support\Money::fromDecimal((string) $installment->amount)->format() }}</td>
+                                    <td class="px-4 py-3 tnum">{{ \App\Support\Money::fromDecimal((string) $installment->paid_amount)->format() }}</td>
+                                    <td class="px-4 py-3 tnum">{{ $installment->remaining()->format() }}</td>
+                                    <td class="px-4 py-3">
+                                        @if ($installment->effectiveStatus() === 'overdue')
+                                            <span class="rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">{{ __('ui.sales.inst_overdue') }}</span>
+                                        @elseif ($installment->status === 'paid')
+                                            <span class="rounded bg-lentera-50 px-2 py-0.5 text-xs font-medium text-lentera-800">{{ __('ui.sales.inst_paid') }}</span>
+                                        @elseif ($installment->status === 'partial')
+                                            <span class="rounded bg-gold/10 px-2 py-0.5 text-xs font-medium text-gold-dark">{{ __('ui.sales.inst_partial') }}</span>
+                                        @else
+                                            <span class="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{{ __('ui.sales.inst_open') }}</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
 
             @if ($sale->returns->isNotEmpty())
                 <h2 class="mb-2 text-base font-semibold text-gray-800">{{ __('ui.sales.returns') }}</h2>

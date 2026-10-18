@@ -102,6 +102,12 @@ class Sale extends Model
         return $this->hasMany(SalePayment::class)->orderBy('paid_at')->orderBy('id');
     }
 
+    /** Jadwal cicilan piutang (F3.2), terurut per sequence. */
+    public function installments(): HasMany
+    {
+        return $this->hasMany(SaleInstallment::class)->orderBy('sequence');
+    }
+
     public function returns(): HasMany
     {
         return $this->hasMany(SaleReturn::class);

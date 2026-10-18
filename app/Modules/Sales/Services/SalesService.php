@@ -10,6 +10,7 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Setting;
+use App\Modules\Membership\Services\PointsService;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Purchasing\Services\PurchaseRequestService;
 use App\Modules\Sales\Events\SaleCompleted;
@@ -178,17 +179,48 @@ class SalesService
             if ($paid->cmp($total) > 0) {
                 throw ValidationException::withMessages(['payments' => __('ui.sales.payment_exceeds_total')]);
             }
-            foreach ($payments as $payment) {
-                $sale->payments()->create([
+
+            // Pembayaran metode 'points' (F3.6): nominal wajib kelipatan
+            // nilai tukar dan saldo poin pelanggan (dikunci) mencukupi.
+            $pointsService = app(PointsService::class);
+            $pointsPerRow = [];
+            $pointsTotal = 0;
+            foreach ($payments as $i => $payment) {
+                if ($payment['method'] === 'points') {
+                    $pointsPerRow[$i] = $pointsService->pointsForAmount(Money::fromDecimal((string) $payment['amount']));
+                    $pointsTotal += $pointsPerRow[$i];
+                }
+            }
+            if ($pointsTotal > 0) {
+                $pointsService->assertRedeemable($customer, $pointsTotal);
+            }
+
+            foreach ($payments as $i => $payment) {
+                $paymentRow = $sale->payments()->create([
                     'method' => $payment['method'],
                     'amount' => Money::fromDecimal((string) $payment['amount'])->toDecimalString(),
                     'paid_at' => now(),
                     'reference' => $payment['reference'] ?? null,
                     'received_by' => $actor->id,
                 ]);
+                if (isset($pointsPerRow[$i])) {
+                    $pointsService->recordRedemption($customer, $paymentRow, $pointsPerRow[$i]);
+                }
             }
             if (! $paid->isZero()) {
                 $sale->update(['paid_amount' => $paid->toDecimalString()]);
+            }
+
+            // Jadwal cicilan atas SISA piutang (F3.2): DP menjadi piutang
+            // terjadwal. Dibuat di transaksi yang sama; gagal = gulung semua.
+            if (! empty($data['installment_count'])) {
+                app(InstallmentService::class)->createSchedule(
+                    $actor,
+                    $sale,
+                    (int) $data['installment_count'],
+                    (string) ($data['installment_first_due'] ?? now()->addDays(30)->toDateString()),
+                    (int) ($data['installment_interval_days'] ?? 30),
+                );
             }
 
             if ($prescription !== null) {
@@ -260,6 +292,15 @@ class SalesService
                 throw ValidationException::withMessages(['amount' => __('ui.sales.payment_exceeds_total')]);
             }
 
+            // Pembayaran metode 'points' (F3.6): kelipatan nilai tukar +
+            // saldo poin mencukupi (baris pelanggan dikunci di layanan).
+            $pointsNeeded = null;
+            if ($method === 'points') {
+                $pointsService = app(PointsService::class);
+                $pointsNeeded = $pointsService->pointsForAmount($value);
+                $pointsService->assertRedeemable($sale->customer, $pointsNeeded);
+            }
+
             $payment = $sale->payments()->create([
                 'method' => $method,
                 'amount' => $value->toDecimalString(),
@@ -267,9 +308,16 @@ class SalesService
                 'reference' => $reference,
                 'received_by' => $actor->id,
             ]);
+            if ($pointsNeeded !== null) {
+                app(PointsService::class)
+                    ->recordRedemption($sale->customer, $payment, $pointsNeeded);
+            }
             $sale->update([
                 'paid_amount' => Money::fromDecimal((string) $sale->paid_amount)->add($value)->toDecimalString(),
             ]);
+
+            // Penerimaan cicilan mengalir ke baris jadwal FIFO (F3.2).
+            app(InstallmentService::class)->allocate($sale, $value);
 
             app(AuditLogger::class)->log(
                 action: 'sales.payment',
@@ -342,6 +390,9 @@ class SalesService
             // PR otomatis yang belum diproses ikut batal (paritas Artesis).
             app(PurchaseRequestService::class)
                 ->cancelAutomaticForSale($actor, $sale);
+
+            // Jadwal cicilan adalah rencana atas piutang — ikut batal.
+            app(InstallmentService::class)->removeForVoidedSale($sale);
 
             SaleVoided::dispatch($sale);
 
