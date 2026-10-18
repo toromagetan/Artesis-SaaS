@@ -3,6 +3,7 @@
 namespace App\Modules\Catalog\Services;
 
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\ProductParent;
 use App\Modules\Identity\Models\User;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Support\Money;
@@ -26,7 +27,7 @@ class ProductService
         'frame' => ['eye_size', 'bridge_size', 'temple_size'],
         'lens' => ['index', 'coating', 'diameter', 'lens_kind'],
         'rx' => ['sph_min', 'sph_max', 'cyl_min', 'cyl_max'],
-        'softlens' => ['power', 'wear_period', 'expiry_tracked'],
+        'softlens' => ['wear_period', 'expiry_tracked'],
         'accessory' => [],
     ];
 
@@ -39,13 +40,22 @@ class ProductService
         $attributes = $this->normalizeAttributes($data['type'], $attributes);
 
         return DB::transaction(function () use ($actor, $data, $attributes) {
+            $parent = $this->resolveParent($data);
+
             $product = Product::create([
+                'parent_id' => $parent->id,
                 'sku' => $data['sku'],
                 'barcode' => $data['barcode'] ?? null,
                 'type' => $data['type'],
                 'name' => $data['name'],
                 'brand' => $data['brand'] ?? null,
                 'color' => $data['color'] ?? null,
+                'sph' => $data['sph'] ?? null,
+                'cyl' => $data['cyl'] ?? null,
+                'add' => $data['add'] ?? null,
+                'power' => $data['power'] ?? null,
+                'eye_side' => $data['eye_side'] ?? null,
+                'image_path' => $data['image_path'] ?? null,
                 'cost_price' => Money::fromDecimal((string) $data['cost_price'])->toDecimalString(),
                 'sale_price' => Money::fromDecimal((string) $data['sale_price'])->toDecimalString(),
                 'is_active' => true,
@@ -88,12 +98,21 @@ class ProductService
             ];
 
             $product->update([
+                'parent_id' => array_key_exists('parent_id', $data) && $data['parent_id'] !== null
+                    ? $this->resolveParent([...$data, 'type' => $newType])->id
+                    : $product->parent_id,
                 'sku' => $data['sku'] ?? $product->sku,
                 'barcode' => $data['barcode'] ?? null,
                 'type' => $newType,
                 'name' => $data['name'] ?? $product->name,
                 'brand' => $data['brand'] ?? null,
                 'color' => $data['color'] ?? null,
+                'sph' => array_key_exists('sph', $data) ? $data['sph'] : $product->sph,
+                'cyl' => array_key_exists('cyl', $data) ? $data['cyl'] : $product->cyl,
+                'add' => array_key_exists('add', $data) ? $data['add'] : $product->add,
+                'power' => array_key_exists('power', $data) ? $data['power'] : $product->power,
+                'eye_side' => array_key_exists('eye_side', $data) ? $data['eye_side'] : $product->eye_side,
+                'image_path' => array_key_exists('image_path', $data) ? $data['image_path'] : $product->image_path,
                 'cost_price' => Money::fromDecimal((string) ($data['cost_price'] ?? $product->cost_price))->toDecimalString(),
                 'sale_price' => Money::fromDecimal((string) ($data['sale_price'] ?? $product->sale_price))->toDecimalString(),
             ]);
@@ -111,6 +130,86 @@ class ProductService
 
             return $product;
         });
+    }
+
+    /** Buat induk produk (ADR-015). */
+    public function createParent(User $actor, array $data): ProductParent
+    {
+        $parent = ProductParent::create([
+            'name' => $data['name'],
+            'brand' => $data['brand'] ?? null,
+            'type' => $data['type'],
+            'is_active' => true,
+        ]);
+
+        app(AuditLogger::class)->log(
+            action: 'products.parent.create',
+            subjectType: 'product_parent',
+            subjectId: $parent->id,
+            newValues: ['type' => $parent->type, 'name' => $parent->name],
+            actor: $actor,
+        );
+
+        return $parent;
+    }
+
+    /** Ubah induk produk (ADR-015). */
+    public function updateParent(User $actor, ProductParent $parent, array $data): ProductParent
+    {
+        $parent->update([
+            'name' => $data['name'] ?? $parent->name,
+            'brand' => array_key_exists('brand', $data) ? $data['brand'] : $parent->brand,
+        ]);
+
+        app(AuditLogger::class)->log(
+            action: 'products.parent.update',
+            subjectType: 'product_parent',
+            subjectId: $parent->id,
+            newValues: ['name' => $parent->name, 'brand' => $parent->brand],
+            actor: $actor,
+        );
+
+        return $parent;
+    }
+
+    public function setParentActive(User $actor, ProductParent $parent, bool $active): ProductParent
+    {
+        $parent->update(['is_active' => $active]);
+
+        app(AuditLogger::class)->log(
+            action: $active ? 'products.parent.activate' : 'products.parent.deactivate',
+            subjectType: 'product_parent',
+            subjectId: $parent->id,
+            newValues: ['is_active' => $active],
+            actor: $actor,
+        );
+
+        return $parent;
+    }
+
+    /**
+     * Tentukan induk sebuah varian (ADR-015): parent_id eksplisit
+     * (wajib setipe) atau temukan/buat dari (type, brand, name).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveParent(array $data): ProductParent
+    {
+        if (! empty($data['parent_id'])) {
+            $parent = ProductParent::findOrFail((int) $data['parent_id']);
+            if ($parent->type !== $data['type']) {
+                throw ValidationException::withMessages([
+                    'parent_id' => __('ui.products.parent_type_mismatch'),
+                ]);
+            }
+
+            return $parent;
+        }
+
+        return ProductParent::firstOrCreate(
+            ['type' => $data['type'], 'brand' => $data['brand'] ?? null, 'name' => $data['name']],
+            ['is_active' => true],
+        );
     }
 
     public function setActive(User $actor, Product $product, bool $active): Product

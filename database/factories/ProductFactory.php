@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\ProductParent;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -29,6 +30,20 @@ class ProductFactory extends Factory
     public function ofType(string $type): static
     {
         return $this->state(fn () => ['type' => $type]);
+    }
+
+    /** Varian di bawah induk yang serumpun (ADR-015). */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Product $product) {
+            if ($product->parent_id === null) {
+                $parent = ProductParent::firstOrCreate(
+                    ['type' => $product->type, 'brand' => $product->brand, 'name' => $product->name],
+                    ['is_active' => true],
+                );
+                $product->update(['parent_id' => $parent->id]);
+            }
+        });
     }
 
     public function inactive(): static

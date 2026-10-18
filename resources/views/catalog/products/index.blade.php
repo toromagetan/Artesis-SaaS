@@ -16,6 +16,7 @@
                 </form>
                 @can('products.create')
                     <x-lentera.dropdown-aksi>
+                        <x-lentera.menu-item :href="route('products.parents.create', $type)">{{ __('ui.products.parent_create') }}</x-lentera.menu-item>
                         <x-lentera.menu-item :href="route('products.create', $type)">{{ __('ui.products.create') }}</x-lentera.menu-item>
                     </x-lentera.dropdown-aksi>
                 @endcan
@@ -27,7 +28,7 @@
                         <tr class="border-b border-gray-100 text-left text-gray-500">
                             <th class="px-4 py-3 font-medium">{{ __('ui.products.name') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.products.sku') }}</th>
-                            <th class="px-4 py-3 font-medium">{{ __('ui.products.brand') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.products.detail') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.products.sale_price') }}</th>
                             @if ($type === 'softlens')
                                 <th class="px-4 py-3 font-medium">{{ __('ui.products.nearest_expiry') }}</th>
@@ -37,48 +38,36 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($products as $product)
-                            <tr class="border-b border-gray-50 last:border-0">
-                                <td class="px-4 py-3 font-medium text-gray-800">
-                                    <a href="{{ route('products.show', $product) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $product->name }}</a>
-                                </td>
-                                <td class="px-4 py-3">{{ $product->sku }}</td>
-                                <td class="px-4 py-3">{{ $product->brand ?: '—' }}</td>
-                                <td class="px-4 py-3 tnum">{{ \App\Support\Money::fromDecimal((string) $product->sale_price)->format() }}</td>
-                                @if ($type === 'softlens')
-                                    <td class="px-4 py-3">
-                                        @isset($expiries[$product->id])
-                                            <span class="tnum {{ $expiries[$product->id]['expired'] ? 'font-semibold text-red-600' : ($expiries[$product->id]['soon'] ? 'font-medium text-gold-dark' : '') }}">{{ \Illuminate\Support\Carbon::parse($expiries[$product->id]['date'])->format('d/m/Y') }}</span>
-                                        @else
-                                            <span class="text-gray-400">—</span>
-                                        @endisset
-                                    </td>
-                                @endif
-                                <td class="px-4 py-3"><x-lentera.badge :active="$product->is_active" /></td>
-                                <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
-                                        <x-lentera.menu-item :href="route('products.show', $product)">{{ __('ui.products.detail') }}</x-lentera.menu-item>
-                                        @can('products.update')
-                                            <x-lentera.menu-item :href="route('products.edit', $product)">{{ __('ui.edit') }}</x-lentera.menu-item>
-                                        @endcan
-                                        @can('products.deactivate')
-                                            <div class="my-1 border-t border-gray-100"></div>
-                                            <form method="POST" action="{{ route('products.toggle-active', $product) }}">
-                                                @csrf
-                                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm transition duration-150 hover:bg-lentera-50 {{ $product->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $product->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
-                                            </form>
-                                        @endcan
-                                    </x-lentera.row-actions>
+                        @forelse ($parents as $parent)
+                            <tr class="border-b border-gray-100 bg-lentera-50/60">
+                                <td colspan="{{ $type === 'softlens' ? 7 : 6 }}" class="px-4 py-2.5">
+                                    <a href="{{ route('products.parents.show', $parent) }}" class="font-semibold text-lentera-900 underline-offset-2 hover:underline">{{ $parent->name }}</a>
+                                    @if ($parent->brand)<span class="text-gray-500">· {{ $parent->brand }}</span>@endif
+                                    <span class="text-gray-500">· {{ __('ui.products.variant_count', ['count' => $parent->variants->count()]) }}</span>
+                                    @unless ($parent->is_active)<span class="ml-2 text-xs font-medium text-red-600">{{ __('ui.inactive') }}</span>@endunless
                                 </td>
                             </tr>
+                            @foreach ($parent->variants as $product)
+                                @include('catalog.products._variant-row', ['product' => $product])
+                            @endforeach
                         @empty
-                            <tr><td colspan="{{ $type === 'softlens' ? 7 : 6 }}"><x-lentera.empty-state>{{ __('ui.products.empty') }}</x-lentera.empty-state></td></tr>
+                            @if ($orphans->isEmpty())
+                                <tr><td colspan="{{ $type === 'softlens' ? 7 : 6 }}"><x-lentera.empty-state>{{ __('ui.products.empty') }}</x-lentera.empty-state></td></tr>
+                            @endif
                         @endforelse
+                        @if ($orphans->isNotEmpty())
+                            <tr class="border-b border-gray-100 bg-gray-50">
+                                <td colspan="{{ $type === 'softlens' ? 7 : 6 }}" class="px-4 py-2.5 font-semibold text-gray-600">{{ __('ui.products.no_parent') }}</td>
+                            </tr>
+                            @foreach ($orphans as $product)
+                                @include('catalog.products._variant-row', ['product' => $product])
+                            @endforeach
+                        @endif
                     </tbody>
                 </table>
             </div>
 
-            <div class="mt-4">{{ $products->links() }}</div>
+            <div class="mt-4">{{ $parents->links() }}</div>
         </div>
     </div>
 </x-app-layout>

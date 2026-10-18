@@ -90,12 +90,13 @@ class ProductManagementTest extends TestCase
             'name' => 'Softlens Bulanan',
             'cost_price' => '40000',
             'sale_price' => '85000',
-            'attributes' => ['power' => '-1.50', 'wear_period' => '1 bulan', 'expiry_tracked' => '1'],
+            'power' => '-1.50',
+            'attributes' => ['wear_period' => '1 bulan', 'expiry_tracked' => '1'],
         ])->assertRedirect();
 
         $product = Product::where('sku', 'SFL-001')->firstOrFail();
         $this->assertSame('1', $product->attributeValue('expiry_tracked'));
-        $this->assertSame('-1.50', $product->attributeValue('power'));
+        $this->assertSame('-1.50', (string) $product->power);
     }
 
     public function test_type_lists_are_separated_and_searchable(): void

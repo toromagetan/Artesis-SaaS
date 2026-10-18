@@ -12,6 +12,7 @@ use App\Modules\Accounting\Http\Controllers\LedgerController;
 use App\Modules\Accounting\Http\Controllers\PayrollController;
 use App\Modules\Accounting\Http\Controllers\PeriodController;
 use App\Modules\Catalog\Http\Controllers\ProductController;
+use App\Modules\Catalog\Http\Controllers\ProductParentController;
 use App\Modules\Clinical\Http\Controllers\FittingController;
 use App\Modules\Clinical\Http\Controllers\PrescriptionController;
 use App\Modules\Comms\Http\Controllers\WaCampaignController;
@@ -262,6 +263,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/resep/{prescription}/precal/cetak', [PrescriptionController::class, 'precalPrint'])->middleware('permission:prescriptions.view')->name('prescriptions.precal-print');
 
     // ---- Katalog (M.1) ----
+    Route::get('/katalog/{type}/induk/buat', [ProductParentController::class, 'create'])->middleware('permission:products.create')->name('products.parents.create');
+    Route::post('/katalog/{type}/induk', [ProductParentController::class, 'store'])->middleware('permission:products.create')->name('products.parents.store');
+    Route::get('/produk-induk/{parent}', [ProductParentController::class, 'show'])->middleware('permission:products.view')->name('products.parents.show');
+    Route::get('/produk-induk/{parent}/ubah', [ProductParentController::class, 'edit'])->middleware('permission:products.update')->name('products.parents.edit');
+    Route::put('/produk-induk/{parent}', [ProductParentController::class, 'update'])->middleware('permission:products.update')->name('products.parents.update');
+    Route::post('/produk-induk/{parent}/alih-aktif', [ProductParentController::class, 'toggleActive'])->middleware('permission:products.deactivate')->name('products.parents.toggle-active');
     Route::get('/katalog/{type}', [ProductController::class, 'index'])->middleware('permission:products.view')->name('products.index');
     Route::get('/katalog/{type}/buat', [ProductController::class, 'create'])->middleware('permission:products.create')->name('products.create');
     Route::post('/katalog/{type}', [ProductController::class, 'store'])->middleware('permission:products.create')->name('products.store');
