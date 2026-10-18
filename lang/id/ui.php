@@ -48,7 +48,6 @@ return [
         'roles' => 'Peran & Izin',
         'branches' => 'Cabang',
         'catalog' => 'Katalog',
-        'product_categories' => 'Kategori Produk',
         'customers' => 'Pelanggan',
         'sales' => 'Penjualan',
         'purchasing' => 'Pembelian',
@@ -184,21 +183,7 @@ return [
 
     'categories' => [
         'title' => 'Kategori Produk',
-        'create' => 'Buat Kategori',
-        'edit' => 'Ubah Kategori',
-        'created' => 'Kategori produk dibuat.',
-        'updated' => 'Kategori produk diperbarui.',
-        'activated' => 'Kategori diaktifkan.',
-        'deactivated' => 'Kategori dinonaktifkan.',
-        'empty' => 'Belum ada kategori produk.',
-        'name' => 'Nama Kategori',
-        'description' => 'Deskripsi',
-        'type' => 'Tipe Sistem',
-        'sort_order' => 'Urutan',
-        'parents_count' => 'Jumlah Induk',
-        'auto' => 'Otomatis (kategori bawaan tipe ini)',
         'type_mismatch' => 'Kategori harus bertipe sama dengan induk.',
-        'type_locked' => 'Tipe kategori yang sudah dipakai induk tidak dapat diubah.',
     ],
 
     'products' => [

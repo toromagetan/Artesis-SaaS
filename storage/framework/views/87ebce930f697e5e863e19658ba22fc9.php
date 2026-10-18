@@ -354,7 +354,6 @@
                         <?php $__currentLoopData = \App\Modules\Catalog\Models\Product::TYPES; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $t): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <a href="<?php echo e(route('products.index', $t)); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('products.index') && request()->route('type') === $t ? $subActive : ''); ?>"><?php if(request()->routeIs('products.index') && request()->route('type') === $t): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.products.types.'.$t)); ?></a>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                        <a href="<?php echo e(route('products.categories.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('products.categories.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('products.categories.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.product_categories')); ?></a>
                     </div>
                 </div>
             <?php endif; ?>

@@ -20,16 +20,6 @@
                             <x-text-input id="brand" name="brand" class="mt-1 block w-full" :value="old('brand', $parent->brand)" />
                             <x-input-error :messages="$errors->get('brand')" class="mt-2" />
                         </div>
-                        <div>
-                            <x-input-label for="category_id" :value="__('ui.categories.title')" />
-                            <select id="category_id" name="category_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
-                                <option value="">—</option>
-                                @foreach ($categories as $category)
-                                    <option value="{{ $category->id }}" @selected((int) old('category_id', $parent->category_id) === $category->id)>{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-                            <x-input-error :messages="$errors->get('category_id')" class="mt-2" />
-                        </div>
                     </div>
                     <div class="mt-6 flex items-center gap-3">
                         <a href="{{ route('products.parents.show', $parent) }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>

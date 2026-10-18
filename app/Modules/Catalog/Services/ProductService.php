@@ -133,69 +133,6 @@ class ProductService
         });
     }
 
-    /** Buat kategori produk (paritas Artesis); tipe = kunci perilaku. */
-    public function createCategory(User $actor, array $data): ProductCategory
-    {
-        $category = ProductCategory::create([
-            'name' => $data['name'],
-            'description' => $data['description'] ?? null,
-            'type' => $data['type'],
-            'is_active' => true,
-            'sort_order' => (int) ($data['sort_order'] ?? 0),
-        ]);
-
-        app(AuditLogger::class)->log(
-            action: 'products.category.create',
-            subjectType: 'product_category',
-            subjectId: $category->id,
-            newValues: ['name' => $category->name, 'type' => $category->type],
-            actor: $actor,
-        );
-
-        return $category;
-    }
-
-    public function updateCategory(User $actor, ProductCategory $category, array $data): ProductCategory
-    {
-        // Tipe kategori terkunci bila sudah dipakai induk — tipe adalah
-        // kunci perilaku sistem dan tidak boleh bergeser diam-diam.
-        if (isset($data['type']) && $data['type'] !== $category->type && $category->parents()->exists()) {
-            throw ValidationException::withMessages(['type' => __('ui.categories.type_locked')]);
-        }
-
-        $category->update([
-            'name' => $data['name'] ?? $category->name,
-            'description' => array_key_exists('description', $data) ? $data['description'] : $category->description,
-            'type' => $data['type'] ?? $category->type,
-            'sort_order' => (int) ($data['sort_order'] ?? $category->sort_order),
-        ]);
-
-        app(AuditLogger::class)->log(
-            action: 'products.category.update',
-            subjectType: 'product_category',
-            subjectId: $category->id,
-            newValues: ['name' => $category->name, 'type' => $category->type],
-            actor: $actor,
-        );
-
-        return $category;
-    }
-
-    public function setCategoryActive(User $actor, ProductCategory $category, bool $active): ProductCategory
-    {
-        $category->update(['is_active' => $active]);
-
-        app(AuditLogger::class)->log(
-            action: $active ? 'products.category.activate' : 'products.category.deactivate',
-            subjectType: 'product_category',
-            subjectId: $category->id,
-            newValues: ['is_active' => $active],
-            actor: $actor,
-        );
-
-        return $category;
-    }
-
     /** Kategori bawaan/aktif untuk sebuah tipe sistem. */
     public function defaultCategoryFor(string $type): ?ProductCategory
     {
@@ -249,17 +186,13 @@ class ProductService
         return isset($data['type']) ? $this->defaultCategoryFor($data['type']) : null;
     }
 
-    /** Ubah induk produk (ADR-015). */
+    /** Ubah induk produk (ADR-015). Kategori mengikuti tipe induk. */
     public function updateParent(User $actor, ProductParent $parent, array $data): ProductParent
     {
-        $category = array_key_exists('category_id', $data) && $data['category_id'] !== null
-            ? $this->resolveCategory($data, $parent->type)
-            : $parent->category;
-
         $parent->update([
             'name' => $data['name'] ?? $parent->name,
             'brand' => array_key_exists('brand', $data) ? $data['brand'] : $parent->brand,
-            'category_id' => $category?->id,
+            'category_id' => $parent->category_id ?? $this->defaultCategoryFor($parent->type)?->id,
         ]);
 
         app(AuditLogger::class)->log(

@@ -339,7 +339,6 @@
                         @foreach (\App\Modules\Catalog\Models\Product::TYPES as $t)
                             <a href="{{ route('products.index', $t) }}" class="{{ $sub }} {{ request()->routeIs('products.index') && request()->route('type') === $t ? $subActive : '' }}">@if (request()->routeIs('products.index') && request()->route('type') === $t) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.products.types.'.$t) }}</a>
                         @endforeach
-                        <a href="{{ route('products.categories.index') }}" class="{{ $sub }} {{ request()->routeIs('products.categories.*') ? $subActive : '' }}">@if (request()->routeIs('products.categories.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.product_categories') }}</a>
                     </div>
                 </div>
             @endif

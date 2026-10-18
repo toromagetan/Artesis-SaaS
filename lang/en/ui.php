@@ -48,7 +48,6 @@ return [
         'roles' => 'Roles & Permissions',
         'branches' => 'Branches',
         'catalog' => 'Catalog',
-        'product_categories' => 'Product Categories',
         'customers' => 'Customers',
         'sales' => 'Sales',
         'purchasing' => 'Purchasing',
@@ -184,21 +183,7 @@ return [
 
     'categories' => [
         'title' => 'Product Categories',
-        'create' => 'Create Category',
-        'edit' => 'Edit Category',
-        'created' => 'Product category created.',
-        'updated' => 'Product category updated.',
-        'activated' => 'Category activated.',
-        'deactivated' => 'Category deactivated.',
-        'empty' => 'No product categories yet.',
-        'name' => 'Category Name',
-        'description' => 'Description',
-        'type' => 'System Type',
-        'sort_order' => 'Sort Order',
-        'parents_count' => 'Parents',
-        'auto' => 'Automatic (default category of this type)',
         'type_mismatch' => 'The category must be of the same type as the parent.',
-        'type_locked' => 'The type of a category already used by parents cannot be changed.',
     ],
 
     'products' => [
