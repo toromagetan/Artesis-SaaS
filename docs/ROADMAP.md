@@ -190,9 +190,9 @@ Setiap butir berjalan sebagai **spike terbatas**: pertanyaan jelas → prototipe
 **Gerbang keluar Fase 5:** tiga laporan kelayakan diterima owner; keputusan per butir tercatat sebagai revisi roadmap/ADR.
 
 **Keputusan owner 2026-10-18 (laporan di `docs/spikes/`):**
-- F5.1 Asisten AI bisnis — *menunggu keputusan owner.*
-- F5.2 Fitting AI — **TUNDA + jalankan validasi fisik** (protokol `docs/spikes/F5.2-protokol-validasi.md`). Pembangunan ditunda sampai hasil validasi memenuhi ambang; gagal ambang → fitur turun kelas ke rekomendasi ukuran frame saja.
-- F5.3 Offline kasir — **BANGUN.** Cakupan v1 sesuai laporan: fondasi server (client_uuid idempoten, registri perangkat bertoken, endpoint sinkronisasi, antrean pengecualian + UI resolusi) lalu klien kasir PWA offline-first (snapshot katalog, antrean lokal, tunai-saja offline, satu perangkat per cabang).
+- F5.1 Asisten AI bisnis — **BANGUN** (keputusan owner 2026-10-18 17:04): kredensial model AI (endpoint + API key + nama model) diatur owner lewat UI Pengaturan, terenkripsi, pola Gateway WA.
+- F5.2 Fitting AI — awalnya **TUNDA + validasi fisik**, lalu **diubah owner 2026-10-18 17:04 menjadi BANGUN sekarang**. Pagar keamanan laporan tetap berlaku di dalam produk: angka kamera bersifat pendamping (rujukan pupilometer tetap ditampilkan), foto tidak pernah disimpan, hanya angka yang disimpan. Protokol validasi (`docs/spikes/F5.2-protokol-validasi.md`) tetap tersedia untuk dijalankan kapan pun.
+- F5.3 Offline kasir — **BANGUN.** Cakupan v1 sesuai laporan: fondasi server (client_uuid idempoten, registri perangkat bertoken, endpoint sinkronisasi, antrean pengecualian + UI resolusi) lalu klien kasir PWA offline-first (snapshot katalog, antrean lokal, tunai-saja offline, satu perangkat per cabang). **SELESAI 2026-10-18** (fondasi + klien; gerbang 302 test/1799 asersi).
 
 ## 12. Kendali Perubahan & Keputusan Eksternal
 

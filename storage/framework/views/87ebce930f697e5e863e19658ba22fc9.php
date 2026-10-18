@@ -43,6 +43,14 @@
             <?php echo e(__('ui.nav.dashboard')); ?>
 
         </a>
+        <?php if($u->hasRole('Owner')): ?>
+            <a href="<?php echo e(route('assistant.index')); ?>" class="<?php echo e($item); ?> <?php echo e(request()->routeIs('assistant.*') ? $itemActive : ''); ?>">
+                <?php if(request()->routeIs('assistant.*')): ?> <?php echo $goldBar; ?> <?php endif; ?>
+                <svg class="<?php echo e($ico); ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/></svg>
+                <?php echo e(__('ui.nav.assistant')); ?>
+
+            </a>
+        <?php endif; ?>
 
         
         <?php if($can('sales.view') || $can('customers.view') || $can('lab.view')): ?>
@@ -310,6 +318,7 @@
                     <?php endif; ?>
                     <?php if($can('settings.manage')): ?>
                         <a href="<?php echo e(route('wa-gateway.edit')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('wa-gateway.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('wa-gateway.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.wa_gateway')); ?></a>
+                        <a href="<?php echo e(route('ai-setting.edit')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('ai-setting.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('ai-setting.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.ai_settings')); ?></a>
                     <?php endif; ?>
                     <?php if($can('api_tokens.manage')): ?>
                         <a href="<?php echo e(route('api-tokens.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('api-tokens.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('api-tokens.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.api_tokens')); ?></a>

@@ -75,6 +75,25 @@
 <?php $component = $__componentOriginal462fb62fb1260a0c7276ba80b762793e; ?>
 <?php unset($__componentOriginal462fb62fb1260a0c7276ba80b762793e); ?>
 <?php endif; ?>
+                            <?php if (isset($component)) { $__componentOriginal462fb62fb1260a0c7276ba80b762793e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal462fb62fb1260a0c7276ba80b762793e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.menu-item','data' => ['href' => route('fittings.measure', $customer)]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.menu-item'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('fittings.measure', $customer))]); ?><?php echo e(__('ui.fitting.measure_action')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $attributes = $__attributesOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $component = $__componentOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__componentOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
                         <?php endif; ?>
                         <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('customers.update')): ?>
                             <?php if (isset($component)) { $__componentOriginal462fb62fb1260a0c7276ba80b762793e = $component; } ?>

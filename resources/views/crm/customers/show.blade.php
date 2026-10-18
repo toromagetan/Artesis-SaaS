@@ -21,6 +21,7 @@
                         @endcan
                         @can('prescriptions.create')
                             <x-lentera.menu-item :href="route('prescriptions.create', $customer)">{{ __('ui.prescriptions.create') }}</x-lentera.menu-item>
+                            <x-lentera.menu-item :href="route('fittings.measure', $customer)">{{ __('ui.fitting.measure_action') }}</x-lentera.menu-item>
                         @endcan
                         @can('customers.update')
                             <x-lentera.menu-item :href="route('customers.edit', $customer)">{{ __('ui.edit') }}</x-lentera.menu-item>

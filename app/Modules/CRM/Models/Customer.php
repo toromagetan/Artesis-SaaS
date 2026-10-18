@@ -2,6 +2,7 @@
 
 namespace App\Modules\CRM\Models;
 
+use App\Modules\Clinical\Models\FittingMeasurement;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Insurance;
@@ -61,5 +62,10 @@ class Customer extends Model
     public function prescriptions(): HasMany
     {
         return $this->hasMany(Prescription::class)->orderByDesc('examined_at')->orderByDesc('id');
+    }
+
+    public function fittingMeasurements(): HasMany
+    {
+        return $this->hasMany(FittingMeasurement::class);
     }
 }

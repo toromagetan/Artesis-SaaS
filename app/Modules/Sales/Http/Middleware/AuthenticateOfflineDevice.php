@@ -24,6 +24,7 @@ class AuthenticateOfflineDevice
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
         $request->attributes->set('offline_device', $device);
+
         return $next($request);
     }
 }

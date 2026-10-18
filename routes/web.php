@@ -12,6 +12,7 @@ use App\Modules\Accounting\Http\Controllers\LedgerController;
 use App\Modules\Accounting\Http\Controllers\PayrollController;
 use App\Modules\Accounting\Http\Controllers\PeriodController;
 use App\Modules\Catalog\Http\Controllers\ProductController;
+use App\Modules\Clinical\Http\Controllers\FittingController;
 use App\Modules\Clinical\Http\Controllers\PrescriptionController;
 use App\Modules\Comms\Http\Controllers\WaCampaignController;
 use App\Modules\Comms\Http\Controllers\WaGatewayController;
@@ -33,7 +34,9 @@ use App\Modules\Master\Http\Controllers\BranchController;
 use App\Modules\Membership\Http\Controllers\MemberController;
 use App\Modules\Membership\Http\Controllers\MemberPortalController;
 use App\Modules\Membership\Http\Controllers\MembershipLevelController;
+use App\Modules\Platform\Http\Controllers\AiSettingController;
 use App\Modules\Platform\Http\Controllers\ApiTokenController;
+use App\Modules\Platform\Http\Controllers\AssistantController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Purchasing\Http\Controllers\CollectivePaymentController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
@@ -231,6 +234,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/pelanggan/{customer}', [CustomerController::class, 'update'])->middleware('permission:customers.update')->name('customers.update');
     Route::post('/pelanggan/{customer}/alih-aktif', [CustomerController::class, 'toggleActive'])->middleware('permission:customers.deactivate')->name('customers.toggle-active');
 
+    Route::get('/pelanggan/{customer}/fitting', [FittingController::class, 'measure'])->middleware('permission:prescriptions.create')->name('fittings.measure');
+    Route::post('/pelanggan/{customer}/fitting', [FittingController::class, 'store'])->middleware('permission:prescriptions.create')->name('fittings.store');
     Route::get('/pelanggan/{customer}/resep/baru', [PrescriptionController::class, 'create'])->middleware('permission:prescriptions.create')->name('prescriptions.create');
     Route::post('/pelanggan/{customer}/resep', [PrescriptionController::class, 'store'])->middleware('permission:prescriptions.create')->name('prescriptions.store');
     Route::get('/resep/{prescription}', [PrescriptionController::class, 'show'])->middleware('permission:prescriptions.view')->name('prescriptions.show');
@@ -282,6 +287,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/pengaturan/token-api', [ApiTokenController::class, 'index'])->middleware('permission:api_tokens.manage')->name('api-tokens.index');
     Route::post('/pengaturan/token-api', [ApiTokenController::class, 'store'])->middleware('permission:api_tokens.manage')->name('api-tokens.store');
     Route::post('/pengaturan/token-api/{token}/cabut', [ApiTokenController::class, 'revoke'])->middleware('permission:api_tokens.manage')->name('api-tokens.revoke');
+    Route::get('/pengaturan/ai', [AiSettingController::class, 'edit'])->middleware('permission:settings.manage')->name('ai-setting.edit');
+    Route::put('/pengaturan/ai', [AiSettingController::class, 'update'])->middleware('permission:settings.manage')->name('ai-setting.update');
+    Route::get('/asisten', [AssistantController::class, 'index'])->name('assistant.index');
+    Route::post('/asisten/tanya', [AssistantController::class, 'ask'])->name('assistant.ask');
     Route::get('/pengaturan/perangkat-offline', [OfflineDeviceController::class, 'index'])->middleware('permission:api_tokens.manage')->name('offline-devices.index');
     Route::post('/pengaturan/perangkat-offline', [OfflineDeviceController::class, 'store'])->middleware('permission:api_tokens.manage')->name('offline-devices.store');
     Route::post('/pengaturan/perangkat-offline/{device}/cabut', [OfflineDeviceController::class, 'revoke'])->middleware('permission:api_tokens.manage')->name('offline-devices.revoke');
