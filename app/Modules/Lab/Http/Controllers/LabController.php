@@ -5,8 +5,12 @@ namespace App\Modules\Lab\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Lab\Models\LabOrder;
 use App\Modules\Lab\Models\LensProcess;
+use App\Modules\Lab\Models\QcCheck;
+use App\Modules\Lab\Models\QcPointTemplate;
 use App\Modules\Lab\Services\LensProcessService;
+use App\Modules\Lab\Services\QcCheckService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -17,7 +21,10 @@ use Illuminate\View\View;
  */
 class LabController extends Controller
 {
-    public function __construct(private readonly LensProcessService $lab) {}
+    public function __construct(
+        private readonly LensProcessService $lab,
+        private readonly QcCheckService $qc,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -50,7 +57,41 @@ class LabController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('lab.show', compact('process', 'technicians'));
+        // Daftar periksa QC (F2.2): titik aktif terurut + hasil terakhir
+        // per titik + seluruh riwayat percobaan (tidak ditimpa).
+        $qcPoints = QcPointTemplate::activeOrdered()->get();
+        $qcLatest = $this->qc->latestByPoint($process);
+        $qcHistory = QcCheck::where('lens_process_id', $process->id)
+            ->with(['point', 'checker'])
+            ->orderByDesc('checked_at')
+            ->orderByDesc('id')
+            ->get();
+
+        // Order lab milik penjualan ini (F2.3) — status terlihat pemegang lab.view.
+        $labOrders = LabOrder::where('sale_id', $process->sale_id)->orderByDesc('id')->get();
+
+        return view('lab.show', compact('process', 'technicians', 'qcPoints', 'qcLatest', 'qcHistory', 'labOrders'));
+    }
+
+    /** Catat satu percobaan QC (F2.2) — pagar izin lab.qc di rute. */
+    public function recordQc(Request $request, LensProcess $process): RedirectResponse
+    {
+        $this->assertVisible($process);
+        $validated = $request->validate([
+            'point_id' => ['required', 'integer'],
+            'result' => ['required', 'string', 'in:pass,fail'],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $this->qc->record(
+            $request->user(),
+            $process,
+            (int) $validated['point_id'],
+            $validated['result'],
+            $validated['notes'] ?? null,
+        );
+
+        return back()->with('status', __('ui.qc.recorded'));
     }
 
     public function assign(Request $request, LensProcess $process): RedirectResponse

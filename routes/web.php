@@ -20,6 +20,8 @@ use App\Modules\Inventory\Http\Controllers\InitialStockImportController;
 use App\Modules\Inventory\Http\Controllers\StockController;
 use App\Modules\Inventory\Http\Controllers\TransferController;
 use App\Modules\Lab\Http\Controllers\LabController;
+use App\Modules\Lab\Http\Controllers\LabOrderController;
+use App\Modules\Lab\Http\Controllers\QcTemplateController;
 use App\Modules\Master\Http\Controllers\BranchController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Purchasing\Http\Controllers\CollectivePaymentController;
@@ -98,11 +100,27 @@ Route::middleware('auth')->group(function () {
     Route::get('/pembelian/bayar-kolektif/{payment}', [CollectivePaymentController::class, 'result'])->middleware('permission:payments.collective')->name('payments.collective.result');
 
     // ---- Lab (M.5) ----
+    // Template QC (F2.1) — SEBELUM /lab/{process} agar tidak tertangkap wildcard.
+    Route::get('/lab/template-qc', [QcTemplateController::class, 'index'])->middleware('permission:lab.view')->name('qc-templates.index');
+    Route::get('/lab/template-qc/buat', [QcTemplateController::class, 'create'])->middleware('permission:lab.view')->name('qc-templates.create');
+    Route::post('/lab/template-qc', [QcTemplateController::class, 'store'])->middleware('permission:lab.view')->name('qc-templates.store');
+    Route::get('/lab/template-qc/{template}/ubah', [QcTemplateController::class, 'edit'])->middleware('permission:lab.view')->name('qc-templates.edit');
+    Route::put('/lab/template-qc/{template}', [QcTemplateController::class, 'update'])->middleware('permission:lab.view')->name('qc-templates.update');
+    Route::post('/lab/template-qc/{template}/aktif', [QcTemplateController::class, 'toggleActive'])->middleware('permission:lab.view')->name('qc-templates.toggle');
+
+    // Order lab (F2.3) — juga sebelum /lab/{process}.
+    Route::get('/lab/order', [LabOrderController::class, 'index'])->middleware('permission:lab.order.manage')->name('lab-orders.index');
+    Route::get('/lab/order/buat', [LabOrderController::class, 'create'])->middleware('permission:lab.order.manage')->name('lab-orders.create');
+    Route::post('/lab/order', [LabOrderController::class, 'store'])->middleware('permission:lab.order.manage')->name('lab-orders.store');
+    Route::get('/lab/order/{order}', [LabOrderController::class, 'show'])->middleware('permission:lab.order.manage')->name('lab-orders.show');
+    Route::post('/lab/order/{order}/status', [LabOrderController::class, 'transition'])->middleware('permission:lab.order.manage')->name('lab-orders.transition');
+
     Route::get('/lab', [LabController::class, 'index'])->middleware('permission:lab.view')->name('lab.index');
     Route::get('/lab/{process}', [LabController::class, 'show'])->middleware('permission:lab.view')->name('lab.show');
     Route::post('/lab/{process}/tugaskan', [LabController::class, 'assign'])->middleware('permission:lab.assign')->name('lab.assign');
     Route::post('/lab/{process}/status', [LabController::class, 'transition'])->middleware('permission:lab.assign')->name('lab.transition');
     Route::post('/lab/{process}/selesai', [LabController::class, 'complete'])->middleware('permission:lab.complete')->name('lab.complete');
+    Route::post('/lab/{process}/qc', [LabController::class, 'recordQc'])->middleware('permission:lab.qc')->name('lab.qc.record');
 
     // ---- Stok (M.4) & Transfer (M.7) ----
     Route::get('/stok', [StockController::class, 'index'])->middleware('permission:stock.view')->name('stock.index');

@@ -30,7 +30,10 @@ class LensProcessService
         'qc' => 'ready',
     ];
 
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly QcCheckService $qc,
+    ) {}
 
     private function branchIdOf(LensProcess $process): ?int
     {
@@ -131,6 +134,10 @@ class LensProcessService
             if ($locked->isDone()) {
                 throw ValidationException::withMessages(['status' => __('ui.lab.already_done')]);
             }
+
+            // Gerbang QC (F2.2): semua titik wajib yang aktif harus Lulus
+            // pada percobaan terakhirnya sebelum proses diselesaikan.
+            $this->qc->assertCompletable($locked);
 
             $locked->update(['status' => 'done', 'completed_at' => now()]);
             $this->audit->log(

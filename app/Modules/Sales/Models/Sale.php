@@ -4,6 +4,7 @@ namespace App\Modules\Sales\Models;
 
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
+use App\Modules\Lab\Models\LensProcess;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Doctor;
 use App\Modules\Master\Models\Insurance;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Transaksi penjualan (Blueprint B.3). Tidak pernah dihapus —
@@ -75,6 +77,12 @@ class Sale extends Model
     public function insurance(): BelongsTo
     {
         return $this->belongsTo(Insurance::class);
+    }
+
+    /** Proses lensa penjualan ini (M.5) — satu penjualan maks. satu proses. */
+    public function lensProcess(): HasOne
+    {
+        return $this->hasOne(LensProcess::class);
     }
 
     public function items(): HasMany

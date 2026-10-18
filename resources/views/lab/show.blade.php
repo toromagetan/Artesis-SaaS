@@ -85,6 +85,138 @@
                 </div>
             @endif
 
+            {{-- Daftar periksa QC (F2.2) --}}
+            <h2 class="mb-2 text-base font-semibold text-gray-800">{{ __('ui.qc.checklist') }}</h2>
+            <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 text-left text-gray-500">
+                            <th class="px-4 py-3 font-medium">{{ __('ui.qc.point') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.qc.latest') }}</th>
+                            @can('lab.qc')
+                                @unless ($process->isDone())
+                                    <th class="px-4 py-3 font-medium">{{ __('ui.qc.record') }}</th>
+                                @endunless
+                            @endcan
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($qcPoints as $point)
+                            @php $latest = $qcLatest[$point->id] ?? null; @endphp
+                            <tr class="border-b border-gray-50 last:border-0">
+                                <td class="px-4 py-3">
+                                    <span class="font-medium text-gray-800">{{ $point->name }}</span>
+                                    @if ($point->is_required)
+                                        <span class="ml-1 inline-block rounded-full border border-gold/50 bg-gold/10 px-2 py-0.5 text-[11px] font-semibold text-gold-dark">{{ __('ui.qc.required') }}</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3">
+                                    @if ($latest === null)
+                                        <span class="inline-block rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-semibold text-gray-500">{{ __('ui.qc.not_checked') }}</span>
+                                    @elseif ($latest->result === 'pass')
+                                        <span class="inline-block rounded-full border border-lentera-200 bg-lentera-50 px-2.5 py-0.5 text-[11px] font-semibold text-lentera-700">{{ __('ui.qc.pass') }}</span>
+                                        <span class="ml-1 text-xs text-gray-400">{{ __('ui.qc.attempt') }} {{ $latest->attempt }} · {{ $latest->checked_at->format('d/m/Y H:i') }}</span>
+                                    @else
+                                        <span class="inline-block rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-600">{{ __('ui.qc.fail') }}</span>
+                                        <span class="ml-1 text-xs text-gray-400">{{ __('ui.qc.attempt') }} {{ $latest->attempt }} · {{ $latest->checked_at->format('d/m/Y H:i') }}</span>
+                                    @endif
+                                </td>
+                                @can('lab.qc')
+                                    @unless ($process->isDone())
+                                        <td class="px-4 py-3">
+                                            <form method="POST" action="{{ route('lab.qc.record', $process) }}" class="flex flex-wrap items-center gap-2">
+                                                @csrf
+                                                <input type="hidden" name="point_id" value="{{ $point->id }}">
+                                                <input type="text" name="notes" maxlength="255" placeholder="{{ __('ui.qc.notes') }}" class="w-44 rounded-lg border-gray-300 text-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                                <button type="submit" name="result" value="pass" class="rounded-lg bg-lentera-700 px-3 py-1.5 text-xs font-semibold text-white transition duration-150 hover:bg-lentera-800">{{ __('ui.qc.record_pass') }}</button>
+                                                <button type="submit" name="result" value="fail" class="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-600 transition duration-150 hover:bg-red-50">{{ __('ui.qc.record_fail') }}</button>
+                                            </form>
+                                        </td>
+                                    @endunless
+                                @endcan
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="px-4 py-6"><x-lentera.empty-state :message="__('ui.qc.empty')" /></td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 class="mb-2 text-base font-semibold text-gray-800">{{ __('ui.qc.history') }}</h2>
+            <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 text-left text-gray-500">
+                            <th class="px-4 py-3 font-medium">{{ __('ui.qc.point') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.qc.attempt') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.qc.latest') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.qc.notes') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.qc.checked_by') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.qc.checked_at') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($qcHistory as $check)
+                            <tr class="border-b border-gray-50 last:border-0">
+                                <td class="px-4 py-3 text-gray-800">{{ $check->point->name }}</td>
+                                <td class="px-4 py-3 tnum">{{ $check->attempt }}</td>
+                                <td class="px-4 py-3">
+                                    @if ($check->result === 'pass')
+                                        <span class="inline-block rounded-full border border-lentera-200 bg-lentera-50 px-2.5 py-0.5 text-[11px] font-semibold text-lentera-700">{{ __('ui.qc.pass') }}</span>
+                                    @else
+                                        <span class="inline-block rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-600">{{ __('ui.qc.fail') }}</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-gray-600">{{ $check->notes ?? '—' }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ $check->checker->name }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ $check->checked_at->format('d/m/Y H:i') }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-4 py-6"><x-lentera.empty-state :message="__('ui.qc.history_empty')" /></td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Order lab penjualan ini (F2.3) --}}
+            <h2 class="mb-2 text-base font-semibold text-gray-800">{{ __('ui.lab_orders.title') }}</h2>
+            <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 text-left text-gray-500">
+                            <th class="px-4 py-3 font-medium">{{ __('ui.lab_orders.number') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.lab_orders.lab_name') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.lab.status') }}</th>
+                            <th class="px-4 py-3 text-right font-medium">{{ __('ui.lab_orders.cost') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($labOrders as $order)
+                            <tr class="border-b border-gray-50 last:border-0">
+                                <td class="px-4 py-3 font-medium">
+                                    @can('lab.order.manage')
+                                        <a href="{{ route('lab-orders.show', $order) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $order->number }}</a>
+                                    @else
+                                        {{ $order->number }}
+                                    @endcan
+                                </td>
+                                <td class="px-4 py-3 text-gray-800">{{ $order->lab_name }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ __('ui.lab_orders.statuses.'.$order->status) }}</td>
+                                <td class="px-4 py-3 text-right tnum">{{ $order->labCost()->format() }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="px-4 py-6"><x-lentera.empty-state :message="__('ui.lab_orders.empty')" /></td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
             @can('lab.assign')
                 @unless ($process->isDone())
                     <h2 class="mb-2 text-base font-semibold text-gray-800">{{ __('ui.lab.assign') }}</h2>

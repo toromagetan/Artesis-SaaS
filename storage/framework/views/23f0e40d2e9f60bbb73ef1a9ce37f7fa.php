@@ -112,6 +112,196 @@
                 </div>
             <?php endif; ?>
 
+            
+            <h2 class="mb-2 text-base font-semibold text-gray-800"><?php echo e(__('ui.qc.checklist')); ?></h2>
+            <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 text-left text-gray-500">
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.qc.point')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.qc.latest')); ?></th>
+                            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('lab.qc')): ?>
+                                <?php if (! ($process->isDone())): ?>
+                                    <th class="px-4 py-3 font-medium"><?php echo e(__('ui.qc.record')); ?></th>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php $__empty_1 = true; $__currentLoopData = $qcPoints; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $point): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                            <?php $latest = $qcLatest[$point->id] ?? null; ?>
+                            <tr class="border-b border-gray-50 last:border-0">
+                                <td class="px-4 py-3">
+                                    <span class="font-medium text-gray-800"><?php echo e($point->name); ?></span>
+                                    <?php if($point->is_required): ?>
+                                        <span class="ml-1 inline-block rounded-full border border-gold/50 bg-gold/10 px-2 py-0.5 text-[11px] font-semibold text-gold-dark"><?php echo e(__('ui.qc.required')); ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <?php if($latest === null): ?>
+                                        <span class="inline-block rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-semibold text-gray-500"><?php echo e(__('ui.qc.not_checked')); ?></span>
+                                    <?php elseif($latest->result === 'pass'): ?>
+                                        <span class="inline-block rounded-full border border-lentera-200 bg-lentera-50 px-2.5 py-0.5 text-[11px] font-semibold text-lentera-700"><?php echo e(__('ui.qc.pass')); ?></span>
+                                        <span class="ml-1 text-xs text-gray-400"><?php echo e(__('ui.qc.attempt')); ?> <?php echo e($latest->attempt); ?> · <?php echo e($latest->checked_at->format('d/m/Y H:i')); ?></span>
+                                    <?php else: ?>
+                                        <span class="inline-block rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-600"><?php echo e(__('ui.qc.fail')); ?></span>
+                                        <span class="ml-1 text-xs text-gray-400"><?php echo e(__('ui.qc.attempt')); ?> <?php echo e($latest->attempt); ?> · <?php echo e($latest->checked_at->format('d/m/Y H:i')); ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('lab.qc')): ?>
+                                    <?php if (! ($process->isDone())): ?>
+                                        <td class="px-4 py-3">
+                                            <form method="POST" action="<?php echo e(route('lab.qc.record', $process)); ?>" class="flex flex-wrap items-center gap-2">
+                                                <?php echo csrf_field(); ?>
+                                                <input type="hidden" name="point_id" value="<?php echo e($point->id); ?>">
+                                                <input type="text" name="notes" maxlength="255" placeholder="<?php echo e(__('ui.qc.notes')); ?>" class="w-44 rounded-lg border-gray-300 text-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                                <button type="submit" name="result" value="pass" class="rounded-lg bg-lentera-700 px-3 py-1.5 text-xs font-semibold text-white transition duration-150 hover:bg-lentera-800"><?php echo e(__('ui.qc.record_pass')); ?></button>
+                                                <button type="submit" name="result" value="fail" class="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-600 transition duration-150 hover:bg-red-50"><?php echo e(__('ui.qc.record_fail')); ?></button>
+                                            </form>
+                                        </td>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </tr>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                            <tr>
+                                <td colspan="3" class="px-4 py-6"><?php if (isset($component)) { $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.empty-state','data' => ['message' => __('ui.qc.empty')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.empty-state'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['message' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('ui.qc.empty'))]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
+<?php $attributes = $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
+<?php unset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
+<?php $component = $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
+<?php unset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
+<?php endif; ?></td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 class="mb-2 text-base font-semibold text-gray-800"><?php echo e(__('ui.qc.history')); ?></h2>
+            <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 text-left text-gray-500">
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.qc.point')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.qc.attempt')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.qc.latest')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.qc.notes')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.qc.checked_by')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.qc.checked_at')); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php $__empty_1 = true; $__currentLoopData = $qcHistory; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $check): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                            <tr class="border-b border-gray-50 last:border-0">
+                                <td class="px-4 py-3 text-gray-800"><?php echo e($check->point->name); ?></td>
+                                <td class="px-4 py-3 tnum"><?php echo e($check->attempt); ?></td>
+                                <td class="px-4 py-3">
+                                    <?php if($check->result === 'pass'): ?>
+                                        <span class="inline-block rounded-full border border-lentera-200 bg-lentera-50 px-2.5 py-0.5 text-[11px] font-semibold text-lentera-700"><?php echo e(__('ui.qc.pass')); ?></span>
+                                    <?php else: ?>
+                                        <span class="inline-block rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-600"><?php echo e(__('ui.qc.fail')); ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-4 py-3 text-gray-600"><?php echo e($check->notes ?? '—'); ?></td>
+                                <td class="px-4 py-3 text-gray-600"><?php echo e($check->checker->name); ?></td>
+                                <td class="px-4 py-3 text-gray-600"><?php echo e($check->checked_at->format('d/m/Y H:i')); ?></td>
+                            </tr>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                            <tr>
+                                <td colspan="6" class="px-4 py-6"><?php if (isset($component)) { $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.empty-state','data' => ['message' => __('ui.qc.history_empty')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.empty-state'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['message' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('ui.qc.history_empty'))]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
+<?php $attributes = $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
+<?php unset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
+<?php $component = $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
+<?php unset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
+<?php endif; ?></td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            
+            <h2 class="mb-2 text-base font-semibold text-gray-800"><?php echo e(__('ui.lab_orders.title')); ?></h2>
+            <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 text-left text-gray-500">
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.lab_orders.number')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.lab_orders.lab_name')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.lab.status')); ?></th>
+                            <th class="px-4 py-3 text-right font-medium"><?php echo e(__('ui.lab_orders.cost')); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php $__empty_1 = true; $__currentLoopData = $labOrders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                            <tr class="border-b border-gray-50 last:border-0">
+                                <td class="px-4 py-3 font-medium">
+                                    <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('lab.order.manage')): ?>
+                                        <a href="<?php echo e(route('lab-orders.show', $order)); ?>" class="text-lentera-800 underline-offset-2 hover:underline"><?php echo e($order->number); ?></a>
+                                    <?php else: ?>
+                                        <?php echo e($order->number); ?>
+
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-4 py-3 text-gray-800"><?php echo e($order->lab_name); ?></td>
+                                <td class="px-4 py-3 text-gray-600"><?php echo e(__('ui.lab_orders.statuses.'.$order->status)); ?></td>
+                                <td class="px-4 py-3 text-right tnum"><?php echo e($order->labCost()->format()); ?></td>
+                            </tr>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                            <tr>
+                                <td colspan="4" class="px-4 py-6"><?php if (isset($component)) { $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.empty-state','data' => ['message' => __('ui.lab_orders.empty')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.empty-state'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['message' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('ui.lab_orders.empty'))]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
+<?php $attributes = $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
+<?php unset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
+<?php $component = $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
+<?php unset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
+<?php endif; ?></td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('lab.assign')): ?>
                 <?php if (! ($process->isDone())): ?>
                     <h2 class="mb-2 text-base font-semibold text-gray-800"><?php echo e(__('ui.lab.assign')); ?></h2>

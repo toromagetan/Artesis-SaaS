@@ -80,11 +80,24 @@
                 </div>
             @endif
             @if ($can('lab.view'))
-                <a href="{{ route('lab.index') }}" class="{{ $item }} {{ request()->routeIs('lab.*') ? $itemActive : '' }}">
-                    @if (request()->routeIs('lab.*')) {!! $goldBar !!} @endif
-                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="12" r="4"/><circle cx="18" cy="12" r="4"/><path d="M10 12h4"/></svg>
-                    {{ __('ui.nav.lab') }}
-                </a>
+                @php $act = request()->routeIs('lab.*') || request()->routeIs('qc-templates.*') || request()->routeIs('lab-orders.*'); $isManager = $u->hasRole('Owner') || $u->hasRole('Admin'); @endphp
+                <div x-data="{ open: {{ $act ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" class="{{ $item }} {{ $act ? $itemActive : '' }}">
+                        @if ($act) {!! $goldBar !!} @endif
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="12" r="4"/><circle cx="18" cy="12" r="4"/><path d="M10 12h4"/></svg>
+                        {{ __('ui.nav.lab') }}
+                        <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                        <a href="{{ route('lab.index') }}" class="{{ $sub }} {{ request()->routeIs('lab.index') || request()->routeIs('lab.show') ? $subActive : '' }}">@if (request()->routeIs('lab.index') || request()->routeIs('lab.show')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.lab.title') }}</a>
+                        @if ($isManager)
+                            <a href="{{ route('qc-templates.index') }}" class="{{ $sub }} {{ request()->routeIs('qc-templates.*') ? $subActive : '' }}">@if (request()->routeIs('qc-templates.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.qc_templates') }}</a>
+                        @endif
+                        @if ($can('lab.order.manage'))
+                            <a href="{{ route('lab-orders.index') }}" class="{{ $sub }} {{ request()->routeIs('lab-orders.*') ? $subActive : '' }}">@if (request()->routeIs('lab-orders.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.lab_orders') }}</a>
+                        @endif
+                    </div>
+                </div>
             @endif
         @endif
 
