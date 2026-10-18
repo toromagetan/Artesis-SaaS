@@ -165,7 +165,7 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 | Tugas | Hasil | Dependensi |
 |---|---|---|
 | F4.1 Opname terjadwal | Jadwal → lembar hitung (snapshot) → review → approval menerbitkan gerakan selisih; kunci mutasi cabang selama counting | MVP |
-| F4.2 **Gerbang costing** | Laporan audit metode berjalan vs FIFO (dampak ke nilai persediaan & HPP) → **keputusan owner tertulis** → ADR baru → implementasi metode terpilih + migrasi nilai | F1 |
+| F4.2 **Gerbang costing** | Laporan audit metode berjalan vs FIFO (dampak ke nilai persediaan & HPP) → **keputusan owner tertulis** → ADR baru → implementasi metode terpilih + migrasi nilai. **DIPUTUSKAN 2026-10-18: FIFO per cabang (ADR-014 di Blueprint)** — implementasi menunggu kata memulai Fase 4 | F1 |
 | F4.3 Expiry softlens | Peringatan < 90 hari di daftar & dashboard; penjualan softlens kedaluwarsa diblokir | MVP |
 | F4.4 Label barcode | Cetak massal EAN-13/Code 128 per produk/batch penerimaan | MVP |
 | F4.5 Analitik | Supplier Analytics (lead time, retur) & Sales Analytics (terlaris, margin, tren cabang) | F1 |
@@ -192,7 +192,7 @@ Setiap butir berjalan sebagai **spike terbatas**: pertanyaan jelas → prototipe
 ## 12. Kendali Perubahan & Keputusan Eksternal
 
 - **Perubahan cakupan** hanya lewat revisi dokumen ini (atau PRD/Blueprint bila menyangkut perilaku/skema) yang di-commit dan disetujui owner; nomor tugas baru ditambahkan, tidak menyelundup ke tugas berjalan.
-- **Keputusan owner yang menjadi dependensi:** (1) persetujuan roadmap ini + kata "mulai Fase 0"; (2) payroll di Fase 1 atau Fase 4 (memengaruhi urutan F1.7/F4.7); (3) ~~penyedia gateway WhatsApp resmi (gerbang F3.4)~~ DIPUTUSKAN 2026-10-18: Meta Cloud API langsung (sementara); (4) metode costing (gerbang F4.2); (5) penyediaan instalasi uji & — kelak — server produksi per instalasi bisnis (checklist paritas Blueprint G.3).
+- **Keputusan owner yang menjadi dependensi:** (1) persetujuan roadmap ini + kata "mulai Fase 0"; (2) payroll di Fase 1 atau Fase 4 (memengaruhi urutan F1.7/F4.7); (3) ~~penyedia gateway WhatsApp resmi (gerbang F3.4)~~ DIPUTUSKAN 2026-10-18: Meta Cloud API langsung (sementara); (4) ~~metode costing (gerbang F4.2)~~ DIPUTUSKAN 2026-10-18: FIFO per cabang (ADR-014); (5) penyediaan instalasi uji & — kelak — server produksi per instalasi bisnis (checklist paritas Blueprint G.3).
 - **Pelaporan berjalan:** setiap tugas selesai dilaporkan dengan format tetap (hasil, cakupan berkas, test + ID run CI, commit, sisa risiko); setiap gerbang fase dilaporkan sebagai satu laporan gerbang tersendiri.
 - **Yang tidak dijanjikan roadmap ini:** tanggal kalender. Urutan dan gerbang bersifat mengikat; kecepatan mengikuti lulusnya gerbang, bukan tenggat buatan.
 
