@@ -29,7 +29,7 @@
                     </dl>
                     <p class="mt-4 text-xs text-gray-400">{{ __('ui.warranty.flow_hint') }}</p>
                 </div>
-                <x-lentera.dropdown-aksi :label="__('ui.common.actions')">
+                <x-lentera.dropdown-aksi >
                     @if ($case->status === 'open')
                         <form method="POST" action="{{ route('warranties.send-old', $case) }}">@csrf<button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-lentera-50">{{ __('ui.warranty.act_send_old') }}</button></form>
                     @endif
