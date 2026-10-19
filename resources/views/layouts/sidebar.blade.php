@@ -317,6 +317,7 @@
                         <a href="{{ route('wa-gateway.edit') }}" class="{{ $sub }} {{ request()->routeIs('wa-gateway.*') ? $subActive : '' }}">@if (request()->routeIs('wa-gateway.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_gateway') }}</a>
                         <a href="{{ route('ai-setting.edit') }}" class="{{ $sub }} {{ request()->routeIs('ai-setting.*') ? $subActive : '' }}">@if (request()->routeIs('ai-setting.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.ai_settings') }}</a>
                         <a href="{{ route('audit-logs.index') }}" class="{{ $sub }} {{ request()->routeIs('audit-logs.*') ? $subActive : '' }}">@if (request()->routeIs('audit-logs.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.audit_logs') }}</a>
+                        <a href="{{ route('backups.index') }}" class="{{ $sub }} {{ request()->routeIs('backups.*') ? $subActive : '' }}">@if (request()->routeIs('backups.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.backups') }}</a>
                     @endif
                     @if ($can('api_tokens.manage'))
                         <a href="{{ route('api-tokens.index') }}" class="{{ $sub }} {{ request()->routeIs('api-tokens.*') ? $subActive : '' }}">@if (request()->routeIs('api-tokens.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.api_tokens') }}</a>
