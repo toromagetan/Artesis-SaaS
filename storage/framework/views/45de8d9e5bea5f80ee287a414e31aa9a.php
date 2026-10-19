@@ -117,6 +117,22 @@
 
             <section class="overflow-hidden rounded-lg bg-white shadow-soft">
                 <h2 class="border-b border-gray-100 px-4 py-3 font-semibold text-gray-800"><?php echo e(__('ui.analytics.category_margins')); ?></h2>
+                <?php if(($categoryLegend ?? []) !== []): ?>
+                    <div class="flex flex-col items-center gap-4 border-b border-gray-50 px-4 py-4 sm:flex-row">
+                        <div class="w-full max-w-[200px] shrink-0"><?php echo $categoryChart; ?></div>
+                        <ul class="w-full space-y-1.5 text-sm">
+                            <?php $__currentLoopData = $categoryLegend; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <li class="flex items-center justify-between gap-2">
+                                    <span class="flex items-center gap-2 text-gray-600">
+                                        <span class="inline-block h-2.5 w-2.5 rounded-full" style="background-color: <?php echo e($row['color']); ?>"></span><?php echo e($row['label']); ?>
+
+                                    </span>
+                                    <span class="tnum text-gray-500"><?php echo e($row['value']->format()); ?> · <?php echo e(number_format($row['pct'], 1, ',', '.')); ?>%</span>
+                                </li>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
                 <table class="min-w-full text-sm">
                     <thead>
                         <tr class="border-b border-gray-100 text-left text-gray-500">
@@ -162,6 +178,9 @@
             <div class="grid gap-6 lg:grid-cols-2">
                 <section class="overflow-hidden rounded-lg bg-white shadow-soft">
                     <h2 class="border-b border-gray-100 px-4 py-3 font-semibold text-gray-800"><?php echo e(__('ui.analytics.branch_trend')); ?></h2>
+                    <?php if(isset($trendChart)): ?>
+                        <div class="border-b border-gray-50 px-4 py-3"><?php echo $trendChart; ?></div>
+                    <?php endif; ?>
                     <table class="min-w-full text-sm">
                         <tbody>
                             <?php $__empty_1 = true; $__currentLoopData = $sales['branch_trend']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>

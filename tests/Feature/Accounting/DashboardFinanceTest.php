@@ -58,13 +58,13 @@ class DashboardFinanceTest extends TestCase
         $cards = $response->viewData('cards');
         $this->assertArrayHasKey('finance', $cards);
         // Laba bulan ini total: A 400rb + B 900rb.
-        $this->assertSame('1300000.00', $cards['finance']['month_net']->toDecimalString());
+        $this->assertSame('1300000.00', $cards['finance']['net']->toDecimalString());
         // Posisi kas+bank: 500rb − 100rb + 900rb.
         $this->assertSame('1300000.00', $cards['finance']['cash']->toDecimalString());
         $byBranch = collect($cards['finance']['by_branch'])->keyBy('branch_id');
         $this->assertSame('400000.00', $byBranch[$this->branchA->id]['net']->toDecimalString());
         $this->assertSame('900000.00', $byBranch[$this->branchB->id]['net']->toDecimalString());
-        $response->assertSee(__('ui.dashboard.finance'));
+        $response->assertSee(__('ui.dashboard.finance_period'));
     }
 
     public function test_branch_fenced_financial_user_sees_only_own_branch_and_no_cash(): void
@@ -79,7 +79,7 @@ class DashboardFinanceTest extends TestCase
         $response->assertOk();
         $cards = $response->viewData('cards');
         $this->assertArrayHasKey('finance', $cards);
-        $this->assertSame('400000.00', $cards['finance']['month_net']->toDecimalString());
+        $this->assertSame('400000.00', $cards['finance']['net']->toDecimalString());
         $this->assertNull($cards['finance']['cash']);
         $this->assertCount(1, $cards['finance']['by_branch']);
     }

@@ -5,6 +5,7 @@ namespace Tests\Feature\Reporting;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
+use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
@@ -133,6 +134,23 @@ class AnalyticsTest extends TestCase
             ->get(route('reports.analytics'))
             ->assertOk()
             ->assertSee(__('ui.analytics.title'));
+
+        // Pengayaan visual: halaman analitik memuat grafik SVG
+        // (tren cabang + doughnut kategori) dari data yang sama.
+        $frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000', 'sale_price' => '100000']);
+        app(InventoryService::class)
+            ->recordMovement($this->owner, $frame, $this->branch, 'initial_stock', 5, 'test', 1);
+        $customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
+        app(SalesService::class)->createSale($this->owner, [
+            'customer_id' => $customer->id, 'branch_id' => $this->branch->id,
+            'sale_date' => '2026-09-15', 'tax_mode' => 'inclusive',
+        ], [['product_id' => $frame->id, 'qty' => 1, 'unit_price' => '100000']],
+            [['method' => 'cash', 'amount' => '100000']]);
+        $page = $this->actingAs($this->owner)->get(route('reports.analytics', ['dari' => '2026-09-01', 'sampai' => '2026-10-31']));
+        $page->assertOk();
+        $this->assertStringContainsString('<svg', $page->getContent());
+        $this->assertStringContainsString('stroke-dasharray', $page->getContent());
+        $this->assertStringContainsString('<polyline', $page->getContent());
         $response = $this->actingAs($this->owner)
             ->get(route('reports.analytics', ['ekspor' => 1, 'dari' => '2026-09-01', 'sampai' => '2026-09-30']));
         $response->assertOk();

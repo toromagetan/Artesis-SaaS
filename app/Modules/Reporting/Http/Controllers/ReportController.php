@@ -8,6 +8,8 @@ use App\Modules\Master\Models\Branch;
 use App\Modules\Reporting\Services\AnalyticsService;
 use App\Modules\Reporting\Services\ReportService;
 use App\Support\Money;
+use App\Support\SvgChart;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
@@ -167,8 +169,53 @@ class ReportController extends Controller
             return $this->csv('analitik.csv', $lines);
         }
 
+        // Pengayaan visual (keputusan owner 2026-10-19): grafik SVG
+        // server-side dari data analitik yang sama — tren cabang
+        // multi-seri per bulan berkesinambungan + doughnut
+        // komposisi pendapatan per kategori. Tabel tetap di bawahnya.
+        $months = [];
+        $cursor = Carbon::parse($from)->startOfMonth();
+        $endMonth = Carbon::parse($to)->startOfMonth();
+        while ($cursor->lte($endMonth)) {
+            $months[] = $cursor->format('Y-m');
+            $cursor->addMonth();
+        }
+        $branchNames = Branch::pluck('name', 'id');
+        $series = [];
+        foreach (collect($sales['branch_trend'])->groupBy('branch_id') as $branchId => $rows) {
+            $byMonth = $rows->keyBy('month');
+            $series[] = [
+                'label' => $branchNames[$branchId] ?? '#'.$branchId,
+                'color' => SvgChart::PALETTE[count($series) % count(SvgChart::PALETTE)],
+                'points' => array_map(fn ($m) => isset($byMonth[$m]) ? $byMonth[$m]['revenue']->cents() / 100 : 0, $months),
+            ];
+        }
+        $trendChart = $series === [] ? null : SvgChart::line(
+            array_map(fn ($m) => Carbon::parse($m.'-01')->translatedFormat('M y'), $months),
+            $series,
+        );
+
+        $slices = [];
+        $categoryLegend = [];
+        $categoryTotal = Money::zero();
+        foreach ($sales['category_margins'] as $i => $row) {
+            if ($row['revenue']->isZero()) {
+                continue;
+            }
+            $color = SvgChart::PALETTE[$i % count(SvgChart::PALETTE)];
+            $label = __('ui.products.types.'.$row['type']);
+            $slices[] = ['label' => $label, 'value' => $row['revenue']->cents() / 100, 'color' => $color];
+            $categoryLegend[] = ['label' => $label, 'color' => $color, 'value' => $row['revenue'], 'pct' => 0.0];
+            $categoryTotal = $categoryTotal->add($row['revenue']);
+        }
+        foreach (SvgChart::shares($slices) as $idx => $pct) {
+            $categoryLegend[$idx]['pct'] = $pct;
+        }
+        $categoryChart = SvgChart::doughnut($slices, SvgChart::shortMoney($categoryTotal->cents() / 100), __('ui.dashboard.total'));
+
         return view('reporting.analytics', [
             'sales' => $sales, 'suppliers' => $suppliers,
+            'trendChart' => $trendChart, 'categoryChart' => $categoryChart, 'categoryLegend' => $categoryLegend,
             'from' => $from, 'to' => $to, 'branches' => $this->branchOptions(), 'selected' => $this->selectedBranch($request),
         ]);
     }

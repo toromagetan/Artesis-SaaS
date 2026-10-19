@@ -72,6 +72,21 @@
 
             <section class="overflow-hidden rounded-lg bg-white shadow-soft">
                 <h2 class="border-b border-gray-100 px-4 py-3 font-semibold text-gray-800">{{ __('ui.analytics.category_margins') }}</h2>
+                @if (($categoryLegend ?? []) !== [])
+                    <div class="flex flex-col items-center gap-4 border-b border-gray-50 px-4 py-4 sm:flex-row">
+                        <div class="w-full max-w-[200px] shrink-0">{!! $categoryChart !!}</div>
+                        <ul class="w-full space-y-1.5 text-sm">
+                            @foreach ($categoryLegend as $row)
+                                <li class="flex items-center justify-between gap-2">
+                                    <span class="flex items-center gap-2 text-gray-600">
+                                        <span class="inline-block h-2.5 w-2.5 rounded-full" style="background-color: {{ $row['color'] }}"></span>{{ $row['label'] }}
+                                    </span>
+                                    <span class="tnum text-gray-500">{{ $row['value']->format() }} · {{ number_format($row['pct'], 1, ',', '.') }}%</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
                 <table class="min-w-full text-sm">
                     <thead>
                         <tr class="border-b border-gray-100 text-left text-gray-500">
@@ -99,6 +114,9 @@
             <div class="grid gap-6 lg:grid-cols-2">
                 <section class="overflow-hidden rounded-lg bg-white shadow-soft">
                     <h2 class="border-b border-gray-100 px-4 py-3 font-semibold text-gray-800">{{ __('ui.analytics.branch_trend') }}</h2>
+                    @isset($trendChart)
+                        <div class="border-b border-gray-50 px-4 py-3">{!! $trendChart !!}</div>
+                    @endisset
                     <table class="min-w-full text-sm">
                         <tbody>
                             @forelse ($sales['branch_trend'] as $row)

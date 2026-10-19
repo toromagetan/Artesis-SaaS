@@ -59,8 +59,10 @@ Route::get('/', function () {
 
 Route::post('/bahasa/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 
-Route::get('/dashboard', DashboardController::class)
+Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth'])->name('dashboard');
+Route::get('/dashboard/data', [DashboardController::class, 'data'])
+    ->middleware(['auth'])->name('dashboard.data');
 
 Route::middleware('auth')->group(function () {
     // Pencarian global (Blueprint F.2 butir 9)

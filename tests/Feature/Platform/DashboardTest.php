@@ -88,4 +88,66 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertSee(__('ui.dashboard.empty'));
     }
+
+    public function test_dashboard_is_dynamic_with_charts_and_period_endpoint(): void
+    {
+        $frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000', 'sale_price' => '100000']);
+        $lens = Product::factory()->ofType('lens')->create(['cost_price' => '70000', 'sale_price' => '150000']);
+        $stock = app(InventoryService::class);
+        $stock->recordMovement($this->owner, $frame, $this->branch, 'initial_stock', 10, 'test_seed', 1);
+        $stock->recordMovement($this->owner, $lens, $this->branch, 'initial_stock', 10, 'test_seed', 1);
+        $customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
+        $sales = app(SalesService::class);
+        $sales->createSale($this->owner, [
+            'customer_id' => $customer->id, 'branch_id' => $this->branch->id,
+            'sale_date' => now()->format('Y-m-d'), 'tax_mode' => 'inclusive',
+        ], [['product_id' => $lens->id, 'qty' => 1, 'unit_price' => '150000']],
+            [['method' => 'cash', 'amount' => '150000']]);
+        // Dibayar sebagian agar posisi kas (190rb) tidak menyamai
+        // total penjualan 30 hari (220rb) — asersi periode tetap tajam.
+        $sales->createSale($this->owner, [
+            'customer_id' => $customer->id, 'branch_id' => $this->branch->id,
+            'sale_date' => now()->subDays(10)->format('Y-m-d'), 'tax_mode' => 'inclusive',
+        ], [['product_id' => $frame->id, 'qty' => 1, 'unit_price' => '70000']],
+            [['method' => 'cash', 'amount' => '40000']]);
+
+        // Pemuatan awal (bawaan 30 hari): grafik + tab periode tampil,
+        // total 30 hari mencakup kedua penjualan; komposisi 68,2% lensa.
+        $page = $this->actingAs($this->owner)->get('/dashboard');
+        $page->assertOk()
+            ->assertSee(__('ui.dashboard.trend_title'))
+            ->assertSee(__('ui.dashboard.composition_title'))
+            ->assertSee(__('ui.dashboard.period_30d'))
+            ->assertSee('Rp220.000')
+            ->assertSee('68,2%');
+        $this->assertStringContainsString('<svg', $page->getContent());
+
+        // Endpoint dinamis: periode hari ini hanya memuat penjualan hari ini.
+        $today = $this->actingAs($this->owner)->getJson('/dashboard/data?periode=today');
+        $today->assertOk()->assertJsonStructure(['period', 'updated_at', 'cards_html', 'charts_html']);
+        $this->assertSame('today', $today->json('period'));
+        $this->assertStringContainsString('Rp150.000', $today->json('cards_html'));
+        $this->assertStringNotContainsString('Rp220.000', $today->json('cards_html'));
+
+        $month = $this->actingAs($this->owner)->getJson('/dashboard/data?periode=30d');
+        $this->assertStringContainsString('Rp220.000', $month->json('cards_html'));
+
+        // Periode tidak dikenal → kembali ke bawaan 30d.
+        $fallback = $this->actingAs($this->owner)->getJson('/dashboard/data?periode=xyz');
+        $this->assertSame('30d', $fallback->json('period'));
+    }
+
+    public function test_dynamic_endpoint_respects_permissions(): void
+    {
+        $teknisi = User::factory()->create();
+        $teknisi->roles()->sync([Role::where('name', 'teknisi')->firstOrFail()->id]);
+        $teknisi->branches()->sync([$this->branch->id]);
+
+        $response = $this->actingAs($teknisi)->getJson('/dashboard/data?periode=30d');
+        $response->assertOk();
+        // Tanpa sales.view: tidak ada grafik dan tidak ada kartu penjualan.
+        $this->assertStringNotContainsString('<svg', (string) $response->json('charts_html'));
+        $this->assertStringNotContainsString(__('ui.dashboard.sales_period'), (string) $response->json('cards_html'));
+        $this->assertStringContainsString(__('ui.dashboard.lab_queue'), (string) $response->json('cards_html'));
+    }
 }
