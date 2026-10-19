@@ -8,6 +8,7 @@ use App\Modules\CRM\Services\CustomerService;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Insurance;
+use App\Modules\Sales\Services\SalesService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -50,8 +51,9 @@ class CustomerController extends Controller
     public function show(Customer $customer): View
     {
         $customer->load(['branch', 'insurance', 'prescriptions.examiner']);
+        $outstanding = app(SalesService::class)->outstandingReceivable($customer->id);
 
-        return view('crm.customers.show', compact('customer'));
+        return view('crm.customers.show', compact('customer', 'outstanding'));
     }
 
     public function create(): View
@@ -72,6 +74,7 @@ class CustomerController extends Controller
             'birth_date' => ['nullable', 'date'],
             'branch_id' => ['nullable', Rule::exists('branches', 'id')],
             'insurance_id' => ['nullable', Rule::exists('insurances', 'id')],
+            'credit_limit' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $result = $this->service->create($request->user(), $validated);
@@ -102,6 +105,7 @@ class CustomerController extends Controller
             'address' => ['nullable', 'string'],
             'birth_date' => ['nullable', 'date'],
             'insurance_id' => ['nullable', Rule::exists('insurances', 'id')],
+            'credit_limit' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $result = $this->service->update($request->user(), $customer, $validated);

@@ -55,6 +55,10 @@
                     <dd class="font-medium text-gray-800">{{ $customer->branch->name }}</dd>
                     <dt class="text-gray-500">{{ __('ui.customers.insurance') }}</dt>
                     <dd class="font-medium text-gray-800">{{ $customer->insurance?->name ?: '—' }}</dd>
+                    <dt class="text-gray-500">{{ __('ui.customers.credit_limit') }}</dt>
+                    <dd class="font-medium text-gray-800">{{ $customer->credit_limit !== null ? \App\Support\Money::fromDecimal((string) $customer->credit_limit)->format() : __('ui.customers.credit_limit_none') }}</dd>
+                    <dt class="text-gray-500">{{ __('ui.customers.outstanding') }}</dt>
+                    <dd class="font-medium text-gray-800">{{ $outstanding->format() }}</dd>
                 </dl>
             </div>
 

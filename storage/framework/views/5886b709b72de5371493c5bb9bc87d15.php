@@ -173,6 +173,10 @@
                     <dd class="font-medium text-gray-800"><?php echo e($customer->branch->name); ?></dd>
                     <dt class="text-gray-500"><?php echo e(__('ui.customers.insurance')); ?></dt>
                     <dd class="font-medium text-gray-800"><?php echo e($customer->insurance?->name ?: '—'); ?></dd>
+                    <dt class="text-gray-500"><?php echo e(__('ui.customers.credit_limit')); ?></dt>
+                    <dd class="font-medium text-gray-800"><?php echo e($customer->credit_limit !== null ? \App\Support\Money::fromDecimal((string) $customer->credit_limit)->format() : __('ui.customers.credit_limit_none')); ?></dd>
+                    <dt class="text-gray-500"><?php echo e(__('ui.customers.outstanding')); ?></dt>
+                    <dd class="font-medium text-gray-800"><?php echo e($outstanding->format()); ?></dd>
                 </dl>
             </div>
 

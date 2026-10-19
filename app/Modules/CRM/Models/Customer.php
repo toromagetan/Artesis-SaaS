@@ -26,7 +26,7 @@ class Customer extends Model
 
     protected $fillable = [
         'name', 'phone', 'email', 'address', 'birth_date',
-        'branch_id', 'insurance_id', 'membership_level_id', 'is_active', 'wa_opt_out',
+        'branch_id', 'insurance_id', 'credit_limit', 'membership_level_id', 'is_active', 'wa_opt_out',
     ];
 
     protected function casts(): array

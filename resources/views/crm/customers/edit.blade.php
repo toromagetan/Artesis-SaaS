@@ -47,6 +47,11 @@
                             </select>
                             <x-input-error :messages="$errors->get('insurance_id')" class="mt-2" />
                         </div>
+                        <div>
+                            <x-input-label for="credit_limit" :value="__('ui.customers.credit_limit')" />
+                            <x-text-input id="credit_limit" name="credit_limit" type="number" min="0" step="0.01" class="mt-1 block w-full" :value="old('credit_limit', $customer->credit_limit)" :placeholder="__('ui.customers.credit_limit_hint')" />
+                            <x-input-error :messages="$errors->get('credit_limit')" class="mt-2" />
+                        </div>
                         <p class="text-xs text-gray-400">{{ __('ui.customers.home_branch') }}: {{ $customer->branch->name }}</p>
                     </div>
                     <div class="mt-6 flex items-center gap-3">

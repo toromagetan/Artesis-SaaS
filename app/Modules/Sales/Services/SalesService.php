@@ -47,6 +47,25 @@ class SalesService
      * @param  array<int, array<string, mixed>>  $items  product_id, qty, unit_price?, discount_amount?, prescription_ref?
      * @param  array<int, array<string, mixed>>  $payments  method, amount, reference?
      */
+    /** Piutang beredar pelanggan: Σ (total − terbayar) penjualan aktif. */
+    public function outstandingReceivable(int $customerId, ?int $exceptSaleId = null): Money
+    {
+        $outstanding = Money::zero();
+        $rows = Sale::where('customer_id', $customerId)
+            ->where('status', 'active')
+            ->when($exceptSaleId !== null, fn ($q) => $q->whereKeyNot($exceptSaleId))
+            ->get(['total_amount', 'paid_amount']);
+        foreach ($rows as $row) {
+            $due = Money::fromDecimal((string) $row->total_amount)
+                ->sub(Money::fromDecimal((string) $row->paid_amount));
+            if ($due->isPositive()) {
+                $outstanding = $outstanding->add($due);
+            }
+        }
+
+        return $outstanding;
+    }
+
     public function createSale(User $actor, array $data, array $items, array $payments = []): Sale
     {
         if ($items === []) {
@@ -64,7 +83,10 @@ class SalesService
         }
 
         return DB::transaction(function () use ($actor, $data, $items, $payments) {
-            $customer = Customer::findOrFail($data['customer_id']);
+            // Baris pelanggan dikunci: pemeriksaan limit kredit di
+            // bawah membaca piutang beredar yang tidak boleh berubah
+            // oleh penjualan bersamaan untuk pelanggan yang sama.
+            $customer = Customer::whereKey($data['customer_id'])->lockForUpdate()->firstOrFail();
             // Cabang transaksi (tempat stok keluar & pendapatan
             // tercatat) — BUKAN cabang asal pelanggan (ADR-012:
             // pelanggan global). Prioritas: (1) branch_id eksplisit
@@ -220,6 +242,23 @@ class SalesService
             }
             if ($paid->cmp($total) > 0) {
                 throw ValidationException::withMessages(['payments' => __('ui.sales.payment_exceeds_total')]);
+            }
+
+            // Limit kredit formal (paritas Artesis): pelanggan dengan
+            // credit_limit terisi tidak boleh menembus limit lewat
+            // penjualan berpiutang baru. NULL = tanpa limit formal.
+            $newUnpaid = $total->sub($paid);
+            if ($newUnpaid->isPositive() && $customer->credit_limit !== null) {
+                $limit = Money::fromDecimal((string) $customer->credit_limit);
+                // Kecualikan penjualan ini sendiri: barisnya sudah
+                // tersimpan di transaksi berjalan dengan paid 0.
+                $outstanding = $this->outstandingReceivable($customer->id, $sale->id);
+                if ($outstanding->add($newUnpaid)->cmp($limit) > 0) {
+                    throw ValidationException::withMessages(['customer_id' => __('ui.sales.credit_limit_exceeded', [
+                        'limit' => $limit->format(),
+                        'outstanding' => $outstanding->format(),
+                    ])]);
+                }
             }
 
             // Pembayaran metode 'points' (F3.6): nominal wajib kelipatan
