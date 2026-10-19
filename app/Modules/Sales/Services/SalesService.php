@@ -10,6 +10,7 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Inventory\Services\InventoryService;
+use App\Modules\Master\Models\Insurance;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Membership\Services\PointsService;
 use App\Modules\Platform\Services\AuditLogger;
@@ -17,6 +18,7 @@ use App\Modules\Purchasing\Services\PurchaseRequestService;
 use App\Modules\Sales\Events\SaleCompleted;
 use App\Modules\Sales\Events\SalePaymentRecorded;
 use App\Modules\Sales\Events\SaleVoided;
+use App\Modules\Sales\Models\InsuranceUsage;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SalePayment;
 use App\Support\Money;
@@ -197,6 +199,8 @@ class SalesService
                 $total = $taxableBase;
             }
 
+            $claim = Money::fromDecimal((string) ($data['insurance_claim_amount'] ?? '0'));
+
             $sale = new Sale([
                 'number' => Numbering::next('INV', now()),
                 'client_uuid' => $data['client_uuid'] ?? null,
@@ -206,6 +210,7 @@ class SalesService
                 'cashier_id' => $actor->id,
                 'doctor_id' => $data['doctor_id'] ?? null,
                 'insurance_id' => $data['insurance_id'] ?? null,
+                'insurance_claim_amount' => $claim->toDecimalString(),
                 'sale_date' => $data['sale_date'] ?? now()->toDateString(),
                 'subtotal_amount' => $subtotal->toDecimalString(),
                 'discount_amount' => $discount->toDecimalString(),
@@ -230,6 +235,23 @@ class SalesService
                     'line_total' => $line['line_total']->toDecimalString(),
                     'prescription_ref' => $line['prescription_ref'],
                 ]);
+            }
+
+            // Pemakaian asuransi (paritas Artesis): klaim menjadi
+            // kaki pembayaran metode 'insurance' (Dr Piutang
+            // Asuransi 1-1700 lewat tenderAccount), mengurangi
+            // payable pelanggan; histori snapshot di insurance_usages.
+            if ($claim->isPositive()) {
+                $insurance = ! empty($data['insurance_id'])
+                    ? Insurance::where('is_active', true)->find((int) $data['insurance_id'])
+                    : null;
+                if ($insurance === null) {
+                    throw ValidationException::withMessages(['insurance_id' => __('ui.sales.insurance_required')]);
+                }
+                if ($claim->cmp($total) > 0) {
+                    throw ValidationException::withMessages(['insurance_claim_amount' => __('ui.sales.insurance_claim_exceeds')]);
+                }
+                $payments[] = ['method' => 'insurance', 'amount' => $claim->toDecimalString()];
             }
 
             $paid = Money::zero();
@@ -353,6 +375,19 @@ class SalesService
             }
 
             SaleCompleted::dispatch($sale);
+
+            if ($claim->isPositive()) {
+                InsuranceUsage::create([
+                    'sale_id' => $sale->id,
+                    'insurance_id' => (int) $data['insurance_id'],
+                    'customer_id' => $customer->id,
+                    'branch_id' => $branchId,
+                    'used_at' => now(),
+                    'transaction_amount' => $total->toDecimalString(),
+                    'insurance_claim_amount' => $claim->toDecimalString(),
+                    'created_by' => $actor->id,
+                ]);
+            }
 
             return $sale;
         });

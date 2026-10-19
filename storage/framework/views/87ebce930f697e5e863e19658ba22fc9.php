@@ -71,6 +71,7 @@
                         <a href="<?php echo e(route('receivables.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('receivables.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('receivables.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.receivables')); ?></a>
                         <a href="<?php echo e(route('offline-exceptions.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('offline-exceptions.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('offline-exceptions.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.offline_exceptions')); ?></a>
                         <a href="<?php echo e(route('warranties.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('warranties.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('warranties.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.warranties')); ?></a>
+                        <a href="<?php echo e(route('insurance-claims.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('insurance-claims.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('insurance-claims.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.insurance_claims')); ?></a>
                     </div>
                 </div>
             <?php endif; ?>

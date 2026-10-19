@@ -30,7 +30,7 @@ class Sale extends Model
 
     protected $fillable = [
         'number', 'client_uuid', 'customer_id', 'prescription_id', 'prescription_snapshot',
-        'branch_id', 'cashier_id', 'doctor_id', 'insurance_id', 'sale_date',
+        'branch_id', 'cashier_id', 'doctor_id', 'insurance_id', 'insurance_claim_amount', 'sale_date',
         'subtotal_amount', 'discount_amount', 'tax_amount', 'tax_mode',
         'total_amount', 'paid_amount', 'status', 'void_reason', 'voided_by',
         'voided_at', 'notes',

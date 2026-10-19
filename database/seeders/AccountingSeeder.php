@@ -20,6 +20,7 @@ class AccountingSeeder extends Seeder
             ['1-1400', 'Persediaan', 'asset'],
             ['1-1500', 'Piutang Kredit Supplier', 'asset'],
             ['1-1600', 'Akumulasi Penyusutan', 'asset'],
+            ['1-1700', 'Piutang Asuransi', 'asset'],
             ['2-1100', 'Utang Supplier', 'liability'],
             ['2-1200', 'Liabilitas Poin', 'liability'],
             ['2-1300', 'Utang Komisi', 'liability'],

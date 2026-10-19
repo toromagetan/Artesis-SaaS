@@ -21,6 +21,8 @@ final class Chart
 
     public const AKUMULASI_PENYUSUTAN = '1-1600';
 
+    public const PIUTANG_ASURANSI = '1-1700';
+
     public const UTANG_SUPPLIER = '2-1100';
 
     public const LIABILITAS_POIN = '2-1200';
@@ -62,6 +64,7 @@ final class Chart
             'cash' => self::KAS,
             'points' => self::LIABILITAS_POIN,
             'store_credit' => self::KREDIT_TOKO,
+            'insurance' => self::PIUTANG_ASURANSI,
             default => self::BANK, // debit, qris, transfer, card, giro, other
         };
     }

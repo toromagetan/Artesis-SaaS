@@ -117,6 +117,11 @@
                                         @endforeach
                                     </select>
                                 </div>
+                                <div>
+                                    <x-input-label for="insurance_claim_amount" :value="__('ui.sales.insurance_claim')" />
+                                    <x-text-input id="insurance_claim_amount" name="insurance_claim_amount" type="number" min="0" step="0.01" class="mt-1 block w-full" :value="old('insurance_claim_amount')" :placeholder="__('ui.sales.insurance_claim_hint')" />
+                                    <x-input-error :messages="$errors->get('insurance_claim_amount')" class="mt-2" />
+                                </div>
                             </div>
 
                             <fieldset class="rounded-lg border border-gray-200 p-4" x-data="{ rows: [{ method: '', amount: '', reference: '' }] }">

@@ -71,6 +71,7 @@
                         <a href="{{ route('receivables.index') }}" class="{{ $sub }} {{ request()->routeIs('receivables.*') ? $subActive : '' }}">@if (request()->routeIs('receivables.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.receivables') }}</a>
                         <a href="{{ route('offline-exceptions.index') }}" class="{{ $sub }} {{ request()->routeIs('offline-exceptions.*') ? $subActive : '' }}">@if (request()->routeIs('offline-exceptions.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.offline_exceptions') }}</a>
                         <a href="{{ route('warranties.index') }}" class="{{ $sub }} {{ request()->routeIs('warranties.*') ? $subActive : '' }}">@if (request()->routeIs('warranties.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.warranties') }}</a>
+                        <a href="{{ route('insurance-claims.index') }}" class="{{ $sub }} {{ request()->routeIs('insurance-claims.*') ? $subActive : '' }}">@if (request()->routeIs('insurance-claims.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.insurance_claims') }}</a>
                     </div>
                 </div>
             @endif

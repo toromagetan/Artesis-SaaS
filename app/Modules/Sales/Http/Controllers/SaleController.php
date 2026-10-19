@@ -127,6 +127,7 @@ class SaleController extends Controller
             'sale_date' => ['required', 'date'],
             'doctor_id' => ['nullable', Rule::exists('doctors', 'id')],
             'insurance_id' => ['nullable', Rule::exists('insurances', 'id')],
+            'insurance_claim_amount' => ['nullable', 'numeric', 'min:0'],
             'discount_amount' => ['nullable', 'numeric', 'min:0'],
             'tax_mode' => ['required', Rule::in(['inclusive', 'exclusive'])],
             'notes' => ['nullable', 'string'],
@@ -168,7 +169,7 @@ class SaleController extends Controller
 
         $sale = $this->service->createSale(
             $request->user(),
-            collect($validated)->only(['customer_id', 'prescription_id', 'sale_date', 'doctor_id', 'insurance_id', 'discount_amount', 'tax_mode', 'notes', 'installment_count', 'installment_first_due', 'installment_interval_days'])->all(),
+            collect($validated)->only(['customer_id', 'prescription_id', 'sale_date', 'doctor_id', 'insurance_id', 'insurance_claim_amount', 'discount_amount', 'tax_mode', 'notes', 'installment_count', 'installment_first_due', 'installment_interval_days'])->all(),
             $validated['items'],
             $payments,
         );

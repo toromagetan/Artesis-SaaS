@@ -45,6 +45,7 @@ use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseRequestController;
 use App\Modules\Purchasing\Http\Controllers\ReceiptController;
 use App\Modules\Reporting\Http\Controllers\ReportController;
+use App\Modules\Sales\Http\Controllers\InsuranceClaimController;
 use App\Modules\Sales\Http\Controllers\OfflineCashierController;
 use App\Modules\Sales\Http\Controllers\OfflineExceptionController;
 use App\Modules\Sales\Http\Controllers\ReceivableController;
@@ -210,6 +211,9 @@ Route::middleware('auth')->group(function () {
 
     // ---- Penjualan (M.3) ----
     Route::get('/penjualan', [SaleController::class, 'index'])->middleware('permission:sales.view')->name('sales.index');
+    Route::get('/penjualan/klaim-asuransi', [InsuranceClaimController::class, 'index'])->middleware('permission:sales.view')->name('insurance-claims.index');
+    Route::get('/penjualan/klaim-asuransi/{usage}', [InsuranceClaimController::class, 'show'])->middleware('permission:sales.view')->name('insurance-claims.show');
+    Route::post('/penjualan/klaim-asuransi/{usage}/terima', [InsuranceClaimController::class, 'receive'])->middleware('permission:sales.pay')->name('insurance-claims.receive');
     Route::get('/penjualan/garansi', [WarrantyController::class, 'index'])->name('warranties.index');
     Route::get('/penjualan/garansi/baru', [WarrantyController::class, 'create'])->middleware('permission:sales.create')->name('warranties.create');
     Route::post('/penjualan/garansi', [WarrantyController::class, 'store'])->middleware('permission:sales.create')->name('warranties.store');
