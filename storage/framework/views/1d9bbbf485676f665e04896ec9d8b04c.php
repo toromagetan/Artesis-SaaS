@@ -147,19 +147,19 @@
                         <table class="min-w-full border-collapse text-sm">
                             <thead>
                                 <tr class="text-left text-gray-500">
-                                    <th class="border border-gray-100 px-2 py-1.5 font-medium">SPH \ CYL</th>
-                                    <?php $__currentLoopData = $group['cyls']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cyl): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <th class="border border-gray-100 px-2 py-1.5 text-right font-medium tnum"><?php echo e($matrixService->display($cyl)); ?></th>
+                                    <th class="border border-gray-100 px-2 py-1.5 font-medium">SPH \ <?php echo e($group['col_label']); ?></th>
+                                    <?php $__currentLoopData = $group['cols']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $col): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <th class="border border-gray-100 px-2 py-1.5 text-right font-medium tnum"><?php echo e($matrixService->display($col)); ?></th>
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php $__currentLoopData = $group['sphs']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $sph): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <?php $__currentLoopData = $group['rows']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <tr>
-                                        <th class="border border-gray-100 px-2 py-1.5 text-left font-medium text-gray-600 tnum"><?php echo e($matrixService->display($sph)); ?></th>
-                                        <?php $__currentLoopData = $group['cyls']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cyl): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <th class="border border-gray-100 px-2 py-1.5 text-left font-medium text-gray-600 tnum"><?php echo e($row['label']); ?></th>
+                                        <?php $__currentLoopData = $group['cols']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $col): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                             <td class="border border-gray-100 px-2 py-1.5 align-top">
-                                                <?php $__currentLoopData = $group['cells'][$matrixService->key($sph, $cyl)] ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                <?php $__currentLoopData = $row['cells'][$matrixService->colKey($col)] ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                                     <div class="mb-1 last:mb-0">
                                                         <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
                                                             <span><?php echo e($item->product->sku); ?><?php if($item->product->eye_side): ?> · <?php echo e($item->product->eye_side); ?><?php endif; ?></span>

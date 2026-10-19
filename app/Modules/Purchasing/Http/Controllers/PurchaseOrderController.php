@@ -4,7 +4,9 @@ namespace App\Modules\Purchasing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\ProductParent;
 use App\Modules\Catalog\Services\LensMatrixService;
+use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Models\StockTransfer;
 use App\Modules\Inventory\Services\TransferService;
@@ -16,6 +18,7 @@ use App\Modules\Purchasing\Services\PurchaseOrderService;
 use App\Modules\Purchasing\Services\ReceiptService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /** Purchase Order + penerimaan dari detailnya (PRD Detail 6.2/6.3). */
@@ -50,25 +53,35 @@ class PurchaseOrderController extends Controller
         $products = Product::where('is_active', true)->orderBy('type')->orderBy('name')->get();
         $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
 
-        // Alat bantu matriks lensa (bukan menu): grid SPH×CYL untuk
-        // induk + cabang yang dipilih lewat parameter GET.
+        // Alat bantu matriks lensa (bukan menu): grid rentang lengkap
+        // model Artesis untuk induk + cabang + saringan index/coating
+        // yang dipilih lewat parameter GET.
         $matrixService = app(LensMatrixService::class);
         $lensParents = $matrixService->matrixParents();
         $matrix = null;
         $matrixParent = null;
         $matrixBranch = null;
+        $matrixIndex = (string) $request->query('matriks_index', '');
+        $matrixCoating = (string) $request->query('matriks_coating', '');
+        $matrixOptions = ['indexes' => [], 'coatings' => []];
         $parentId = (int) $request->query('matriks_induk', 0);
         $branchId = (int) $request->query('matriks_cabang', 0);
         if ($parentId > 0 && $branchId > 0 && $context->allowsBranch($branchId)) {
             $matrixParent = $lensParents->firstWhere('id', $parentId);
             if ($matrixParent !== null) {
                 $matrixBranch = $branches->firstWhere('id', $branchId);
-                $matrix = $matrixService->gridForParent($matrixParent, $branchId);
+                $matrixOptions = $matrixService->filterOptions($matrixParent);
+                $matrix = $matrixService->gridForParent(
+                    $matrixParent, $branchId,
+                    $matrixIndex !== '' ? $matrixIndex : null,
+                    $matrixCoating !== '' ? $matrixCoating : null,
+                );
             }
         }
 
         return view('purchasing.orders.create', compact(
             'branches', 'products', 'suppliers', 'lensParents', 'matrix', 'matrixParent', 'matrixBranch', 'matrixService',
+            'matrixIndex', 'matrixCoating', 'matrixOptions',
         ));
     }
 
@@ -80,20 +93,11 @@ class PurchaseOrderController extends Controller
             ->all();
 
         // Sel matriks lensa terisi menjadi item PO pada harga beli
-        // master; baris yang sama digabung.
-        foreach ((array) $request->input('matrix_qty', []) as $productId => $qty) {
-            if (! is_numeric($qty) || (int) $qty <= 0) {
-                continue;
-            }
-            $product = Product::where('is_active', true)->find((int) $productId);
-            if ($product === null) {
-                continue;
-            }
-            $items[] = [
-                'product_id' => $product->id,
-                'qty' => (int) $qty,
-                'unit_cost' => (string) $product->cost_price,
-            ];
+        // master; baris yang sama digabung. Sel kosong yang diisi
+        // melahirkan varian baru dari sel itu (model Artesis).
+        $selection = json_decode((string) $request->input('matrix_selection', '{}'), true);
+        if (is_array($selection) && $selection !== []) {
+            $items = [...$items, ...$this->matrixItems($request, $selection)];
         }
         $items = collect($items)
             ->groupBy(fn ($row) => $row['product_id'].'|'.$row['unit_cost'])
@@ -129,6 +133,115 @@ class PurchaseOrderController extends Controller
         );
 
         return redirect()->route('po.show', $po)->with('status', __('ui.saved'));
+    }
+
+    /**
+     * Ubah pilihan sel matriks menjadi baris item PO. Kunci "p{id}"
+     * = varian yang sudah ada; kunci "n|sph|kedua|mata" = sel
+     * kosong yang melahirkan varian baru pada induk matriks
+     * (validasi langkah 0,25 + rentang per jenis, model Artesis).
+     *
+     * @param  array<string, mixed>  $selection
+     * @return list<array{product_id: int, qty: int, unit_cost: string}>
+     */
+    private function matrixItems(Request $request, array $selection): array
+    {
+        $service = app(LensMatrixService::class);
+        $parent = ProductParent::where('is_active', true)
+            ->where('type', 'lens')
+            ->find((int) $request->input('matrix_parent_id', 0));
+        if ($parent === null) {
+            throw ValidationException::withMessages([
+                'matrix_selection' => __('ui.matrix.invalid_parent'),
+            ]);
+        }
+        $kind = $service->kindForParent($parent);
+        $sibling = $parent->variants()->where('is_active', true)->orderBy('sku')->first();
+        $items = [];
+
+        foreach ($selection as $key => $qtyRaw) {
+            if (! is_numeric($qtyRaw) || (int) $qtyRaw <= 0) {
+                continue;
+            }
+            $qty = (int) $qtyRaw;
+
+            if (str_starts_with((string) $key, 'p')) {
+                $product = Product::where('is_active', true)
+                    ->where('parent_id', $parent->id)
+                    ->find((int) substr((string) $key, 1));
+                if ($product !== null) {
+                    $items[] = ['product_id' => $product->id, 'qty' => $qty, 'unit_cost' => (string) $product->cost_price];
+                }
+
+                continue;
+            }
+
+            $parts = explode('|', (string) $key);
+            if (count($parts) !== 4 || $parts[0] !== 'n' || $sibling === null) {
+                continue;
+            }
+            [, $sphRaw, $secondRaw, $eye] = $parts;
+            $sph = is_numeric($sphRaw) ? $sphRaw + 0 : null;
+            $second = is_numeric($secondRaw) ? $secondRaw + 0 : null;
+            if ($sph === null || $second === null || ! $this->isQuarterStep($sph) || ! $this->isQuarterStep($second)) {
+                throw ValidationException::withMessages([
+                    'matrix_selection' => __('ui.matrix.invalid_power'),
+                ]);
+            }
+            $inRange = match ($kind) {
+                LensMatrixService::KIND_PROGRESSIVE, LensMatrixService::KIND_BIFOCAL => $sph >= -2 && $sph <= 2 && $second >= 0.75 && $second <= 3,
+                default => $sph >= -15 && $sph <= 6 && $second >= -4 && $second <= 0,
+            };
+            if (! $inRange || ($kind === LensMatrixService::KIND_PROGRESSIVE && ! in_array($eye, ['R', 'L'], true))) {
+                throw ValidationException::withMessages([
+                    'matrix_selection' => __('ui.matrix.invalid_power'),
+                ]);
+            }
+
+            $isAddKind = $kind !== LensMatrixService::KIND_SV;
+            $attributes = [
+                'lens_kind' => $sibling->attributeValue('lens_kind'),
+                'index' => ($request->input('matrix_index') ?: $sibling->attributeValue('index')),
+                'coating' => ($request->input('matrix_coating') ?: $sibling->attributeValue('coating')),
+                'diameter' => $sibling->attributeValue('diameter'),
+            ];
+            $product = app(ProductService::class)->create($request->user(), [
+                'parent_id' => $parent->id,
+                'sku' => $this->matrixSku($parent->id, $sph, $second, $isAddKind ? ($kind === LensMatrixService::KIND_PROGRESSIVE ? $eye : null) : null),
+                'type' => 'lens',
+                'name' => $parent->name,
+                'brand' => $parent->brand,
+                'sph' => number_format($sph, 2, '.', ''),
+                'cyl' => $isAddKind ? null : number_format($second, 2, '.', ''),
+                'add' => $isAddKind ? number_format($second, 2, '.', '') : null,
+                'eye_side' => $kind === LensMatrixService::KIND_PROGRESSIVE ? $eye : null,
+                'cost_price' => (string) $sibling->cost_price,
+                'sale_price' => (string) $sibling->sale_price,
+            ], array_filter($attributes, fn ($v) => $v !== null && $v !== ''));
+            $items[] = ['product_id' => $product->id, 'qty' => $qty, 'unit_cost' => (string) $product->cost_price];
+        }
+
+        return $items;
+    }
+
+    /** Langkah 0,25 persis (kelipatan perempat). */
+    private function isQuarterStep(float $value): bool
+    {
+        return abs($value * 4 - round($value * 4)) < 0.000001;
+    }
+
+    /** SKU varian lahir dari sel matriks; unik dengan sufiks bila bentrok. */
+    private function matrixSku(int $parentId, float $sph, float $second, ?string $eye): string
+    {
+        $fmt = fn (float $v) => ($v < 0 ? 'M' : 'P').str_replace('.', '', number_format(abs($v), 2, '.', ''));
+        $base = 'MX'.$parentId.'-'.$fmt($sph).'-'.$fmt($second).($eye !== null ? '-'.$eye : '');
+        $sku = $base;
+        $n = 2;
+        while (Product::where('sku', $sku)->exists()) {
+            $sku = $base.'-'.$n++;
+        }
+
+        return $sku;
     }
 
     public function show(PurchaseOrder $po): View

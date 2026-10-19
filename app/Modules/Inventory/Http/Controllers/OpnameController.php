@@ -71,27 +71,22 @@ class OpnameController extends Controller
         $opname->load(['branch', 'creator', 'approver', 'items.product.parent']);
 
         // Alat bantu matriks lensa (bukan menu): item lensa/RX
-        // berkekuatan dikelompokkan menjadi grid SPH×CYL per induk;
-        // item lain tetap tabel datar. Input hitung memakai nama
-        // counts[<item>] yang sama.
+        // berkekuatan dikelompokkan menjadi grid per induk mengikuti
+        // bentuk matriks jenisnya; item lain tetap tabel datar.
+        // Input hitung memakai nama counts[<item>] yang sama.
         $matrixService = app(LensMatrixService::class);
-        $matrixGroups = [];
-        $flatItems = collect();
-        foreach ($opname->items as $item) {
-            if ($matrixService->isMatrixProduct($item->product)) {
-                $matrixGroups[$item->product->parent_id]['parent'] = $item->product->parent;
-                $matrixGroups[$item->product->parent_id]['items'][] = $item;
-            } else {
-                $flatItems->push($item);
+        $matrixGroups = $matrixService->snapshotGroups($opname->items);
+        $groupedIds = [];
+        foreach ($matrixGroups as $group) {
+            foreach ($group['rows'] as $row) {
+                foreach ($row['cells'] as $cellItems) {
+                    foreach ($cellItems as $cellItem) {
+                        $groupedIds[] = $cellItem->id;
+                    }
+                }
             }
         }
-        foreach ($matrixGroups as &$group) {
-            $items = collect($group['items']);
-            $group['sphs'] = $items->map(fn ($i) => $i->product->sph + 0)->unique()->sortDesc()->values()->all();
-            $group['cyls'] = $items->map(fn ($i) => ($i->product->cyl ?? 0) + 0)->unique()->sortDesc()->values()->all();
-            $group['cells'] = $items->groupBy(fn ($i) => $matrixService->key($i->product->sph + 0, ($i->product->cyl ?? 0) + 0));
-        }
-        unset($group);
+        $flatItems = $opname->items->whereNotIn('id', $groupedIds)->values();
 
         return view('inventory.opname.show', [
             'opname' => $opname,

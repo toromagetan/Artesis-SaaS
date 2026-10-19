@@ -102,19 +102,19 @@
                         <table class="min-w-full border-collapse text-sm">
                             <thead>
                                 <tr class="text-left text-gray-500">
-                                    <th class="border border-gray-100 px-2 py-1.5 font-medium">SPH \ CYL</th>
-                                    @foreach ($group['cyls'] as $cyl)
-                                        <th class="border border-gray-100 px-2 py-1.5 text-right font-medium tnum">{{ $matrixService->display($cyl) }}</th>
+                                    <th class="border border-gray-100 px-2 py-1.5 font-medium">SPH \ {{ $group['col_label'] }}</th>
+                                    @foreach ($group['cols'] as $col)
+                                        <th class="border border-gray-100 px-2 py-1.5 text-right font-medium tnum">{{ $matrixService->display($col) }}</th>
                                     @endforeach
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($group['sphs'] as $sph)
+                                @foreach ($group['rows'] as $row)
                                     <tr>
-                                        <th class="border border-gray-100 px-2 py-1.5 text-left font-medium text-gray-600 tnum">{{ $matrixService->display($sph) }}</th>
-                                        @foreach ($group['cyls'] as $cyl)
+                                        <th class="border border-gray-100 px-2 py-1.5 text-left font-medium text-gray-600 tnum">{{ $row['label'] }}</th>
+                                        @foreach ($group['cols'] as $col)
                                             <td class="border border-gray-100 px-2 py-1.5 align-top">
-                                                @foreach ($group['cells'][$matrixService->key($sph, $cyl)] ?? [] as $item)
+                                                @foreach ($row['cells'][$matrixService->colKey($col)] ?? [] as $item)
                                                     <div class="mb-1 last:mb-0">
                                                         <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
                                                             <span>{{ $item->product->sku }}@if ($item->product->eye_side) · {{ $item->product->eye_side }}@endif</span>

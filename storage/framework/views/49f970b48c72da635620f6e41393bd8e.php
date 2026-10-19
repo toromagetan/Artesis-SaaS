@@ -79,6 +79,64 @@
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
+                        <?php if($matrixParent !== null): ?>
+                            <div>
+                                <?php if (isset($component)) { $__componentOriginale3da9d84bb64e4bc2eeebaafabfb2581 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginale3da9d84bb64e4bc2eeebaafabfb2581 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.input-label','data' => ['for' => 'matriks_index','value' => __('ui.matrix.index')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('input-label'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['for' => 'matriks_index','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('ui.matrix.index'))]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginale3da9d84bb64e4bc2eeebaafabfb2581)): ?>
+<?php $attributes = $__attributesOriginale3da9d84bb64e4bc2eeebaafabfb2581; ?>
+<?php unset($__attributesOriginale3da9d84bb64e4bc2eeebaafabfb2581); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginale3da9d84bb64e4bc2eeebaafabfb2581)): ?>
+<?php $component = $__componentOriginale3da9d84bb64e4bc2eeebaafabfb2581; ?>
+<?php unset($__componentOriginale3da9d84bb64e4bc2eeebaafabfb2581); ?>
+<?php endif; ?>
+                                <select id="matriks_index" name="matriks_index" class="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                    <option value="">—</option>
+                                    <?php $__currentLoopData = $matrixOptions['indexes']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $idx): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($idx); ?>" <?php if($matrixIndex === $idx): echo 'selected'; endif; ?>><?php echo e($idx); ?></option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                </select>
+                            </div>
+                            <div>
+                                <?php if (isset($component)) { $__componentOriginale3da9d84bb64e4bc2eeebaafabfb2581 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginale3da9d84bb64e4bc2eeebaafabfb2581 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.input-label','data' => ['for' => 'matriks_coating','value' => __('ui.matrix.coating')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('input-label'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['for' => 'matriks_coating','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('ui.matrix.coating'))]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginale3da9d84bb64e4bc2eeebaafabfb2581)): ?>
+<?php $attributes = $__attributesOriginale3da9d84bb64e4bc2eeebaafabfb2581; ?>
+<?php unset($__attributesOriginale3da9d84bb64e4bc2eeebaafabfb2581); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginale3da9d84bb64e4bc2eeebaafabfb2581)): ?>
+<?php $component = $__componentOriginale3da9d84bb64e4bc2eeebaafabfb2581; ?>
+<?php unset($__componentOriginale3da9d84bb64e4bc2eeebaafabfb2581); ?>
+<?php endif; ?>
+                                <select id="matriks_coating" name="matriks_coating" class="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                    <option value="">—</option>
+                                    <?php $__currentLoopData = $matrixOptions['coatings']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $coat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($coat); ?>" <?php if($matrixCoating === $coat): echo 'selected'; endif; ?>><?php echo e($coat); ?></option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                </select>
+                            </div>
+                        <?php endif; ?>
                         <?php if (isset($component)) { $__componentOriginal3b0e04e43cf890250cc4d85cff4d94af = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal3b0e04e43cf890250cc4d85cff4d94af = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.secondary-button','data' => ['type' => 'submit']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -102,7 +160,7 @@
                 </div>
             <?php endif; ?>
             <div class="rounded-lg bg-white p-6 shadow-soft">
-                <form method="POST" action="<?php echo e(route('po.store')); ?>">
+                <form method="POST" action="<?php echo e(route('po.store')); ?>" <?php if($matrix !== null): ?> x-data="{ sel: {} }" <?php endif; ?>>
                     <?php echo csrf_field(); ?>
                     <div class="grid grid-cols-3 gap-4">
                         <div>
@@ -264,33 +322,39 @@
                     </div>
 
                     <?php if($matrix !== null && $matrixParent !== null): ?>
+                        <input type="hidden" name="matrix_parent_id" value="<?php echo e($matrixParent->id); ?>">
+                        <input type="hidden" name="matrix_index" value="<?php echo e($matrixIndex); ?>">
+                        <input type="hidden" name="matrix_coating" value="<?php echo e($matrixCoating); ?>">
+                        <input type="hidden" name="matrix_selection" :value="JSON.stringify(sel)">
                         <h2 class="mb-1 mt-8 text-sm font-semibold text-gray-700"><?php echo e(__('ui.matrix.title')); ?> — <?php echo e($matrixParent->brand ? $matrixParent->brand.' ' : ''); ?><?php echo e($matrixParent->name); ?> · <?php echo e($matrixBranch->name); ?></h2>
                         <p class="mb-2 text-xs text-gray-500"><?php echo e(__('ui.matrix.po_grid_help')); ?></p>
-                        <div class="overflow-x-auto">
+                        <div class="max-h-[70vh] overflow-auto">
                             <table class="min-w-full border-collapse text-sm">
                                 <thead>
                                     <tr class="text-left text-gray-500">
-                                        <th class="border border-gray-100 px-2 py-1.5 font-medium">SPH \ CYL</th>
-                                        <?php $__currentLoopData = $matrix['cyls']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cyl): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                            <th class="border border-gray-100 px-2 py-1.5 text-right font-medium tnum"><?php echo e($matrixService->display($cyl)); ?></th>
+                                        <th class="sticky left-0 top-0 z-10 border border-gray-100 bg-white px-2 py-1.5 font-medium">SPH \ <?php echo e($matrix['col_label']); ?></th>
+                                        <?php $__currentLoopData = $matrix['cols']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $col): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <th class="sticky top-0 border border-gray-100 bg-white px-2 py-1.5 text-right font-medium tnum"><?php echo e($matrixService->display($col)); ?></th>
                                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php $__currentLoopData = $matrix['sphs']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $sph): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <?php $__currentLoopData = $matrix['rows']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr>
-                                            <th class="border border-gray-100 px-2 py-1.5 text-left font-medium text-gray-600 tnum"><?php echo e($matrixService->display($sph)); ?></th>
-                                            <?php $__currentLoopData = $matrix['cyls']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cyl): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <th class="sticky left-0 border border-gray-100 bg-white px-2 py-1.5 text-left font-medium text-gray-600 tnum"><?php echo e($row['label']); ?></th>
+                                            <?php $__currentLoopData = $matrix['cols']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $col): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                <?php $cell = $row['cells'][$matrixService->colKey($col)] ?? null; ?>
                                                 <td class="border border-gray-100 px-2 py-1.5 align-top">
-                                                    <?php $__currentLoopData = $matrix['cells'][$matrixService->key($sph, $cyl)] ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cell): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                                        <div class="mb-1 last:mb-0">
-                                                            <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
-                                                                <span><?php echo e($cell['product']->sku); ?><?php if($cell['product']->eye_side): ?> · <?php echo e($cell['product']->eye_side); ?><?php endif; ?></span>
-                                                                <span><?php echo e(__('ui.matrix.stock')); ?>: <span class="tnum"><?php echo e($cell['stock']); ?></span></span>
-                                                            </div>
-                                                            <input type="number" min="0" name="matrix_qty[<?php echo e($cell['product']->id); ?>]" class="mt-0.5 block w-20 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500" placeholder="0">
+                                                    <?php if($cell !== null): ?>
+                                                        <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
+                                                            <span><?php echo e($cell['product']->sku); ?></span>
+                                                            <span><?php echo e(__('ui.matrix.stock')); ?>: <span class="tnum"><?php echo e($cell['stock']); ?></span></span>
                                                         </div>
-                                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                                        <input type="number" min="0" class="mt-0.5 block w-20 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500" placeholder="0" @input="sel['p<?php echo e($cell['product']->id); ?>'] = $event.target.value">
+                                                    <?php else: ?>
+                                                        <div class="text-xs text-gray-300"><?php echo e(__('ui.matrix.empty_cell')); ?></div>
+                                                        <input type="number" min="0" class="mt-0.5 block w-20 rounded-md border-gray-200 text-right text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500" placeholder="0" @input="sel['n|<?php echo e(number_format($row['sph'], 2, '.', '')); ?>|<?php echo e(number_format($col, 2, '.', '')); ?>|<?php echo e($row['eye'] ?? ''); ?>'] = $event.target.value">
+                                                    <?php endif; ?>
                                                 </td>
                                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                         </tr>

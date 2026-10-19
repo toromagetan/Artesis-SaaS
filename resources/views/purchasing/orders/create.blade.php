@@ -32,12 +32,32 @@
                                 @endforeach
                             </select>
                         </div>
+                        @if ($matrixParent !== null)
+                            <div>
+                                <x-input-label for="matriks_index" :value="__('ui.matrix.index')" />
+                                <select id="matriks_index" name="matriks_index" class="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                    <option value="">—</option>
+                                    @foreach ($matrixOptions['indexes'] as $idx)
+                                        <option value="{{ $idx }}" @selected($matrixIndex === $idx)>{{ $idx }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <x-input-label for="matriks_coating" :value="__('ui.matrix.coating')" />
+                                <select id="matriks_coating" name="matriks_coating" class="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                    <option value="">—</option>
+                                    @foreach ($matrixOptions['coatings'] as $coat)
+                                        <option value="{{ $coat }}" @selected($matrixCoating === $coat)>{{ $coat }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
                         <x-secondary-button type="submit">{{ __('ui.matrix.show') }}</x-secondary-button>
                     </form>
                 </div>
             @endif
             <div class="rounded-lg bg-white p-6 shadow-soft">
-                <form method="POST" action="{{ route('po.store') }}">
+                <form method="POST" action="{{ route('po.store') }}" @if ($matrix !== null) x-data="{ sel: {} }" @endif>
                     @csrf
                     <div class="grid grid-cols-3 gap-4">
                         <div>
@@ -85,33 +105,39 @@
                     </div>
 
                     @if ($matrix !== null && $matrixParent !== null)
+                        <input type="hidden" name="matrix_parent_id" value="{{ $matrixParent->id }}">
+                        <input type="hidden" name="matrix_index" value="{{ $matrixIndex }}">
+                        <input type="hidden" name="matrix_coating" value="{{ $matrixCoating }}">
+                        <input type="hidden" name="matrix_selection" :value="JSON.stringify(sel)">
                         <h2 class="mb-1 mt-8 text-sm font-semibold text-gray-700">{{ __('ui.matrix.title') }} — {{ $matrixParent->brand ? $matrixParent->brand.' ' : '' }}{{ $matrixParent->name }} · {{ $matrixBranch->name }}</h2>
                         <p class="mb-2 text-xs text-gray-500">{{ __('ui.matrix.po_grid_help') }}</p>
-                        <div class="overflow-x-auto">
+                        <div class="max-h-[70vh] overflow-auto">
                             <table class="min-w-full border-collapse text-sm">
                                 <thead>
                                     <tr class="text-left text-gray-500">
-                                        <th class="border border-gray-100 px-2 py-1.5 font-medium">SPH \ CYL</th>
-                                        @foreach ($matrix['cyls'] as $cyl)
-                                            <th class="border border-gray-100 px-2 py-1.5 text-right font-medium tnum">{{ $matrixService->display($cyl) }}</th>
+                                        <th class="sticky left-0 top-0 z-10 border border-gray-100 bg-white px-2 py-1.5 font-medium">SPH \ {{ $matrix['col_label'] }}</th>
+                                        @foreach ($matrix['cols'] as $col)
+                                            <th class="sticky top-0 border border-gray-100 bg-white px-2 py-1.5 text-right font-medium tnum">{{ $matrixService->display($col) }}</th>
                                         @endforeach
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($matrix['sphs'] as $sph)
+                                    @foreach ($matrix['rows'] as $row)
                                         <tr>
-                                            <th class="border border-gray-100 px-2 py-1.5 text-left font-medium text-gray-600 tnum">{{ $matrixService->display($sph) }}</th>
-                                            @foreach ($matrix['cyls'] as $cyl)
+                                            <th class="sticky left-0 border border-gray-100 bg-white px-2 py-1.5 text-left font-medium text-gray-600 tnum">{{ $row['label'] }}</th>
+                                            @foreach ($matrix['cols'] as $col)
+                                                @php $cell = $row['cells'][$matrixService->colKey($col)] ?? null; @endphp
                                                 <td class="border border-gray-100 px-2 py-1.5 align-top">
-                                                    @foreach ($matrix['cells'][$matrixService->key($sph, $cyl)] ?? [] as $cell)
-                                                        <div class="mb-1 last:mb-0">
-                                                            <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
-                                                                <span>{{ $cell['product']->sku }}@if ($cell['product']->eye_side) · {{ $cell['product']->eye_side }}@endif</span>
-                                                                <span>{{ __('ui.matrix.stock') }}: <span class="tnum">{{ $cell['stock'] }}</span></span>
-                                                            </div>
-                                                            <input type="number" min="0" name="matrix_qty[{{ $cell['product']->id }}]" class="mt-0.5 block w-20 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500" placeholder="0">
+                                                    @if ($cell !== null)
+                                                        <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
+                                                            <span>{{ $cell['product']->sku }}</span>
+                                                            <span>{{ __('ui.matrix.stock') }}: <span class="tnum">{{ $cell['stock'] }}</span></span>
                                                         </div>
-                                                    @endforeach
+                                                        <input type="number" min="0" class="mt-0.5 block w-20 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500" placeholder="0" @input="sel['p{{ $cell['product']->id }}'] = $event.target.value">
+                                                    @else
+                                                        <div class="text-xs text-gray-300">{{ __('ui.matrix.empty_cell') }}</div>
+                                                        <input type="number" min="0" class="mt-0.5 block w-20 rounded-md border-gray-200 text-right text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500" placeholder="0" @input="sel['n|{{ number_format($row['sph'], 2, '.', '') }}|{{ number_format($col, 2, '.', '') }}|{{ $row['eye'] ?? '' }}'] = $event.target.value">
+                                                    @endif
                                                 </td>
                                             @endforeach
                                         </tr>
