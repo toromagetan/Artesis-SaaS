@@ -98,7 +98,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php $__empty_1 = true; $__currentLoopData = $opname->items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <?php $__empty_1 = true; $__currentLoopData = $flatItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                             <tr class="border-b border-gray-50 last:border-0">
                                 <td class="px-4 py-3"><?php echo e($item->product->name); ?></td>
                                 <td class="px-4 py-3"><?php echo e($item->product->sku); ?></td>
@@ -113,7 +113,8 @@
                                 <td class="px-4 py-3 text-right tabular-nums <?php echo e($item->difference !== 0 ? 'font-semibold text-red-600' : ''); ?>"><?php echo e($item->counted_qty === null ? '—' : ($item->difference > 0 ? '+'.$item->difference : $item->difference)); ?></td>
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                            <tr><td colspan="5"><?php if (isset($component)) { $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $component; } ?>
+                            <?php if(empty($matrixGroups)): ?>
+                                <tr><td colspan="5"><?php if (isset($component)) { $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.empty-state','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('lentera.empty-state'); ?>
@@ -132,10 +133,54 @@
 <?php $component = $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
 <?php unset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
 <?php endif; ?></td></tr>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
+
+            <?php $__currentLoopData = $matrixGroups; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $group): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <div class="mt-4 overflow-hidden rounded-lg bg-white p-4 shadow-soft">
+                    <h2 class="text-sm font-semibold text-gray-700"><?php echo e(__('ui.matrix.title')); ?> — <?php echo e($group['parent']->brand ? $group['parent']->brand.' ' : ''); ?><?php echo e($group['parent']->name); ?></h2>
+                    <p class="mb-2 mt-0.5 text-xs text-gray-500"><?php echo e(__('ui.matrix.opname_help')); ?></p>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full border-collapse text-sm">
+                            <thead>
+                                <tr class="text-left text-gray-500">
+                                    <th class="border border-gray-100 px-2 py-1.5 font-medium">SPH \ CYL</th>
+                                    <?php $__currentLoopData = $group['cyls']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cyl): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <th class="border border-gray-100 px-2 py-1.5 text-right font-medium tnum"><?php echo e($matrixService->display($cyl)); ?></th>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php $__currentLoopData = $group['sphs']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $sph): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <tr>
+                                        <th class="border border-gray-100 px-2 py-1.5 text-left font-medium text-gray-600 tnum"><?php echo e($matrixService->display($sph)); ?></th>
+                                        <?php $__currentLoopData = $group['cyls']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cyl): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <td class="border border-gray-100 px-2 py-1.5 align-top">
+                                                <?php $__currentLoopData = $group['cells'][$matrixService->key($sph, $cyl)] ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                    <div class="mb-1 last:mb-0">
+                                                        <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
+                                                            <span><?php echo e($item->product->sku); ?><?php if($item->product->eye_side): ?> · <?php echo e($item->product->eye_side); ?><?php endif; ?></span>
+                                                            <span><?php echo e(__('ui.opname.system_qty')); ?>: <span class="tnum"><?php echo e($item->system_qty); ?></span></span>
+                                                        </div>
+                                                        <?php if($opname->status === 'counting'): ?>
+                                                            <input type="number" min="0" name="counts[<?php echo e($item->id); ?>]" value="<?php echo e($item->counted_qty); ?>" class="mt-0.5 block w-20 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500" placeholder="0">
+                                                        <?php else: ?>
+                                                            <div class="text-right text-sm tabular-nums"><?php echo e($item->counted_qty ?? '—'); ?></div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                            </td>
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                    </tr>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             <?php if($opname->status === 'counting'): ?>
                     <div class="mt-4 flex items-center gap-3">
                         <?php if (isset($component)) { $__componentOriginald411d1792bd6cc877d687758b753742c = $component; } ?>

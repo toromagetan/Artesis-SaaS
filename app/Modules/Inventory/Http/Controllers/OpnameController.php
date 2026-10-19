@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Catalog\Services\LensMatrixService;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Models\StockOpname;
 use App\Modules\Inventory\Services\OpnameService;
@@ -67,9 +68,37 @@ class OpnameController extends Controller
     {
         $actor = $request->user();
         BranchContext::for($actor)->assertCanAccess($opname->branch_id);
-        $opname->load(['branch', 'creator', 'approver', 'items.product']);
+        $opname->load(['branch', 'creator', 'approver', 'items.product.parent']);
 
-        return view('inventory.opname.show', ['opname' => $opname]);
+        // Alat bantu matriks lensa (bukan menu): item lensa/RX
+        // berkekuatan dikelompokkan menjadi grid SPH×CYL per induk;
+        // item lain tetap tabel datar. Input hitung memakai nama
+        // counts[<item>] yang sama.
+        $matrixService = app(LensMatrixService::class);
+        $matrixGroups = [];
+        $flatItems = collect();
+        foreach ($opname->items as $item) {
+            if ($matrixService->isMatrixProduct($item->product)) {
+                $matrixGroups[$item->product->parent_id]['parent'] = $item->product->parent;
+                $matrixGroups[$item->product->parent_id]['items'][] = $item;
+            } else {
+                $flatItems->push($item);
+            }
+        }
+        foreach ($matrixGroups as &$group) {
+            $items = collect($group['items']);
+            $group['sphs'] = $items->map(fn ($i) => $i->product->sph + 0)->unique()->sortDesc()->values()->all();
+            $group['cyls'] = $items->map(fn ($i) => ($i->product->cyl ?? 0) + 0)->unique()->sortDesc()->values()->all();
+            $group['cells'] = $items->groupBy(fn ($i) => $matrixService->key($i->product->sph + 0, ($i->product->cyl ?? 0) + 0));
+        }
+        unset($group);
+
+        return view('inventory.opname.show', [
+            'opname' => $opname,
+            'matrixGroups' => $matrixGroups,
+            'flatItems' => $flatItems,
+            'matrixService' => $matrixService,
+        ]);
     }
 
     public function start(Request $request, StockOpname $opname): RedirectResponse

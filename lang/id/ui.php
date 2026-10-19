@@ -1518,6 +1518,17 @@ return [
         'search_placeholder' => 'Cari nama / SKU / barcode…',
         'nothing_selected' => 'Belum ada label yang dipilih.',
     ],
+    'matrix' => [
+        'title' => 'Matriks Stok Lensa',
+        'parent' => 'Induk Lensa',
+        'branch' => 'Cabang Stok',
+        'show' => 'Tampilkan Matriks',
+        'stock' => 'Stok',
+        'po_help' => 'Alat bantu menyusun pesanan: pilih induk lensa dan cabang untuk melihat stok per kekuatan (SPH × CYL).',
+        'po_grid_help' => 'Angka di kanan atas sel adalah stok cabang saat ini. Isi jumlah pesan pada sel yang dibutuhkan — sel terisi menjadi item PO pada harga beli master.',
+        'opname_help' => 'Isi hasil hitung fisik pada setiap sel kekuatan. Angka di kanan atas sel adalah stok sistem saat opname dimulai.',
+    ],
+
     'opname' => [
         'title' => 'Opname',
         'create' => 'Jadwalkan Opname',

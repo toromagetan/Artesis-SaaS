@@ -10,6 +10,32 @@
                     @foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach
                 </div>
             @endif
+            @if ($lensParents->isNotEmpty())
+                <div class="mb-4 rounded-lg bg-white p-6 shadow-soft">
+                    <h2 class="text-sm font-semibold text-gray-700">{{ __('ui.matrix.title') }}</h2>
+                    <p class="mt-1 text-sm text-gray-500">{{ __('ui.matrix.po_help') }}</p>
+                    <form method="GET" action="{{ route('po.create') }}" class="mt-3 flex flex-wrap items-end gap-3">
+                        <div>
+                            <x-input-label for="matriks_induk" :value="__('ui.matrix.parent')" />
+                            <select id="matriks_induk" name="matriks_induk" class="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                <option value="">—</option>
+                                @foreach ($lensParents as $parent)
+                                    <option value="{{ $parent->id }}" @selected($matrixParent?->id === $parent->id)>{{ $parent->brand ? $parent->brand.' ' : '' }}{{ $parent->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <x-input-label for="matriks_cabang" :value="__('ui.matrix.branch')" />
+                            <select id="matriks_cabang" name="matriks_cabang" class="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                @foreach ($branches as $branch)
+                                    <option value="{{ $branch->id }}" @selected($matrixBranch?->id === $branch->id)>{{ $branch->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <x-secondary-button type="submit">{{ __('ui.matrix.show') }}</x-secondary-button>
+                    </form>
+                </div>
+            @endif
             <div class="rounded-lg bg-white p-6 shadow-soft">
                 <form method="POST" action="{{ route('po.store') }}">
                     @csrf
@@ -57,6 +83,43 @@
                             </div>
                         @endfor
                     </div>
+
+                    @if ($matrix !== null && $matrixParent !== null)
+                        <h2 class="mb-1 mt-8 text-sm font-semibold text-gray-700">{{ __('ui.matrix.title') }} — {{ $matrixParent->brand ? $matrixParent->brand.' ' : '' }}{{ $matrixParent->name }} · {{ $matrixBranch->name }}</h2>
+                        <p class="mb-2 text-xs text-gray-500">{{ __('ui.matrix.po_grid_help') }}</p>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full border-collapse text-sm">
+                                <thead>
+                                    <tr class="text-left text-gray-500">
+                                        <th class="border border-gray-100 px-2 py-1.5 font-medium">SPH \ CYL</th>
+                                        @foreach ($matrix['cyls'] as $cyl)
+                                            <th class="border border-gray-100 px-2 py-1.5 text-right font-medium tnum">{{ $matrixService->display($cyl) }}</th>
+                                        @endforeach
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($matrix['sphs'] as $sph)
+                                        <tr>
+                                            <th class="border border-gray-100 px-2 py-1.5 text-left font-medium text-gray-600 tnum">{{ $matrixService->display($sph) }}</th>
+                                            @foreach ($matrix['cyls'] as $cyl)
+                                                <td class="border border-gray-100 px-2 py-1.5 align-top">
+                                                    @foreach ($matrix['cells'][$matrixService->key($sph, $cyl)] ?? [] as $cell)
+                                                        <div class="mb-1 last:mb-0">
+                                                            <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
+                                                                <span>{{ $cell['product']->sku }}@if ($cell['product']->eye_side) · {{ $cell['product']->eye_side }}@endif</span>
+                                                                <span>{{ __('ui.matrix.stock') }}: <span class="tnum">{{ $cell['stock'] }}</span></span>
+                                                            </div>
+                                                            <input type="number" min="0" name="matrix_qty[{{ $cell['product']->id }}]" class="mt-0.5 block w-20 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500" placeholder="0">
+                                                        </div>
+                                                    @endforeach
+                                                </td>
+                                            @endforeach
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
 
                     <div class="mt-6 flex items-center gap-3">
                         <a href="{{ route('po.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>

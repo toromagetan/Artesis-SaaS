@@ -71,7 +71,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($opname->items as $item)
+                        @forelse ($flatItems as $item)
                             <tr class="border-b border-gray-50 last:border-0">
                                 <td class="px-4 py-3">{{ $item->product->name }}</td>
                                 <td class="px-4 py-3">{{ $item->product->sku }}</td>
@@ -86,11 +86,56 @@
                                 <td class="px-4 py-3 text-right tabular-nums {{ $item->difference !== 0 ? 'font-semibold text-red-600' : '' }}">{{ $item->counted_qty === null ? '—' : ($item->difference > 0 ? '+'.$item->difference : $item->difference) }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="5"><x-lentera.empty-state>{{ __('ui.opname.no_items') }}</x-lentera.empty-state></td></tr>
+                            @if (empty($matrixGroups))
+                                <tr><td colspan="5"><x-lentera.empty-state>{{ __('ui.opname.no_items') }}</x-lentera.empty-state></td></tr>
+                            @endif
                         @endforelse
                     </tbody>
                 </table>
             </div>
+
+            @foreach ($matrixGroups as $group)
+                <div class="mt-4 overflow-hidden rounded-lg bg-white p-4 shadow-soft">
+                    <h2 class="text-sm font-semibold text-gray-700">{{ __('ui.matrix.title') }} — {{ $group['parent']->brand ? $group['parent']->brand.' ' : '' }}{{ $group['parent']->name }}</h2>
+                    <p class="mb-2 mt-0.5 text-xs text-gray-500">{{ __('ui.matrix.opname_help') }}</p>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full border-collapse text-sm">
+                            <thead>
+                                <tr class="text-left text-gray-500">
+                                    <th class="border border-gray-100 px-2 py-1.5 font-medium">SPH \ CYL</th>
+                                    @foreach ($group['cyls'] as $cyl)
+                                        <th class="border border-gray-100 px-2 py-1.5 text-right font-medium tnum">{{ $matrixService->display($cyl) }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($group['sphs'] as $sph)
+                                    <tr>
+                                        <th class="border border-gray-100 px-2 py-1.5 text-left font-medium text-gray-600 tnum">{{ $matrixService->display($sph) }}</th>
+                                        @foreach ($group['cyls'] as $cyl)
+                                            <td class="border border-gray-100 px-2 py-1.5 align-top">
+                                                @foreach ($group['cells'][$matrixService->key($sph, $cyl)] ?? [] as $item)
+                                                    <div class="mb-1 last:mb-0">
+                                                        <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
+                                                            <span>{{ $item->product->sku }}@if ($item->product->eye_side) · {{ $item->product->eye_side }}@endif</span>
+                                                            <span>{{ __('ui.opname.system_qty') }}: <span class="tnum">{{ $item->system_qty }}</span></span>
+                                                        </div>
+                                                        @if ($opname->status === 'counting')
+                                                            <input type="number" min="0" name="counts[{{ $item->id }}]" value="{{ $item->counted_qty }}" class="mt-0.5 block w-20 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500" placeholder="0">
+                                                        @else
+                                                            <div class="text-right text-sm tabular-nums">{{ $item->counted_qty ?? '—' }}</div>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endforeach
             @if ($opname->status === 'counting')
                     <div class="mt-4 flex items-center gap-3">
                         <x-primary-button>{{ __('ui.opname.save_counts') }}</x-primary-button>

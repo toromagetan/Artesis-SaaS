@@ -4,6 +4,7 @@ namespace App\Modules\Purchasing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Services\LensMatrixService;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Models\StockTransfer;
 use App\Modules\Inventory\Services\TransferService;
@@ -40,7 +41,7 @@ class PurchaseOrderController extends Controller
         return view('purchasing.orders.index', compact('orders', 'status', 'q'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $context = BranchContext::current();
         $branches = $context->hasGlobalAccess()
@@ -49,13 +50,58 @@ class PurchaseOrderController extends Controller
         $products = Product::where('is_active', true)->orderBy('type')->orderBy('name')->get();
         $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
 
-        return view('purchasing.orders.create', compact('branches', 'products', 'suppliers'));
+        // Alat bantu matriks lensa (bukan menu): grid SPH×CYL untuk
+        // induk + cabang yang dipilih lewat parameter GET.
+        $matrixService = app(LensMatrixService::class);
+        $lensParents = $matrixService->matrixParents();
+        $matrix = null;
+        $matrixParent = null;
+        $matrixBranch = null;
+        $parentId = (int) $request->query('matriks_induk', 0);
+        $branchId = (int) $request->query('matriks_cabang', 0);
+        if ($parentId > 0 && $branchId > 0 && $context->allowsBranch($branchId)) {
+            $matrixParent = $lensParents->firstWhere('id', $parentId);
+            if ($matrixParent !== null) {
+                $matrixBranch = $branches->firstWhere('id', $branchId);
+                $matrix = $matrixService->gridForParent($matrixParent, $branchId);
+            }
+        }
+
+        return view('purchasing.orders.create', compact(
+            'branches', 'products', 'suppliers', 'lensParents', 'matrix', 'matrixParent', 'matrixBranch', 'matrixService',
+        ));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $items = collect((array) $request->input('items', []))
             ->filter(fn ($row) => is_array($row) && ! empty($row['product_id']) && ! empty($row['qty']))
+            ->values()
+            ->all();
+
+        // Sel matriks lensa terisi menjadi item PO pada harga beli
+        // master; baris yang sama digabung.
+        foreach ((array) $request->input('matrix_qty', []) as $productId => $qty) {
+            if (! is_numeric($qty) || (int) $qty <= 0) {
+                continue;
+            }
+            $product = Product::where('is_active', true)->find((int) $productId);
+            if ($product === null) {
+                continue;
+            }
+            $items[] = [
+                'product_id' => $product->id,
+                'qty' => (int) $qty,
+                'unit_cost' => (string) $product->cost_price,
+            ];
+        }
+        $items = collect($items)
+            ->groupBy(fn ($row) => $row['product_id'].'|'.$row['unit_cost'])
+            ->map(fn ($rows) => [
+                'product_id' => $rows->first()['product_id'],
+                'qty' => $rows->sum('qty'),
+                'unit_cost' => $rows->first()['unit_cost'],
+            ])
             ->values()
             ->all();
         $request->merge(['items' => $items]);

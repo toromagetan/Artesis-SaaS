@@ -1518,6 +1518,17 @@ return [
         'search_placeholder' => 'Search name / SKU / barcode…',
         'nothing_selected' => 'No labels selected yet.',
     ],
+    'matrix' => [
+        'title' => 'Lens Stock Matrix',
+        'parent' => 'Lens Parent',
+        'branch' => 'Stock Branch',
+        'show' => 'Show Matrix',
+        'stock' => 'Stock',
+        'po_help' => 'An aid for composing orders: pick a lens parent and a branch to see stock per power (SPH × CYL).',
+        'po_grid_help' => 'The number at the top right of a cell is the current branch stock. Fill the order quantity on the cells you need — filled cells become PO items at the master purchase price.',
+        'opname_help' => 'Enter the physical count in each power cell. The number at the top right of a cell is the system stock when the opname started.',
+    ],
+
     'opname' => [
         'title' => 'Stock Opname',
         'create' => 'Schedule Opname',
