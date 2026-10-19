@@ -86,6 +86,7 @@ return [
         'api_tokens' => 'Token API',
         'offline_devices' => 'Perangkat Offline',
         'ai_settings' => 'Asisten AI',
+        'audit_logs' => 'Log Aktivitas',
         'assistant' => 'Asisten AI',
         'warranties' => 'Garansi',
         'offline_exceptions' => 'Pengecualian Sinkron',
@@ -630,6 +631,25 @@ return [
         'composition_sub' => 'Per tipe produk pada periode terpilih',
         'total' => 'Total',
         'no_data' => 'Belum ada data.',
+    ],
+
+    'audit_logs' => [
+        'title' => 'Log Aktivitas',
+        'detail' => 'Detail Log Aktivitas',
+        'time' => 'Waktu',
+        'actor' => 'Pengguna',
+        'action' => 'Aksi',
+        'subject' => 'Subjek',
+        'branch' => 'Cabang',
+        'from' => 'Dari',
+        'to' => 'Sampai',
+        'all' => 'Semua',
+        'apply' => 'Terapkan',
+        'empty' => 'Tidak ada log aktivitas.',
+        'old_values' => 'Nilai Lama',
+        'new_values' => 'Nilai Baru',
+        'none' => 'Tidak ada.',
+        'back' => 'Kembali ke Log Aktivitas',
     ],
 
     'inbox' => [

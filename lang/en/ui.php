@@ -86,6 +86,7 @@ return [
         'api_tokens' => 'API Tokens',
         'offline_devices' => 'Offline Devices',
         'ai_settings' => 'AI Assistant',
+        'audit_logs' => 'Activity Log',
         'assistant' => 'AI Assistant',
         'warranties' => 'Warranties',
         'offline_exceptions' => 'Sync Exceptions',
@@ -630,6 +631,25 @@ return [
         'composition_sub' => 'By product type for the selected period',
         'total' => 'Total',
         'no_data' => 'No data yet.',
+    ],
+
+    'audit_logs' => [
+        'title' => 'Activity Log',
+        'detail' => 'Activity Log Detail',
+        'time' => 'Time',
+        'actor' => 'User',
+        'action' => 'Action',
+        'subject' => 'Subject',
+        'branch' => 'Branch',
+        'from' => 'From',
+        'to' => 'To',
+        'all' => 'All',
+        'apply' => 'Apply',
+        'empty' => 'No activity logs.',
+        'old_values' => 'Old Values',
+        'new_values' => 'New Values',
+        'none' => 'None.',
+        'back' => 'Back to Activity Log',
     ],
 
     'inbox' => [
