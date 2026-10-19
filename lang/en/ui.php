@@ -1012,6 +1012,7 @@ return [
         'all_branches' => 'All Branches',
         'apply' => 'Apply',
         'export_csv' => 'Export CSV',
+        'export_xlsx' => 'Export XLSX',
         'transactions' => 'Transactions',
         'subtotal' => 'Subtotal',
         'discount' => 'Discount',

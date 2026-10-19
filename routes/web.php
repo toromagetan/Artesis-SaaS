@@ -107,6 +107,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/pembelian/po', [PurchaseOrderController::class, 'index'])->middleware('permission:po.view')->name('po.index');
     Route::get('/pembelian/po/baru', [PurchaseOrderController::class, 'create'])->middleware('permission:po.create')->name('po.create');
+    Route::get('/pembelian/po/matriks.xlsx', [PurchaseOrderController::class, 'matrixExport'])->middleware('permission:po.create')->name('po.matrix-export');
     Route::post('/pembelian/po', [PurchaseOrderController::class, 'store'])->middleware('permission:po.create')->name('po.store');
     Route::get('/pembelian/po/{po}', [PurchaseOrderController::class, 'show'])->middleware('permission:po.view')->name('po.show');
     Route::post('/pembelian/po/{po}/kirim', [PurchaseOrderController::class, 'send'])->middleware('permission:po.update')->name('po.send');

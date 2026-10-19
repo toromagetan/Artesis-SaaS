@@ -9,6 +9,7 @@ use App\Modules\Reporting\Services\AnalyticsService;
 use App\Modules\Reporting\Services\ReportService;
 use App\Support\Money;
 use App\Support\SvgChart;
+use App\Support\XlsxWriter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -28,11 +29,11 @@ class ReportController extends Controller
     {
         [$from, $to, $branchIds] = $this->scope($request);
         $rows = $this->reports->salesSummary($from, $to, $branchIds);
-        if ($request->boolean('ekspor')) {
+        if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
             $this->authorizeExport();
             $totals = $this->sumSales($rows);
 
-            return $this->csv('laporan-penjualan.csv', [
+            return $this->export($request, 'laporan-penjualan.csv', [
                 ['Cabang', 'Transaksi', 'Subtotal', 'Diskon', 'Pajak', 'Total', 'Retur', 'Neto', 'Terbayar', 'Piutang'],
                 ...collect($rows)->map(fn ($r) => [
                     $this->branchName($r['branch_id']), $r['transactions'],
@@ -54,7 +55,7 @@ class ReportController extends Controller
     {
         [$from, $to, $branchIds] = $this->scope($request);
         $rows = $this->reports->purchasesNet($from, $to, $branchIds);
-        if ($request->boolean('ekspor')) {
+        if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
             $this->authorizeExport();
             $gross = Money::zero();
             $returns = Money::zero();
@@ -65,7 +66,7 @@ class ReportController extends Controller
                 $net = $net->add($r['net']);
             }
 
-            return $this->csv('laporan-pembelian.csv', [
+            return $this->export($request, 'laporan-pembelian.csv', [
                 ['Supplier', 'Penerimaan', 'Bruto', 'Retur', 'Neto'],
                 ...collect($rows)->map(fn ($r) => [$r['supplier_name'], $r['receipts'], $r['gross']->toDecimalString(), $r['returns']->toDecimalString(), $r['net']->toDecimalString()])->all(),
                 ['TOTAL', array_sum(array_column($rows, 'receipts')), $gross->toDecimalString(), $returns->toDecimalString(), $net->toDecimalString()],
@@ -91,10 +92,10 @@ class ReportController extends Controller
         [, , $branchIds] = $this->scope($request);
         $type = (string) $request->query('tipe', '');
         $rows = $this->reports->stockReport($branchIds, $type !== '' ? $type : null);
-        if ($request->boolean('ekspor')) {
+        if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
             $this->authorizeExport();
 
-            return $this->csv('laporan-stok.csv', [
+            return $this->export($request, 'laporan-stok.csv', [
                 ['Cabang', 'SKU', 'Produk', 'Tipe', 'Qty', 'Dalam Perjalanan', 'Nilai'],
                 ...collect($rows)->map(fn ($r) => [$this->branchName($r['branch_id']), $r['sku'], $r['product_name'], $r['type'], $r['qty'], $r['in_transit'], $r['value']->toDecimalString()])->all(),
             ]);
@@ -114,7 +115,7 @@ class ReportController extends Controller
     {
         [, , $branchIds] = $this->scope($request);
         $data = $this->reports->supplierPayables($branchIds);
-        if ($request->boolean('ekspor')) {
+        if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
             $this->authorizeExport();
             $lines = [['Supplier', 'No. Penerimaan', 'PO', 'Tanggal', 'Total', 'Terbayar', 'Sisa']];
             foreach ($data['suppliers'] as $supplier) {
@@ -124,7 +125,7 @@ class ReportController extends Controller
             }
             $lines[] = ['TOTAL', '', '', '', '', '', $data['grand_total']->toDecimalString()];
 
-            return $this->csv('utang-supplier.csv', $lines);
+            return $this->export($request, 'utang-supplier.csv', $lines);
         }
 
         return view('reporting.payables', [
@@ -149,7 +150,7 @@ class ReportController extends Controller
             ? $analytics->supplierAnalytics($branchIds, $from, $to)
             : null;
 
-        if ($request->boolean('ekspor')) {
+        if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
             $this->authorizeExport();
             $lines = [[__('ui.analytics.suppliers')], ['Supplier', 'PO', 'LeadTime', 'NilaiBeli', 'QtyTerima', 'QtyRetur', 'ReturPersen', 'PemenuhanPersen']];
             foreach ($suppliers ?? [] as $row) {
@@ -166,7 +167,7 @@ class ReportController extends Controller
                 $lines[] = [$row['type'], $row['revenue']->toDecimalString(), $row['cost']->toDecimalString(), $row['margin']->toDecimalString()];
             }
 
-            return $this->csv('analitik.csv', $lines);
+            return $this->export($request, 'analitik.csv', $lines);
         }
 
         // Pengayaan visual (keputusan owner 2026-10-19): grafik SVG
@@ -286,6 +287,21 @@ class ReportController extends Controller
     private function authorizeExport(): void
     {
         Gate::authorize('reports.export'); // kemampuan dari registry (Gate::before)
+    }
+
+    /** Ekspor CSV (bawaan) atau XLSX asli bila ?format=xlsx. */
+    private function export(Request $request, string $filename, array $lines): StreamedResponse
+    {
+        if ($request->query('format') === 'xlsx') {
+            $title = pathinfo($filename, PATHINFO_FILENAME);
+            $bytes = XlsxWriter::make([['title' => $title, 'rows' => $lines]]);
+
+            return response()->streamDownload(function () use ($bytes) {
+                echo $bytes;
+            }, preg_replace('/\.csv$/', '.xlsx', $filename), ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+        }
+
+        return $this->csv($filename, $lines);
     }
 
     private function csv(string $filename, array $lines): StreamedResponse

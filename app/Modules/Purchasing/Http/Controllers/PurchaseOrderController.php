@@ -16,10 +16,12 @@ use App\Modules\Master\Models\Supplier;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use App\Modules\Purchasing\Services\PurchaseOrderService;
 use App\Modules\Purchasing\Services\ReceiptService;
+use App\Support\XlsxWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Purchase Order + penerimaan dari detailnya (PRD Detail 6.2/6.3). */
 class PurchaseOrderController extends Controller
@@ -83,6 +85,50 @@ class PurchaseOrderController extends Controller
             'branches', 'products', 'suppliers', 'lensParents', 'matrix', 'matrixParent', 'matrixBranch', 'matrixService',
             'matrixIndex', 'matrixCoating', 'matrixOptions',
         ));
+    }
+
+    /**
+     * Ekspor XLSX grid matriks yang sedang ditampilkan (paritas
+     * ekspor Excel matriks Artesis; alat bantu yang sama, bukan
+     * menu). Sel terisi = stok cabang; sel kosong dikosongkan.
+     */
+    public function matrixExport(Request $request): StreamedResponse
+    {
+        $context = BranchContext::current();
+        $matrixService = app(LensMatrixService::class);
+        $parentId = (int) $request->query('matriks_induk', 0);
+        $branch = (int) $request->query('matriks_cabang', 0);
+        $parent = $matrixService->matrixParents()->firstWhere('id', $parentId);
+        if ($parent === null || $branch <= 0 || ! $context->allowsBranch($branch)) {
+            abort(404);
+        }
+        $grid = $matrixService->gridForParent(
+            $parent,
+            $branch,
+            ($matrixIndex = (string) $request->query('matriks_index', '')) !== '' ? $matrixIndex : null,
+            ($matrixCoating = (string) $request->query('matriks_coating', '')) !== '' ? $matrixCoating : null,
+        );
+
+        $branchName = Branch::find($branch)?->name ?? '';
+        $rows = [['Matriks Stok Lensa — '.$parent->name.' @ '.$branchName]];
+        $header = ['SPH \\ '.$grid['col_label']];
+        foreach ($grid['cols'] as $col) {
+            $header[] = $matrixService->display($col + 0);
+        }
+        $rows[] = $header;
+        foreach ($grid['rows'] as $row) {
+            $line = [$row['label']];
+            foreach ($grid['cols'] as $col) {
+                $cell = $row['cells'][$matrixService->colKey($col + 0)] ?? null;
+                $line[] = $cell === null ? '' : $cell['stock'];
+            }
+            $rows[] = $line;
+        }
+        $bytes = XlsxWriter::make([['title' => 'Matriks '.$parent->name, 'rows' => $rows]]);
+
+        return response()->streamDownload(function () use ($bytes) {
+            echo $bytes;
+        }, 'matriks-'.$parent->id.'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     public function store(Request $request): RedirectResponse

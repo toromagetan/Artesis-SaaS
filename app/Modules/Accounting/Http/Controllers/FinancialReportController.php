@@ -5,6 +5,7 @@ namespace App\Modules\Accounting\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Services\FinancialReportService;
 use App\Modules\Master\Models\Branch;
+use App\Support\XlsxWriter;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -26,7 +27,7 @@ class FinancialReportController extends Controller
         $asOf = $this->dateParam($request, 'per', now()->toDateString());
         $sheet = $this->financial->balanceSheet($asOf);
 
-        if ($request->boolean('ekspor')) {
+        if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
             $this->authorizeExport();
             $lines = [[__('ui.financial.balance_sheet'), $asOf], ['Kode', 'Akun', 'Saldo']];
             foreach (['assets', 'liabilities', 'equity'] as $section) {
@@ -38,7 +39,7 @@ class FinancialReportController extends Controller
             $lines[] = ['', __('ui.financial.total_assets'), $sheet['total_assets']->toDecimalString()];
             $lines[] = ['', __('ui.financial.total_liabilities_equity'), $sheet['total_liabilities']->add($sheet['total_equity'])->add($sheet['earnings'])->toDecimalString()];
 
-            return $this->csv('neraca.csv', $lines);
+            return $this->export($request, 'neraca.csv', $lines);
         }
 
         return view('accounting.financial.balance-sheet', compact('sheet', 'asOf'));
@@ -54,7 +55,7 @@ class FinancialReportController extends Controller
         $byBranch = $this->financial->incomeByBranch($from, $to);
         $branches = Branch::orderBy('name')->get();
 
-        if ($request->boolean('ekspor')) {
+        if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
             $this->authorizeExport();
             $lines = [[__('ui.financial.income_statement'), $from, $to], ['Kode', 'Akun', 'Jumlah']];
             foreach ($statement['revenues'] as $row) {
@@ -70,7 +71,7 @@ class FinancialReportController extends Controller
                 $lines[] = [$this->branchName($branches, $row['branch_id']), $row['revenue']->toDecimalString(), $row['expense']->toDecimalString(), $row['net']->toDecimalString()];
             }
 
-            return $this->csv('laba-rugi.csv', $lines);
+            return $this->export($request, 'laba-rugi.csv', $lines);
         }
 
         return view('accounting.financial.income', compact('statement', 'byBranch', 'branches', 'from', 'to', 'selected'));
@@ -81,7 +82,7 @@ class FinancialReportController extends Controller
         [$from, $to] = $this->range($request);
         $flow = $this->financial->cashFlow($from, $to);
 
-        if ($request->boolean('ekspor')) {
+        if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
             $this->authorizeExport();
             $lines = [[__('ui.financial.cash_flow'), $from, $to], ['', __('ui.financial.opening'), $flow['opening']->toDecimalString()]];
             foreach ($flow['groups'] as $group) {
@@ -89,7 +90,7 @@ class FinancialReportController extends Controller
             }
             $lines[] = ['', __('ui.financial.closing'), $flow['closing']->toDecimalString()];
 
-            return $this->csv('arus-kas.csv', $lines);
+            return $this->export($request, 'arus-kas.csv', $lines);
         }
 
         return view('accounting.financial.cash-flow', compact('flow', 'from', 'to'));
@@ -130,6 +131,21 @@ class FinancialReportController extends Controller
     }
 
     /** @param array<int, array<int, string>> $lines */
+    /** Ekspor CSV (bawaan) atau XLSX asli bila ?format=xlsx. */
+    private function export(Request $request, string $filename, array $lines): StreamedResponse
+    {
+        if ($request->query('format') === 'xlsx') {
+            $title = pathinfo($filename, PATHINFO_FILENAME);
+            $bytes = XlsxWriter::make([['title' => $title, 'rows' => $lines]]);
+
+            return response()->streamDownload(function () use ($bytes) {
+                echo $bytes;
+            }, preg_replace('/\.csv$/', '.xlsx', $filename), ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+        }
+
+        return $this->csv($filename, $lines);
+    }
+
     private function csv(string $filename, array $lines): StreamedResponse
     {
         return response()->streamDownload(function () use ($lines) {

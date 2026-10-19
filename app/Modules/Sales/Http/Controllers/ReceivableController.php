@@ -7,6 +7,7 @@ use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\InstallmentService;
+use App\Support\XlsxWriter;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Gate;
@@ -50,8 +51,11 @@ class ReceivableController extends Controller
             ];
         })->when($bucket !== '', fn ($rows) => $rows->where('bucket', $bucket)->values());
 
-        if ($request->boolean('ekspor')) {
+        if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
             Gate::authorize('reports.export');
+            if ($request->query('format') === 'xlsx') {
+                return $this->xlsx($rows);
+            }
 
             return $this->csv($rows);
         }
@@ -71,6 +75,31 @@ class ReceivableController extends Controller
         );
 
         return view('sales.receivables', compact('rows', 'branches', 'branchId', 'bucket'));
+    }
+
+    /** Ekspor XLSX asli daftar piutang (baris yang sama dengan CSV). */
+    private function xlsx($rows): StreamedResponse
+    {
+        $lines = [['Pelanggan', 'Nomor Transaksi', 'Cabang', 'Total', 'Terbayar', 'Sisa', 'Jatuh Tempo', 'Umur (hari)', 'Kategori']];
+        foreach ($rows as $row) {
+            $sale = $row['sale'];
+            $lines[] = [
+                $sale->customer?->name,
+                $sale->number,
+                $sale->branch?->name,
+                (string) $sale->total_amount,
+                (string) $sale->paid_amount,
+                $sale->remaining()->toDecimalString(),
+                $row['due_date']->toDateString(),
+                $row['age_days'],
+                __('ui.receivables.age_'.$row['bucket']),
+            ];
+        }
+        $bytes = XlsxWriter::make([['title' => 'piutang-pelanggan', 'rows' => $lines]]);
+
+        return response()->streamDownload(function () use ($bytes) {
+            echo $bytes;
+        }, 'piutang-pelanggan.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     private function csv($rows): StreamedResponse

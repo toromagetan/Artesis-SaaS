@@ -29,6 +29,7 @@
                 @can('reports.export')
                     <x-lentera.dropdown-aksi>
                         <x-lentera.menu-item :href="route('receivables.index', array_merge(request()->query(), ['ekspor' => 1]))">{{ __('ui.receivables.export') }}</x-lentera.menu-item>
+                        <x-lentera.menu-item :href="route('receivables.index', array_merge(request()->query(), ['format' => 'xlsx']))">{{ __('ui.reports.export_xlsx') }}</x-lentera.menu-item>
                     </x-lentera.dropdown-aksi>
                 @endcan
             </div>

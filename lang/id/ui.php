@@ -1012,6 +1012,7 @@ return [
         'all_branches' => 'Semua Cabang',
         'apply' => 'Terapkan',
         'export_csv' => 'Ekspor CSV',
+        'export_xlsx' => 'Ekspor XLSX',
         'transactions' => 'Transaksi',
         'subtotal' => 'Subtotal',
         'discount' => 'Diskon',

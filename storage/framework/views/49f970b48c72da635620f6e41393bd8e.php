@@ -328,6 +328,7 @@
                         <input type="hidden" name="matrix_selection" :value="JSON.stringify(sel)">
                         <h2 class="mb-1 mt-8 text-sm font-semibold text-gray-700"><?php echo e(__('ui.matrix.title')); ?> — <?php echo e($matrixParent->brand ? $matrixParent->brand.' ' : ''); ?><?php echo e($matrixParent->name); ?> · <?php echo e($matrixBranch->name); ?></h2>
                         <p class="mb-2 text-xs text-gray-500"><?php echo e(__('ui.matrix.po_grid_help')); ?></p>
+                        <p class="mb-2 text-xs"><a href="<?php echo e(route('po.matrix-export', array_filter(['matriks_induk' => $matrixParent->id, 'matriks_cabang' => $matrixBranch->id, 'matriks_index' => $matrixIndex, 'matriks_coating' => $matrixCoating]))); ?>" class="text-lentera-800 underline"><?php echo e(__('ui.reports.export_xlsx')); ?></a></p>
                         <div class="max-h-[70vh] overflow-auto">
                             <table class="min-w-full border-collapse text-sm">
                                 <thead>
