@@ -225,7 +225,7 @@
                 </a>
             @endif
             @if ($can('payroll.manage'))
-                @php $act = request()->routeIs('payroll.*') || request()->routeIs('commissions.*'); @endphp
+                @php $act = request()->routeIs('payroll.*') || request()->routeIs('commissions.*') || request()->routeIs('incentives.*'); @endphp
                 <div x-data="{ open: {{ $act ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" class="{{ $item }} {{ $act ? $itemActive : '' }}">
                         @if ($act) {!! $goldBar !!} @endif
@@ -236,6 +236,7 @@
                     <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         <a href="{{ route('payroll.index') }}" class="{{ $sub }} {{ request()->routeIs('payroll.*') ? $subActive : '' }}">@if (request()->routeIs('payroll.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.payroll_item') }}</a>
                         <a href="{{ route('commissions.index') }}" class="{{ $sub }} {{ request()->routeIs('commissions.*') ? $subActive : '' }}">@if (request()->routeIs('commissions.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.commissions_item') }}</a>
+                        <a href="{{ route('incentives.index') }}" class="{{ $sub }} {{ request()->routeIs('incentives.*') ? $subActive : '' }}">@if (request()->routeIs('incentives.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.incentives_item') }}</a>
                     </div>
                 </div>
             @endif

@@ -235,7 +235,7 @@
                 </a>
             <?php endif; ?>
             <?php if($can('payroll.manage')): ?>
-                <?php $act = request()->routeIs('payroll.*') || request()->routeIs('commissions.*'); ?>
+                <?php $act = request()->routeIs('payroll.*') || request()->routeIs('commissions.*') || request()->routeIs('incentives.*'); ?>
                 <div x-data="{ open: <?php echo e($act ? 'true' : 'false'); ?> }">
                     <button type="button" @click="open = !open" class="<?php echo e($item); ?> <?php echo e($act ? $itemActive : ''); ?>">
                         <?php if($act): ?> <?php echo $goldBar; ?> <?php endif; ?>
@@ -247,6 +247,7 @@
                     <div x-show="open" <?php if(! $act): ?> style="display: none;" <?php endif; ?> class="mt-0.5 space-y-0.5">
                         <a href="<?php echo e(route('payroll.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('payroll.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('payroll.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.payroll_item')); ?></a>
                         <a href="<?php echo e(route('commissions.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('commissions.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('commissions.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.commissions_item')); ?></a>
+                        <a href="<?php echo e(route('incentives.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('incentives.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('incentives.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.incentives_item')); ?></a>
                     </div>
                 </div>
             <?php endif; ?>
