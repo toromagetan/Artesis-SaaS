@@ -71,7 +71,6 @@
                         <a href="<?php echo e(route('receivables.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('receivables.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('receivables.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.receivables')); ?></a>
                         <a href="<?php echo e(route('offline-exceptions.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('offline-exceptions.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('offline-exceptions.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.offline_exceptions')); ?></a>
                         <a href="<?php echo e(route('warranties.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('warranties.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('warranties.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.warranties')); ?></a>
-                        <a href="<?php echo e(route('insurance-claims.index')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('insurance-claims.*') ? $subActive : ''); ?>"><?php if(request()->routeIs('insurance-claims.*')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.insurance_claims')); ?></a>
                     </div>
                 </div>
             <?php endif; ?>
@@ -280,6 +279,9 @@
                         <?php if($can('reports.sales')): ?>
                             <a href="<?php echo e(route('reports.analytics')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('reports.analytics') ? $subActive : ''); ?>"><?php if(request()->routeIs('reports.analytics')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.analytics')); ?></a>
                         <?php endif; ?>
+                        <?php if($can('reports.sales')): ?>
+                            <a href="<?php echo e(route('reports.insurance-usages')); ?>" class="<?php echo e($sub); ?> <?php echo e(request()->routeIs('reports.insurance-usages') ? $subActive : ''); ?>"><?php if(request()->routeIs('reports.insurance-usages')): ?> <?php echo $dotActive; ?> <?php else: ?> <?php echo $dot; ?> <?php endif; ?><?php echo e(__('ui.nav.insurance_usages')); ?></a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endif; ?>
@@ -342,7 +344,7 @@
         <?php endif; ?>
 
         
-        <?php if($can('products.view') || $can('users.manage') || $can('roles.manage') || $can('branches.manage')): ?>
+        <?php if($can('products.view') || $can('users.manage') || $can('roles.manage') || $can('branches.manage') || $can('insurances.manage')): ?>
             <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70"><?php echo e(__('ui.nav.group_master_settings')); ?></p>
             <?php if($can('products.view')): ?>
                 <?php $act = request()->routeIs('products.*'); ?>
@@ -382,6 +384,14 @@
                     <?php if(request()->routeIs('branches.*')): ?> <?php echo $goldBar; ?> <?php endif; ?>
                     <svg class="<?php echo e($ico); ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M10 21v-4h4v4"/></svg>
                     <?php echo e(__('ui.nav.branches')); ?>
+
+                </a>
+            <?php endif; ?>
+            <?php if($can('insurances.manage')): ?>
+                <a href="<?php echo e(route('insurances.index')); ?>" class="<?php echo e($item); ?> <?php echo e(request()->routeIs('insurances.*') ? $itemActive : ''); ?>">
+                    <?php if(request()->routeIs('insurances.*')): ?> <?php echo $goldBar; ?> <?php endif; ?>
+                    <svg class="<?php echo e($ico); ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 4.5 3.4 7.7 8 9 4.6-1.3 8-4.5 8-9V6l-8-3Z"/></svg>
+                    <?php echo e(__('ui.nav.insurances')); ?>
 
                 </a>
             <?php endif; ?>

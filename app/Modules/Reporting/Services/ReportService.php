@@ -7,6 +7,7 @@ use App\Modules\Inventory\Models\StockTransferItem;
 use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Purchasing\Models\PurchaseReturn;
 use App\Modules\Purchasing\Models\Receipt;
+use App\Modules\Sales\Models\InsuranceUsage;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleReturn;
 use App\Support\Money;
@@ -81,6 +82,25 @@ class ReportService
      * @param  int[]  $branchIds
      * @return array<int, array<string, mixed>>
      */
+    /**
+     * Histori pemakaian asuransi (paritas Artesis: laporan CRM dari
+     * snapshot insurance_usages) — daftar pemakaian pada rentang
+     * tanggal di cabang yang diizinkan, terbaru dulu.
+     *
+     * @return array<int, InsuranceUsage>
+     */
+    public function insuranceUsages(string $from, string $to, array $branchIds): array
+    {
+        return InsuranceUsage::withoutGlobalScopes()
+            ->with(['sale', 'customer', 'insurance', 'branch'])
+            ->whereIn('branch_id', $branchIds)
+            ->whereBetween('used_at', [$from.' 00:00:00', $to.' 23:59:59'])
+            ->orderByDesc('used_at')
+            ->orderByDesc('id')
+            ->get()
+            ->all();
+    }
+
     public function purchasesNet(string $from, string $to, array $branchIds): array
     {
         $receipts = Receipt::query()

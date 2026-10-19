@@ -6,10 +6,8 @@ use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Insurance;
-use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Histori pemakaian asuransi pada penjualan (paritas Artesis).
@@ -55,25 +53,5 @@ class InsuranceUsage extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function receipts(): HasMany
-    {
-        return $this->hasMany(InsuranceClaimReceipt::class, 'insurance_usage_id');
-    }
-
-    /** Klaim yang sudah diterima dari perusahaan asuransi. */
-    public function settledAmount(): string
-    {
-        return (string) $this->receipts()->sum('amount');
-    }
-
-    /** Sisa klaim yang masih ditagihkan ke perusahaan asuransi. */
-    public function remainingAmount(): string
-    {
-        $remaining = Money::fromDecimal((string) $this->insurance_claim_amount)
-            ->sub(Money::fromDecimal($this->settledAmount()));
-
-        return $remaining->isNegative() ? '0.00' : $remaining->toDecimalString();
     }
 }

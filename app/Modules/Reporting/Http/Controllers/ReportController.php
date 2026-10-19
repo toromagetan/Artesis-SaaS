@@ -51,6 +51,39 @@ class ReportController extends Controller
         ]);
     }
 
+    /**
+     * Laporan pemakaian asuransi (histori CRM, paritas Artesis):
+     * snapshot insurance_usages — bukan pengelolaan piutang klaim.
+     */
+    public function insuranceUsages(Request $request): View|StreamedResponse
+    {
+        [$from, $to, $branchIds] = $this->scope($request);
+        $rows = $this->reports->insuranceUsages($from, $to, $branchIds);
+        $totals = ['transactions' => Money::zero(), 'claims' => Money::zero()];
+        foreach ($rows as $usage) {
+            $totals['transactions'] = $totals['transactions']->add(Money::fromDecimal((string) $usage->transaction_amount));
+            $totals['claims'] = $totals['claims']->add(Money::fromDecimal((string) $usage->insurance_claim_amount));
+        }
+        if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
+            $this->authorizeExport();
+
+            return $this->export($request, 'laporan-pemakaian-asuransi.csv', [
+                ['Tanggal', 'Cabang', 'Penjualan', 'Pelanggan', 'Asuransi', 'Nilai Transaksi', 'Klaim'],
+                ...collect($rows)->map(fn ($u) => [
+                    $u->used_at->format('Y-m-d'), $u->branch?->name, $u->sale?->number,
+                    $u->customer?->name, $u->insurance?->name,
+                    (string) $u->transaction_amount, (string) $u->insurance_claim_amount,
+                ])->all(),
+                ['TOTAL', '', '', '', '', $totals['transactions']->toDecimalString(), $totals['claims']->toDecimalString()],
+            ]);
+        }
+
+        return view('reporting.insurance-usages', [
+            'rows' => $rows, 'totals' => $totals,
+            'from' => $from, 'to' => $to, 'branches' => $this->branchOptions(), 'selected' => $this->selectedBranch($request),
+        ]);
+    }
+
     public function purchases(Request $request): View|StreamedResponse
     {
         [$from, $to, $branchIds] = $this->scope($request);

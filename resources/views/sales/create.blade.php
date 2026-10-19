@@ -113,7 +113,7 @@
                                     <select id="insurance_id" name="insurance_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
                                         <option value="">—</option>
                                         @foreach ($insurances as $insurance)
-                                            <option value="{{ $insurance->id }}" @selected((string) old('insurance_id') === (string) $insurance->id)>{{ $insurance->name }}</option>
+                                            <option value="{{ $insurance->id }}" data-claim-value="{{ $insurance->claim_value }}" @selected((string) old('insurance_id') === (string) $insurance->id)>{{ $insurance->name }} ({{ __('ui.sales.insurance_max') }} {{ \App\Support\Money::fromDecimal((string) $insurance->claim_value)->format() }})</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -185,4 +185,19 @@
             @endif
         </div>
     </div>
+    <script>
+        // Paritas Artesis: memilih asuransi mengisi otomatis jumlah
+        // klaim sebesar claim_value master-nya (dapat diubah kasir;
+        // server tetap membatasi maksimal sebesar total tagihan).
+        (function () {
+            var select = document.getElementById('insurance_id');
+            var claim = document.getElementById('insurance_claim_amount');
+            if (!select || !claim) { return; }
+            select.addEventListener('change', function () {
+                var opt = select.options[select.selectedIndex];
+                var value = opt ? opt.getAttribute('data-claim-value') : null;
+                claim.value = value ? value : '';
+            });
+        })();
+    </script>
 </x-app-layout>

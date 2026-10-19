@@ -71,7 +71,6 @@
                         <a href="{{ route('receivables.index') }}" class="{{ $sub }} {{ request()->routeIs('receivables.*') ? $subActive : '' }}">@if (request()->routeIs('receivables.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.receivables') }}</a>
                         <a href="{{ route('offline-exceptions.index') }}" class="{{ $sub }} {{ request()->routeIs('offline-exceptions.*') ? $subActive : '' }}">@if (request()->routeIs('offline-exceptions.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.offline_exceptions') }}</a>
                         <a href="{{ route('warranties.index') }}" class="{{ $sub }} {{ request()->routeIs('warranties.*') ? $subActive : '' }}">@if (request()->routeIs('warranties.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.warranties') }}</a>
-                        <a href="{{ route('insurance-claims.index') }}" class="{{ $sub }} {{ request()->routeIs('insurance-claims.*') ? $subActive : '' }}">@if (request()->routeIs('insurance-claims.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.insurance_claims') }}</a>
                     </div>
                 </div>
             @endif
@@ -268,6 +267,9 @@
                         @if ($can('reports.sales'))
                             <a href="{{ route('reports.analytics') }}" class="{{ $sub }} {{ request()->routeIs('reports.analytics') ? $subActive : '' }}">@if (request()->routeIs('reports.analytics')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.analytics') }}</a>
                         @endif
+                        @if ($can('reports.sales'))
+                            <a href="{{ route('reports.insurance-usages') }}" class="{{ $sub }} {{ request()->routeIs('reports.insurance-usages') ? $subActive : '' }}">@if (request()->routeIs('reports.insurance-usages')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.insurance_usages') }}</a>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -328,7 +330,7 @@
         @endif
 
         {{-- MASTER & PENGATURAN --}}
-        @if ($can('products.view') || $can('users.manage') || $can('roles.manage') || $can('branches.manage'))
+        @if ($can('products.view') || $can('users.manage') || $can('roles.manage') || $can('branches.manage') || $can('insurances.manage'))
             <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70">{{ __('ui.nav.group_master_settings') }}</p>
             @if ($can('products.view'))
                 @php $act = request()->routeIs('products.*'); @endphp
@@ -365,6 +367,13 @@
                     @if (request()->routeIs('branches.*')) {!! $goldBar !!} @endif
                     <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M10 21v-4h4v4"/></svg>
                     {{ __('ui.nav.branches') }}
+                </a>
+            @endif
+            @if ($can('insurances.manage'))
+                <a href="{{ route('insurances.index') }}" class="{{ $item }} {{ request()->routeIs('insurances.*') ? $itemActive : '' }}">
+                    @if (request()->routeIs('insurances.*')) {!! $goldBar !!} @endif
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 4.5 3.4 7.7 8 9 4.6-1.3 8-4.5 8-9V6l-8-3Z"/></svg>
+                    {{ __('ui.nav.insurances') }}
                 </a>
             @endif
         @endif
