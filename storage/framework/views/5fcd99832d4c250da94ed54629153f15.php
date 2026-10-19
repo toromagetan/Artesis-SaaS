@@ -178,6 +178,10 @@
 
                 </a>
             <?php endif; ?>
+            <a class="ms-3 underline text-sm text-gray-600 hover:text-gray-900" href="<?php echo e(route('recovery.request')); ?>">
+                <?php echo e(__('ui.recovery.login_link')); ?>
+
+            </a>
 
             <?php if (isset($component)) { $__componentOriginald411d1792bd6cc877d687758b753742c = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginald411d1792bd6cc877d687758b753742c = $attributes; } ?>

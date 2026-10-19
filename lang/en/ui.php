@@ -781,6 +781,15 @@ return [
         'write_failed' => 'Failed to write the backup file.',
     ],
 
+    'recovery' => [
+        'title' => 'Owner Account Recovery',
+        'help' => 'A dedicated recovery path for the business owner. Enter the email registered to an active Owner account — if it matches, a password reset link will be sent to that email. For security, this page always shows the same message regardless of the outcome.',
+        'generic_status' => 'If that email is registered to an active Owner account, a recovery link has been sent. Please check your inbox.',
+        'submit' => 'Send Recovery Link',
+        'back_to_login' => 'Back to Sign In',
+        'login_link' => 'Owner Account Recovery',
+    ],
+
     'inbox' => [
         'title' => 'WhatsApp Inbox',
         'customer' => 'Customer',

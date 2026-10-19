@@ -781,6 +781,15 @@ return [
         'write_failed' => 'Gagal menulis berkas backup.',
     ],
 
+    'recovery' => [
+        'title' => 'Pemulihan Akun Owner',
+        'help' => 'Jalur pemulihan khusus pemilik usaha. Masukkan email yang terdaftar sebagai Owner aktif — bila cocok, tautan atur ulang kata sandi akan dikirim ke email tersebut. Demi keamanan, halaman ini selalu menampilkan pesan yang sama apa pun hasilnya.',
+        'generic_status' => 'Bila email tersebut terdaftar sebagai Owner aktif, tautan pemulihan telah dikirim. Periksa kotak masuk email Anda.',
+        'submit' => 'Kirim Tautan Pemulihan',
+        'back_to_login' => 'Kembali Masuk',
+        'login_link' => 'Pemulihan Akun Owner',
+    ],
+
     'inbox' => [
         'title' => 'Inbox WhatsApp',
         'customer' => 'Pelanggan',

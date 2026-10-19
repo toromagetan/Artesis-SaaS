@@ -38,6 +38,9 @@
                     {{ __('ui.auth.forgot') }}
                 </a>
             @endif
+            <a class="ms-3 underline text-sm text-gray-600 hover:text-gray-900" href="{{ route('recovery.request') }}">
+                {{ __('ui.recovery.login_link') }}
+            </a>
 
             <x-primary-button class="ms-3">
                 {{ __('ui.auth.login') }}

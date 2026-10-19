@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\PrivilegedRecoveryController;
 use Illuminate\Support\Facades\Route;
 
 // Lentera: TIDAK ada registrasi publik dan TIDAK ada verifikasi email —
@@ -26,6 +27,13 @@ Route::middleware('guest')->group(function () {
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
+
+    Route::get('pemulihan-akun', [PrivilegedRecoveryController::class, 'create'])
+        ->name('recovery.request');
+
+    Route::post('pemulihan-akun', [PrivilegedRecoveryController::class, 'store'])
+        ->middleware('throttle:3,10')
+        ->name('recovery.email');
 });
 
 Route::middleware('auth')->group(function () {
