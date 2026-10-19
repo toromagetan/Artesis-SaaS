@@ -7,6 +7,7 @@ use App\Modules\Clinical\Models\Prescription;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Insurance;
 use App\Modules\Membership\Models\MembershipLevel;
+use App\Modules\Sales\Models\CustomerCredit;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -26,7 +27,7 @@ class Customer extends Model
 
     protected $fillable = [
         'name', 'phone', 'email', 'address', 'birth_date',
-        'branch_id', 'insurance_id', 'credit_limit', 'membership_level_id', 'is_active', 'wa_opt_out',
+        'branch_id', 'insurance_id', 'membership_level_id', 'is_active', 'wa_opt_out',
     ];
 
     protected function casts(): array
@@ -67,5 +68,11 @@ class Customer extends Model
     public function fittingMeasurements(): HasMany
     {
         return $this->hasMany(FittingMeasurement::class);
+    }
+
+    /** Voucher kredit toko milik pelanggan (paritas Artesis), terbaru dulu. */
+    public function credits(): HasMany
+    {
+        return $this->hasMany(CustomerCredit::class)->latest('issued_at');
     }
 }

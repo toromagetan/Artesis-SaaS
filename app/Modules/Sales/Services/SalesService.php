@@ -266,23 +266,6 @@ class SalesService
                 throw ValidationException::withMessages(['payments' => __('ui.sales.payment_exceeds_total')]);
             }
 
-            // Limit kredit formal (paritas Artesis): pelanggan dengan
-            // credit_limit terisi tidak boleh menembus limit lewat
-            // penjualan berpiutang baru. NULL = tanpa limit formal.
-            $newUnpaid = $total->sub($paid);
-            if ($newUnpaid->isPositive() && $customer->credit_limit !== null) {
-                $limit = Money::fromDecimal((string) $customer->credit_limit);
-                // Kecualikan penjualan ini sendiri: barisnya sudah
-                // tersimpan di transaksi berjalan dengan paid 0.
-                $outstanding = $this->outstandingReceivable($customer->id, $sale->id);
-                if ($outstanding->add($newUnpaid)->cmp($limit) > 0) {
-                    throw ValidationException::withMessages(['customer_id' => __('ui.sales.credit_limit_exceeded', [
-                        'limit' => $limit->format(),
-                        'outstanding' => $outstanding->format(),
-                    ])]);
-                }
-            }
-
             // Pembayaran metode 'points' (F3.6): nominal wajib kelipatan
             // nilai tukar dan saldo poin pelanggan (dikunci) mencukupi.
             $pointsService = app(PointsService::class);

@@ -47,6 +47,7 @@ use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseRequestController;
 use App\Modules\Purchasing\Http\Controllers\ReceiptController;
 use App\Modules\Reporting\Http\Controllers\ReportController;
+use App\Modules\Sales\Http\Controllers\CustomerCreditController;
 use App\Modules\Sales\Http\Controllers\InsuranceClaimController;
 use App\Modules\Sales\Http\Controllers\OfflineCashierController;
 use App\Modules\Sales\Http\Controllers\OfflineExceptionController;
@@ -222,6 +223,8 @@ Route::middleware('auth')->group(function () {
 
     // ---- Penjualan (M.3) ----
     Route::get('/penjualan', [SaleController::class, 'index'])->middleware('permission:sales.view')->name('sales.index');
+    Route::get('/pelanggan/kredit/{credit}/terapkan', [CustomerCreditController::class, 'applyForm'])->middleware('permission:sales.pay')->name('customer-credits.apply');
+    Route::post('/pelanggan/kredit/{credit}/terapkan', [CustomerCreditController::class, 'apply'])->middleware('permission:sales.pay')->name('customer-credits.apply.store');
     Route::get('/penjualan/klaim-asuransi', [InsuranceClaimController::class, 'index'])->middleware('permission:sales.view')->name('insurance-claims.index');
     Route::get('/penjualan/klaim-asuransi/{usage}', [InsuranceClaimController::class, 'show'])->middleware('permission:sales.view')->name('insurance-claims.show');
     Route::post('/penjualan/klaim-asuransi/{usage}/terima', [InsuranceClaimController::class, 'receive'])->middleware('permission:sales.pay')->name('insurance-claims.receive');

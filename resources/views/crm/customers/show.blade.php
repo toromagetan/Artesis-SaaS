@@ -55,8 +55,6 @@
                     <dd class="font-medium text-gray-800">{{ $customer->branch->name }}</dd>
                     <dt class="text-gray-500">{{ __('ui.customers.insurance') }}</dt>
                     <dd class="font-medium text-gray-800">{{ $customer->insurance?->name ?: '—' }}</dd>
-                    <dt class="text-gray-500">{{ __('ui.customers.credit_limit') }}</dt>
-                    <dd class="font-medium text-gray-800">{{ $customer->credit_limit !== null ? \App\Support\Money::fromDecimal((string) $customer->credit_limit)->format() : __('ui.customers.credit_limit_none') }}</dd>
                     <dt class="text-gray-500">{{ __('ui.customers.outstanding') }}</dt>
                     <dd class="font-medium text-gray-800">{{ $outstanding->format() }}</dd>
                 </dl>
@@ -95,6 +93,56 @@
                             </tr>
                         @empty
                             <tr><td colspan="5"><x-lentera.empty-state>{{ __('ui.customers.no_prescriptions') }}</x-lentera.empty-state></td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 class="mb-2 text-base font-semibold text-gray-800">{{ __('ui.credits.title') }}</h2>
+            <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 text-left text-gray-500">
+                            <th class="px-4 py-3 font-medium">{{ __('ui.credits.number') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.credits.issued_at') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.credits.source') }}</th>
+                            <th class="px-4 py-3 font-medium text-right">{{ __('ui.credits.amount') }}</th>
+                            <th class="px-4 py-3 font-medium text-right">{{ __('ui.credits.remaining') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.status') }}</th>
+                            <th class="px-4 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($credits as $credit)
+                            <tr class="border-b border-gray-50 last:border-0">
+                                <td class="px-4 py-3 font-medium text-lentera-800">{{ $credit->credit_number }}</td>
+                                <td class="px-4 py-3">{{ $credit->issued_at->format('d/m/Y') }}</td>
+                                <td class="px-4 py-3">
+                                    @if ($credit->saleReturn)
+                                        {{ __('ui.credits.source_return') }} {{ $credit->saleReturn->number }}
+                                    @else
+                                        {{ $credit->sale?->number }}
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-right tnum">{{ \App\Support\Money::fromDecimal((string) $credit->amount)->format() }}</td>
+                                <td class="px-4 py-3 text-right tnum">{{ \App\Support\Money::fromDecimal((string) $credit->remaining_amount)->format() }}</td>
+                                <td class="px-4 py-3">
+                                    @if ($credit->isActive())
+                                        <span class="inline-flex items-center rounded-full bg-lentera-100 px-2 py-0.5 text-xs font-medium text-lentera-800">{{ __('ui.credits.status_active') }}</span>
+                                    @else
+                                        <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">{{ __('ui.credits.status_exhausted') }}</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    @if ($credit->isActive() && auth()->user()->hasPermission('sales.pay'))
+                                        <x-lentera.row-actions>
+                                            <x-lentera.menu-item :href="route('customer-credits.apply', $credit)">{{ __('ui.credits.apply') }}</x-lentera.menu-item>
+                                        </x-lentera.row-actions>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="7"><x-lentera.empty-state>{{ __('ui.credits.empty') }}</x-lentera.empty-state></td></tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -173,8 +173,6 @@
                     <dd class="font-medium text-gray-800"><?php echo e($customer->branch->name); ?></dd>
                     <dt class="text-gray-500"><?php echo e(__('ui.customers.insurance')); ?></dt>
                     <dd class="font-medium text-gray-800"><?php echo e($customer->insurance?->name ?: '—'); ?></dd>
-                    <dt class="text-gray-500"><?php echo e(__('ui.customers.credit_limit')); ?></dt>
-                    <dd class="font-medium text-gray-800"><?php echo e($customer->credit_limit !== null ? \App\Support\Money::fromDecimal((string) $customer->credit_limit)->format() : __('ui.customers.credit_limit_none')); ?></dd>
                     <dt class="text-gray-500"><?php echo e(__('ui.customers.outstanding')); ?></dt>
                     <dd class="font-medium text-gray-800"><?php echo e($outstanding->format()); ?></dd>
                 </dl>
@@ -276,6 +274,112 @@
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes([]); ?><?php echo e(__('ui.customers.no_prescriptions')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
+<?php $attributes = $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
+<?php unset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
+<?php $component = $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>
+<?php unset($__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469); ?>
+<?php endif; ?></td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 class="mb-2 text-base font-semibold text-gray-800"><?php echo e(__('ui.credits.title')); ?></h2>
+            <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 text-left text-gray-500">
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.credits.number')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.credits.issued_at')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.credits.source')); ?></th>
+                            <th class="px-4 py-3 font-medium text-right"><?php echo e(__('ui.credits.amount')); ?></th>
+                            <th class="px-4 py-3 font-medium text-right"><?php echo e(__('ui.credits.remaining')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('ui.status')); ?></th>
+                            <th class="px-4 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php $__empty_1 = true; $__currentLoopData = $credits; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $credit): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                            <tr class="border-b border-gray-50 last:border-0">
+                                <td class="px-4 py-3 font-medium text-lentera-800"><?php echo e($credit->credit_number); ?></td>
+                                <td class="px-4 py-3"><?php echo e($credit->issued_at->format('d/m/Y')); ?></td>
+                                <td class="px-4 py-3">
+                                    <?php if($credit->saleReturn): ?>
+                                        <?php echo e(__('ui.credits.source_return')); ?> <?php echo e($credit->saleReturn->number); ?>
+
+                                    <?php else: ?>
+                                        <?php echo e($credit->sale?->number); ?>
+
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-4 py-3 text-right tnum"><?php echo e(\App\Support\Money::fromDecimal((string) $credit->amount)->format()); ?></td>
+                                <td class="px-4 py-3 text-right tnum"><?php echo e(\App\Support\Money::fromDecimal((string) $credit->remaining_amount)->format()); ?></td>
+                                <td class="px-4 py-3">
+                                    <?php if($credit->isActive()): ?>
+                                        <span class="inline-flex items-center rounded-full bg-lentera-100 px-2 py-0.5 text-xs font-medium text-lentera-800"><?php echo e(__('ui.credits.status_active')); ?></span>
+                                    <?php else: ?>
+                                        <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500"><?php echo e(__('ui.credits.status_exhausted')); ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <?php if($credit->isActive() && auth()->user()->hasPermission('sales.pay')): ?>
+                                        <?php if (isset($component)) { $__componentOriginal645c48eba03eed14da3653ca82ef58a2 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal645c48eba03eed14da3653ca82ef58a2 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.row-actions','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.row-actions'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+                                            <?php if (isset($component)) { $__componentOriginal462fb62fb1260a0c7276ba80b762793e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal462fb62fb1260a0c7276ba80b762793e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.menu-item','data' => ['href' => route('customer-credits.apply', $credit)]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.menu-item'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('customer-credits.apply', $credit))]); ?><?php echo e(__('ui.credits.apply')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $attributes = $__attributesOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__attributesOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal462fb62fb1260a0c7276ba80b762793e)): ?>
+<?php $component = $__componentOriginal462fb62fb1260a0c7276ba80b762793e; ?>
+<?php unset($__componentOriginal462fb62fb1260a0c7276ba80b762793e); ?>
+<?php endif; ?>
+                                         <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal645c48eba03eed14da3653ca82ef58a2)): ?>
+<?php $attributes = $__attributesOriginal645c48eba03eed14da3653ca82ef58a2; ?>
+<?php unset($__attributesOriginal645c48eba03eed14da3653ca82ef58a2); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal645c48eba03eed14da3653ca82ef58a2)): ?>
+<?php $component = $__componentOriginal645c48eba03eed14da3653ca82ef58a2; ?>
+<?php unset($__componentOriginal645c48eba03eed14da3653ca82ef58a2); ?>
+<?php endif; ?>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                            <tr><td colspan="7"><?php if (isset($component)) { $__componentOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.lentera.empty-state','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('lentera.empty-state'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?><?php echo e(__('ui.credits.empty')); ?> <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469)): ?>
 <?php $attributes = $__attributesOriginal1fb10244e18bb2e5d2f72f1e8eb61469; ?>

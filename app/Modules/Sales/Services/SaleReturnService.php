@@ -20,7 +20,9 @@ use Illuminate\Validation\ValidationException;
  *   (half-up), BUKAN float.
  * - Pengembalian dana cash/transfer tercatat sebagai baris pembayaran
  *   negatif (mengurangi paid_amount); store_credit tidak menyentuh
- *   pembayaran — kreditnya hidup di dokumen retur ini.
+ *   pembayaran penjualan asal — nilainya terbit sebagai voucher
+ *   kredit pelanggan (CustomerCredit) bernomor CR yang dapat
+ *   diterapkan ke penjualan lain pelanggan yang sama.
  * - Efek stok mengikuti keadaan barang lewat listener Inventory (M.4):
  *   resale → stok kembali; damaged → tidak masuk stok jual.
  */
@@ -99,6 +101,13 @@ class SaleReturnService
                 $sale->update([
                     'paid_amount' => Money::fromDecimal((string) $sale->paid_amount)->sub($total)->toDecimalString(),
                 ]);
+            }
+
+            // Refund kredit toko: terbitkan voucher kredit pelanggan
+            // (paritas Artesis CustomerCredit) di transaksi yang sama.
+            if ($refundMethod === 'store_credit') {
+                $return->setRelation('sale', $sale);
+                app(CustomerCreditService::class)->issueFromReturn($actor, $return);
             }
 
             app(AuditLogger::class)->log(

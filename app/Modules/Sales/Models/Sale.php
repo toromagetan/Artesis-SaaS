@@ -113,6 +113,12 @@ class Sale extends Model
         return $this->hasMany(SaleReturn::class);
     }
 
+    /** Penerapan voucher kredit pelanggan ke penjualan ini. */
+    public function creditApplications(): HasMany
+    {
+        return $this->hasMany(CustomerCreditApplication::class);
+    }
+
     public function isVoid(): bool
     {
         return $this->status === 'void';
