@@ -27,12 +27,17 @@
                         </select>
                     </label>
                     <label class="text-sm">
-                        <span class="mb-1 block text-gray-500">{{ __('ui.incentives.period_start') }}</span>
-                        <input type="date" name="period_start" required class="rounded-md border-gray-300 text-sm">
+                        <span class="mb-1 block text-gray-500">{{ __('ui.incentives.month') }}</span>
+                        <input type="month" name="month" required class="rounded-md border-gray-300 text-sm">
                     </label>
                     <label class="text-sm">
-                        <span class="mb-1 block text-gray-500">{{ __('ui.incentives.period_end') }}</span>
-                        <input type="date" name="period_end" required class="rounded-md border-gray-300 text-sm">
+                        <span class="mb-1 block text-gray-500">{{ __('ui.incentives.recipient') }}</span>
+                        <select name="user_id" class="rounded-md border-gray-300 text-sm">
+                            <option value="">{{ __('ui.incentives.recipient_all') }}</option>
+                            @foreach ($recipients as $u)
+                                <option value="{{ $u->id }}">{{ $u->name }}</option>
+                            @endforeach
+                        </select>
                     </label>
                     <button type="submit" class="rounded-md bg-lentera-700 px-4 py-2 text-sm font-medium text-white transition duration-150 hover:bg-lentera-800">{{ __('ui.incentives.generate') }}</button>
                 </form>
@@ -57,10 +62,10 @@
                                 <td class="px-4 py-3">
                                     <a href="{{ route('incentives.show', $period) }}" class="font-medium text-lentera-800 underline">{{ $period->period_start->format('d/m/Y') }} – {{ $period->period_end->format('d/m/Y') }}</a>
                                 </td>
-                                <td class="px-4 py-3">{{ $period->recipient->name }}</td>
-                                <td class="px-4 py-3">{{ $period->branch->name }}</td>
+                                <td class="px-4 py-3">{{ $period->recipient?->name ?? __('ui.incentives.recipient_all') }}</td>
+                                <td class="px-4 py-3">{{ $period->branch?->name ?? '—' }}</td>
                                 <td class="px-4 py-3 text-right tnum">{{ \App\Support\Money::fromDecimal((string) $period->transaction_total)->format() }}</td>
-                                <td class="px-4 py-3 text-right font-medium tnum">{{ \App\Support\Money::fromDecimal((string) $period->incentive_total)->format() }}</td>
+                                <td class="px-4 py-3 text-right font-medium tnum">{{ $period->netTotal()->format() }}</td>
                                 <td class="px-4 py-3">{{ __('ui.incentives.status_'.$period->status) }}</td>
                             </tr>
                         @empty

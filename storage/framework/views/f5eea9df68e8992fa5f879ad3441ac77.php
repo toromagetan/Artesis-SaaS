@@ -36,12 +36,17 @@
                         </select>
                     </label>
                     <label class="text-sm">
-                        <span class="mb-1 block text-gray-500"><?php echo e(__('ui.incentives.period_start')); ?></span>
-                        <input type="date" name="period_start" required class="rounded-md border-gray-300 text-sm">
+                        <span class="mb-1 block text-gray-500"><?php echo e(__('ui.incentives.month')); ?></span>
+                        <input type="month" name="month" required class="rounded-md border-gray-300 text-sm">
                     </label>
                     <label class="text-sm">
-                        <span class="mb-1 block text-gray-500"><?php echo e(__('ui.incentives.period_end')); ?></span>
-                        <input type="date" name="period_end" required class="rounded-md border-gray-300 text-sm">
+                        <span class="mb-1 block text-gray-500"><?php echo e(__('ui.incentives.recipient')); ?></span>
+                        <select name="user_id" class="rounded-md border-gray-300 text-sm">
+                            <option value=""><?php echo e(__('ui.incentives.recipient_all')); ?></option>
+                            <?php $__currentLoopData = $recipients; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $u): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($u->id); ?>"><?php echo e($u->name); ?></option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </select>
                     </label>
                     <button type="submit" class="rounded-md bg-lentera-700 px-4 py-2 text-sm font-medium text-white transition duration-150 hover:bg-lentera-800"><?php echo e(__('ui.incentives.generate')); ?></button>
                 </form>
@@ -66,10 +71,10 @@
                                 <td class="px-4 py-3">
                                     <a href="<?php echo e(route('incentives.show', $period)); ?>" class="font-medium text-lentera-800 underline"><?php echo e($period->period_start->format('d/m/Y')); ?> – <?php echo e($period->period_end->format('d/m/Y')); ?></a>
                                 </td>
-                                <td class="px-4 py-3"><?php echo e($period->recipient->name); ?></td>
-                                <td class="px-4 py-3"><?php echo e($period->branch->name); ?></td>
+                                <td class="px-4 py-3"><?php echo e($period->recipient?->name ?? __('ui.incentives.recipient_all')); ?></td>
+                                <td class="px-4 py-3"><?php echo e($period->branch?->name ?? '—'); ?></td>
                                 <td class="px-4 py-3 text-right tnum"><?php echo e(\App\Support\Money::fromDecimal((string) $period->transaction_total)->format()); ?></td>
-                                <td class="px-4 py-3 text-right font-medium tnum"><?php echo e(\App\Support\Money::fromDecimal((string) $period->incentive_total)->format()); ?></td>
+                                <td class="px-4 py-3 text-right font-medium tnum"><?php echo e($period->netTotal()->format()); ?></td>
                                 <td class="px-4 py-3"><?php echo e(__('ui.incentives.status_'.$period->status)); ?></td>
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>

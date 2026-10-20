@@ -2,34 +2,51 @@
 
 namespace App\Modules\Accounting\Services;
 
-use App\Modules\Accounting\Models\IncentiveAdjustment;
+use App\Modules\Accounting\Models\IncentiveItem;
 use App\Modules\Accounting\Models\IncentivePeriod;
 use App\Modules\Accounting\Models\IncentiveRule;
-use App\Modules\Accounting\Support\Chart;
 use App\Modules\Identity\Models\User;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Models\SaleItem;
+use App\Modules\Sales\Models\SaleReturnItem;
+use App\Modules\Sales\Models\WarrantyCase;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Insentif berkala (paritas Artesis). Basis perhitungan:
- * penjualan AKTIF dengan cashier_id = penerima, di cabang
- * periode, sale_date dalam rentang. Aturan produk menilai item
- * produk itu (persen × Σ line_total; flat × qty); aturan umum
- * menilai seluruh penjualan penerima (persen × Σ total; flat
- * × jumlah transaksi). Alur: draft → approved (Owner/Admin,
- * jurnal Dr Beban Insentif 5-1800 / Cr Utang Insentif 2-1600)
- * → paid (Dr Utang Insentif / Cr Kas/Bank). Penyesuaian hanya
- * saat draft.
+ * Insentif berkala — mesin Artesis IncentiveService, idiom
+ * Lentera. Prinsip yang dipertahankan persis:
+ * - Hanya penjualan LUNAS (status aktif + paid ≥ total) dengan
+ *   kasir berperan Cabang/Admin yang dinilai.
+ * - Baris per SaleItem: basis = line_total item (final sesudah
+ *   diskon item); persen × basis, flat × qty.
+ * - Setiap penjualan juga melahirkan baris KEPALA OPTIK bagi
+ *   Admin aktif TUNGGAL di cabang transaksi (fail-closed bila
+ *   0 atau >1; dilewati bila admin itu sendiri penjualnya).
+ * - Rule: override produk menang atas kolektif; urutan
+ *   effective_from terbaru lalu id terbaru. Tanpa rule → baris
+ *   cancelled ber-alasan, dan approve MENOLAK periode yang
+ *   memiliki baris cancelled karena rule.
+ * - Retur parsial menyusutkan basis pro-rata; retur penuh /
+ *   kasus garansi membatalkan baris penjual (tanpa baris admin).
+ * - TIDAK ADA jurnal akuntansi untuk insentif (approve/paid
+ *   hanya perubahan status).
  */
 class IncentiveService
 {
-    public const PAY_METHODS = ['cash', 'transfer'];
+    /** @var list<string> */
+    public const ELIGIBLE_ROLES = ['Cabang', 'Admin'];
+
+    public const REASON_NO_RULE = 'Rule insentif aktif tidak ditemukan untuk role atau tanggal transaksi.';
+
+    public const REASON_WARRANTY = 'Transaksi memiliki kasus warranty.';
+
+    public const REASON_RETURN = 'Transaksi memiliki retur pelanggan.';
 
     public function __construct(
-        private readonly PostingService $posting,
         private readonly AuditLogger $audit,
     ) {}
 
@@ -50,196 +67,332 @@ class IncentiveService
     }
 
     /**
-     * Hasilkan periode draft untuk semua penerima yang punya
-     * transaksi pada rentang. Mengembalikan [created, skipped].
+     * Hasilkan (atau hitung ulang) periode draft untuk satu bulan
+     * kalender (format Y-m). scope_key mengikuti Artesis:
+     * branch_{id}_user_{id} | user_{id} | branch_{id} | all.
      */
-    public function generate(User $actor, int $branchId, string $start, string $end): array
+    public function generate(User $actor, ?int $branchId, string $month, ?int $recipientUserId): IncentivePeriod
     {
-        if ($end < $start) {
-            throw ValidationException::withMessages(['period_end' => __('ui.incentives.invalid_range')]);
+        $start = CarbonImmutable::createFromFormat('!Y-m', $month);
+        if ($start === false) {
+            throw ValidationException::withMessages(['month' => __('ui.incentives.invalid_month')]);
         }
-        $rules = IncentiveRule::where('is_active', true)
-            ->whereDate('effective_from', '<=', $end)
-            ->where(fn ($q) => $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', $start))
-            ->get();
-        if ($rules->isEmpty()) {
-            throw ValidationException::withMessages(['period_start' => __('ui.incentives.no_rules')]);
-        }
-        $roles = $rules->pluck('recipient_role')->unique()->all();
-        $recipients = User::where('is_active', true)
-            ->whereHas('branches', fn ($q) => $q->whereKey($branchId))
-            ->whereHas('roles', fn ($q) => $q->whereIn('name', $roles))
-            ->with('roles')
-            ->get();
+        $from = $start->startOfMonth();
+        $to = $start->endOfMonth();
 
-        $created = 0;
-        $skipped = 0;
-        foreach ($recipients as $recipient) {
-            $exists = IncentivePeriod::where('period_start', $start)
-                ->where('period_end', $end)
-                ->where('branch_id', $branchId)
-                ->where('recipient_user_id', $recipient->id)
-                ->exists();
-            if ($exists) {
-                $skipped++;
+        $scopeKey = match (true) {
+            $branchId !== null && $recipientUserId !== null => 'branch_'.$branchId.'_user_'.$recipientUserId,
+            $recipientUserId !== null => 'user_'.$recipientUserId,
+            $branchId !== null => 'branch_'.$branchId,
+            default => 'all',
+        };
 
-                continue;
-            }
-            $roleNames = $recipient->roles->pluck('name')->all();
-            $matching = $rules->whereIn('recipient_role', $roleNames);
-            if ($matching->isEmpty()) {
-                continue;
-            }
-            $sales = Sale::where('cashier_id', $recipient->id)
-                ->where('branch_id', $branchId)
-                ->where('status', 'active')
-                ->whereBetween('sale_date', [$start, $end])
-                ->with('items')
-                ->get();
-            if ($sales->isEmpty()) {
-                continue;
-            }
-
-            DB::transaction(function () use ($actor, $branchId, $start, $end, $recipient, $matching, $sales, &$created) {
-                $transactionTotal = Money::zero();
-                foreach ($sales as $sale) {
-                    $transactionTotal = $transactionTotal->add(Money::fromDecimal((string) $sale->total_amount));
-                }
-                $period = IncentivePeriod::create([
-                    'period_start' => $start, 'period_end' => $end,
-                    'branch_id' => $branchId, 'recipient_user_id' => $recipient->id,
+        return DB::transaction(function () use ($actor, $branchId, $recipientUserId, $from, $to, $scopeKey) {
+            $period = IncentivePeriod::firstOrCreate(
+                [
+                    'period_start' => $from->toDateString(),
+                    'period_end' => $to->toDateString(),
+                    'scope_key' => $scopeKey,
+                ],
+                [
+                    'branch_id' => $branchId,
+                    'recipient_user_id' => $recipientUserId,
                     'status' => 'draft',
-                    'transaction_total' => $transactionTotal->toDecimalString(),
-                    'incentive_total' => '0.00',
                     'generated_by' => $actor->id,
-                ]);
-                $total = Money::zero();
-                foreach ($matching as $rule) {
-                    [$basis, $qty] = $this->basisFor($rule, $sales);
-                    $amount = $rule->calculation_type === 'percent'
-                        ? $basis->percent((string) $rule->value)
-                        : Money::fromDecimal((string) $rule->value)->mul($rule->product_id !== null ? $qty : $sales->count());
-                    $period->items()->create([
-                        'incentive_rule_id' => $rule->id,
-                        'product_id' => $rule->product_id,
-                        'basis_amount' => $basis->toDecimalString(),
-                        'basis_qty' => $qty,
-                        'amount' => $amount->toDecimalString(),
-                    ]);
-                    $total = $total->add($amount);
-                }
-                $period->update(['incentive_total' => $total->toDecimalString()]);
-                $created++;
-            });
-        }
-
-        return [$created, $skipped];
-    }
-
-    /** @return array{0: Money, 1: int} basis & qty untuk satu aturan. */
-    private function basisFor(IncentiveRule $rule, $sales): array
-    {
-        if ($rule->product_id === null) {
-            $basis = Money::zero();
-            foreach ($sales as $sale) {
-                $basis = $basis->add(Money::fromDecimal((string) $sale->total_amount));
-            }
-
-            return [$basis, $sales->count()];
-        }
-        $basis = Money::zero();
-        $qty = 0;
-        foreach ($sales as $sale) {
-            foreach ($sale->items as $item) {
-                if ($item->product_id === $rule->product_id) {
-                    $basis = $basis->add(Money::fromDecimal((string) $item->line_total));
-                    $qty += (int) $item->qty;
-                }
-            }
-        }
-
-        return [$basis, $qty];
-    }
-
-    public function addAdjustment(User $actor, IncentivePeriod $period, string $amount, string $reason): IncentiveAdjustment
-    {
-        return DB::transaction(function () use ($actor, $period, $amount, $reason) {
+                ],
+            );
             $period = IncentivePeriod::lockForUpdate()->findOrFail($period->id);
-            if (! $period->isDraft()) {
-                throw ValidationException::withMessages(['amount' => __('ui.incentives.adjustment_locked')]);
-            }
-            $value = Money::fromDecimal($amount);
-            if ($value->isZero()) {
-                throw ValidationException::withMessages(['amount' => __('ui.incentives.adjustment_zero')]);
-            }
-            $adjustment = $period->adjustments()->create([
-                'amount' => $value->toDecimalString(),
-                'reason' => $reason,
-                'created_by' => $actor->id,
-            ]);
-            $this->recompute($period);
+            $this->ensureDraft($period);
+            $this->rebuildDraft($period, $actor->id);
+            $this->audit->log(action: 'incentive.generated', subjectType: IncentivePeriod::class, subjectId: $period->id, newValues: ['scope_key' => $scopeKey, 'incentive_total' => (string) $period->incentive_total], actor: $actor);
 
-            return $adjustment;
+            return $period->fresh(['branch', 'recipient', 'items', 'adjustments']);
         });
     }
 
-    private function recompute(IncentivePeriod $period): void
-    {
-        $total = Money::zero();
-        foreach ($period->items()->get() as $item) {
-            $total = $total->add(Money::fromDecimal((string) $item->amount));
-        }
-        foreach ($period->adjustments()->get() as $adjustment) {
-            $total = $total->add(Money::fromDecimal((string) $adjustment->amount));
-        }
-        if ($total->isNegative()) {
-            throw ValidationException::withMessages(['amount' => __('ui.incentives.total_negative')]);
-        }
-        $period->update(['incentive_total' => $total->toDecimalString()]);
-    }
-
+    /**
+     * Setujui periode: hitung ulang draft terlebih dahulu, lalu
+     * TOLAK bila masih ada baris cancelled karena rule tidak
+     * ditemukan. Tanpa jurnal (paritas Artesis).
+     */
     public function approve(User $actor, IncentivePeriod $period): IncentivePeriod
     {
-        if (! $actor->hasRole('Owner') && ! $actor->hasRole('Admin')) {
-            throw ValidationException::withMessages(['status' => __('ui.incentives.approve_forbidden')]);
-        }
-
         return DB::transaction(function () use ($actor, $period) {
             $period = IncentivePeriod::lockForUpdate()->findOrFail($period->id);
-            if (! $period->isDraft()) {
-                throw ValidationException::withMessages(['status' => __('ui.incentives.not_draft')]);
-            }
-            $total = Money::fromDecimal((string) $period->incentive_total);
-            if (! $total->isPositive()) {
-                throw ValidationException::withMessages(['status' => __('ui.incentives.total_zero')]);
-            }
-            $this->posting->post('incentive_period', $period->id, now(), [
-                ['account' => Chart::BEBAN_INSENTIF, 'branch_id' => $period->branch_id, 'debit' => $total->toDecimalString(), 'memo' => 'Insentif '.$period->period_start->format('Y-m-d')],
-                ['account' => Chart::UTANG_INSENTIF, 'branch_id' => $period->branch_id, 'credit' => $total->toDecimalString(), 'memo' => 'Insentif '.$period->period_start->format('Y-m-d')],
-            ], 'Persetujuan insentif periode '.$period->period_start->format('d/m/Y').'–'.$period->period_end->format('d/m/Y'), $actor);
-            $period->update(['status' => 'approved', 'approved_by' => $actor->id, 'approved_at' => now()]);
-            $this->audit->log(action: 'incentive.approved', subjectType: IncentivePeriod::class, subjectId: $period->id, newValues: ['total' => $total->toDecimalString()], branchId: $period->branch_id, actor: $actor);
+            $this->ensureDraft($period);
+            $this->rebuildDraft($period, $actor->id);
 
-            return $period;
+            $blocked = $period->items()
+                ->where('status', IncentiveItem::STATUS_CANCELLED)
+                ->where('cancellation_reason', 'like', 'Rule insentif%')
+                ->exists();
+            if ($blocked) {
+                throw ValidationException::withMessages(['period' => __('ui.incentives.approve_blocked_no_rule')]);
+            }
+
+            $period->update([
+                'status' => 'approved',
+                'approved_by' => $actor->id,
+                'approved_at' => now(),
+            ]);
+            $this->audit->log(action: 'incentive.approved', subjectType: IncentivePeriod::class, subjectId: $period->id, newValues: ['incentive_total' => (string) $period->incentive_total], actor: $actor);
+
+            return $period->fresh();
         });
     }
 
-    public function pay(User $actor, IncentivePeriod $period, string $method): IncentivePeriod
+    /** Tandai dibayar — perubahan status saja, tanpa jurnal. */
+    public function markPaid(User $actor, IncentivePeriod $period): IncentivePeriod
     {
-        return DB::transaction(function () use ($actor, $period, $method) {
-            $period = IncentivePeriod::lockForUpdate()->findOrFail($period->id);
-            if ($period->status !== 'approved') {
-                throw ValidationException::withMessages(['status' => __('ui.incentives.not_approved')]);
-            }
-            $total = Money::fromDecimal((string) $period->incentive_total);
-            $this->posting->post('incentive_payment', $period->id, now(), [
-                ['account' => Chart::UTANG_INSENTIF, 'branch_id' => $period->branch_id, 'debit' => $total->toDecimalString(), 'memo' => 'Insentif dibayar'],
-                ['account' => Chart::tenderAccount($method), 'branch_id' => $period->branch_id, 'credit' => $total->toDecimalString(), 'memo' => 'Insentif dibayar'],
-            ], 'Pembayaran insentif periode '.$period->period_start->format('d/m/Y').'–'.$period->period_end->format('d/m/Y'), $actor);
-            $period->update(['status' => 'paid', 'paid_by' => $actor->id, 'paid_at' => now(), 'pay_method' => $method]);
-            $this->audit->log(action: 'incentive.paid', subjectType: IncentivePeriod::class, subjectId: $period->id, newValues: ['total' => $total->toDecimalString(), 'method' => $method], branchId: $period->branch_id, actor: $actor);
+        if ($period->status !== 'approved') {
+            throw ValidationException::withMessages(['period' => __('ui.incentives.paid_requires_approved')]);
+        }
+        $period->update([
+            'status' => 'paid',
+            'paid_by' => $actor->id,
+            'paid_at' => now(),
+        ]);
+        $this->audit->log(action: 'incentive.paid', subjectType: IncentivePeriod::class, subjectId: $period->id, newValues: ['net_total' => $period->netTotal()->toDecimalString()], actor: $actor);
 
-            return $period;
+        return $period->fresh();
+    }
+
+    // ----------------------------------------------------------------
+
+    private function rebuildDraft(IncentivePeriod $period, int $userId): void
+    {
+        $period->items()->delete();
+        $affected = $this->affectedSales();
+        $transactionTotal = Money::zero();
+        $incentiveTotal = Money::zero();
+
+        $sales = Sale::query()
+            ->with(['cashier.roles', 'items'])
+            ->where('status', 'active')
+            ->whereColumn('paid_amount', '>=', 'total_amount')
+            ->whereBetween('sale_date', [$period->period_start->toDateString(), $period->period_end->toDateString()])
+            ->when($period->branch_id !== null, fn ($q) => $q->where('branch_id', $period->branch_id))
+            ->when($period->recipient_user_id !== null, fn ($q) => $q->where('cashier_id', $period->recipient_user_id))
+            ->orderBy('id')
+            ->get();
+
+        foreach ($sales as $sale) {
+            $seller = $sale->cashier;
+            $role = $seller !== null ? $this->eligibleRole($seller) : null;
+            if ($role === null) {
+                continue; // Penjual bukan Cabang/Admin — penjualan dilewati seluruhnya.
+            }
+            $saleItems = $sale->items->sortBy('id')->values();
+            $saleTransaction = Money::fromDecimal((string) $sale->total_amount);
+            $saleAffected = $affected[$sale->id] ?? null;
+            $isWarranty = $saleAffected !== null && str_contains($saleAffected['reason'], 'warranty');
+            $itemReturns = $saleAffected['item_returns'] ?? [];
+
+            // Baris penjual: satu per SaleItem.
+            foreach ($saleItems as $item) {
+                $originalFinal = Money::fromDecimal((string) $item->line_total);
+                $transactionTotal = $transactionTotal->add($originalFinal);
+                $returnedQty = (int) ($itemReturns[$item->id] ?? 0);
+
+                if ($isWarranty || $returnedQty >= (int) $item->qty) {
+                    $this->createRow($period, $sale, $item, $seller->id, $role, $saleTransaction, null, Money::zero(), IncentiveItem::STATUS_CANCELLED,
+                        $isWarranty ? self::REASON_WARRANTY : ($saleAffected['reason'] ?? self::REASON_RETURN));
+
+                    continue;
+                }
+
+                [$remainingQty, $remainingFinal] = $this->remainingBasis($item, $returnedQty);
+                $rule = $this->activeRule($role, (string) $sale->sale_date, $item->product_id);
+                if ($rule === null) {
+                    $this->createRow($period, $sale, $item, $seller->id, $role, $saleTransaction, null, Money::zero(), IncentiveItem::STATUS_CANCELLED, self::REASON_NO_RULE, $remainingQty, $remainingFinal);
+
+                    continue;
+                }
+                $amount = $this->calculate($rule, $remainingFinal, $remainingQty);
+                $this->createRow($period, $sale, $item, $seller->id, $role, $saleTransaction, $rule, $amount, IncentiveItem::STATUS_ELIGIBLE, null, $remainingQty, $remainingFinal);
+                $incentiveTotal = $incentiveTotal->add($amount);
+            }
+
+            // Baris kepala optik: Admin aktif tunggal cabang (fail-closed).
+            $admin = $this->resolveAdminRecipient((int) $sale->branch_id);
+            if ($saleItems->isNotEmpty() && (int) $admin->id !== (int) $seller->id) {
+                foreach ($saleItems as $item) {
+                    $returnedQty = (int) ($itemReturns[$item->id] ?? 0);
+                    if ($isWarranty || $returnedQty >= (int) $item->qty) {
+                        continue; // Retur penuh/garansi: hanya baris penjual yang cancelled.
+                    }
+                    [$remainingQty, $remainingFinal] = $this->remainingBasis($item, $returnedQty);
+                    $rule = $this->activeRule('Admin', (string) $sale->sale_date, $item->product_id);
+                    if ($rule === null) {
+                        $this->createRow($period, $sale, $item, $admin->id, 'Admin', $saleTransaction, null, Money::zero(), IncentiveItem::STATUS_CANCELLED, self::REASON_NO_RULE, $remainingQty, $remainingFinal);
+
+                        continue;
+                    }
+                    $amount = $this->calculate($rule, $remainingFinal, $remainingQty);
+                    $this->createRow($period, $sale, $item, $admin->id, 'Admin', $saleTransaction, $rule, $amount, IncentiveItem::STATUS_ELIGIBLE, null, $remainingQty, $remainingFinal);
+                    $incentiveTotal = $incentiveTotal->add($amount);
+                }
+            }
+        }
+
+        $period->update([
+            'generated_by' => $userId,
+            'transaction_total' => $transactionTotal->toDecimalString(),
+            'incentive_total' => $incentiveTotal->toDecimalString(),
+        ]);
+    }
+
+    private function createRow(
+        IncentivePeriod $period, Sale $sale, SaleItem $item, int $recipientId, string $recipientRole,
+        Money $saleTransaction, ?IncentiveRule $rule, Money $amount, string $status, ?string $reason,
+        ?int $quantity = null, ?Money $itemFinal = null,
+    ): void {
+        $qty = $quantity ?? (int) $item->qty;
+        $final = $itemFinal ?? Money::fromDecimal((string) $item->line_total);
+        IncentiveItem::create([
+            'incentive_period_id' => $period->id,
+            'sale_id' => $sale->id,
+            'sale_item_id' => $item->id,
+            'product_id' => $item->product_id,
+            'product_name' => $item->product_name_snapshot,
+            'recipient_user_id' => $recipientId,
+            'recipient_role' => $recipientRole,
+            'incentive_rule_id' => $rule?->id,
+            'calculation_type' => $rule?->calculation_type,
+            'rule_value' => $rule !== null ? (string) $rule->value : '0',
+            'quantity' => $qty,
+            'item_subtotal' => Money::fromDecimal((string) $item->unit_price)->mul((int) $item->qty)->toDecimalString(),
+            'item_final_amount' => $final->toDecimalString(),
+            'transaction_amount' => $saleTransaction->toDecimalString(),
+            'incentive_amount' => $amount->toDecimalString(),
+            'status' => $status,
+            'cancellation_reason' => $reason,
+        ]);
+    }
+
+    /** Peran layak pertama pengguna (Cabang diutamakan), atau null. */
+    private function eligibleRole(User $user): ?string
+    {
+        $names = $user->roles->pluck('name')->all();
+        foreach (self::ELIGIBLE_ROLES as $role) {
+            if (in_array($role, $names, true)) {
+                return $role;
+            }
+        }
+
+        return null;
+    }
+
+    public function activeRule(string $role, string $saleDate, ?int $productId = null): ?IncentiveRule
+    {
+        $base = IncentiveRule::query()
+            ->where('recipient_role', $role)
+            ->where('is_active', true)
+            ->whereDate('effective_from', '<=', $saleDate)
+            ->where(fn ($q) => $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', $saleDate))
+            ->orderByDesc('effective_from')
+            ->orderByDesc('id');
+
+        if ($productId !== null) {
+            $override = (clone $base)->where('product_id', $productId)->first();
+            if ($override !== null) {
+                return $override;
+            }
+        }
+
+        return (clone $base)->whereNull('product_id')->first();
+    }
+
+    private function calculate(IncentiveRule $rule, Money $itemFinal, int $quantity): Money
+    {
+        if ($rule->calculation_type === 'percent') {
+            return $itemFinal->percent((string) $rule->value);
+        }
+
+        return Money::fromDecimal((string) $rule->value)->mul($quantity);
+    }
+
+    /**
+     * Basis sisa sesudah retur parsial (pro-rata Artesis):
+     * Q_rem = Q_orig − Q_ret; F_rem = F_orig × Q_rem / Q_orig
+     * (pembulatan half-up ke sen terdekat, aritmetika integer).
+     *
+     * @return array{0: int, 1: Money}
+     */
+    private function remainingBasis(SaleItem $item, int $returnedQty): array
+    {
+        $originalQty = (int) $item->qty;
+        $originalFinal = Money::fromDecimal((string) $item->line_total);
+        if ($returnedQty <= 0 || $originalQty < 1) {
+            return [$originalQty, $originalFinal];
+        }
+        $remainingQty = max(0, min($originalQty - $returnedQty, $originalQty));
+        $cents = $originalFinal->cents() * $remainingQty;
+        $quotient = intdiv($cents, $originalQty);
+        $remainder = $cents % $originalQty;
+        if (abs($remainder) * 2 >= $originalQty) {
+            $quotient += $cents >= 0 ? 1 : -1;
+        }
+
+        return [$remainingQty, Money::of($quotient)];
+    }
+
+    /**
+     * Peta penjualan terdampak: retur per item (qty teragregasi)
+     * dan kasus garansi (menyeluruh per penjualan).
+     *
+     * @return array<int, array{reason: string, item_returns: array<int, int>}>
+     */
+    private function affectedSales(): array
+    {
+        $affected = [];
+        SaleReturnItem::query()
+            ->join('sale_returns', 'sale_returns.id', '=', 'sale_return_items.sale_return_id')
+            ->selectRaw('sale_returns.sale_id as sale_id, sale_return_items.sale_item_id as sale_item_id, SUM(sale_return_items.qty) as total_qty')
+            ->groupBy('sale_returns.sale_id', 'sale_return_items.sale_item_id')
+            ->get()
+            ->each(function ($row) use (&$affected): void {
+                $saleId = (int) $row->sale_id;
+                $affected[$saleId] ??= ['reason' => self::REASON_RETURN, 'item_returns' => []];
+                $affected[$saleId]['item_returns'][(int) $row->sale_item_id] = (int) $row->total_qty;
+            });
+
+        WarrantyCase::query()->pluck('sale_id')->each(function ($saleId) use (&$affected): void {
+            $saleId = (int) $saleId;
+            $affected[$saleId] ??= ['reason' => self::REASON_WARRANTY, 'item_returns' => []];
+            $affected[$saleId]['reason'] = self::REASON_WARRANTY;
         });
+
+        return $affected;
+    }
+
+    /**
+     * Admin aktif TUNGGAL di cabang — fail-closed (paritas
+     * Artesis resolveAdminRecipient, cabang via pivot branches).
+     */
+    private function resolveAdminRecipient(int $branchId): User
+    {
+        $candidates = User::query()
+            ->where('is_active', true)
+            ->whereHas('roles', fn ($q) => $q->where('name', 'Admin'))
+            ->whereHas('branches', fn ($q) => $q->whereKey($branchId))
+            ->orderBy('id')
+            ->get();
+
+        if ($candidates->count() === 0) {
+            throw ValidationException::withMessages(['incentive' => __('ui.incentives.admin_not_found')]);
+        }
+        if ($candidates->count() > 1) {
+            throw ValidationException::withMessages(['incentive' => __('ui.incentives.admin_ambiguous')]);
+        }
+
+        return $candidates->first();
+    }
+
+    private function ensureDraft(IncentivePeriod $period): void
+    {
+        if ($period->status !== 'draft') {
+            throw ValidationException::withMessages(['incentive' => __('ui.incentives.not_draft')]);
+        }
     }
 }

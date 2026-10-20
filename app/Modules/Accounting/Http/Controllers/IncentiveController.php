@@ -8,17 +8,21 @@ use App\Modules\Accounting\Models\IncentiveRule;
 use App\Modules\Accounting\Services\IncentiveService;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\Role;
+use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
+use App\Support\XlsxWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Insentif berkala: aturan + periode (generate → penyesuaian →
- * setujui → bayar). Sepagar payroll.manage; pagar cabang lewat
- * BranchContext. Persetujuan di service dibatasi Owner/Admin.
+ * Insentif berkala (paritas Artesis IncentiveController): aturan,
+ * generate periode per bulan kalender, detail, setujui, tandai
+ * dibayar, ekspor Excel per periode. Sepagar payroll.manage;
+ * pagar cabang lewat BranchContext.
  */
 class IncentiveController extends Controller
 {
@@ -36,6 +40,9 @@ class IncentiveController extends Controller
             'branches' => Branch::where('is_active', true)->orderBy('name')->get(),
             'roles' => Role::orderBy('name')->pluck('name'),
             'products' => Product::where('is_active', true)->orderBy('name')->get(['id', 'sku', 'name']),
+            'recipients' => User::where('is_active', true)
+                ->whereHas('roles', fn ($q) => $q->whereIn('name', IncentiveService::ELIGIBLE_ROLES))
+                ->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -65,48 +72,51 @@ class IncentiveController extends Controller
     public function generate(Request $request, IncentiveService $service): RedirectResponse
     {
         $validated = $request->validate([
+            'month' => ['required', 'date_format:Y-m'],
             'branch_id' => ['required', Rule::exists('branches', 'id')],
-            'period_start' => ['required', 'date'],
-            'period_end' => ['required', 'date'],
+            'user_id' => ['nullable', Rule::exists('users', 'id')],
         ]);
         $context = BranchContext::for($request->user());
         $context->assertCanAccess((int) $validated['branch_id']);
-        [$created, $skipped] = $service->generate(
-            $request->user(),
-            (int) $validated['branch_id'],
-            $validated['period_start'],
-            $validated['period_end'],
-        );
 
-        return back()->with('status', __('ui.incentives.generated', ['created' => $created, 'skipped' => $skipped]));
+        $recipientId = null;
+        if (! empty($validated['user_id'])) {
+            $recipient = User::where('is_active', true)
+                ->whereHas('roles', fn ($q) => $q->whereIn('name', IncentiveService::ELIGIBLE_ROLES))
+                ->find((int) $validated['user_id']);
+            if ($recipient === null) {
+                return back()->withErrors(['user_id' => __('ui.incentives.recipient_invalid')])->withInput();
+            }
+            if (! $recipient->branches->contains((int) $validated['branch_id'])) {
+                return back()->withErrors(['user_id' => __('ui.incentives.recipient_branch_mismatch')])->withInput();
+            }
+            $recipientId = $recipient->id;
+        }
+
+        $actor = $request->user();
+        $branchId = (int) $validated['branch_id'];
+        $service->generate($actor, $branchId, $validated['month'], $recipientId);
+
+        return back()->with('status', __('ui.incentives.generated'));
     }
 
     public function show(Request $request, IncentivePeriod $period): View
     {
         $context = BranchContext::for($request->user());
-        $context->assertCanAccess($period->branch_id);
-        $period->load(['branch', 'recipient', 'generator', 'approver', 'payer', 'items.rule', 'items.product', 'adjustments.creator']);
+        if ($period->branch_id !== null) {
+            $context->assertCanAccess($period->branch_id);
+        }
+        $period->load(['branch', 'recipient', 'generator', 'approver', 'payer', 'items.recipient', 'items.rule', 'items.sale', 'adjustments.recipient']);
 
         return view('accounting.incentives.show', ['period' => $period]);
-    }
-
-    public function adjust(Request $request, IncentivePeriod $period, IncentiveService $service): RedirectResponse
-    {
-        $context = BranchContext::for($request->user());
-        $context->assertCanAccess($period->branch_id);
-        $validated = $request->validate([
-            'amount' => ['required', 'numeric'],
-            'reason' => ['required', 'string', 'max:200'],
-        ]);
-        $service->addAdjustment($request->user(), $period, (string) $validated['amount'], $validated['reason']);
-
-        return back()->with('status', __('ui.incentives.adjusted'));
     }
 
     public function approve(Request $request, IncentivePeriod $period, IncentiveService $service): RedirectResponse
     {
         $context = BranchContext::for($request->user());
-        $context->assertCanAccess($period->branch_id);
+        if ($period->branch_id !== null) {
+            $context->assertCanAccess($period->branch_id);
+        }
         $service->approve($request->user(), $period);
 
         return back()->with('status', __('ui.incentives.approved'));
@@ -115,12 +125,48 @@ class IncentiveController extends Controller
     public function pay(Request $request, IncentivePeriod $period, IncentiveService $service): RedirectResponse
     {
         $context = BranchContext::for($request->user());
-        $context->assertCanAccess($period->branch_id);
-        $validated = $request->validate([
-            'method' => ['required', Rule::in(IncentiveService::PAY_METHODS)],
-        ]);
-        $service->pay($request->user(), $period, $validated['method']);
+        if ($period->branch_id !== null) {
+            $context->assertCanAccess($period->branch_id);
+        }
+        $service->markPaid($request->user(), $period);
 
         return back()->with('status', __('ui.incentives.paid'));
+    }
+
+    /** Ekspor Excel satu periode (paritas Artesis): item + penyesuaian + neto. */
+    public function export(Request $request, IncentivePeriod $period): StreamedResponse
+    {
+        $context = BranchContext::for($request->user());
+        if ($period->branch_id !== null) {
+            $context->assertCanAccess($period->branch_id);
+        }
+        $period->load(['items.recipient', 'items.sale', 'adjustments.recipient']);
+
+        $rows = [
+            ['Penerima', 'Peran', 'Penjualan', 'Produk', 'Qty', 'Basis Item', 'Total Transaksi', 'Tipe', 'Nilai Rule', 'Insentif', 'Status', 'Alasan Batal'],
+            ...$period->items->map(fn ($i) => [
+                $i->recipient?->name, $i->recipient_role, $i->sale?->number, $i->product_name,
+                $i->quantity, (string) $i->item_final_amount, (string) $i->transaction_amount,
+                $i->calculation_type, (string) $i->rule_value, (string) $i->incentive_amount,
+                $i->status, $i->cancellation_reason,
+            ])->all(),
+            ['TOTAL ITEM', '', '', '', '', '', '', '', '', (string) $period->incentive_total, '', ''],
+        ];
+        if ($period->adjustments->isNotEmpty()) {
+            $rows[] = ['PENYESUAIAN (CLAWBACK RETUR)'];
+            $rows[] = ['Penerima', 'Peran', 'Produk', 'Qty Retur', 'Jumlah', 'Alasan'];
+            foreach ($period->adjustments as $a) {
+                $rows[] = [$a->recipient?->name, $a->recipient_role, $a->product_name, $a->returned_quantity, (string) $a->amount, $a->reason];
+            }
+            $rows[] = ['TOTAL PENYESUAIAN', '', '', '', $period->adjustmentsTotal()->toDecimalString(), ''];
+        }
+        $rows[] = ['NETO', '', '', '', '', $period->netTotal()->toDecimalString(), '', '', '', '', '', ''];
+
+        $bytes = XlsxWriter::make([['title' => 'insentif-'.$period->period_start->format('Y-m'), 'rows' => $rows]]);
+        $filename = 'insentif-'.$period->period_start->format('Y-m').'-'.$period->id.'.xlsx';
+
+        return response()->streamDownload(function () use ($bytes) {
+            echo $bytes;
+        }, $filename, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 }

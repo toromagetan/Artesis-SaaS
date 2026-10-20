@@ -192,7 +192,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/insentif/aturan/{rule}/toggle', [IncentiveController::class, 'toggleRule'])->middleware('permission:payroll.manage')->name('incentives.rules.toggle');
     Route::post('/insentif/generate', [IncentiveController::class, 'generate'])->middleware('permission:payroll.manage')->name('incentives.generate');
     Route::get('/insentif/{period}', [IncentiveController::class, 'show'])->middleware('permission:payroll.manage')->name('incentives.show');
-    Route::post('/insentif/{period}/penyesuaian', [IncentiveController::class, 'adjust'])->middleware('permission:payroll.manage')->name('incentives.adjust');
+    Route::get('/insentif/{period}/ekspor', [IncentiveController::class, 'export'])->middleware('permission:payroll.manage')->name('incentives.export');
     Route::post('/insentif/{period}/setujui', [IncentiveController::class, 'approve'])->middleware('permission:payroll.manage')->name('incentives.approve');
     Route::post('/insentif/{period}/bayar', [IncentiveController::class, 'pay'])->middleware('permission:payroll.manage')->name('incentives.pay');
     Route::get('/payroll', [PayrollController::class, 'index'])->middleware('permission:payroll.manage')->name('payroll.index');

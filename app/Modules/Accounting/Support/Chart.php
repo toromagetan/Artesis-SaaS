@@ -29,8 +29,6 @@ final class Chart
 
     public const UTANG_KOMISI = '2-1300';
 
-    public const UTANG_INSENTIF = '2-1600';
-
     public const PPN_KELUARAN = '2-1400';
 
     public const KREDIT_TOKO = '2-1500';
@@ -50,8 +48,6 @@ final class Chart
     public const BEBAN_LOYALITAS = '5-1300';
 
     public const BEBAN_KOMISI = '5-1400';
-
-    public const BEBAN_INSENTIF = '5-1800';
 
     public const BEBAN_GAJI = '5-1500';
 

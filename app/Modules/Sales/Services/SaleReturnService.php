@@ -2,6 +2,7 @@
 
 namespace App\Modules\Sales\Services;
 
+use App\Modules\Accounting\Services\IncentiveAdjustmentService;
 use App\Modules\Identity\Models\User;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Sales\Events\SaleReturned;
@@ -109,6 +110,13 @@ class SaleReturnService
                 $return->setRelation('sale', $sale);
                 app(CustomerCreditService::class)->issueFromReturn($actor, $return);
             }
+
+            // Clawback insentif otomatis (paritas Artesis): retur
+            // atas item yang sudah eligible di periode approved/
+            // paid membuat penyesuaian negatif di periode
+            // berikutnya — di transaksi yang sama, kegagalan
+            // membatalkan seluruh retur.
+            app(IncentiveAdjustmentService::class)->processReturn($return, $actor);
 
             app(AuditLogger::class)->log(
                 action: 'sales.return',
