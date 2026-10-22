@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
 use App\Modules\Purchasing\Models\PurchaseRequest;
 use App\Modules\Purchasing\Services\PurchaseRequestService;
@@ -99,6 +100,18 @@ class PurchaseRequestController extends Controller
         $this->service->approve($request->user(), $pr);
 
         return back()->with('status', __('ui.saved'));
+    }
+
+    /** Dokumen cetak PR (audit 23 Okt 2026 B4). */
+    public function print(PurchaseRequest $pr): View
+    {
+        $pr->load(['branch', 'requester', 'items.product', 'items.supplier', 'sale']);
+
+        return view('purchasing.requests.print', [
+            'pr' => $pr,
+            'storeName' => Setting::value('store.name', 'Lentera'),
+            'printedBy' => auth()->user(),
+        ]);
     }
 
     public function cancel(Request $request, PurchaseRequest $pr): RedirectResponse

@@ -9,6 +9,12 @@
                 <div class="mb-4 rounded-lg border border-lentera-200 bg-lentera-50 px-4 py-3 text-sm text-lentera-800">{{ session('status') }}</div>
             @endif
 
+            <div class="mb-4 flex justify-end">
+                <x-lentera.aksi-bar>
+                    <x-lentera.menu-item :href="route('payments.print', $payment)" target="_blank" print>{{ __('ui.print') }}</x-lentera.menu-item>
+                </x-lentera.aksi-bar>
+            </div>
+
             <div class="mb-6 rounded-lg bg-white p-6 shadow-soft">
                 <dl class="grid grid-cols-[160px_1fr] gap-y-3 text-sm">
                     <dt class="text-gray-500">{{ __('ui.purchasing.supplier') }}</dt>

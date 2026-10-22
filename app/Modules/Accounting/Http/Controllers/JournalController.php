@@ -8,6 +8,7 @@ use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Services\ManualJournalService;
 use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Master\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -45,6 +46,18 @@ class JournalController extends Controller
         $reversal = Journal::where('reversal_of_id', $journal->id)->first();
 
         return view('accounting.journals.show', compact('journal', 'reversal'));
+    }
+
+    /** Voucher jurnal tercetak (audit 23 Okt 2026 B4). */
+    public function print(Journal $journal): View
+    {
+        $journal->load(['lines.account', 'lines.branch', 'creator']);
+
+        return view('accounting.journals.print', [
+            'journal' => $journal,
+            'storeName' => Setting::value('store.name', 'Lentera'),
+            'printedBy' => auth()->user(),
+        ]);
     }
 
     public function reverse(Request $request, Journal $journal, PostingService $posting): RedirectResponse

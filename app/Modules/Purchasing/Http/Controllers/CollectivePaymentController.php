@@ -3,6 +3,7 @@
 namespace App\Modules\Purchasing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
 use App\Modules\Purchasing\Models\PurchasePayment;
 use App\Modules\Purchasing\Services\CollectivePaymentService;
@@ -71,6 +72,18 @@ class CollectivePaymentController extends Controller
 
         return redirect()->route('payments.collective.result', $payment)
             ->with('status', __('ui.saved'));
+    }
+
+    /** Kuitansi pembayaran supplier (audit 23 Okt 2026 B4). */
+    public function printPayment(PurchasePayment $payment): View
+    {
+        $payment->load(['supplier', 'allocations.receipt.purchaseOrder', 'payer']);
+
+        return view('purchasing.payments.print', [
+            'payment' => $payment,
+            'storeName' => Setting::value('store.name', 'Lentera'),
+            'printedBy' => auth()->user(),
+        ]);
     }
 
     public function result(PurchasePayment $payment): View

@@ -17,6 +17,7 @@
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('po.show', $receipt->purchaseOrder) }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }} — {{ $receipt->purchaseOrder->number }}</a>
                 <x-lentera.aksi-bar>
+                    <x-lentera.menu-item :href="route('receipts.print', $receipt)" target="_blank" print>{{ __('ui.print') }}</x-lentera.menu-item>
                     @can('payments.create')
                         @if ($receipt->paymentStatus() !== 'paid')
                             <x-lentera.menu-item :href="route('receipts.pay', $receipt)">{{ __('ui.purchasing.pay') }}</x-lentera.menu-item>
@@ -89,9 +90,14 @@
                                 <td class="px-4 py-3">{{ $allocation->payment->payment_date->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3">{{ __('ui.purchasing.methods.'.$allocation->payment->method) }}</td>
                                 <td class="px-4 py-3 tnum">{{ \App\Support\Money::fromDecimal((string) $allocation->amount)->format() }}</td>
+                                <td class="px-4 py-3">
+                                    <x-lentera.aksi-baris>
+                                        <x-lentera.menu-item :href="route('payments.print', $allocation->payment)" target="_blank" print>{{ __('ui.print') }}</x-lentera.menu-item>
+                                    </x-lentera.aksi-baris>
+                                </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4"><x-lentera.empty-state>{{ __('ui.purchasing.empty_payments') }}</x-lentera.empty-state></td></tr>
+                            <tr><td colspan="5"><x-lentera.empty-state>{{ __('ui.purchasing.empty_payments') }}</x-lentera.empty-state></td></tr>
                         @endforelse
                     </tbody>
                 </table>

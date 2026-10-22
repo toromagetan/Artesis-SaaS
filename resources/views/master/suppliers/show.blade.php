@@ -146,9 +146,14 @@
                                 <td class="px-4 py-3 text-gray-600">{{ $payment->method }}</td>
                                 <td class="px-4 py-3 text-gray-600">{{ $payment->reference ?? '—' }}</td>
                                 <td class="px-4 py-3 text-right tnum">{{ \App\Support\Money::fromDecimal((string) $payment->amount)->format() }}</td>
+                                <td class="px-4 py-3">
+                                    <x-lentera.aksi-baris>
+                                        <x-lentera.menu-item :href="route('payments.print', $payment)" target="_blank" print>{{ __('ui.print') }}</x-lentera.menu-item>
+                                    </x-lentera.aksi-baris>
+                                </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5"><x-lentera.empty-state>{{ __('ui.suppliers.no_payments') }}</x-lentera.empty-state></td></tr>
+                            <tr><td colspan="6"><x-lentera.empty-state>{{ __('ui.suppliers.no_payments') }}</x-lentera.empty-state></td></tr>
                         @endforelse
                     </tbody>
                 </table>

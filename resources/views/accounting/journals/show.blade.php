@@ -16,6 +16,10 @@
 
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('journals.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
+                <div class="flex items-center gap-2">
+                <x-lentera.aksi-bar>
+                    <x-lentera.menu-item :href="route('journals.print', $journal)" target="_blank" print>{{ __('ui.print') }}</x-lentera.menu-item>
+                </x-lentera.aksi-bar>
                 @if ($reversal === null && $journal->source_type !== 'reversal')
                     @can('journals.reverse')
                         <x-lentera.aksi-dialog danger :label="__('ui.accounting.reverse')" :title="__('ui.accounting.reverse').'?'">
@@ -31,6 +35,7 @@
                         </x-lentera.aksi-dialog>
                     @endcan
                 @endif
+                </div>
             </div>
 
             <div class="mb-6 rounded-lg bg-white p-6 shadow-soft">

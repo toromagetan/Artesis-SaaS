@@ -20,6 +20,8 @@
                     <x-lentera.aksi-bar>
                         <x-lentera.menu-item :href="route('sales.print-order', $sale)" target="_blank" print>{{ __('ui.sales.print_order') }}</x-lentera.menu-item>
                         <x-lentera.menu-item :href="route('sales.print-invoice', $sale)" target="_blank" print>{{ __('ui.sales.print_invoice') }}</x-lentera.menu-item>
+                        <x-lentera.menu-item :href="route('sales.print-receipt', $sale)" target="_blank" print>{{ __('ui.sales.print_receipt_80') }}</x-lentera.menu-item>
+                        <x-lentera.menu-item :href="route('sales.print-receipt', [$sale, 'lebar' => 58])" target="_blank" print>{{ __('ui.sales.print_receipt_58') }}</x-lentera.menu-item>
                         @if ($sale->prescription_snapshot)
                             <x-lentera.menu-item :href="route('sales.print-prescription', $sale)" target="_blank" print>{{ __('ui.sales.print_prescription') }}</x-lentera.menu-item>
                         @endif
@@ -280,6 +282,7 @@
                                 <th class="px-4 py-3 font-medium">{{ __('ui.sales.return_reason') }}</th>
                                 <th class="px-4 py-3 font-medium">{{ __('ui.sales.refund_method') }}</th>
                                 <th class="px-4 py-3 font-medium">{{ __('ui.sales.total') }}</th>
+                                <th class="px-4 py-3"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -290,6 +293,11 @@
                                     <td class="px-4 py-3">{{ $return->reason }}</td>
                                     <td class="px-4 py-3">{{ __('ui.sales.refund_methods.'.$return->refund_method) }}</td>
                                     <td class="px-4 py-3 tnum">{{ \App\Support\Money::fromDecimal((string) $return->total_amount)->format() }}</td>
+                                    <td class="px-4 py-3">
+                                        <x-lentera.aksi-baris>
+                                            <x-lentera.menu-item :href="route('sales.returns.print', $return)" target="_blank" print>{{ __('ui.sales.print_return') }}</x-lentera.menu-item>
+                                        </x-lentera.aksi-baris>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>

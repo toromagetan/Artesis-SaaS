@@ -123,6 +123,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/pembelian/po/{po}/terima', [PurchaseOrderController::class, 'receiveForm'])->middleware('permission:receipts.create')->name('po.receive');
     Route::post('/pembelian/po/{po}/terima', [PurchaseOrderController::class, 'storeReceipt'])->middleware('permission:receipts.create')->name('po.receive.store');
     Route::get('/pembelian/po/{po}/cetak', [PurchaseOrderController::class, 'print'])->middleware('permission:po.view')->name('po.print');
+    Route::get('/pembelian/pr/{pr}/cetak', [PurchaseRequestController::class, 'print'])->middleware('permission:pr.view')->name('pr.print');
+    Route::get('/pembelian/penerimaan/{receipt}/cetak', [ReceiptController::class, 'print'])->middleware('permission:po.view')->name('receipts.print');
+    Route::get('/pembelian/pembayaran/{payment}/cetak', [CollectivePaymentController::class, 'printPayment'])->middleware('permission:po.view')->name('payments.print');
 
     Route::get('/pembelian/penerimaan/{receipt}', [ReceiptController::class, 'show'])->middleware('permission:po.view')->name('receipts.show');
     Route::get('/pembelian/penerimaan/{receipt}/bayar', [ReceiptController::class, 'payForm'])->middleware('permission:payments.create')->name('receipts.pay');
@@ -208,6 +211,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/komisi/posting', [CommissionController::class, 'post'])->middleware('permission:payroll.manage')->name('commissions.post');
     Route::post('/komisi/bayar', [CommissionController::class, 'pay'])->middleware('permission:payroll.manage')->name('commissions.pay');
     Route::get('/jurnal/{journal}', [JournalController::class, 'show'])->middleware('permission:journals.view')->name('journals.show');
+    Route::get('/jurnal/{journal}/cetak', [JournalController::class, 'print'])->middleware('permission:journals.view')->name('journals.print');
     Route::post('/jurnal/{journal}/balik', [JournalController::class, 'reverse'])->middleware('permission:journals.reverse')->name('journals.reverse');
     Route::get('/akun', [AccountController::class, 'index'])->middleware('permission:accounts.view')->name('accounts.index');
     Route::get('/akun/buat', [AccountController::class, 'create'])->middleware('permission:accounts.manage')->name('accounts.create');
@@ -268,6 +272,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/penjualan/{sale}/cetak/orderan', [SaleController::class, 'printOrder'])->middleware('permission:sales.view')->name('sales.print-order');
     Route::get('/penjualan/{sale}/cetak/invoice', [SaleController::class, 'printInvoice'])->middleware('permission:sales.view')->name('sales.print-invoice');
     Route::get('/penjualan/{sale}/cetak/resep', [SaleController::class, 'printPrescription'])->middleware('permission:sales.view')->name('sales.print-prescription');
+    Route::get('/penjualan/{sale}/cetak/struk', [SaleController::class, 'printReceipt'])->middleware('permission:sales.view')->name('sales.print-receipt');
+    Route::get('/penjualan/retur/{return}/cetak', [SaleController::class, 'printReturn'])->middleware('permission:sales.view')->name('sales.returns.print');
 
     // ---- Pelanggan & Resep (M.2) ----
     Route::get('/pelanggan', [CustomerController::class, 'index'])->middleware('permission:customers.view')->name('customers.index');

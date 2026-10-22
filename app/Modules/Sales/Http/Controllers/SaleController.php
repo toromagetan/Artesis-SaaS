@@ -15,6 +15,7 @@ use App\Modules\Master\Models\Setting;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleItem;
 use App\Modules\Sales\Models\SalePayment;
+use App\Modules\Sales\Models\SaleReturn;
 use App\Modules\Sales\Services\InstallmentService;
 use App\Modules\Sales\Services\SaleReturnService;
 use App\Modules\Sales\Services\SalesService;
@@ -393,6 +394,31 @@ class SaleController extends Controller
         return view('sales.print-invoice', [
             'sale' => $sale,
             'storeName' => Setting::value('store.name', 'Lentera'),
+        ]);
+    }
+
+    /** Struk termal 58/80mm (Blueprint E.5; audit 23 Okt 2026 B3). */
+    public function printReceipt(Request $request, Sale $sale): View
+    {
+        $width = $request->integer('lebar') === 58 ? 58 : 80;
+        $sale->load(['customer', 'branch', 'cashier', 'items', 'payments']);
+
+        return view('sales.print-receipt', [
+            'sale' => $sale,
+            'width' => $width,
+            'printedBy' => $request->user(),
+        ]);
+    }
+
+    /** Nota retur penjualan (audit 23 Okt 2026 B4). */
+    public function printReturn(SaleReturn $return): View
+    {
+        $return->load(['sale.customer', 'sale.branch', 'items', 'creator']);
+
+        return view('sales.print-return', [
+            'return' => $return,
+            'storeName' => Setting::value('store.name', 'Lentera'),
+            'printedBy' => auth()->user(),
         ]);
     }
 

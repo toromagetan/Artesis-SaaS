@@ -4,6 +4,7 @@ namespace App\Modules\Purchasing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Master\Models\Setting;
 use App\Modules\Purchasing\Models\PurchasePayment;
 use App\Modules\Purchasing\Models\Receipt;
 use App\Modules\Purchasing\Services\PurchasePaymentService;
@@ -34,6 +35,19 @@ class ReceiptController extends Controller
         ]);
 
         return view('purchasing.receipts.show', compact('receipt'));
+    }
+
+    /** Bukti penerimaan barang / GRN (audit 23 Okt 2026 B4). */
+    public function print(Receipt $receipt): View
+    {
+        $this->assertVisible($receipt);
+        $receipt->load(['purchaseOrder.supplier', 'purchaseOrder.branch', 'items.purchaseOrderItem.product', 'receiver']);
+
+        return view('purchasing.receipts.print', [
+            'receipt' => $receipt,
+            'storeName' => Setting::value('store.name', 'Lentera'),
+            'printedBy' => auth()->user(),
+        ]);
     }
 
     public function payForm(Receipt $receipt): View
