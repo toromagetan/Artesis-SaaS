@@ -21,18 +21,18 @@
     @endif
     <td class="px-4 py-3"><x-lentera.badge :active="$product->is_active" /></td>
     <td class="px-4 py-3 text-right">
-        <x-lentera.row-actions>
-            <x-lentera.menu-item :href="route('products.show', $product)">{{ __('ui.products.detail') }}</x-lentera.menu-item>
+        <x-lentera.aksi-baris>
+            <x-lentera.menu-item :href="route('products.show', $product)" sm>{{ __('ui.products.detail') }}</x-lentera.menu-item>
             @can('products.update')
-                <x-lentera.menu-item :href="route('products.edit', $product)">{{ __('ui.edit') }}</x-lentera.menu-item>
+                <x-lentera.menu-item :href="route('products.edit', $product)" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
             @endcan
             @can('products.deactivate')
-                <div class="my-1 border-t border-gray-100"></div>
+
                 <form method="POST" action="{{ route('products.toggle-active', $product) }}">
                     @csrf
-                    <button type="submit" class="block w-full px-4 py-2 text-left text-sm transition duration-150 hover:bg-lentera-50 {{ $product->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $product->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $product->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $product->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
                 </form>
             @endcan
-        </x-lentera.row-actions>
+        </x-lentera.aksi-baris>
     </td>
 </tr>

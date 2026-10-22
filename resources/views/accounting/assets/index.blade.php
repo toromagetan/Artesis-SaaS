@@ -7,13 +7,13 @@
         <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div class="mb-4 flex items-center justify-between">
                 <span class="text-sm text-gray-500">{{ $assets->count() }} {{ __('ui.assets.title') }}</span>
-                <x-lentera.dropdown-aksi>
-                    <x-lentera.menu-item :href="route('assets.create')">{{ __('ui.assets.create') }}</x-lentera.menu-item>
+                <x-lentera.aksi-bar>
+                    <x-lentera.menu-item :href="route('assets.create')" primary>{{ __('ui.assets.create') }}</x-lentera.menu-item>
                     <form method="POST" action="{{ route('assets.depreciate') }}">
                         @csrf
-                        <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">{{ __('ui.assets.run_depreciation') }}</button>
+                        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.assets.run_depreciation') }}</button>
                     </form>
-                </x-lentera.dropdown-aksi>
+                </x-lentera.aksi-bar>
             </div>
 
             <div class="overflow-hidden rounded-lg bg-white shadow-soft">
@@ -47,9 +47,9 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
-                                        <x-lentera.menu-item :href="route('assets.show', $asset)">{{ __('ui.detail') }}</x-lentera.menu-item>
-                                    </x-lentera.row-actions>
+                                    <x-lentera.aksi-baris>
+                                        <x-lentera.menu-item :href="route('assets.show', $asset)" sm>{{ __('ui.detail') }}</x-lentera.menu-item>
+                                    </x-lentera.aksi-baris>
                                 </td>
                             </tr>
                         @empty

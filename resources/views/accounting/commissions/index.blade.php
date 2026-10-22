@@ -13,14 +13,14 @@
                     </div>
                     <x-secondary-button type="submit">{{ __('ui.reports.apply') }}</x-secondary-button>
                 </form>
-                <x-lentera.dropdown-aksi>
+                <x-lentera.aksi-bar>
                     <form method="POST" action="{{ route('commissions.post') }}">
                         @csrf
                         <input type="hidden" name="period" value="{{ $period }}">
-                        <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-lentera-50">{{ __('ui.payroll.post_period') }}</button>
+                        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.payroll.post_period') }}</button>
                     </form>
                     <x-lentera.menu-item :href="route('payroll.index')">{{ __('ui.payroll.payroll_link') }}</x-lentera.menu-item>
-                </x-lentera.dropdown-aksi>
+                </x-lentera.aksi-bar>
             </div>
 
             @if ($payables->isNotEmpty())

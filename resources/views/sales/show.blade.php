@@ -17,15 +17,15 @@
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('sales.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 <div class="flex items-center gap-2">
-                    <x-lentera.dropdown-cetak>
-                        <x-lentera.menu-item :href="route('sales.print-order', $sale)" target="_blank">{{ __('ui.sales.print_order') }}</x-lentera.menu-item>
-                        <x-lentera.menu-item :href="route('sales.print-invoice', $sale)" target="_blank">{{ __('ui.sales.print_invoice') }}</x-lentera.menu-item>
+                    <x-lentera.aksi-bar>
+                        <x-lentera.menu-item :href="route('sales.print-order', $sale)" target="_blank" print>{{ __('ui.sales.print_order') }}</x-lentera.menu-item>
+                        <x-lentera.menu-item :href="route('sales.print-invoice', $sale)" target="_blank" print>{{ __('ui.sales.print_invoice') }}</x-lentera.menu-item>
                         @if ($sale->prescription_snapshot)
-                            <x-lentera.menu-item :href="route('sales.print-prescription', $sale)" target="_blank">{{ __('ui.sales.print_prescription') }}</x-lentera.menu-item>
+                            <x-lentera.menu-item :href="route('sales.print-prescription', $sale)" target="_blank" print>{{ __('ui.sales.print_prescription') }}</x-lentera.menu-item>
                         @endif
-                    </x-lentera.dropdown-cetak>
+                    </x-lentera.aksi-bar>
                     @unless ($sale->isVoid())
-                        <x-lentera.dropdown-aksi>
+                        <x-lentera.aksi-bar>
                             @can('sales.create')
                                 <x-lentera.menu-item :href="route('sales.create', ['pelanggan' => $sale->customer_id])">{{ __('ui.sales.create') }}</x-lentera.menu-item>
                             @endcan
@@ -41,10 +41,10 @@
                                 <x-lentera.menu-item :href="route('sales.return', $sale)">{{ __('ui.sales.make_return') }}</x-lentera.menu-item>
                             @endcan
                             @can('sales.void')
-                                <div class="my-1 border-t border-gray-100"></div>
+
                                 <x-lentera.menu-item :href="route('sales.void', $sale)" danger>{{ __('ui.sales.void') }}</x-lentera.menu-item>
                             @endcan
-                        </x-lentera.dropdown-aksi>
+                        </x-lentera.aksi-bar>
                     @endunless
                 </div>
             </div>

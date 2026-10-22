@@ -16,7 +16,7 @@
 
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('po.show', $receipt->purchaseOrder) }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }} — {{ $receipt->purchaseOrder->number }}</a>
-                <x-lentera.dropdown-aksi>
+                <x-lentera.aksi-bar>
                     @can('payments.create')
                         @if ($receipt->paymentStatus() !== 'paid')
                             <x-lentera.menu-item :href="route('receipts.pay', $receipt)">{{ __('ui.purchasing.pay') }}</x-lentera.menu-item>
@@ -25,7 +25,7 @@
                     @can('purchases.return')
                         <x-lentera.menu-item :href="route('receipts.return', $receipt)">{{ __('ui.purchasing.make_return') }}</x-lentera.menu-item>
                     @endcan
-                </x-lentera.dropdown-aksi>
+                </x-lentera.aksi-bar>
             </div>
 
             <div class="mb-6 rounded-lg bg-white p-6 shadow-soft">

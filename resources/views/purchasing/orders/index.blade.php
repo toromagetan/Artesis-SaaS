@@ -19,11 +19,11 @@
                     </select>
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
-                <x-lentera.dropdown-aksi>
+                <x-lentera.aksi-bar>
                     @can('po.create')
-                        <x-lentera.menu-item :href="route('po.create')">{{ __('ui.purchasing.po_create') }}</x-lentera.menu-item>
+                        <x-lentera.menu-item :href="route('po.create')" primary>{{ __('ui.purchasing.po_create') }}</x-lentera.menu-item>
                     @endcan
-                </x-lentera.dropdown-aksi>
+                </x-lentera.aksi-bar>
             </div>
 
             <div class="overflow-hidden rounded-lg bg-white shadow-soft">

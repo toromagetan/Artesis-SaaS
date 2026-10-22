@@ -15,7 +15,7 @@ use Illuminate\View\View;
 
 /**
  * Induk produk (ADR-015): detail induk = halaman penuh berisi
- * daftar variannya; perintah terkelompok DropdownAksi.
+ * daftar variannya; perintah sejajar AksiBar (ADR-018).
  */
 class ProductParentController extends Controller
 {

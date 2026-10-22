@@ -29,23 +29,23 @@
                     </dl>
                     <p class="mt-4 text-xs text-gray-400">{{ __('ui.warranty.flow_hint') }}</p>
                 </div>
-                <x-lentera.dropdown-aksi >
+                <x-lentera.aksi-bar>
                     @if ($case->status === 'open')
-                        <form method="POST" action="{{ route('warranties.send-old', $case) }}">@csrf<button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-lentera-50">{{ __('ui.warranty.act_send_old') }}</button></form>
+                        <form method="POST" action="{{ route('warranties.send-old', $case) }}">@csrf<button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.warranty.act_send_old') }}</button></form>
                     @endif
                     @if ($case->status === 'waiting_warehouse')
-                        <form method="POST" action="{{ route('warranties.receive-old', $case) }}">@csrf<button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-lentera-50">{{ __('ui.warranty.act_receive_old') }}</button></form>
+                        <form method="POST" action="{{ route('warranties.receive-old', $case) }}">@csrf<button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.warranty.act_receive_old') }}</button></form>
                     @endif
                     @if ($case->status === 'replacement_preparing' && $ready)
-                        <form method="POST" action="{{ route('warranties.ship', $case) }}">@csrf<button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-lentera-50">{{ __('ui.warranty.act_ship') }}</button></form>
+                        <form method="POST" action="{{ route('warranties.ship', $case) }}">@csrf<button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.warranty.act_ship') }}</button></form>
                     @endif
                     @if ($case->status === 'replacement_shipped')
-                        <form method="POST" action="{{ route('warranties.receive-replacement', $case) }}">@csrf<button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-lentera-50">{{ __('ui.warranty.act_receive_replacement') }}</button></form>
+                        <form method="POST" action="{{ route('warranties.receive-replacement', $case) }}">@csrf<button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.warranty.act_receive_replacement') }}</button></form>
                     @endif
                     @if ($case->status === 'replacement_received')
-                        <form method="POST" action="{{ route('warranties.complete', $case) }}">@csrf<button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-lentera-50">{{ __('ui.warranty.act_complete') }}</button></form>
+                        <form method="POST" action="{{ route('warranties.complete', $case) }}">@csrf<button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.warranty.act_complete') }}</button></form>
                     @endif
-                </x-lentera.dropdown-aksi>
+                </x-lentera.aksi-bar>
             </div>
 
             @foreach ($case->brokenStocks as $broken)

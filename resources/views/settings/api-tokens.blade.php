@@ -69,12 +69,12 @@
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     @unless ($token->revoked_at)
-                                        <x-lentera.row-actions>
+                                        <x-lentera.aksi-baris>
                                             <form method="POST" action="{{ route('api-tokens.revoke', $token) }}" onsubmit="return confirm('{{ __('ui.api_tokens.revoke_confirm') }}')">
                                                 @csrf
-                                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-red-600 transition duration-150 hover:bg-red-50">{{ __('ui.api_tokens.revoke') }}</button>
+                                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-red-600 shadow-soft transition duration-150 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.api_tokens.revoke') }}</button>
                                             </form>
-                                        </x-lentera.row-actions>
+                                        </x-lentera.aksi-baris>
                                     @endunless
                                 </td>
                             </tr>

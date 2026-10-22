@@ -23,8 +23,8 @@ use Illuminate\View\View;
 
 /**
  * Penjualan (Blueprint D.6 + PRD Detail 2.1–2.5).
- * Detail = halaman penuh; dokumen lewat satu DropdownCetak;
- * perintah lewat satu DropdownAksi (kontrak UI).
+ * Detail = halaman penuh; dokumen & perintah sebagai tombol
+ * sejajar AksiBar (ADR-018).
  */
 class SaleController extends Controller
 {

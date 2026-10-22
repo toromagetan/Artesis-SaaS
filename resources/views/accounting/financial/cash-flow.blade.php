@@ -18,10 +18,10 @@
                     <x-text-input id="sampai" name="sampai" type="date" value="{{ $to }}" class="mt-1" />
                 </div>
                 <x-secondary-button type="submit">{{ __('ui.reports.apply') }}</x-secondary-button>
-                <x-lentera.dropdown-cetak>
-                    <x-lentera.menu-item :href="url()->current().'?'.http_build_query(array_merge(request()->query(), ['ekspor' => 1]))">{{ __('ui.reports.export_csv') }}</x-lentera.menu-item>
-                    <x-lentera.menu-item :href="url()->current().'?'.http_build_query(array_merge(request()->query(), ['format' => 'xlsx']))">{{ __('ui.reports.export_xlsx') }}</x-lentera.menu-item>
-                </x-lentera.dropdown-cetak>
+                <x-lentera.aksi-bar>
+                    <x-lentera.menu-item :href="url()->current().'?'.http_build_query(array_merge(request()->query(), ['ekspor' => 1]))" print>{{ __('ui.reports.export_csv') }}</x-lentera.menu-item>
+                    <x-lentera.menu-item :href="url()->current().'?'.http_build_query(array_merge(request()->query(), ['format' => 'xlsx']))" print>{{ __('ui.reports.export_xlsx') }}</x-lentera.menu-item>
+                </x-lentera.aksi-bar>
             </form>
 
             <p class="mb-4 text-sm text-gray-600">{{ __('ui.financial.cash_flow_note') }}</p>

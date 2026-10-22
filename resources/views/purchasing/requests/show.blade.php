@@ -16,7 +16,7 @@
 
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('pr.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
-                <x-lentera.dropdown-aksi>
+                <x-lentera.aksi-bar>
                     @can('pr.create')
                         <x-lentera.menu-item :href="route('pr.create')">{{ __('ui.purchasing.pr_create') }}</x-lentera.menu-item>
                     @endcan
@@ -24,7 +24,7 @@
                         @can('pr.create')
                             <form method="POST" action="{{ route('pr.submit', $pr) }}">
                                 @csrf
-                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 transition duration-150 hover:bg-lentera-50 hover:text-lentera-900">{{ __('ui.purchasing.submit') }}</button>
+                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.purchasing.submit') }}</button>
                             </form>
                         @endcan
                     @endif
@@ -32,20 +32,20 @@
                         @can('pr.approve')
                             <form method="POST" action="{{ route('pr.approve', $pr) }}">
                                 @csrf
-                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 transition duration-150 hover:bg-lentera-50 hover:text-lentera-900">{{ __('ui.purchasing.approve') }}</button>
+                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.purchasing.approve') }}</button>
                             </form>
                         @endcan
                     @endif
                     @if (in_array($pr->status, ['draft', 'submitted'], true))
                         @can('pr.create')
-                            <div class="my-1 border-t border-gray-100"></div>
+
                             <form method="POST" action="{{ route('pr.cancel', $pr) }}" onsubmit="return confirm('{{ __('ui.purchasing.cancel') }}?')">
                                 @csrf
-                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-red-600 transition duration-150 hover:bg-red-50">{{ __('ui.purchasing.cancel') }}</button>
+                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-3.5 py-2 text-sm font-medium text-red-600 shadow-soft transition duration-150 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.purchasing.cancel') }}</button>
                             </form>
                         @endcan
                     @endif
-                </x-lentera.dropdown-aksi>
+                </x-lentera.aksi-bar>
             </div>
 
             <div class="mb-6 rounded-lg bg-white p-6 shadow-soft">

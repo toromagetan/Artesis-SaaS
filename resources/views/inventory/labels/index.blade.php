@@ -27,9 +27,9 @@
                             {{ __('ui.labels.mode_receipt') }}
                         </label>
                     </div>
-                    <x-lentera.dropdown-cetak>
+                    <x-lentera.aksi-bar>
                         <button type="submit" form="label-form" class="block w-full px-4 py-2 text-left text-sm text-gray-700 transition duration-150 hover:bg-lentera-50">{{ __('ui.labels.print') }}</button>
-                    </x-lentera.dropdown-cetak>
+                    </x-lentera.aksi-bar>
                 </div>
 
                 <div x-show="mode === 'receipt'" class="mb-4 rounded-lg bg-white p-4 shadow-soft" style="display: none;">

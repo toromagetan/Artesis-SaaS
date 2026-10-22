@@ -18,14 +18,17 @@
                 <a href="{{ route('journals.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 @if ($reversal === null && $journal->source_type !== 'reversal')
                     @can('journals.reverse')
-                        <x-lentera.dropdown-aksi>
-                            <form method="POST" action="{{ route('journals.reverse', $journal) }}" class="px-4 py-2">
+                        <x-lentera.aksi-dialog danger :label="__('ui.accounting.reverse')" :title="__('ui.accounting.reverse').'?'">
+                            <form method="POST" action="{{ route('journals.reverse', $journal) }}">
                                 @csrf
                                 <label class="mb-1 block text-xs text-gray-500" for="reason">{{ __('ui.accounting.reverse_reason') }}</label>
-                                <input id="reason" name="reason" required class="mb-2 block w-56 rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
-                                <button type="submit" class="block w-full rounded-md bg-red-50 px-3 py-1.5 text-left text-sm text-red-600 transition duration-150 hover:bg-red-100">{{ __('ui.accounting.reverse') }}</button>
+                                <input id="reason" name="reason" required class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                <div class="mt-4 flex justify-end gap-2">
+                                    <button type="button" @click="open = false" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{{ __('ui.back') }}</button>
+                                    <button type="submit" class="inline-flex items-center rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-red-700">{{ __('ui.accounting.reverse') }}</button>
+                                </div>
                             </form>
-                        </x-lentera.dropdown-aksi>
+                        </x-lentera.aksi-dialog>
                     @endcan
                 @endif
             </div>

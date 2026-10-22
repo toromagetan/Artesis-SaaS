@@ -27,9 +27,9 @@
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
                 @can('members.manage')
-                    <x-lentera.dropdown-aksi>
+                    <x-lentera.aksi-bar>
                         <x-lentera.menu-item :href="route('members.levels')">{{ __('ui.members.manage_levels') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-aksi>
+                    </x-lentera.aksi-bar>
                 @endcan
             </div>
 
@@ -53,22 +53,22 @@
                                 <td class="px-4 py-3">{{ $customer->level?->name ?? '—' }}</td>
                                 <td class="px-4 py-3 tnum font-medium">{{ number_format((int) ($balances[$customer->id] ?? 0), 0, ',', '.') }}</td>
                                 <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
+                                    <x-lentera.aksi-baris>
                                         @can('points.adjust')
-                                            <x-lentera.menu-item :href="route('members.adjust', $customer)">{{ __('ui.members.adjust_points') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('members.adjust', $customer)" sm>{{ __('ui.members.adjust_points') }}</x-lentera.menu-item>
                                         @endcan
                                         @can('members.manage')
                                             <form method="POST" action="{{ route('members.portal.issue', $customer) }}">
                                                 @csrf
-                                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">{{ __('ui.members.portal_issue') }}</button>
+                                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.members.portal_issue') }}</button>
                                             </form>
                                             <form method="POST" action="{{ route('members.portal.revoke', $customer) }}" onsubmit="return confirm('{{ __('ui.members.portal_revoked') }}?')">
                                                 @csrf
-                                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50">{{ __('ui.members.portal_revoke') }}</button>
+                                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-red-600 shadow-soft transition duration-150 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.members.portal_revoke') }}</button>
                                             </form>
                                         @endcan
-                                        <x-lentera.menu-item :href="route('customers.show', $customer)">{{ __('ui.members.view_customer') }}</x-lentera.menu-item>
-                                    </x-lentera.row-actions>
+                                        <x-lentera.menu-item :href="route('customers.show', $customer)" sm>{{ __('ui.members.view_customer') }}</x-lentera.menu-item>
+                                    </x-lentera.aksi-baris>
                                 </td>
                             </tr>
                         @empty

@@ -27,10 +27,10 @@
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
                 @can('reports.export')
-                    <x-lentera.dropdown-aksi>
+                    <x-lentera.aksi-bar>
                         <x-lentera.menu-item :href="route('receivables.index', array_merge(request()->query(), ['ekspor' => 1]))">{{ __('ui.receivables.export') }}</x-lentera.menu-item>
                         <x-lentera.menu-item :href="route('receivables.index', array_merge(request()->query(), ['format' => 'xlsx']))">{{ __('ui.reports.export_xlsx') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-aksi>
+                    </x-lentera.aksi-bar>
                 @endcan
             </div>
 
@@ -72,12 +72,12 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
+                                    <x-lentera.aksi-baris>
                                         @can('sales.pay')
-                                            <x-lentera.menu-item :href="route('sales.payment', $sale)">{{ __('ui.receivables.receive') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('sales.payment', $sale)" sm>{{ __('ui.receivables.receive') }}</x-lentera.menu-item>
                                         @endcan
-                                        <x-lentera.menu-item :href="route('sales.show', $sale)">{{ __('ui.receivables.view_sale') }}</x-lentera.menu-item>
-                                    </x-lentera.row-actions>
+                                        <x-lentera.menu-item :href="route('sales.show', $sale)" sm>{{ __('ui.receivables.view_sale') }}</x-lentera.menu-item>
+                                    </x-lentera.aksi-baris>
                                 </td>
                             </tr>
                         @empty

@@ -19,33 +19,33 @@
                         <span class="rounded-md border border-gold/50 bg-gold/10 px-2 py-1 text-xs font-medium text-gold-dark">{{ __('ui.opname.lock_notice') }}</span>
                     @endif
                 </div>
-                <x-lentera.dropdown-aksi>
+                <x-lentera.aksi-bar>
                     @if ($opname->status === 'scheduled')
                         <form method="POST" action="{{ route('opnames.start', $opname) }}">
                             @csrf
-                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 transition duration-150 hover:bg-lentera-50">{{ __('ui.opname.start') }}</button>
+                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.opname.start') }}</button>
                         </form>
                     @endif
                     @if ($opname->status === 'counting')
                         <form method="POST" action="{{ route('opnames.review', $opname) }}">
                             @csrf
-                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 transition duration-150 hover:bg-lentera-50">{{ __('ui.opname.submit_review') }}</button>
+                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.opname.submit_review') }}</button>
                         </form>
                     @endif
                     @if ($opname->status === 'review')
                         <form method="POST" action="{{ route('opnames.approve', $opname) }}">
                             @csrf
-                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 transition duration-150 hover:bg-lentera-50">{{ __('ui.opname.approve') }}</button>
+                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.opname.approve') }}</button>
                         </form>
                     @endif
                     @if ($opname->status === 'counting' && auth()->user()->hasRole('Owner'))
-                        <div class="my-1 border-t border-gray-100"></div>
+
                         <form method="POST" action="{{ route('opnames.cancel', $opname) }}" onsubmit="return confirm('{{ __('ui.opname.cancel_confirm') }}')">
                             @csrf
-                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-red-600 transition duration-150 hover:bg-lentera-50">{{ __('ui.opname.cancel') }}</button>
+                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-3.5 py-2 text-sm font-medium text-red-600 shadow-soft transition duration-150 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.opname.cancel') }}</button>
                         </form>
                     @endif
-                </x-lentera.dropdown-aksi>
+                </x-lentera.aksi-bar>
             </div>
 
             <div class="mb-4 grid gap-4 text-sm sm:grid-cols-4">

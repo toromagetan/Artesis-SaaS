@@ -11,12 +11,12 @@
 
         <div class="mb-4 flex items-center justify-between gap-3">
             <p class="max-w-2xl text-sm text-gray-500">{{ __('ui.backups.help') }}</p>
-            <x-lentera.dropdown-aksi>
+            <x-lentera.aksi-bar>
                 <form method="POST" action="{{ route('backups.store') }}">
                     @csrf
-                    <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-lentera-50">{{ __('ui.backups.create') }}</button>
+                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.backups.create') }}</button>
                 </form>
-            </x-lentera.dropdown-aksi>
+            </x-lentera.aksi-bar>
         </div>
 
         <div class="overflow-hidden rounded-xl bg-white shadow-sm">
@@ -36,24 +36,29 @@
                             <td class="px-4 py-3 text-gray-600">{{ number_format($entry['size'] / 1024, 1) }} KB</td>
                             <td class="px-4 py-3 text-gray-600">{{ date('d M Y H:i', $entry['created_at']) }}</td>
                             <td class="px-4 py-3 text-right">
-                                <x-lentera.dropdown-aksi>
-                                    <x-lentera.menu-item :href="route('backups.download', ['berkas' => $entry['name']])">{{ __('ui.backups.download') }}</x-lentera.menu-item>
+                                <x-lentera.aksi-baris>
+                                    <x-lentera.menu-item :href="route('backups.download', ['berkas' => $entry['name']])" sm>{{ __('ui.backups.download') }}</x-lentera.menu-item>
                                     @if (auth()->user()->hasRole('Owner'))
-                                        <form method="POST" action="{{ route('backups.restore') }}" class="border-t border-gray-100 px-4 py-2">
-                                            @csrf
-                                            <input type="hidden" name="berkas" value="{{ $entry['name'] }}">
-                                            <label class="block text-left text-xs text-gray-500">{{ __('ui.backups.restore_confirm_label') }}
-                                                <input type="text" name="konfirmasi" required class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
-                                            </label>
-                                            <button type="submit" class="mt-2 block w-full px-2 py-1 text-left text-sm text-red-600 hover:bg-red-50">{{ __('ui.backups.restore') }}</button>
-                                        </form>
+                                        <x-lentera.aksi-dialog danger sm :label="__('ui.backups.restore')" :title="__('ui.backups.restore').'?'">
+                                            <form method="POST" action="{{ route('backups.restore') }}">
+                                                @csrf
+                                                <input type="hidden" name="berkas" value="{{ $entry['name'] }}">
+                                                <label class="block text-left text-xs text-gray-500">{{ __('ui.backups.restore_confirm_label') }}
+                                                    <input type="text" name="konfirmasi" required class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                                </label>
+                                                <div class="mt-4 flex justify-end gap-2">
+                                                    <button type="button" @click="open = false" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{{ __('ui.back') }}</button>
+                                                    <button type="submit" class="inline-flex items-center rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-red-700">{{ __('ui.backups.restore') }}</button>
+                                                </div>
+                                            </form>
+                                        </x-lentera.aksi-dialog>
                                     @endif
                                     <form method="POST" action="{{ route('backups.destroy') }}" onsubmit="return confirm('{{ __('ui.backups.delete_confirm') }}')">
                                         @csrf
                                         <input type="hidden" name="berkas" value="{{ $entry['name'] }}">
-                                        <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50">{{ __('ui.backups.delete') }}</button>
+                                        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-red-600 shadow-soft transition duration-150 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.backups.delete') }}</button>
                                     </form>
-                                </x-lentera.dropdown-aksi>
+                                </x-lentera.aksi-baris>
                             </td>
                         </tr>
                     @empty

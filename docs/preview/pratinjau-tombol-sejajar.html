@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Pratinjau — Pola Tombol Sejajar (pengganti dropdown Aksi/Cetak)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Plus Jakarta Sans', system-ui, sans-serif; }
+  body { background:#f4f6f5; color:#1f2937; }
+  .note { max-width:1060px; margin:22px auto 0; padding:14px 18px; background:#fef9e7; border:1px solid #e8d48b; border-radius:10px; font-size:13.5px; line-height:1.55; }
+  .frame { max-width:1060px; margin:18px auto; background:#fff; border-radius:12px; box-shadow:0 1px 4px rgba(6,40,28,.10); overflow:hidden; }
+  .frame h2 { font-size:15px; padding:14px 20px 0; color:#0b3d2c; }
+  .frame .sub { font-size:12.5px; color:#6b7280; padding:2px 20px 12px; }
+  .body { padding:6px 20px 20px; }
+  /* Grup tombol sejajar */
+  .btnrow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .btnrow.right { justify-content:flex-end; }
+  .sep { width:1px; height:24px; background:#e5e7eb; margin:0 2px; }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:8px; font-size:13.5px; font-weight:600; border:1px solid transparent; cursor:pointer; background:#fff; color:#374151; }
+  .btn.primary { background:#0b6e4f; color:#fff; }
+  .btn.outline { border-color:#0b6e4f; color:#0b5c43; }
+  .btn.plain { border-color:#d1d5db; color:#374151; font-weight:500; }
+  .btn.danger { border-color:#f3c2c2; color:#b91c1c; }
+  .btn.danger-solid { background:#b91c1c; color:#fff; }
+  .btn.sm { padding:5px 10px; font-size:12.5px; border-radius:7px; }
+  .link-danger { color:#b91c1c !important; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; margin-top:14px; }
+  th { text-align:left; color:#6b7280; font-weight:500; padding:10px 12px; border-bottom:1px solid #f0f2f1; }
+  td { padding:10px 12px; border-bottom:1px solid #f7f8f7; vertical-align:middle; }
+  .badge { font-size:11.5px; padding:2px 9px; border-radius:99px; background:#e7f6ef; color:#0b6e4f; font-weight:600; }
+  .badge.off { background:#f3f4f6; color:#6b7280; }
+  .tnum { font-variant-numeric:tabular-nums; }
+  .muted { color:#6b7280; font-size:12.5px; }
+  /* Dialog konfirmasi */
+  .dialogwrap { background:rgba(17,24,39,.45); border-radius:0 0 12px 12px; padding:34px 0; display:flex; justify-content:center; }
+  .dialog { background:#fff; width:420px; border-radius:12px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+  .dialog h3 { font-size:15px; color:#111827; margin-bottom:6px; }
+  .dialog p { font-size:13px; color:#4b5563; line-height:1.5; }
+  .dialog input { width:100%; margin-top:12px; padding:8px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:13.5px; }
+  .dialog .btnrow { margin-top:16px; justify-content:flex-end; }
+</style>
+</head>
+<body>
+
+<div class="note">
+  <strong>Pratinjau pola baru (keputusan owner 22 Okt 2026):</strong> tidak ada lagi dropdown “Aksi”/“Cetak”.
+  Semua perintah = tombol tersendiri, terlihat, sejajar — supaya pemula langsung paham tanpa membuka menu.
+  Item berbahaya tetap di urutan terakhir, berwarna merah, dan tetap wajib konfirmasi + alasan (lewat dialog).
+  “Cetak” menjadi tombol dokumen tersendiri (ikon printer), dibuka di tab baru seperti sekarang.
+</div>
+
+<!-- Pola 1: halaman daftar -->
+<div class="frame">
+  <h2>Pola 1 — Halaman daftar (contoh: Master Supplier)</h2>
+  <p class="sub">Tombol perintah berjajar di atas tabel. “Buat Baru” = tombol utama emerald, selalu terlihat.</p>
+  <div class="body">
+    <div class="btnrow right">
+      <button class="btn primary">＋ Buat Supplier</button>
+      <button class="btn plain">Impor</button>
+      <button class="btn plain">Ekspor</button>
+    </div>
+    <table>
+      <tr><th>Nama Supplier</th><th>Kontak</th><th style="text-align:right">Jumlah PO</th><th style="text-align:right">Utang Berjalan</th><th>Status</th><th></th></tr>
+      <tr>
+        <td><a href="#" style="color:#0b5c43">CV Frame Nusantara</a></td><td>Bimo Prasetyo</td>
+        <td class="tnum" style="text-align:right">0</td><td class="tnum" style="text-align:right">Rp0,00</td>
+        <td><span class="badge">Aktif</span></td>
+        <td><div class="btnrow"><button class="btn plain sm">Detail</button><button class="btn plain sm">Ubah</button><button class="btn danger sm">Nonaktifkan</button></div></td>
+      </tr>
+      <tr>
+        <td><a href="#" style="color:#0b5c43">PT Sumber Lensa Abadi</a></td><td>Sari Wulandari</td>
+        <td class="tnum" style="text-align:right">1</td><td class="tnum" style="text-align:right">Rp600.000,00</td>
+        <td><span class="badge">Aktif</span></td>
+        <td><div class="btnrow"><button class="btn plain sm">Detail</button><button class="btn plain sm">Ubah</button><button class="btn danger sm">Nonaktifkan</button></div></td>
+      </tr>
+      <tr>
+        <td><a href="#" style="color:#0b5c43">PT Distribusi Optik Lama</a></td><td>—</td>
+        <td class="tnum" style="text-align:right">0</td><td class="tnum" style="text-align:right">Rp0,00</td>
+        <td><span class="badge off">Nonaktif</span></td>
+        <td><div class="btnrow"><button class="btn plain sm">Detail</button><button class="btn plain sm">Ubah</button><button class="btn plain sm">Aktifkan</button></div></td>
+      </tr>
+    </table>
+    <p class="muted" style="margin-top:10px">Aksi per baris ikut sejajar sebagai tombol kecil — tidak ada lagi tombol “Aksi ▾” per baris.</p>
+  </div>
+</div>
+
+<!-- Pola 2: halaman detail -->
+<div class="frame">
+  <h2>Pola 2 — Halaman detail (contoh: Detail Penjualan, 5 perintah + 2 dokumen)</h2>
+  <p class="sub">Kembali di kiri; tombol perintah sejajar di kanan; tombol dokumen cetak terpisah oleh garis tipis; yang berbahaya paling kanan &amp; merah.</p>
+  <div class="body">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <a href="#" style="color:#4b5563; font-size:13.5px">← Kembali</a>
+      <div class="btnrow">
+        <button class="btn outline">🖨 Nota</button>
+        <button class="btn outline">🖨 Surat Jalan</button>
+        <span class="sep"></span>
+        <button class="btn plain">Bayar</button>
+        <button class="btn plain">Retur</button>
+        <button class="btn plain">Ubah</button>
+        <button class="btn danger">Batalkan (Void)</button>
+      </div>
+    </div>
+    <div style="margin-top:16px; border:1px solid #eef1f0; border-radius:10px; padding:16px;">
+      <div style="font-weight:700; color:#0b3d2c">INV-202610-0042 — Budi Santoso</div>
+      <div class="muted" style="margin-top:4px">Total Rp1.850.000,00 · DP Rp500.000,00 · Status: Proses Lab</div>
+    </div>
+  </div>
+</div>
+
+<!-- Pola 3: konfirmasi berbahaya -->
+<div class="frame">
+  <h2>Pola 3 — Aksi berbahaya tetap lewat dialog konfirmasi + alasan</h2>
+  <p class="sub">Mengklik “Batalkan (Void)” / “Nonaktifkan” / “Restore” membuka dialog seperti ini — bukan langsung jalan.</p>
+  <div class="dialogwrap">
+    <div class="dialog">
+      <h3>Batalkan penjualan ini?</h3>
+      <p>Penjualan INV-202610-0042 akan dibatalkan (void). Stok dan jurnal terkait dibalik. Tindakan ini tercatat di audit log dan tidak dapat diurungkan.</p>
+      <input type="text" placeholder="Alasan pembatalan (wajib)">
+      <div class="btnrow">
+        <button class="btn plain">Kembali</button>
+        <button class="btn danger-solid">Ya, Batalkan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

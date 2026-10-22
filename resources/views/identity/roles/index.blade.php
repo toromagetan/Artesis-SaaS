@@ -26,9 +26,9 @@
                                 <td class="px-4 py-3 tnum">{{ $role->permissions_count }}</td>
                                 <td class="px-4 py-3 tnum">{{ $role->users_count }}</td>
                                 <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
-                                        <x-lentera.menu-item :href="route('roles.edit', $role)">{{ __('ui.roles.edit') }}</x-lentera.menu-item>
-                                    </x-lentera.row-actions>
+                                    <x-lentera.aksi-baris>
+                                        <x-lentera.menu-item :href="route('roles.edit', $role)" sm>{{ __('ui.roles.edit') }}</x-lentera.menu-item>
+                                    </x-lentera.aksi-baris>
                                 </td>
                             </tr>
                         @endforeach

@@ -17,11 +17,11 @@
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('po.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 <div class="flex items-center gap-2">
-                    <x-lentera.dropdown-cetak>
-                        <x-lentera.menu-item :href="route('po.print', $po)" target="_blank">{{ __('ui.purchasing.po_print') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-cetak>
+                    <x-lentera.aksi-bar>
+                        <x-lentera.menu-item :href="route('po.print', $po)" target="_blank" print>{{ __('ui.purchasing.po_print') }}</x-lentera.menu-item>
+                    </x-lentera.aksi-bar>
                     @unless ($po->isVoid())
-                        <x-lentera.dropdown-aksi>
+                        <x-lentera.aksi-bar>
                             @can('po.create')
                                 <x-lentera.menu-item :href="route('po.create')">{{ __('ui.purchasing.po_create') }}</x-lentera.menu-item>
                             @endcan
@@ -29,7 +29,7 @@
                                 @can('po.update')
                                     <form method="POST" action="{{ route('po.send', $po) }}">
                                         @csrf
-                                        <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 transition duration-150 hover:bg-lentera-50 hover:text-lentera-900">{{ __('ui.purchasing.send') }}</button>
+                                        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.purchasing.send') }}</button>
                                     </form>
                                 @endcan
                             @endif
@@ -39,14 +39,18 @@
                                 @endcan
                             @endif
                             @can('po.void')
-                                <div class="my-1 border-t border-gray-100"></div>
-                                <form method="POST" action="{{ route('po.void', $po) }}" class="px-4 py-2" onsubmit="return confirm('{{ __('ui.purchasing.void') }}?')">
-                                    @csrf
-                                    <input type="text" name="reason" required maxlength="255" placeholder="{{ __('ui.purchasing.void_reason') }}" class="mb-2 block w-56 rounded-md border-gray-300 text-sm shadow-sm focus:border-red-400 focus:ring-red-400">
-                                    <button type="submit" class="text-sm text-red-600 hover:underline">{{ __('ui.purchasing.void') }}</button>
-                                </form>
+                                <x-lentera.aksi-dialog danger :label="__('ui.purchasing.void')" :title="__('ui.purchasing.void').'?'">
+                                    <form method="POST" action="{{ route('po.void', $po) }}">
+                                        @csrf
+                                        <input type="text" name="reason" required maxlength="255" placeholder="{{ __('ui.purchasing.void_reason') }}" class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-red-400 focus:ring-red-400">
+                                        <div class="mt-4 flex justify-end gap-2">
+                                            <button type="button" @click="open = false" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{{ __('ui.back') }}</button>
+                                            <button type="submit" class="inline-flex items-center rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-red-700">{{ __('ui.purchasing.void') }}</button>
+                                        </div>
+                                    </form>
+                                </x-lentera.aksi-dialog>
                             @endcan
-                        </x-lentera.dropdown-aksi>
+                        </x-lentera.aksi-bar>
                     @endunless
                 </div>
             </div>

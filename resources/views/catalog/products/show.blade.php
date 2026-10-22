@@ -12,7 +12,7 @@
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('products.index', $product->type) }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 @if (auth()->user()->hasPermission('products.update') || auth()->user()->hasPermission('products.deactivate') || auth()->user()->hasPermission('products.create'))
-                    <x-lentera.dropdown-aksi>
+                    <x-lentera.aksi-bar>
                         @can('products.create')
                             <x-lentera.menu-item :href="route('products.create', $product->type)">{{ __('ui.products.create') }}</x-lentera.menu-item>
                         @endcan
@@ -20,13 +20,13 @@
                             <x-lentera.menu-item :href="route('products.edit', $product)">{{ __('ui.edit') }}</x-lentera.menu-item>
                         @endcan
                         @can('products.deactivate')
-                            <div class="my-1 border-t border-gray-100"></div>
+
                             <form method="POST" action="{{ route('products.toggle-active', $product) }}">
                                 @csrf
-                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm transition duration-150 hover:bg-lentera-50 {{ $product->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $product->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                                <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $product->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $product->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
                             </form>
                         @endcan
-                    </x-lentera.dropdown-aksi>
+                    </x-lentera.aksi-bar>
                 @endif
             </div>
 

@@ -7,15 +7,15 @@
         <div class="mx-auto max-w-5xl sm:px-6 lg:px-8">
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('branches.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
-                <x-lentera.dropdown-aksi>
+                <x-lentera.aksi-bar>
                     <x-lentera.menu-item :href="route('branches.create')">{{ __('ui.branches.create') }}</x-lentera.menu-item>
                     <x-lentera.menu-item :href="route('branches.edit', $branch)">{{ __('ui.edit') }}</x-lentera.menu-item>
-                    <div class="my-1 border-t border-gray-100"></div>
+
                     <form method="POST" action="{{ route('branches.toggle-active', $branch) }}">
                         @csrf
-                        <button type="submit" class="block w-full px-4 py-2 text-left text-sm transition duration-150 hover:bg-lentera-50 {{ $branch->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $branch->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $branch->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $branch->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
                     </form>
-                </x-lentera.dropdown-aksi>
+                </x-lentera.aksi-bar>
             </div>
 
             <div class="rounded-lg bg-white p-6 shadow-soft">

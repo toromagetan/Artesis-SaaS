@@ -17,25 +17,25 @@
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('transfers.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 <div class="flex items-center gap-2">
-                    <x-lentera.dropdown-cetak>
-                        <x-lentera.menu-item :href="route('transfers.print', $transfer)" target="_blank">{{ __('ui.transfer.print') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-cetak>
+                    <x-lentera.aksi-bar>
+                        <x-lentera.menu-item :href="route('transfers.print', $transfer)" target="_blank" print>{{ __('ui.transfer.print') }}</x-lentera.menu-item>
+                    </x-lentera.aksi-bar>
                     @if ($transfer->status === 'sent')
-                        <x-lentera.dropdown-aksi>
+                        <x-lentera.aksi-bar>
                             @can('stock.receive_transfer')
                                 <form method="POST" action="{{ route('transfers.receive', $transfer) }}">
                                     @csrf
-                                    <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 transition duration-150 hover:bg-lentera-50 hover:text-lentera-900">{{ __('ui.transfer.receive') }}</button>
+                                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.transfer.receive') }}</button>
                                 </form>
                             @endcan
                             @can('stock.transfer')
-                                <div class="my-1 border-t border-gray-100"></div>
+
                                 <form method="POST" action="{{ route('transfers.cancel', $transfer) }}" onsubmit="return confirm('{{ __('ui.transfer.cancel') }}?')">
                                     @csrf
-                                    <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-red-600 transition duration-150 hover:bg-red-50">{{ __('ui.transfer.cancel') }}</button>
+                                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-3.5 py-2 text-sm font-medium text-red-600 shadow-soft transition duration-150 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.transfer.cancel') }}</button>
                                 </form>
                             @endcan
-                        </x-lentera.dropdown-aksi>
+                        </x-lentera.aksi-bar>
                     @endif
                 </div>
             </div>

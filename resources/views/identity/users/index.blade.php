@@ -15,12 +15,12 @@
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
                 <div class="flex items-center gap-2">
-                    <x-lentera.dropdown-cetak>
-                        <x-lentera.menu-item :href="route('users.print')" target="_blank">{{ __('ui.print_doc.user_list') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-cetak>
-                    <x-lentera.dropdown-aksi>
-                        <x-lentera.menu-item :href="route('users.create')">{{ __('ui.users.create') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-aksi>
+                    <x-lentera.aksi-bar>
+                        <x-lentera.menu-item :href="route('users.print')" target="_blank" print>{{ __('ui.print_doc.user_list') }}</x-lentera.menu-item>
+                    </x-lentera.aksi-bar>
+                    <x-lentera.aksi-bar>
+                        <x-lentera.menu-item :href="route('users.create')" primary>{{ __('ui.users.create') }}</x-lentera.menu-item>
+                    </x-lentera.aksi-bar>
                 </div>
             </div>
 
@@ -47,15 +47,15 @@
                                 <td class="px-4 py-3">{{ $user->hasGlobalAccess() ? __('ui.users.all_branches') : ($user->branches->pluck('name')->join(', ') ?: '—') }}</td>
                                 <td class="px-4 py-3"><x-lentera.badge :active="$user->is_active" /></td>
                                 <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
-                                        <x-lentera.menu-item :href="route('users.show', $user)">{{ __('ui.users.detail') }}</x-lentera.menu-item>
-                                        <x-lentera.menu-item :href="route('users.edit', $user)">{{ __('ui.edit') }}</x-lentera.menu-item>
-                                        <div class="my-1 border-t border-gray-100"></div>
+                                    <x-lentera.aksi-baris>
+                                        <x-lentera.menu-item :href="route('users.show', $user)" sm>{{ __('ui.users.detail') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('users.edit', $user)" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
+
                                         <form method="POST" action="{{ route('users.toggle-active', $user) }}">
                                             @csrf
-                                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm transition duration-150 hover:bg-lentera-50 {{ $user->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $user->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                                            <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $user->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $user->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
                                         </form>
-                                    </x-lentera.row-actions>
+                                    </x-lentera.aksi-baris>
                                 </td>
                             </tr>
                         @empty

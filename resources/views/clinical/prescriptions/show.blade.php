@@ -12,25 +12,25 @@
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('customers.show', $prescription->customer) }}" class="text-sm text-gray-600 underline">{{ __('ui.prescriptions.back_to_customer') }}</a>
                 <div class="flex items-center gap-2">
-                    <x-lentera.dropdown-cetak>
+                    <x-lentera.aksi-bar>
                         @can('prescriptions.print')
-                            <x-lentera.menu-item :href="route('prescriptions.print', $prescription)" target="_blank">{{ __('ui.prescriptions.print') }}</x-lentera.menu-item>
+                            <x-lentera.menu-item :href="route('prescriptions.print', $prescription)" target="_blank" print>{{ __('ui.prescriptions.print') }}</x-lentera.menu-item>
                         @endcan
-                        <x-lentera.menu-item :href="route('prescriptions.precal-print', $prescription)" target="_blank">{{ __('ui.precal.print') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-cetak>
+                        <x-lentera.menu-item :href="route('prescriptions.precal-print', $prescription)" target="_blank" print>{{ __('ui.precal.print') }}</x-lentera.menu-item>
+                    </x-lentera.aksi-bar>
                     @if (auth()->user()->hasPermission('prescriptions.create'))
-                        <x-lentera.dropdown-aksi>
+                        <x-lentera.aksi-bar>
                             <x-lentera.menu-item :href="route('prescriptions.create', $prescription->customer)">{{ __('ui.prescriptions.create') }}</x-lentera.menu-item>
                             <x-lentera.menu-item :href="route('prescriptions.precal', $prescription)">{{ __('ui.prescriptions.view_precal') }}</x-lentera.menu-item>
                             @unless ($prescription->isLocked())
                                 <x-lentera.menu-item :href="route('prescriptions.edit', $prescription)">{{ __('ui.edit') }}</x-lentera.menu-item>
                             @endunless
-                            <div class="my-1 border-t border-gray-100"></div>
+
                             <form method="POST" action="{{ route('prescriptions.duplicate', $prescription) }}">
                                 @csrf
-                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm transition duration-150 hover:bg-lentera-50 text-gray-700">{{ __('ui.prescriptions.duplicate') }}</button>
+                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.prescriptions.duplicate') }}</button>
                             </form>
-                        </x-lentera.dropdown-aksi>
+                        </x-lentera.aksi-bar>
                     @endif
                 </div>
             </div>

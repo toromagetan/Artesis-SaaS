@@ -35,12 +35,12 @@
                                 <td class="px-4 py-3 text-gray-600">{{ $level->benefits }}</td>
                                 <td class="px-4 py-3"><x-lentera.badge :active="$level->is_active">{{ $level->is_active ? __('ui.active') : __('ui.inactive') }}</x-lentera.badge></td>
                                 <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
+                                    <x-lentera.aksi-baris>
                                         <form method="POST" action="{{ route('members.levels.toggle', $level) }}" onsubmit="return confirm('{{ __('ui.members.toggle_confirm') }}')">
                                             @csrf
-                                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">{{ $level->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ $level->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
                                         </form>
-                                    </x-lentera.row-actions>
+                                    </x-lentera.aksi-baris>
                                 </td>
                             </tr>
                             <tr class="border-b border-gray-50 bg-gray-50/50">

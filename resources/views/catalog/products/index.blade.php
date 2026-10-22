@@ -15,10 +15,10 @@
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
                 @can('products.create')
-                    <x-lentera.dropdown-aksi>
-                        <x-lentera.menu-item :href="route('products.parents.create', $type)">{{ __('ui.products.parent_create') }}</x-lentera.menu-item>
+                    <x-lentera.aksi-bar>
+                        <x-lentera.menu-item :href="route('products.parents.create', $type)" primary>{{ __('ui.products.parent_create') }}</x-lentera.menu-item>
                         <x-lentera.menu-item :href="route('products.create', $type)">{{ __('ui.products.create') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-aksi>
+                    </x-lentera.aksi-bar>
                 @endcan
             </div>
 

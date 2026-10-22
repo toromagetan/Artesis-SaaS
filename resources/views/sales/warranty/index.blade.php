@@ -19,9 +19,9 @@
                     </select>
                 </form>
                 @can('sales.create')
-                    <x-lentera.dropdown-aksi >
-                        <x-lentera.menu-item :href="route('warranties.create')">{{ __('ui.warranty.create') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-aksi>
+                    <x-lentera.aksi-bar>
+                        <x-lentera.menu-item :href="route('warranties.create')" primary>{{ __('ui.warranty.create') }}</x-lentera.menu-item>
+                    </x-lentera.aksi-bar>
                 @endcan
             </div>
 

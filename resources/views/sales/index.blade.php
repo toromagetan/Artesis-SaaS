@@ -28,9 +28,9 @@
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
                 @can('sales.create')
-                    <x-lentera.dropdown-aksi>
-                        <x-lentera.menu-item :href="route('sales.create')">{{ __('ui.sales.create') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-aksi>
+                    <x-lentera.aksi-bar>
+                        <x-lentera.menu-item :href="route('sales.create')" primary>{{ __('ui.sales.create') }}</x-lentera.menu-item>
+                    </x-lentera.aksi-bar>
                 @endcan
             </div>
 
@@ -69,14 +69,14 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
-                                        <x-lentera.menu-item :href="route('sales.show', $sale)">{{ __('ui.sales.detail') }}</x-lentera.menu-item>
+                                    <x-lentera.aksi-baris>
+                                        <x-lentera.menu-item :href="route('sales.show', $sale)" sm>{{ __('ui.sales.detail') }}</x-lentera.menu-item>
                                         @can('sales.pay')
                                             @unless ($sale->isVoid() || $sale->paymentStatus() === 'paid')
-                                                <x-lentera.menu-item :href="route('sales.payment', $sale)">{{ __('ui.sales.add_payment') }}</x-lentera.menu-item>
+                                                <x-lentera.menu-item :href="route('sales.payment', $sale)" sm>{{ __('ui.sales.add_payment') }}</x-lentera.menu-item>
                                             @endunless
                                         @endcan
-                                    </x-lentera.row-actions>
+                                    </x-lentera.aksi-baris>
                                 </td>
                             </tr>
                         @empty

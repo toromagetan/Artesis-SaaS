@@ -22,28 +22,28 @@
                         <div><span class="text-gray-500">{{ __('ui.campaigns.approved_by') }}:</span> <span class="font-medium">{{ $campaign->approver?->name ?? '—' }}</span></div>
                         <div><span class="text-gray-500">{{ __('ui.campaigns.recipients') }}:</span> <span class="tnum font-medium">{{ $campaign->status === 'done' || $campaign->status === 'sending' ? $campaign->recipient_count : $previewCount }}</span></div>
                     </div>
-                    <x-lentera.dropdown-aksi>
+                    <x-lentera.aksi-bar>
                         @can('wa.campaigns.approve')
                             @if ($campaign->status === 'draft')
                                 <form method="POST" action="{{ route('wa-campaigns.approve', $campaign) }}">
                                     @csrf
-                                    <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">{{ __('ui.campaigns.approve') }}</button>
+                                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.campaigns.approve') }}</button>
                                 </form>
                             @endif
                         @endcan
                         @if ($campaign->status === 'approved')
                             <form method="POST" action="{{ route('wa-campaigns.send', $campaign) }}" onsubmit="return confirm('{{ __('ui.campaigns.send_confirm') }}')">
                                 @csrf
-                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">{{ __('ui.campaigns.send') }}</button>
+                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.campaigns.send') }}</button>
                             </form>
                         @endif
                         @if (in_array($campaign->status, ['draft', 'approved']))
                             <form method="POST" action="{{ route('wa-campaigns.cancel', $campaign) }}" onsubmit="return confirm('{{ __('ui.campaigns.cancel_confirm') }}')">
                                 @csrf
-                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50">{{ __('ui.campaigns.cancel') }}</button>
+                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-3.5 py-2 text-sm font-medium text-red-600 shadow-soft transition duration-150 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.campaigns.cancel') }}</button>
                             </form>
                         @endif
-                    </x-lentera.dropdown-aksi>
+                    </x-lentera.aksi-bar>
                 </div>
                 <p class="rounded bg-gray-50 p-3 text-sm text-gray-700">{{ $campaign->template?->body }}</p>
                 @if ($campaign->template && $campaign->template->approved_by === null)

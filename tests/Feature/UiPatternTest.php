@@ -12,9 +12,10 @@ use Tests\TestCase;
 
 /**
  * Pola UI F0.5 (Blueprint F.2 + skill lentera-frontend): Varian A, judul
- * tepat satu kali, GlobalSearch selalu di header, sensus dropdown
- * (1 Aksi + 1 Cetak per layar daftar), detail = halaman penuh,
- * mesin cetak A5, pencarian global terpagar izin + cabang.
+ * tepat satu kali, GlobalSearch selalu di header, sensus tombol sejajar
+ * (ADR-018: AksiBar di kepala layar + AksiBaris per baris, tanpa dropdown
+ * perintah), detail = halaman penuh, mesin cetak A5, pencarian global
+ * terpagar izin + cabang.
  */
 class UiPatternTest extends TestCase
 {
@@ -48,11 +49,14 @@ class UiPatternTest extends TestCase
     {
         $html = $this->actingAs($this->owner)->get('/pengguna')->assertOk()->getContent();
 
-        // Tepat satu DropdownAksi layar + satu DropdownCetak;
-        // dropdown per baris = jumlah baris (2 pengguna terseed).
-        $this->assertSame(1, substr_count($html, 'data-lentera="dropdown-aksi"'));
-        $this->assertSame(1, substr_count($html, 'data-lentera="dropdown-cetak"'));
-        $this->assertSame(2, substr_count($html, 'data-lentera="row-actions"'));
+        // ADR-018: kepala layar memuat kelompok tombol sejajar AksiBar;
+        // AksiBaris per baris = jumlah baris (2 pengguna terseed);
+        // tidak ada lagi dropdown perintah dalam bentuk apa pun.
+        $this->assertGreaterThanOrEqual(1, substr_count($html, 'data-lentera="aksi-bar"'));
+        $this->assertSame(2, substr_count($html, 'data-lentera="aksi-baris"'));
+        $this->assertStringNotContainsString('data-lentera="dropdown-aksi"', $html);
+        $this->assertStringNotContainsString('data-lentera="dropdown-cetak"', $html);
+        $this->assertStringNotContainsString('data-lentera="row-actions"', $html);
     }
 
     public function test_user_detail_is_a_full_page(): void

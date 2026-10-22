@@ -15,21 +15,21 @@
             @endif
             <div class="flex items-center justify-between">
                 <p><a href="{{ route('incentives.index') }}" class="text-sm text-lentera-800 underline">{{ __('ui.incentives.back') }}</a></p>
-                <x-lentera.dropdown-aksi>
+                <x-lentera.aksi-bar>
                     @if ($period->isDraft())
                         <form method="POST" action="{{ route('incentives.approve', $period) }}">
                             @csrf
-                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">{{ __('ui.incentives.approve') }}</button>
+                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.incentives.approve') }}</button>
                         </form>
                     @endif
                     @if ($period->status === 'approved')
                         <form method="POST" action="{{ route('incentives.pay', $period) }}">
                             @csrf
-                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">{{ __('ui.incentives.pay') }}</button>
+                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.incentives.pay') }}</button>
                         </form>
                     @endif
                     <x-lentera.menu-item :href="route('incentives.export', $period)">{{ __('ui.incentives.export') }}</x-lentera.menu-item>
-                </x-lentera.dropdown-aksi>
+                </x-lentera.aksi-bar>
             </div>
 
             <section class="rounded-lg bg-white p-6 shadow-soft">

@@ -32,17 +32,17 @@
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
-                                        <x-lentera.menu-item :href="route('wa-templates.edit', $template)">{{ __('ui.edit') }}</x-lentera.menu-item>
+                                    <x-lentera.aksi-baris>
+                                        <x-lentera.menu-item :href="route('wa-templates.edit', $template)" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
                                         @can('wa.campaigns.approve')
                                             @if ($template->approved_by === null)
                                                 <form method="POST" action="{{ route('wa-templates.approve', $template) }}">
                                                     @csrf
-                                                    <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">{{ __('ui.wa.approve_template') }}</button>
+                                                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.wa.approve_template') }}</button>
                                                 </form>
                                             @endif
                                         @endcan
-                                    </x-lentera.row-actions>
+                                    </x-lentera.aksi-baris>
                                 </td>
                             </tr>
                         @empty

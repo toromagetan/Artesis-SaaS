@@ -12,9 +12,9 @@
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('journals.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 @can('accounts.manage')
-                    <x-lentera.dropdown-aksi>
-                        <x-lentera.menu-item :href="route('accounts.create')">{{ __('ui.accounting.account_create') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-aksi>
+                    <x-lentera.aksi-bar>
+                        <x-lentera.menu-item :href="route('accounts.create')" primary>{{ __('ui.accounting.account_create') }}</x-lentera.menu-item>
+                    </x-lentera.aksi-bar>
                 @endcan
             </div>
 
@@ -41,17 +41,17 @@
                                 <td class="px-4 py-3">{{ __('ui.accounting.groups.'.$account->group) }}</td>
                                 <td class="px-4 py-3"><x-lentera.badge :active="$account->is_active" /></td>
                                 <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
-                                        <x-lentera.menu-item :href="route('accounts.show', $account)">{{ __('ui.accounting.account_detail') }}</x-lentera.menu-item>
+                                    <x-lentera.aksi-baris>
+                                        <x-lentera.menu-item :href="route('accounts.show', $account)" sm>{{ __('ui.accounting.account_detail') }}</x-lentera.menu-item>
                                         @can('accounts.manage')
-                                            <x-lentera.menu-item :href="route('accounts.edit', $account)">{{ __('ui.edit') }}</x-lentera.menu-item>
-                                            <div class="my-1 border-t border-gray-100"></div>
+                                            <x-lentera.menu-item :href="route('accounts.edit', $account)" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
+
                                             <form method="POST" action="{{ route('accounts.toggle-active', $account) }}">
                                                 @csrf
-                                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm transition duration-150 hover:bg-lentera-50 {{ $account->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $account->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                                                <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $account->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $account->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
                                             </form>
                                         @endcan
-                                    </x-lentera.row-actions>
+                                    </x-lentera.aksi-baris>
                                 </td>
                             </tr>
                         @empty

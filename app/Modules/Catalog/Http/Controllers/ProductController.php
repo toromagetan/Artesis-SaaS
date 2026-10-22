@@ -18,7 +18,7 @@ use Illuminate\View\View;
 /**
  * Katalog produk (Blueprint D.3 + PRD Detail menu Katalog).
  * Daftar per tipe; detail = halaman penuh; perintah terkelompok
- * DropdownAksi (kontrak UI).
+ * Perintah sejajar AksiBar (ADR-018).
  */
 class ProductController extends Controller
 {

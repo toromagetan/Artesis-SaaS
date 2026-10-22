@@ -17,14 +17,14 @@
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('lab.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 @unless ($process->isDone())
-                    <x-lentera.dropdown-aksi>
+                    <x-lentera.aksi-bar>
                         @can('lab.assign')
                             @foreach (['edging', 'qc', 'ready'] as $next)
                                 @if (['waiting' => 'edging', 'edging' => 'qc', 'qc' => 'ready'][$process->status] === $next)
                                     <form method="POST" action="{{ route('lab.transition', $process) }}">
                                         @csrf
                                         <input type="hidden" name="to" value="{{ $next }}">
-                                        <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 transition duration-150 hover:bg-lentera-50 hover:text-lentera-900">{{ __('ui.lab.advance') }}: {{ __('ui.lab.statuses.'.$next) }}</button>
+                                        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.lab.advance') }}: {{ __('ui.lab.statuses.'.$next) }}</button>
                                     </form>
                                 @endif
                             @endforeach
@@ -32,10 +32,10 @@
                         @can('lab.complete')
                             <form method="POST" action="{{ route('lab.complete', $process) }}" onsubmit="return confirm('{{ __('ui.lab.complete') }}?')">
                                 @csrf
-                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm font-medium text-lentera-800 transition duration-150 hover:bg-lentera-50">{{ __('ui.lab.complete') }}</button>
+                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.lab.complete') }}</button>
                             </form>
                         @endcan
-                    </x-lentera.dropdown-aksi>
+                    </x-lentera.aksi-bar>
                 @endunless
             </div>
 

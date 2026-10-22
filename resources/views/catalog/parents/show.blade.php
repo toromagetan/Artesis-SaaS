@@ -11,7 +11,7 @@
 
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('products.index', $parent->type) }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
-                <x-lentera.dropdown-aksi>
+                <x-lentera.aksi-bar>
                     @can('products.create')
                         <x-lentera.menu-item :href="route('products.create', ['type' => $parent->type, 'induk' => $parent->id])">{{ __('ui.products.add_variant') }}</x-lentera.menu-item>
                     @endcan
@@ -19,13 +19,13 @@
                         <x-lentera.menu-item :href="route('products.parents.edit', $parent)">{{ __('ui.edit') }}</x-lentera.menu-item>
                     @endcan
                     @can('products.deactivate')
-                        <div class="my-1 border-t border-gray-100"></div>
+
                         <form method="POST" action="{{ route('products.parents.toggle-active', $parent) }}">
                             @csrf
-                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm transition duration-150 hover:bg-lentera-50 {{ $parent->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $parent->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                            <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $parent->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $parent->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
                         </form>
                     @endcan
-                </x-lentera.dropdown-aksi>
+                </x-lentera.aksi-bar>
             </div>
 
             <div class="mb-4 rounded-lg bg-white p-6 shadow-soft">
@@ -64,12 +64,12 @@
                                 <td class="px-4 py-3 tnum">{{ $stockByVariant[$variant->id] ?? 0 }}</td>
                                 <td class="px-4 py-3"><x-lentera.badge :active="$variant->is_active" /></td>
                                 <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
-                                        <x-lentera.menu-item :href="route('products.show', $variant)">{{ __('ui.products.detail') }}</x-lentera.menu-item>
+                                    <x-lentera.aksi-baris>
+                                        <x-lentera.menu-item :href="route('products.show', $variant)" sm>{{ __('ui.products.detail') }}</x-lentera.menu-item>
                                         @can('products.update')
-                                            <x-lentera.menu-item :href="route('products.edit', $variant)">{{ __('ui.edit') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('products.edit', $variant)" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
                                         @endcan
-                                    </x-lentera.row-actions>
+                                    </x-lentera.aksi-baris>
                                 </td>
                             </tr>
                         @empty

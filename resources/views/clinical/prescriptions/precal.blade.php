@@ -7,9 +7,9 @@
         <div class="mx-auto max-w-5xl sm:px-6 lg:px-8">
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('prescriptions.show', $prescription) }}" class="text-sm text-gray-600 underline">{{ __('ui.prescriptions.detail') }}</a>
-                <x-lentera.dropdown-cetak>
-                    <x-lentera.menu-item :href="route('prescriptions.precal-print', $prescription)" target="_blank">{{ __('ui.precal.print') }}</x-lentera.menu-item>
-                </x-lentera.dropdown-cetak>
+                <x-lentera.aksi-bar>
+                    <x-lentera.menu-item :href="route('prescriptions.precal-print', $prescription)" target="_blank" print>{{ __('ui.precal.print') }}</x-lentera.menu-item>
+                </x-lentera.aksi-bar>
             </div>
 
             <div class="overflow-hidden rounded-lg bg-white shadow-soft">

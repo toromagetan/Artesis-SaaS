@@ -36,9 +36,9 @@
                                 <td class="px-4 py-3 tnum">{{ $campaign->recipient_count }}</td>
                                 <td class="px-4 py-3"><span class="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">{{ __('ui.campaigns.statuses.'.$campaign->status) }}</span></td>
                                 <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
-                                        <x-lentera.menu-item :href="route('wa-campaigns.show', $campaign)">{{ __('ui.campaigns.detail') }}</x-lentera.menu-item>
-                                    </x-lentera.row-actions>
+                                    <x-lentera.aksi-baris>
+                                        <x-lentera.menu-item :href="route('wa-campaigns.show', $campaign)" sm>{{ __('ui.campaigns.detail') }}</x-lentera.menu-item>
+                                    </x-lentera.aksi-baris>
                                 </td>
                             </tr>
                         @empty

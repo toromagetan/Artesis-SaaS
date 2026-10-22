@@ -21,9 +21,9 @@
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
                 @can('customers.create')
-                    <x-lentera.dropdown-aksi>
-                        <x-lentera.menu-item :href="route('customers.create')">{{ __('ui.customers.create') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-aksi>
+                    <x-lentera.aksi-bar>
+                        <x-lentera.menu-item :href="route('customers.create')" primary>{{ __('ui.customers.create') }}</x-lentera.menu-item>
+                    </x-lentera.aksi-bar>
                 @endcan
             </div>
 
@@ -48,22 +48,22 @@
                                 <td class="px-4 py-3">{{ $customer->branch->name }}</td>
                                 <td class="px-4 py-3"><x-lentera.badge :active="$customer->is_active" /></td>
                                 <td class="px-4 py-3 text-right">
-                                    <x-lentera.row-actions>
-                                        <x-lentera.menu-item :href="route('customers.show', $customer)">{{ __('ui.customers.detail') }}</x-lentera.menu-item>
+                                    <x-lentera.aksi-baris>
+                                        <x-lentera.menu-item :href="route('customers.show', $customer)" sm>{{ __('ui.customers.detail') }}</x-lentera.menu-item>
                                         @can('customers.update')
-                                            <x-lentera.menu-item :href="route('customers.edit', $customer)">{{ __('ui.edit') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('customers.edit', $customer)" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
                                         @endcan
                                         @can('prescriptions.create')
-                                            <x-lentera.menu-item :href="route('prescriptions.create', $customer)">{{ __('ui.prescriptions.create') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('prescriptions.create', $customer)" sm>{{ __('ui.prescriptions.create') }}</x-lentera.menu-item>
                                         @endcan
                                         @can('customers.deactivate')
-                                            <div class="my-1 border-t border-gray-100"></div>
+
                                             <form method="POST" action="{{ route('customers.toggle-active', $customer) }}">
                                                 @csrf
-                                                <button type="submit" class="block w-full px-4 py-2 text-left text-sm transition duration-150 hover:bg-lentera-50 {{ $customer->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $customer->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                                                <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $customer->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $customer->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
                                             </form>
                                         @endcan
-                                    </x-lentera.row-actions>
+                                    </x-lentera.aksi-baris>
                                 </td>
                             </tr>
                         @empty

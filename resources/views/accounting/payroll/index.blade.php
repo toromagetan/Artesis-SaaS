@@ -14,21 +14,21 @@
                     <x-secondary-button type="submit">{{ __('ui.reports.apply') }}</x-secondary-button>
                 </form>
                 @unless ($allPosted)
-                    <x-lentera.dropdown-aksi>
+                    <x-lentera.aksi-bar>
                         <form method="POST" action="{{ route('payroll.post') }}">
                             @csrf
                             <input type="hidden" name="period" value="{{ $period }}">
                             <input type="hidden" name="method" value="cash">
-                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-lentera-50">{{ __('ui.payroll.post_period_cash') }}</button>
+                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.payroll.post_period_cash') }}</button>
                         </form>
                         <form method="POST" action="{{ route('payroll.post') }}">
                             @csrf
                             <input type="hidden" name="period" value="{{ $period }}">
                             <input type="hidden" name="method" value="transfer">
-                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-lentera-50">{{ __('ui.payroll.post_period_transfer') }}</button>
+                            <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.payroll.post_period_transfer') }}</button>
                         </form>
                         <x-lentera.menu-item :href="route('commissions.index')">{{ __('ui.payroll.commissions_link') }}</x-lentera.menu-item>
-                    </x-lentera.dropdown-aksi>
+                    </x-lentera.aksi-bar>
                 @else
                     <a href="{{ route('commissions.index') }}" class="text-sm text-lentera-800 underline">{{ __('ui.payroll.commissions_link') }}</a>
                 @endunless

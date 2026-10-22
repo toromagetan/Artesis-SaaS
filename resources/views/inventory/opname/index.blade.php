@@ -9,9 +9,9 @@
                 <div class="mb-4 rounded-lg border border-lentera-200 bg-lentera-50 px-4 py-3 text-sm text-lentera-800">{{ session('status') }}</div>
             @endif
             <div class="mb-4 flex items-center justify-end">
-                <x-lentera.dropdown-aksi>
-                    <x-lentera.menu-item :href="route('opnames.create')">{{ __('ui.opname.create') }}</x-lentera.menu-item>
-                </x-lentera.dropdown-aksi>
+                <x-lentera.aksi-bar>
+                    <x-lentera.menu-item :href="route('opnames.create')" primary>{{ __('ui.opname.create') }}</x-lentera.menu-item>
+                </x-lentera.aksi-bar>
             </div>
 
             <div class="overflow-hidden rounded-lg bg-white shadow-soft">
