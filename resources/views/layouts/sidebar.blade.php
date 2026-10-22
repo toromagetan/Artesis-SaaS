@@ -134,10 +134,10 @@
         @endif
 
         {{-- PEMBELIAN & PERSEDIAAN --}}
-        @if ($can('pr.view') || $can('po.view') || $can('payments.collective') || $can('stock.view'))
+        @if ($can('pr.view') || $can('po.view') || $can('payments.collective') || $can('stock.view') || $can('suppliers.manage'))
             <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70">{{ __('ui.nav.group_purchasing_inventory') }}</p>
-            @if ($can('pr.view') || $can('po.view') || $can('payments.collective'))
-                @php $act = request()->routeIs('pr.*') || request()->routeIs('po.*') || request()->routeIs('receipts.*') || request()->routeIs('payments.*'); @endphp
+            @if ($can('pr.view') || $can('po.view') || $can('payments.collective') || $can('suppliers.manage'))
+                @php $act = request()->routeIs('pr.*') || request()->routeIs('po.*') || request()->routeIs('receipts.*') || request()->routeIs('payments.*') || request()->routeIs('suppliers.*'); @endphp
                 <div x-data="{ open: {{ $act ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" class="{{ $item }} {{ $act ? $itemActive : '' }}">
                         @if ($act) {!! $goldBar !!} @endif
@@ -154,6 +154,9 @@
                         @endif
                         @if ($can('payments.collective'))
                             <a href="{{ route('payments.collective') }}" class="{{ $sub }} {{ request()->routeIs('payments.*') ? $subActive : '' }}">@if (request()->routeIs('payments.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.purchasing.collective') }}</a>
+                        @endif
+                        @if ($can('suppliers.manage'))
+                            <a href="{{ route('suppliers.index') }}" class="{{ $sub }} {{ request()->routeIs('suppliers.*') ? $subActive : '' }}">@if (request()->routeIs('suppliers.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.purchasing.suppliers') }}</a>
                         @endif
                     </div>
                 </div>

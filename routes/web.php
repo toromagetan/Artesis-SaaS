@@ -34,6 +34,7 @@ use App\Modules\Lab\Http\Controllers\LabController;
 use App\Modules\Lab\Http\Controllers\QcTemplateController;
 use App\Modules\Master\Http\Controllers\BranchController;
 use App\Modules\Master\Http\Controllers\InsuranceController;
+use App\Modules\Master\Http\Controllers\SupplierController;
 use App\Modules\Membership\Http\Controllers\MemberController;
 use App\Modules\Membership\Http\Controllers\MemberPortalController;
 use App\Modules\Membership\Http\Controllers\MembershipLevelController;
@@ -363,6 +364,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/asuransi/{insurance}/ubah', [InsuranceController::class, 'edit'])->name('insurances.edit');
         Route::put('/asuransi/{insurance}', [InsuranceController::class, 'update'])->name('insurances.update');
         Route::post('/asuransi/{insurance}/alih-aktif', [InsuranceController::class, 'toggleActive'])->name('insurances.toggle-active');
+    });
+
+    Route::middleware('permission:suppliers.manage')->group(function () {
+        Route::get('/supplier', [SupplierController::class, 'index'])->name('suppliers.index');
+        Route::get('/supplier/buat', [SupplierController::class, 'create'])->name('suppliers.create');
+        Route::post('/supplier', [SupplierController::class, 'store'])->name('suppliers.store');
+        Route::get('/supplier/{supplier}', [SupplierController::class, 'show'])->name('suppliers.show');
+        Route::get('/supplier/{supplier}/ubah', [SupplierController::class, 'edit'])->name('suppliers.edit');
+        Route::put('/supplier/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
+        Route::post('/supplier/{supplier}/alih-aktif', [SupplierController::class, 'toggleActive'])->name('suppliers.toggle-active');
     });
 
     Route::get('/laporan/pemakaian-asuransi', [ReportController::class, 'insuranceUsages'])->middleware('permission:reports.sales')->name('reports.insurance-usages');
