@@ -58,6 +58,8 @@ class PhaseTwoGateTest extends TestCase
         // 1) Jual RX -> proses waiting + PR otomatis tertaut (submitted).
         $sale = app(SalesService::class)->createSale($owner, [
             'customer_id' => $customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
+            // ADR-019: item RX mewajibkan resep pelanggan yang sama.
+            'prescription_id' => \App\Modules\Clinical\Models\Prescription::factory()->create(['customer_id' => $customer->id])->id,
         ], [
             ['product_id' => $rx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);

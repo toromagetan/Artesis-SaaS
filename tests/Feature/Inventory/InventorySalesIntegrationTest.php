@@ -96,6 +96,8 @@ class InventorySalesIntegrationTest extends TestCase
 
         app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'inclusive',
+            // ADR-019: item RX mewajibkan resep pelanggan yang sama.
+            'prescription_id' => \App\Modules\Clinical\Models\Prescription::factory()->create(['customer_id' => $this->customer->id])->id,
         ], [
             ['product_id' => $lens->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);

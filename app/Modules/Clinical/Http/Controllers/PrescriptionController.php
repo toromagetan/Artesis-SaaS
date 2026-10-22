@@ -4,7 +4,6 @@ namespace App\Modules\Clinical\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Clinical\Models\Prescription;
-use App\Modules\Clinical\Services\PrecalService;
 use App\Modules\Clinical\Services\PrescriptionService;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
@@ -15,15 +14,16 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Resep (Blueprint D.5 + PRD Detail 3.3/3.4).
+ * Resep (Blueprint D.5 + PRD Detail 3.3).
  * Formulir resep selalu lahir dari konteks pelanggan (rute bersarang) —
  * kaitan pelanggan tidak pernah diambil dari input bebas.
+ * Precal BUKAN turunan resep — precal manual hidup di item penjualan
+ * (ADR-019); halaman/cetakan precal resep telah dicabut.
  */
 class PrescriptionController extends Controller
 {
     public function __construct(
         private readonly PrescriptionService $service,
-        private readonly PrecalService $precal,
     ) {}
 
     public function create(Customer $customer): View
@@ -85,27 +85,6 @@ class PrescriptionController extends Controller
 
         return view('clinical.prescriptions.print', [
             'prescription' => $prescription,
-            'storeName' => Setting::value('store.name', 'Lentera'),
-        ]);
-    }
-
-    public function precal(Prescription $prescription): View
-    {
-        $prescription->load(['customer', 'branch']);
-
-        return view('clinical.prescriptions.precal', [
-            'prescription' => $prescription,
-            'precal' => $this->precal->compute($prescription),
-        ]);
-    }
-
-    public function precalPrint(Prescription $prescription): View
-    {
-        $prescription->load(['customer', 'branch']);
-
-        return view('clinical.prescriptions.precal-print', [
-            'prescription' => $prescription,
-            'precal' => $this->precal->compute($prescription),
             'storeName' => Setting::value('store.name', 'Lentera'),
         ]);
     }

@@ -80,7 +80,17 @@
                     <tbody>
                         @foreach ($pr->items as $item)
                             <tr class="border-b border-gray-50 last:border-0">
-                                <td class="px-4 py-3 font-medium text-gray-800">{{ $item->product->name }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ $item->product->name }}
+                                    @if ($item->rx_parameters)
+                                        <span class="mt-1 block text-xs font-normal text-gray-500">
+                                            {{ __('ui.sales.precal') }}:
+                                            @foreach (\App\Modules\Sales\Services\RxPrecalValidator::KEYS as $key)
+                                                @if (($item->rx_parameters['precal'][$key] ?? null) !== null){{ strtoupper($key) }} {{ $item->rx_parameters['precal'][$key] }}@if (! $loop->last) · @endif @endif
+                                            @endforeach
+                                            ({{ ($item->rx_parameters['precal_complete'] ?? false) ? __('ui.sales.precal_complete') : __('ui.sales.precal_incomplete') }})
+                                        </span>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3 tnum">{{ $item->qty }}</td>
                                 <td class="px-4 py-3 tnum">{{ $item->estimated_price !== null ? \App\Support\Money::fromDecimal((string) $item->estimated_price)->format() : '—' }}</td>
                                 <td class="px-4 py-3">{{ $item->supplier?->name ?? '—' }}</td>

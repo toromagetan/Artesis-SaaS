@@ -51,6 +51,8 @@ class LensProcessTest extends TestCase
             'customer_id' => $this->customer->id,
             'sale_date' => $date,
             'tax_mode' => 'inclusive',
+            // ADR-019: item RX mewajibkan resep pelanggan yang sama.
+            'prescription_id' => \App\Modules\Clinical\Models\Prescription::factory()->create(['customer_id' => $this->customer->id])->id,
         ], [
             ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);

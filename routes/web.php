@@ -246,6 +246,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/penjualan/pengecualian-sinkron/{exception}/buang', [OfflineExceptionController::class, 'discard'])->middleware('permission:sales.view')->name('offline-exceptions.discard');
     Route::get('/penjualan/baru', [SaleController::class, 'create'])->middleware('permission:sales.create')->name('sales.create');
     Route::post('/penjualan', [SaleController::class, 'store'])->middleware('permission:sales.create')->name('sales.store');
+    Route::get('/penjualan/cari-produk', [SaleController::class, 'searchProducts'])->middleware('permission:sales.create')->name('sales.search-products');
+    Route::get('/penjualan/cari-pelanggan', [SaleController::class, 'searchCustomers'])->middleware('permission:sales.create')->name('sales.search-customers');
+    Route::get('/penjualan/pelanggan/{customer}/resep', [SaleController::class, 'customerPrescriptions'])->middleware('permission:sales.create')->name('sales.customer-prescriptions');
+    Route::post('/penjualan/{sale}/item/{item}/precal', [SaleController::class, 'updatePrecal'])->middleware('permission:sales.update')->name('sales.precal.update');
     Route::get('/penjualan/{sale}', [SaleController::class, 'show'])->middleware('permission:sales.view')->name('sales.show');
     Route::get('/penjualan/{sale}/bayar', [SaleController::class, 'paymentForm'])->middleware('permission:sales.pay')->name('sales.payment');
     Route::post('/penjualan/{sale}/bayar', [SaleController::class, 'storePayment'])->middleware('permission:sales.pay')->name('sales.payment.store');
@@ -278,8 +282,6 @@ Route::middleware('auth')->group(function () {
     Route::put('/resep/{prescription}', [PrescriptionController::class, 'update'])->middleware('permission:prescriptions.create')->name('prescriptions.update');
     Route::post('/resep/{prescription}/duplikat', [PrescriptionController::class, 'duplicate'])->middleware('permission:prescriptions.create')->name('prescriptions.duplicate');
     Route::get('/resep/{prescription}/cetak', [PrescriptionController::class, 'print'])->middleware('permission:prescriptions.print')->name('prescriptions.print');
-    Route::get('/resep/{prescription}/precal', [PrescriptionController::class, 'precal'])->middleware('permission:prescriptions.view')->name('prescriptions.precal');
-    Route::get('/resep/{prescription}/precal/cetak', [PrescriptionController::class, 'precalPrint'])->middleware('permission:prescriptions.view')->name('prescriptions.precal-print');
 
     // ---- Katalog (M.1) ----
     Route::get('/katalog/{type}/induk/buat', [ProductParentController::class, 'create'])->middleware('permission:products.create')->name('products.parents.create');

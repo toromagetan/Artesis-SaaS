@@ -16,12 +16,10 @@
                         @can('prescriptions.print')
                             <x-lentera.menu-item :href="route('prescriptions.print', $prescription)" target="_blank" print>{{ __('ui.prescriptions.print') }}</x-lentera.menu-item>
                         @endcan
-                        <x-lentera.menu-item :href="route('prescriptions.precal-print', $prescription)" target="_blank" print>{{ __('ui.precal.print') }}</x-lentera.menu-item>
                     </x-lentera.aksi-bar>
                     @if (auth()->user()->hasPermission('prescriptions.create'))
                         <x-lentera.aksi-bar>
                             <x-lentera.menu-item :href="route('prescriptions.create', $prescription->customer)">{{ __('ui.prescriptions.create') }}</x-lentera.menu-item>
-                            <x-lentera.menu-item :href="route('prescriptions.precal', $prescription)">{{ __('ui.prescriptions.view_precal') }}</x-lentera.menu-item>
                             @unless ($prescription->isLocked())
                                 <x-lentera.menu-item :href="route('prescriptions.edit', $prescription)">{{ __('ui.edit') }}</x-lentera.menu-item>
                             @endunless

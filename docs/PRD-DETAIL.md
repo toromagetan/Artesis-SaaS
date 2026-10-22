@@ -12,7 +12,7 @@
 **Peran:** Owner (pemilik, seluruh cabang) · Admin (pengelola, izin eksplisit) · Kasir · Gudang · Cabang (staf cabang) · Refraksionis · Teknisi Lab. Prinsip tetap: akses diberikan per peran + pagar cabang di server; platform/pemilik teknis tidak otomatis menjadi pelaku bisnis.
 
 **Peta navigasi (sidebar):**
-Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & Resep (Pelanggan, Resep, Precal) · Katalog (Frame, Lensa, Lensa RX, Softlens, Aksesori) · Lab (Antrean Proses, QC Faset) · Pembelian (Purchase Request, Purchase Order, Penerimaan, Pembayaran, Pembayaran Kolektif, Retur, Supplier) · Stok (Stok Cabang, Pergerakan, Transfer Distribusi, Opname, Impor Stok Awal, Label Barcode) · Akuntansi (Chart of Accounts, Jurnal, Buku Besar, Utang & Piutang, Laporan Keuangan, Aset Tetap, Tutup Buku, Payroll & Komisi) · Membership (Member, Poin, Follow-up, Portal Member) · Laporan (Penjualan, Pembelian, Stok, Supplier Analytics, Sales Analytics) · Komunikasi (Gateway WA, Template, Inbox, Kampanye, Log Kirim) · Pengaturan (Cabang, Pengguna & Peran, Asuransi, Dokter Perujuk, Umum & Pajak, Backup, Audit Log, API).
+Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & Resep (Pelanggan, Resep) · Katalog (Frame, Lensa, Lensa RX, Softlens, Aksesori) · Lab (Antrean Proses, QC Faset) · Pembelian (Purchase Request, Purchase Order, Penerimaan, Pembayaran, Pembayaran Kolektif, Retur, Supplier) · Stok (Stok Cabang, Pergerakan, Transfer Distribusi, Opname, Impor Stok Awal, Label Barcode) · Akuntansi (Chart of Accounts, Jurnal, Buku Besar, Utang & Piutang, Laporan Keuangan, Aset Tetap, Tutup Buku, Payroll & Komisi) · Membership (Member, Poin, Follow-up, Portal Member) · Laporan (Penjualan, Pembelian, Stok, Supplier Analytics, Sales Analytics) · Komunikasi (Gateway WA, Template, Inbox, Kampanye, Log Kirim) · Pengaturan (Cabang, Pengguna & Peran, Asuransi, Dokter Perujuk, Umum & Pajak, Backup, Audit Log, API).
 
 ---
 
@@ -43,15 +43,15 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 ### 2.2 Transaksi Baru (POS) — MVP, diperluas F3
 - **Tujuan:** membuat penjualan lengkap: pelanggan → resep → produk → pembayaran.
 - **Akses:** Kasir, Cabang, Admin, Owner.
-- **Formulir:** Pelanggan (cari/daftar cepat di tempat); Resep tertempel (pilih resep pelanggan yang ada, atau buat resep baru tanpa meninggalkan layar — lihat 3.3); Baris item (frame/lensa/lensa RX/softlens/aksesori; untuk lensa RX wajib pasangan resep); Jumlah, Harga (dari master, dapat diubah bila peran mengizinkan), Diskon per item & diskon transaksi (aturan izin: diskon besar hanya Owner/Admin); Catatan; Dokter Perujuk (F3, untuk komisi); Asuransi/BPJS (bila ada); Metode bayar.
+- **Formulir (terminal kasir satu halaman — ADR-019, model Artesis):** Pelanggan dicari async (daftar cepat lewat tautan Pelanggan Baru); Resep tertempel dimuat per pelanggan (untuk lensa RX **wajib** resep pelanggan yang sama); Keranjang item dari pencarian produk async (frame/lensa/lensa RX/softlens/aksesori) dengan Jumlah, Harga (dari master, dapat diubah), Diskon per item; **item Lensa RX membawa panel Precal manual 11 parameter (3.4)** yang boleh dikosongkan saat jual; Diskon transaksi (aturan izin: diskon besar hanya Owner/Admin); Catatan; Dokter pemeriksa; Asuransi (klaim terisi otomatis dari `claim_value` master); footer ringkasan tetap dengan status DP/Lunas turunan dari pembayaran.
 - **Pembayaran (MVP):** tunai/debit/QRIS/transfer; status otomatis Lunas/Sebagian. **(F3):** DP dengan sisa menjadi piutang terjadwal; **split payment** beberapa metode dalam satu transaksi; PPN inklusif/eksklusif.
 - **Aksi:** Simpan; Simpan & Cetak Orderan; Simpan & Kirim WA (F3).
 - **Aturan kunci:** stok berkurang hanya dari cabang transaksi & tercatat sebagai pergerakan; total pembayaran tidak boleh melebihi total (kelebihan = kembalian tunai, bukan selisih diam); transaksi tersimpan mengunci harga & resep saat itu (snapshot) — perubahan master sesudahnya tidak mengubah transaksi lama.
 
 ### 2.3 Detail Transaksi — MVP
 - **Tujuan:** satu layar kebenaran untuk satu transaksi — **halaman penuh tersendiri** (bukan preview/modal/drawer, sesuai Prinsip Tampilan).
-- **Isi:** kepala (nomor, tanggal, pelanggan, cabang, kasir); resep tertempel (ringkasan OD/OS); baris item; rincian pembayaran & riwayat cicilan (F3); status proses lensa + **durasi hari** (berjalan selama proses, **membeku** saat Complete) + tombol **Selesaikan (Complete)**; dokumen: tepat satu **dropdown Cetak** di sebelah Kembali berisi semua dokumen konteks ini — **Cetak Orderan** (dokumen ada → buka tab baru; belum ada → buat lalu buka), Cetak Resep, Cetak Invoice.
-- **Aksi** (seluruhnya item di dalam satu dropdown **Aksi**): Tambah Pembayaran; Selesaikan (Complete); Buka Lab (menembus 5.1 untuk orderan ini); Void Transaksi (kelompok bawah dropdown, ber-alasan, peran terbatas, membalik stok & jurnal secara otomatis).
+- **Isi:** kepala (nomor, tanggal, pelanggan, cabang, kasir); resep tertempel (ringkasan OD/OS); baris item; rincian pembayaran & riwayat cicilan (F3); status proses lensa + **durasi hari** (berjalan selama proses, **membeku** saat Complete) + tombol **Selesaikan (Complete)**; dokumen: tombol-tombol dokumen sejajar (ADR-018) di sebelah Kembali untuk semua dokumen konteks ini — **Cetak Orderan** (dokumen ada → buka tab baru; belum ada → buat lalu buka), Cetak Resep, Cetak Invoice.
+- **Aksi** (tombol sejajar, ADR-018): Tambah Pembayaran; Selesaikan (Complete); Buka Lab (menembus 5.1 untuk orderan ini); Lengkapi Precal per item RX (3.4, bila belum lengkap); Void Transaksi (urutan terakhir, merah, ber-alasan, peran terbatas, membalik stok & jurnal secara otomatis).
 - **Aturan kunci:** penyelesaian ulang ditolak sistem; Complete hanya sesudah QC wajib lulus (F2); Void tidak menghapus baris — status berubah & seluruh jejak (stok, jurnal, pembayaran) dibalik dengan dokumen penyeimbang.
 
 ### 2.4 Pembayaran & Cicilan (Piutang Pelanggan) — F3 (daftar dasar di MVP)
@@ -81,10 +81,10 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 - **Aksi:** Simpan; Gunakan di Transaksi Baru; Cetak Resep (A5); Duplikat sebagai resep baru (untuk periksa ulang — resep lama tidak diubah).
 - **Aturan kunci:** resep yang sudah dipakai transaksi tidak dapat diedit (perubahan = resep baru); memilih pelanggan di formulir resep selalu mengisi kaitan pelanggan secara nyata sebelum simpan (pelajaran bug combobox: pilihan harus ter-registrasi, bukan sekadar tampil); **resep berlaku GLOBAL mengikuti pelanggan (ADR-012)** — dapat dipakai transaksi di cabang mana pun; kolom cabang pada resep adalah cabang pemeriksaan (atribut asal).
 
-### 3.4 Precal — MVP
-- **Tujuan:** hitung awal kebutuhan lensa dari resep (pra-pemesanan/pra-faset).
-- **Isi:** grid **11 parameter** turunan resep untuk OD/OS.
-- **Aturan kunci (MUTLAK):** **PDR/PDL tidak boleh muncul di precal dalam bentuk apa pun** — keduanya hanya hidup di resep (3.3). Precal bersifat turunan baca-saja dari resep; mengubah resep membuat precal lama tidak berlaku.
+### 3.4 Precal — data manual per item penjualan (ADR-019, menggantikan model turunan)
+- **Tujuan:** mencatat kebutuhan lensa & frame untuk pemesanan/faset, diinput saat penjualan.
+- **Isi:** grid **11 parameter manual** per item Lensa RX: `pvr, pvl, a, b, dbl, ed, vd, pa, wrap, de, type_frame` — diinput kasir di terminal POS (panel item), tersimpan pada item penjualan dan tersalin ke item PR saat stok kurang. Precal **terikat frame**, bukan turunan resep; boleh kosong saat jual (penanda "Belum Lengkap") dan dilengkapi kemudian dari detail penjualan (gudang/kasir berizin `sales.update`).
+- **Aturan kunci (MUTLAK):** **PDR/PDL tidak boleh muncul di precal dalam bentuk apa pun** — keduanya hanya hidup di resep (3.3). Item Lensa RX mewajibkan resep pelanggan yang sama pada penjualannya.
 
 ## 4. KATALOG PRODUK
 ### 4.1 Frame — MVP

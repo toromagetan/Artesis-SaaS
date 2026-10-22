@@ -14,12 +14,14 @@ use App\Modules\Master\Models\Insurance;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Membership\Services\PointsService;
 use App\Modules\Platform\Services\AuditLogger;
+use App\Modules\Purchasing\Models\PurchaseRequestItem;
 use App\Modules\Purchasing\Services\PurchaseRequestService;
 use App\Modules\Sales\Events\SaleCompleted;
 use App\Modules\Sales\Events\SalePaymentRecorded;
 use App\Modules\Sales\Events\SaleVoided;
 use App\Modules\Sales\Models\InsuranceUsage;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Models\SaleItem;
 use App\Modules\Sales\Models\SalePayment;
 use App\Support\Money;
 use App\Support\Numbering;
@@ -114,6 +116,7 @@ class SalesService
 
             // --- Hitung baris & total dengan Money (sen integer) ---
             $lines = [];
+            $hasRx = false;
             $subtotal = Money::zero();
             foreach ($items as $i => $item) {
                 $product = Product::findOrFail($item['product_id']);
@@ -139,6 +142,29 @@ class SalesService
                         "items.{$i}.prescription_ref" => __('ui.sales.rx_ref_required'),
                     ]);
                 }
+                // Precal MANUAL per item RX (ADR-019): 11 kunci
+                // tervalidasi RxPrecalValidator, boleh kosong
+                // (precal_complete=false, dilengkapi kemudian).
+                $rxParameters = null;
+                if ($product->type === 'rx') {
+                    $hasRx = true;
+                    $precalValidator = app(RxPrecalValidator::class);
+                    $precalErrors = $precalValidator->validate($item['precal'] ?? null);
+                    if ($precalErrors !== []) {
+                        $messages = [];
+                        foreach ($precalErrors as $key => $message) {
+                            $messages["items.{$i}.precal.{$key}"] = $message;
+                        }
+                        throw ValidationException::withMessages($messages);
+                    }
+                    $normalized = $precalValidator->normalize($item['precal'] ?? null);
+                    $rxParameters = [
+                        'prescription_id' => $prescription?->id,
+                        'prescription' => $prescription !== null ? $this->snapshotOf($prescription) : null,
+                        'precal' => $normalized['precal'],
+                        'precal_complete' => $normalized['complete'],
+                    ];
+                }
                 $lineTotal = $gross->sub($itemDiscount);
                 $subtotal = $subtotal->add($lineTotal);
                 $lines[] = [
@@ -148,7 +174,16 @@ class SalesService
                     'discount' => $itemDiscount,
                     'line_total' => $lineTotal,
                     'prescription_ref' => $item['prescription_ref'] ?? null,
+                    'rx_parameters' => $rxParameters,
                 ];
+            }
+
+            // Item RX mewajibkan resep pelanggan yang sama (ADR-019,
+            // paritas Artesis) — bukan lagi sekadar prescription_ref.
+            if ($hasRx && $prescription === null) {
+                throw ValidationException::withMessages([
+                    'prescription_id' => __('ui.sales.rx_prescription_required'),
+                ]);
             }
 
             // Blokir softlens kedaluwarsa (F4.3, PRD 4.4): untuk
@@ -234,6 +269,7 @@ class SalesService
                     'discount_amount' => $line['discount']->toDecimalString(),
                     'line_total' => $line['line_total']->toDecimalString(),
                     'prescription_ref' => $line['prescription_ref'],
+                    'rx_parameters' => $line['rx_parameters'],
                 ]);
             }
 
@@ -349,9 +385,20 @@ class SalesService
                 }
             }
             if ($shortages !== []) {
+                // Precal item RX ikut tersalin ke item PR (ADR-019).
+                $rxByProduct = [];
+                foreach ($lines as $line) {
+                    if ($line['rx_parameters'] !== null && ! isset($rxByProduct[$line['product']->id])) {
+                        $rxByProduct[$line['product']->id] = $line['rx_parameters'];
+                    }
+                }
                 $prItems = [];
                 foreach ($shortages as $productId => $qty) {
-                    $prItems[] = ['product_id' => $productId, 'qty' => $qty];
+                    $prItems[] = [
+                        'product_id' => $productId,
+                        'qty' => $qty,
+                        'rx_parameters' => $rxByProduct[$productId] ?? null,
+                    ];
                 }
                 app(PurchaseRequestService::class)
                     ->createAutomatic($actor, $sale, $prItems);
@@ -373,6 +420,63 @@ class SalesService
             }
 
             return $sale;
+        });
+    }
+
+    /**
+     * Lengkapi / ubah precal manual sebuah item RX sesudah penjualan
+     * (ADR-019 — jalur gudang melengkapi precal yang dikosongkan kasir).
+     * Nilai tersimpan di item penjualan dan disinkronkan ke item PR
+     * otomatis tertaut (sale + produk yang sama) agar gudang membaca
+     * data yang sama di kedua layar.
+     *
+     * @param  array<string, mixed>  $precalInput
+     */
+    public function updateItemPrecal(User $actor, SaleItem $item, array $precalInput): SaleItem
+    {
+        return DB::transaction(function () use ($actor, $item, $precalInput) {
+            $item = SaleItem::lockForUpdate()->findOrFail($item->id);
+            $sale = Sale::lockForUpdate()->findOrFail($item->sale_id);
+            if ($sale->isVoid()) {
+                throw ValidationException::withMessages(['precal' => __('ui.sales.sale_void')]);
+            }
+            if ($item->type !== 'rx') {
+                throw ValidationException::withMessages(['precal' => __('ui.sales.precal_not_rx')]);
+            }
+
+            $validator = app(RxPrecalValidator::class);
+            $errors = $validator->validate($precalInput);
+            if ($errors !== []) {
+                $messages = [];
+                foreach ($errors as $key => $message) {
+                    $messages["precal.{$key}"] = $message;
+                }
+                throw ValidationException::withMessages($messages);
+            }
+            $normalized = $validator->normalize($precalInput);
+
+            $params = $item->rx_parameters ?? [];
+            $params['precal'] = $normalized['precal'];
+            $params['precal_complete'] = $normalized['complete'];
+            $item->update(['rx_parameters' => $params]);
+
+            PurchaseRequestItem::query()
+                ->whereHas('purchaseRequest', fn ($q) => $q->where('sale_id', $sale->id))
+                ->where('product_id', $item->product_id)
+                ->whereNotNull('rx_parameters')
+                ->get()
+                ->each(fn (PurchaseRequestItem $prItem) => $prItem->update(['rx_parameters' => $params]));
+
+            app(AuditLogger::class)->log(
+                action: 'sales.precal_update',
+                subjectType: 'sale_item',
+                subjectId: $item->id,
+                newValues: ['sale_id' => $sale->id, 'precal_complete' => $normalized['complete']],
+                branchId: (int) $sale->branch_id,
+                actor: $actor,
+            );
+
+            return $item;
         });
     }
 

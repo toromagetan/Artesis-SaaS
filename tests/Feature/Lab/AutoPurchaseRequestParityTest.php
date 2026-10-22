@@ -49,6 +49,10 @@ class AutoPurchaseRequestParityTest extends TestCase
     private function saleWith(array $items)
     {
         return app(SalesService::class)->createSale($this->owner, [
+            // ADR-019: item RX mewajibkan resep; helper ini juga dipakai
+            // penjualan lensa stok — resep tertempel tidak mengubah
+            // logika kekurangan yang diuji di sini.
+            'prescription_id' => \App\Modules\Clinical\Models\Prescription::factory()->create(['customer_id' => $this->customer->id])->id,
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
         ], $items);
     }

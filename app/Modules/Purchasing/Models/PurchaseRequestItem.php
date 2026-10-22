@@ -12,6 +12,7 @@ class PurchaseRequestItem extends Model
     protected $fillable = [
         'purchase_request_id', 'product_id', 'qty',
         'estimated_price', 'supplier_id', 'purchase_order_id',
+        'rx_parameters',
     ];
 
     protected function casts(): array
@@ -19,6 +20,7 @@ class PurchaseRequestItem extends Model
         return [
             'qty' => 'integer',
             'estimated_price' => 'decimal:2',
+            'rx_parameters' => 'array',
         ];
     }
 

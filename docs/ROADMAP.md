@@ -202,6 +202,10 @@ Audit paritas kode Artesis vs Lentera (atas permintaan owner) menemukan inti ope
 
 **Penyelarasan ulang M2/M3/M4 — perintah owner 2026-10-20 (SELESAI 2026-10-20; ADR-017):** audit ulang membuktikan tiga modul menyimpang dari Artesis dan diperbaiki: **M2** limit kredit dicabut, diganti **Kredit Pelanggan** (voucher CR dari refund kredit toko + penerapan terkontrol; GitHub `a824a2f`, regresi 353/2144). **M3** master asuransi ber-`claim_value` + isian klaim otomatis; penerimaan klaim dicabut; histori menjadi **Laporan Pemakaian Asuransi** (GitHub `a05a3c2`, regresi 354/2148). **M4** mesin insentif ditulis ulang persis Artesis — hanya Lunas, per item, penjual + kepala optik fail-closed, pro-rata retur, clawback ke periode berikutnya, **tanpa jurnal** (akun insentif dicabut), ekspor Excel per periode (GitHub `3fd0e00`, regresi **360 test / 2177 asersi hijau**). M1/M5/M6/M7 tidak berubah.
 
+**Tombol sejajar — perintah owner 2026-10-22 (SELESAI 2026-10-22; ADR-018):** dropdown Aksi/Cetak/aksi-baris dicabut di seluruh aplikasi (54 berkas view) dan diganti tombol-tombol perintah yang selalu terlihat (`AksiBar`/`AksiBaris`/`AksiDialog`); alasan owner: lebih mudah dipahami pemula. GitHub `5405356`, regresi **369 test / 2779 asersi hijau**, CI SUCCESS.
+
+**POS terminal + precal manual — keputusan owner 2026-10-22 (SELESAI 2026-10-22; ADR-019):** layar buat penjualan menjadi terminal kasir satu halaman model Artesis (pencarian async, keranjang, footer ringkasan tetap, status DP/Lunas turunan) dengan fitur khas Lentera dipertahankan (split, cicilan, pajak, diskon transaksi, dokter); precal otomatis terikat resep dicabut dan diganti **precal manual 11 kunci per item RX** terikat frame (tersimpan di item, tersalin ke PR, dilengkapi dari detail penjualan); item RX mewajibkan resep. Regresi **377 test / 2831 asersi hijau** + konkurensi 6/6.
+
 ## 12. Kendali Perubahan & Keputusan Eksternal
 
 - **Perubahan cakupan** hanya lewat revisi dokumen ini (atau PRD/Blueprint bila menyangkut perilaku/skema) yang di-commit dan disetujui owner; nomor tugas baru ditambahkan, tidak menyelundup ke tugas berjalan.

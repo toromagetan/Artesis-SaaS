@@ -16,6 +16,7 @@ class SaleItem extends Model
     protected $fillable = [
         'sale_id', 'product_id', 'product_name_snapshot', 'type', 'qty',
         'unit_price', 'discount_amount', 'line_total', 'prescription_ref',
+        'rx_parameters',
     ];
 
     protected function casts(): array
@@ -25,6 +26,7 @@ class SaleItem extends Model
             'unit_price' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'line_total' => 'decimal:2',
+            'rx_parameters' => 'array',
         ];
     }
 

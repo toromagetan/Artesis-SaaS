@@ -85,6 +85,8 @@ class PurchaseRequestService
             $pr->items()->create([
                 'product_id' => (int) $line['product_id'],
                 'qty' => (int) $line['qty'],
+                // Precal manual item RX penjualan tersalin ke PR (ADR-019).
+                'rx_parameters' => $line['rx_parameters'] ?? null,
             ]);
         }
         $this->audit->log(action: 'pr.auto_create', subjectType: 'purchase_request', subjectId: $pr->id,

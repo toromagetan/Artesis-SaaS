@@ -11,11 +11,14 @@ use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Doctor;
 use App\Modules\Master\Models\Insurance;
 use App\Modules\Master\Models\Setting;
+use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Models\SaleItem;
 use App\Modules\Sales\Models\SalePayment;
 use App\Modules\Sales\Services\InstallmentService;
 use App\Modules\Sales\Services\SaleReturnService;
 use App\Modules\Sales\Services\SalesService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -84,25 +87,123 @@ class SaleController extends Controller
 
     public function create(Request $request): View
     {
-        $customers = Customer::where('is_active', true)->orderBy('name')->get();
+        // Terminal POS satu halaman (ADR-019): pelanggan & produk
+        // dicari async lewat endpoint JSON; halaman hanya memuat
+        // dokter, asuransi, bawaan pajak, dan pelanggan terpilih awal
+        // (tautan "?pelanggan=" dari detail pelanggan/penjualan).
+        $selectedCustomer = null;
+        $prescriptions = collect();
         $customerId = (int) $request->query('pelanggan', 0);
-        $selectedCustomer = $customers->firstWhere('id', $customerId)
-            ?? ($customers->count() === 1 ? $customers->first() : null);
-
-        $prescriptions = $selectedCustomer !== null
-            ? $selectedCustomer->prescriptions()->with('examiner')->get()
-            : collect();
+        if ($customerId > 0) {
+            $selectedCustomer = Customer::where('is_active', true)->find($customerId);
+            if ($selectedCustomer !== null) {
+                $prescriptions = $selectedCustomer->prescriptions()->with('examiner')->get();
+            }
+        }
 
         return view('sales.create', [
-            'customers' => $customers,
             'selectedCustomer' => $selectedCustomer,
-            'prescriptions' => $prescriptions,
-            'products' => Product::where('is_active', true)->orderBy('type')->orderBy('name')->get(),
+            'customerData' => $selectedCustomer !== null ? [
+                'id' => $selectedCustomer->id,
+                'name' => $selectedCustomer->name,
+                'phone' => $selectedCustomer->phone,
+            ] : null,
+            'prescriptionData' => $prescriptions->map(fn ($rx) => $this->prescriptionPayload($rx))->values(),
             'doctors' => Doctor::where('is_active', true)->orderBy('name')->get(),
             'insurances' => Insurance::where('is_active', true)->orderBy('name')->get(),
             'taxMode' => (string) Setting::value('tax.mode', 'inclusive'),
             'taxRate' => (string) Setting::value('tax.rate_default', '11'),
         ]);
+    }
+
+    /** Pencarian produk async untuk terminal POS (ADR-019). */
+    public function searchProducts(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+        $branchId = BranchContext::for($request->user())->currentBranchId();
+        $inventory = app(InventoryService::class);
+
+        $products = Product::where('is_active', true)
+            ->with('parent')
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('name', 'like', "%{$q}%")
+                        ->orWhere('sku', 'like', "%{$q}%");
+                });
+            })
+            ->orderBy('type')
+            ->orderBy('name')
+            ->limit(15)
+            ->get();
+
+        return response()->json($products->map(fn (Product $product) => [
+            'id' => $product->id,
+            'name' => $product->name,
+            'parent_name' => $product->parent?->name,
+            'sku' => $product->sku,
+            'type' => $product->type,
+            'type_label' => $product->typeLabel(),
+            'sale_price' => (string) $product->sale_price,
+            'stock' => $branchId !== null ? $inventory->currentStock($product->id, $branchId) : null,
+        ])->values());
+    }
+
+    /** Pencarian pelanggan async untuk terminal POS (ADR-019). */
+    public function searchCustomers(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $customers = Customer::where('is_active', true)
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('name', 'like', "%{$q}%")
+                        ->orWhere('phone', 'like', "%{$q}%");
+                });
+            })
+            ->orderBy('name')
+            ->limit(15)
+            ->get();
+
+        return response()->json($customers->map(fn (Customer $customer) => [
+            'id' => $customer->id,
+            'name' => $customer->name,
+            'phone' => $customer->phone,
+        ])->values());
+    }
+
+    /** Resep milik pelanggan untuk pemilih resep terminal (ADR-019). */
+    public function customerPrescriptions(Customer $customer): JsonResponse
+    {
+        $prescriptions = $customer->prescriptions()->with('examiner')->get();
+
+        return response()->json($prescriptions->map(fn ($rx) => $this->prescriptionPayload($rx))->values());
+    }
+
+    /** Bentuk payload resep untuk terminal POS (pemilih + rekap). */
+    private function prescriptionPayload($rx): array
+    {
+        return [
+            'id' => $rx->id,
+            'label' => $rx->examined_at->format('d/m/Y').' — OD '.$rx->od_sph.'/'.$rx->od_cyl.' · OS '.$rx->os_sph.'/'.$rx->os_cyl,
+            'examined_at' => $rx->examined_at->format('Y-m-d'),
+            'od' => $rx->eye('od'),
+            'os' => $rx->eye('os'),
+            'pd_total' => $rx->pd_total !== null ? (string) $rx->pd_total : null,
+        ];
+    }
+
+    /** Lengkapi/ubah precal manual item RX dari detail penjualan (ADR-019). */
+    public function updatePrecal(Request $request, Sale $sale, SaleItem $item): RedirectResponse
+    {
+        abort_unless($item->sale_id === $sale->id, 404);
+
+        $this->service->updateItemPrecal(
+            $request->user(),
+            $item,
+            (array) $request->input('precal', []),
+        );
+
+        return redirect()->route('sales.show', $sale)->with('status', __('ui.sales.precal_updated'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -137,6 +238,9 @@ class SaleController extends Controller
             'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.prescription_ref' => ['nullable', Rule::in(['od', 'os', 'pair'])],
+            // Precal manual (ADR-019): bentuk saja yang diperiksa di
+            // sini; validasi 11 kunci oleh RxPrecalValidator di service.
+            'items.*.precal' => ['nullable', 'array'],
             'payment_method' => ['nullable', Rule::in(SalePayment::METHODS)],
             'payment_amount' => ['nullable', 'numeric', 'min:0'],
             'payment_reference' => ['nullable', 'string', 'max:80'],

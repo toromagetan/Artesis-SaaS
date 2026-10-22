@@ -87,7 +87,6 @@
                                 <td class="px-4 py-3 text-right">
                                     <x-lentera.aksi-baris>
                                         <x-lentera.menu-item :href="route('prescriptions.show', $rx)" sm>{{ __('ui.prescriptions.detail') }}</x-lentera.menu-item>
-                                        <x-lentera.menu-item :href="route('prescriptions.precal', $rx)" sm>{{ __('ui.precal.title') }}</x-lentera.menu-item>
                                     </x-lentera.aksi-baris>
                                 </td>
                             </tr>

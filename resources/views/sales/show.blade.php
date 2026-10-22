@@ -154,6 +154,53 @@
                 </table>
             </div>
 
+            @foreach ($sale->items as $item)
+                @if ($item->type === 'rx' && $item->rx_parameters)
+                    <div class="mb-6 rounded-lg bg-white p-5 shadow-soft">
+                        <div class="mb-3 flex flex-wrap items-center gap-3">
+                            <h2 class="text-base font-semibold text-gray-800">{{ __('ui.sales.precal') }} — {{ $item->product_name_snapshot }}</h2>
+                            @if ($item->rx_parameters['precal_complete'] ?? false)
+                                <span class="rounded-full bg-lentera-100 px-2.5 py-0.5 text-xs font-semibold text-lentera-900">{{ __('ui.sales.precal_complete') }}</span>
+                            @else
+                                <span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">{{ __('ui.sales.precal_incomplete') }}</span>
+                            @endif
+                            @if (! $sale->isVoid())
+                                @can('sales.update')
+                                    <span class="ml-auto">
+                                        <x-lentera.aksi-dialog :label="__('ui.sales.precal_edit')" :title="__('ui.sales.precal_edit').' — '.$item->product_name_snapshot" :action="route('sales.precal.update', [$sale, $item])" :confirmText="__('ui.save')" sm>
+                                            <div class="grid grid-cols-3 gap-3">
+                                                @foreach (\App\Modules\Sales\Services\RxPrecalValidator::KEYS as $key)
+                                                    <div @if ($key === 'type_frame') class="col-span-2" @endif>
+                                                        <label class="text-xs font-medium uppercase text-gray-500">{{ $key === 'type_frame' ? 'Type Frame' : strtoupper($key) }}</label>
+                                                        @if ($key === 'de')
+                                                            <select name="precal[de]" class="mt-0.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                                                <option value="">—</option>
+                                                                <option value="R" @selected(($item->rx_parameters['precal']['de'] ?? null) === 'R')>R</option>
+                                                                <option value="L" @selected(($item->rx_parameters['precal']['de'] ?? null) === 'L')>L</option>
+                                                            </select>
+                                                        @else
+                                                            <input type="text" name="precal[{{ $key }}]" value="{{ $item->rx_parameters['precal'][$key] ?? '' }}" @if ($key === 'type_frame') maxlength="100" @else inputmode="decimal" @endif class="tnum mt-0.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </x-lentera.aksi-dialog>
+                                    </span>
+                                @endcan
+                            @endif
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                            @foreach (\App\Modules\Sales\Services\RxPrecalValidator::KEYS as $key)
+                                <div>
+                                    <div class="text-xs font-medium uppercase text-gray-400">{{ $key === 'type_frame' ? 'Type Frame' : strtoupper($key) }}</div>
+                                    <div class="tnum text-sm font-medium text-gray-800">{{ $item->rx_parameters['precal'][$key] ?? '—' }}</div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            @endforeach
+
             <h2 class="mb-2 text-base font-semibold text-gray-800">{{ __('ui.sales.payments') }}</h2>
             <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
                 <table class="min-w-full text-sm">
