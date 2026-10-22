@@ -42,6 +42,18 @@ return [
     'edit' => 'Ubah',
     'empty' => 'Belum ada data.',
 
+    'landing' => [
+        'description' => 'Sistem pengelolaan toko optik terpadu: penjualan & resep, stok multi-cabang, pembelian, hingga akuntansi dan laporan — dalam satu tempat, milik Anda sepenuhnya.',
+        'login' => 'Masuk',
+        'internal_note' => 'Sistem internal — hanya untuk staf yang berwenang.',
+        'f1_title' => 'Penjualan & Resep',
+        'f1_body' => 'Terminal kasir, resep dengan parameter lengkap, garansi, dan proses lab terpantau dari satu layar.',
+        'f2_title' => 'Stok Multi-Cabang',
+        'f2_body' => 'Stok terpagar per cabang dengan penilaian FIFO, transfer antar cabang, dan opname yang terkendali.',
+        'f3_title' => 'Akuntansi & Laporan',
+        'f3_body' => 'Jurnal double-entry, piutang & cicilan, insentif, dan laporan keuangan yang selalu seimbang.',
+        'footer' => 'Lentera — Sistem Toko Optik',
+    ],
     'nav' => [
         'dashboard' => 'Dashboard',
         'users' => 'Pengguna',

@@ -42,6 +42,18 @@ return [
     'edit' => 'Edit',
     'empty' => 'No data yet.',
 
+    'landing' => [
+        'description' => 'An integrated optical store system: sales & prescriptions, multi-branch stock, purchasing, through to accounting and reports — in one place, fully yours.',
+        'login' => 'Sign in',
+        'internal_note' => 'Internal system — authorized staff only.',
+        'f1_title' => 'Sales & Prescriptions',
+        'f1_body' => 'Cashier terminal, prescriptions with full parameters, warranty, and lab tracking from one screen.',
+        'f2_title' => 'Multi-Branch Stock',
+        'f2_body' => 'Branch-fenced stock with FIFO valuation, inter-branch transfers, and controlled stock counts.',
+        'f3_title' => 'Accounting & Reports',
+        'f3_body' => 'Double-entry journals, receivables & installments, incentives, and financial reports that always balance.',
+        'footer' => 'Lentera — Optical Store System',
+    ],
     'nav' => [
         'dashboard' => 'Dashboard',
         'users' => 'Users',

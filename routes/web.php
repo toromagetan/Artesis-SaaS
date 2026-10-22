@@ -60,7 +60,10 @@ use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    // Halaman muka bermerek Lentera (audit 23 Okt 2026 D1 — halaman
+    // sambutan bawaan Laravel dihapus); pengguna login langsung ke
+    // dashboard.
+    return auth()->check() ? redirect()->route('dashboard') : view('landing');
 });
 
 Route::post('/bahasa/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
