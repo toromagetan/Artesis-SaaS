@@ -97,9 +97,12 @@ class ArchitectureTest extends TestCase
 
     public function test_registry_has_expected_size(): void
     {
-        // Bagian C.1 mengunci 75 string izin; perubahan harus disengaja
-        // (revisi Blueprint), bukan selipan diam-diam.
-        $this->assertCount(75, PermissionRegistry::all());
+        // Bagian C.1 mengunci jumlah string izin; perubahan harus
+        // disengaja (revisi Blueprint), bukan selipan diam-diam.
+        // 75 → 78 pada audit 23 Okt 2026 (A3): + lab.templates.manage,
+        // pr.cancel, sales.exceptions — izin khusus untuk mutasi berat
+        // yang sebelumnya berpagar izin level-lihat/buat.
+        $this->assertCount(78, PermissionRegistry::all());
     }
 
     public function test_no_float_casts_in_application_code(): void
