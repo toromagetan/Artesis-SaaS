@@ -3,6 +3,7 @@
 namespace Tests\Feature\Inventory;
 
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Clinical\Models\Prescription;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
@@ -97,7 +98,7 @@ class InventorySalesIntegrationTest extends TestCase
         app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'inclusive',
             // ADR-019: item RX mewajibkan resep pelanggan yang sama.
-            'prescription_id' => \App\Modules\Clinical\Models\Prescription::factory()->create(['customer_id' => $this->customer->id])->id,
+            'prescription_id' => Prescription::factory()->create(['customer_id' => $this->customer->id])->id,
         ], [
             ['product_id' => $lens->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);

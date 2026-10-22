@@ -3,6 +3,7 @@
 namespace Tests\Feature\Lab;
 
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Clinical\Models\Prescription;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Services\InventoryService;
@@ -52,7 +53,7 @@ class AutoPurchaseRequestParityTest extends TestCase
             // ADR-019: item RX mewajibkan resep; helper ini juga dipakai
             // penjualan lensa stok — resep tertempel tidak mengubah
             // logika kekurangan yang diuji di sini.
-            'prescription_id' => \App\Modules\Clinical\Models\Prescription::factory()->create(['customer_id' => $this->customer->id])->id,
+            'prescription_id' => Prescription::factory()->create(['customer_id' => $this->customer->id])->id,
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
         ], $items);
     }

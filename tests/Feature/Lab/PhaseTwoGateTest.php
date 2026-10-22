@@ -4,6 +4,7 @@ namespace Tests\Feature\Lab;
 
 use App\Modules\Accounting\Models\Journal;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Clinical\Models\Prescription;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -59,7 +60,7 @@ class PhaseTwoGateTest extends TestCase
         $sale = app(SalesService::class)->createSale($owner, [
             'customer_id' => $customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
             // ADR-019: item RX mewajibkan resep pelanggan yang sama.
-            'prescription_id' => \App\Modules\Clinical\Models\Prescription::factory()->create(['customer_id' => $customer->id])->id,
+            'prescription_id' => Prescription::factory()->create(['customer_id' => $customer->id])->id,
         ], [
             ['product_id' => $rx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);

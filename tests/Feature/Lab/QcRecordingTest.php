@@ -3,6 +3,7 @@
 namespace Tests\Feature\Lab;
 
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Clinical\Models\Prescription;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -64,7 +65,7 @@ class QcRecordingTest extends TestCase
             'sale_date' => '2026-10-18',
             'tax_mode' => 'inclusive',
             // ADR-019: item RX mewajibkan resep pelanggan yang sama.
-            'prescription_id' => \App\Modules\Clinical\Models\Prescription::factory()->create(['customer_id' => $this->customer->id])->id,
+            'prescription_id' => Prescription::factory()->create(['customer_id' => $this->customer->id])->id,
         ], [
             ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);

@@ -340,7 +340,6 @@ return [
         'back_to_customer' => 'Kembali ke Pelanggan',
     ],
 
-
     'sales' => [
         'title' => 'Penjualan',
         'create' => 'Transaksi Baru',

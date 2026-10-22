@@ -340,7 +340,6 @@ return [
         'back_to_customer' => 'Back to Customer',
     ],
 
-
     'sales' => [
         'title' => 'Sales',
         'create' => 'New Transaction',
