@@ -4,6 +4,8 @@ namespace App\Modules\Sales\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Comms\Models\WaMessage;
+use App\Modules\Comms\Services\WaAutomationService;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Services\InventoryService;
@@ -278,6 +280,38 @@ class SaleController extends Controller
             $validated['items'],
             $payments,
         );
+
+        // Aksi simpan terminal POS (PRD-DETAIL §2.2; audit 23 Okt
+        // 2026 B5): cetak = buka orderan tercetak dari halaman
+        // detail; WA = pastikan invoice terantre (otomasi
+        // SaleCompleted biasanya sudah mengantrekannya — maksud
+        // kasir tidak pernah mengirim ganda).
+        $intent = $request->input('intent');
+        if ($intent === 'print') {
+            return redirect()->route('sales.show', $sale)
+                ->with('status', __('ui.sales.created'))
+                ->with('open_print', route('sales.print-order', $sale));
+        }
+        if ($intent === 'wa') {
+            $queued = WaMessage::query()
+                ->where('template_key', 'invoice')
+                ->where('trigger', 'invoice')
+                ->where('customer_id', $sale->customer_id)
+                ->where('body', 'like', '%'.$sale->number.'%')
+                ->exists();
+            if (! $queued) {
+                app(WaAutomationService::class)
+                    ->sendInvoiceForSale($sale->load('customer', 'branch'));
+                $queued = WaMessage::query()
+                    ->where('template_key', 'invoice')
+                    ->where('trigger', 'invoice')
+                    ->where('customer_id', $sale->customer_id)
+                    ->where('body', 'like', '%'.$sale->number.'%')
+                    ->exists();
+            }
+
+            return redirect()->route('sales.show', $sale)->with('status', __('ui.sales.created').' '.($queued ? __('ui.sales.wa_invoice_queued') : __('ui.sales.wa_invoice_unavailable')));
+        }
 
         return redirect()->route('sales.show', $sale)->with('status', __('ui.sales.created'));
     }

@@ -306,4 +306,7 @@
             @endif
         </div>
     </div>
+    @if (session('open_print'))
+        <script>window.open(@json(session('open_print')), '_blank');</script>
+    @endif
 </x-app-layout>

@@ -280,6 +280,8 @@
                         <span x-show="paidTotal() <= 0" class="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">{{ __('ui.sales.pay_unpaid') }}</span>
                         <span class="ml-auto flex items-center gap-3">
                             <a href="{{ route('sales.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
+                            <button type="submit" name="intent" value="print" x-bind:disabled="!customer || items.length === 0" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 disabled:opacity-50">{{ __('ui.sales.save_print') }}</button>
+                            <button type="submit" name="intent" value="wa" x-bind:disabled="!customer || items.length === 0" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 disabled:opacity-50">{{ __('ui.sales.save_wa') }}</button>
                             <x-primary-button x-bind:disabled="!customer || items.length === 0">{{ __('ui.save') }}</x-primary-button>
                         </span>
                     </div>
