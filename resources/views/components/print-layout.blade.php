@@ -23,8 +23,21 @@
     </style>
 </head>
 <body>
+    @php
+        // Identitas toko dari Pengaturan Umum (B2) bila pemanggil tidak
+        // memberinya secara eksplisit — berlaku ke semua dokumen cetak.
+        $storeName = $storeName ?? \App\Modules\Master\Models\Setting::value('store.name', config('app.name', 'Lentera'));
+        $storeAddress = $storeAddress ?? \App\Modules\Master\Models\Setting::value('store.address');
+        $storePhone = $storePhone ?? \App\Modules\Master\Models\Setting::value('store.phone');
+    @endphp
     <div class="store">
-        <div class="name">{{ $storeName ?? config('app.name', 'Lentera') }}</div>
+        <div class="name">{{ $storeName }}</div>
+        @if ($storeAddress)
+            <div>{{ $storeAddress }}</div>
+        @endif
+        @if ($storePhone)
+            <div>{{ $storePhone }}</div>
+        @endif
     </div>
 
     {{ $slot }}

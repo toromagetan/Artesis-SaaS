@@ -33,6 +33,7 @@ use App\Modules\Inventory\Http\Controllers\TransferController;
 use App\Modules\Lab\Http\Controllers\LabController;
 use App\Modules\Lab\Http\Controllers\QcTemplateController;
 use App\Modules\Master\Http\Controllers\BranchController;
+use App\Modules\Master\Http\Controllers\DoctorController;
 use App\Modules\Master\Http\Controllers\InsuranceController;
 use App\Modules\Master\Http\Controllers\SupplierController;
 use App\Modules\Membership\Http\Controllers\MemberController;
@@ -44,6 +45,7 @@ use App\Modules\Platform\Http\Controllers\AssistantController;
 use App\Modules\Platform\Http\Controllers\AuditLogController;
 use App\Modules\Platform\Http\Controllers\BackupController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
+use App\Modules\Platform\Http\Controllers\GeneralSettingsController;
 use App\Modules\Purchasing\Http\Controllers\CollectivePaymentController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseRequestController;
@@ -327,6 +329,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/wa/template/{template}/setujui', [WaTemplateController::class, 'approve'])->middleware('permission:wa.campaigns.approve')->name('wa-templates.approve');
 
     // ---- Komunikasi WhatsApp (F3.4) ----
+    Route::get('/pengaturan/umum', [GeneralSettingsController::class, 'edit'])->middleware('permission:settings.manage')->name('settings.general.edit');
+    Route::put('/pengaturan/umum', [GeneralSettingsController::class, 'update'])->middleware('permission:settings.manage')->name('settings.general.update');
     Route::get('/pengaturan/wa', [WaGatewayController::class, 'edit'])->middleware('permission:settings.manage')->name('wa-gateway.edit');
     Route::put('/pengaturan/wa', [WaGatewayController::class, 'update'])->middleware('permission:settings.manage')->name('wa-gateway.update');
     Route::post('/pengaturan/wa/uji', [WaGatewayController::class, 'test'])->middleware('permission:settings.manage')->name('wa-gateway.test');
@@ -369,6 +373,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/asuransi/{insurance}/ubah', [InsuranceController::class, 'edit'])->name('insurances.edit');
         Route::put('/asuransi/{insurance}', [InsuranceController::class, 'update'])->name('insurances.update');
         Route::post('/asuransi/{insurance}/alih-aktif', [InsuranceController::class, 'toggleActive'])->name('insurances.toggle-active');
+    });
+
+    Route::middleware('permission:doctors.manage')->group(function () {
+        Route::get('/dokter', [DoctorController::class, 'index'])->name('doctors.index');
+        Route::get('/dokter/buat', [DoctorController::class, 'create'])->name('doctors.create');
+        Route::post('/dokter', [DoctorController::class, 'store'])->name('doctors.store');
+        Route::get('/dokter/{doctor}', [DoctorController::class, 'show'])->name('doctors.show');
+        Route::get('/dokter/{doctor}/ubah', [DoctorController::class, 'edit'])->name('doctors.edit');
+        Route::put('/dokter/{doctor}', [DoctorController::class, 'update'])->name('doctors.update');
+        Route::post('/dokter/{doctor}/alih-aktif', [DoctorController::class, 'toggleActive'])->name('doctors.toggle-active');
     });
 
     Route::middleware('permission:suppliers.manage')->group(function () {

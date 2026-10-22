@@ -369,8 +369,15 @@
                     {{ __('ui.nav.insurances') }}
                 </a>
             @endif
+            @if ($can('doctors.manage'))
+                <a href="{{ route('doctors.index') }}" class="{{ $item }} {{ request()->routeIs('doctors.*') ? $itemActive : '' }}">
+                    @if (request()->routeIs('doctors.*')) {!! $goldBar !!} @endif
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="8" r="3.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 20c.6-3 2.8-4.5 5.5-4.5c1 0 1.9.2 2.7.6M17 8v6M14 11h6"/></svg>
+                    {{ __('ui.nav.doctors') }}
+                </a>
+            @endif
             @if ($can('settings.manage') || $can('api_tokens.manage'))
-                @php $act = request()->routeIs('wa-gateway.*', 'ai-setting.*', 'audit-logs.*', 'backups.*', 'api-tokens.*', 'offline-devices.*'); @endphp
+                @php $act = request()->routeIs('settings.general.*', 'wa-gateway.*', 'ai-setting.*', 'audit-logs.*', 'backups.*', 'api-tokens.*', 'offline-devices.*'); @endphp
                 <div x-data="{ open: {{ $act ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" class="{{ $item }} {{ $act ? $itemActive : '' }}">
                         @if ($act) {!! $goldBar !!} @endif
@@ -380,6 +387,7 @@
                     </button>
                     <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         @if ($can('settings.manage'))
+                            <a href="{{ route('settings.general.edit') }}" class="{{ $sub }} {{ request()->routeIs('settings.general.*') ? $subActive : '' }}">@if (request()->routeIs('settings.general.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.general_settings') }}</a>
                             <a href="{{ route('wa-gateway.edit') }}" class="{{ $sub }} {{ request()->routeIs('wa-gateway.*') ? $subActive : '' }}">@if (request()->routeIs('wa-gateway.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_gateway') }}</a>
                             <a href="{{ route('ai-setting.edit') }}" class="{{ $sub }} {{ request()->routeIs('ai-setting.*') ? $subActive : '' }}">@if (request()->routeIs('ai-setting.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.ai_settings') }}</a>
                             <a href="{{ route('audit-logs.index') }}" class="{{ $sub }} {{ request()->routeIs('audit-logs.*') ? $subActive : '' }}">@if (request()->routeIs('audit-logs.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.audit_logs') }}</a>
