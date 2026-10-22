@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Konfigurasi gateway WhatsApp (F3.4). credentials adalah array
- * (phone_number_id, waba_id, access_token, verify_token, api_version)
+ * (phone_number_id, waba_id, access_token, verify_token, app_secret,
+ * api_version)
  * yang disimpan TERENKRIPSI lewat cast `encrypted:array` — tidak
  * pernah tampil penuh di UI/log (UI hanya menunjukkan 4 digit akhir
  * access token).

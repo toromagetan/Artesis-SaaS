@@ -67,6 +67,11 @@
                             </div>
                         </div>
                         <div>
+                            <x-input-label for="app_secret" :value="__('ui.wa.app_secret')" />
+                            <x-text-input id="app_secret" name="app_secret" type="password" class="mt-1 block w-full" autocomplete="new-password" :placeholder="$gateway?->credential('app_secret') ? '••••' : ''" />
+                            <p class="mt-1 text-xs text-gray-500">{{ __('ui.wa.app_secret_hint') }}</p>
+                        </div>
+                        <div>
                             <x-input-label for="webhook_url" :value="__('ui.wa.webhook_url')" />
                             <x-text-input id="webhook_url" class="mt-1 block w-full bg-gray-50" :value="route('wa-webhook.verify')" readonly />
                         </div>

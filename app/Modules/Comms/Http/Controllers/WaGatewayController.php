@@ -38,6 +38,7 @@ class WaGatewayController extends Controller
             'waba_id' => ['nullable', 'string', 'max:40'],
             'access_token' => ['nullable', 'string', 'max:500'],
             'verify_token' => ['nullable', 'string', 'max:120'],
+            'app_secret' => ['nullable', 'string', 'max:200'],
             'api_version' => ['nullable', 'string', 'max:10'],
             'is_active' => ['nullable', 'boolean'],
         ]);
@@ -53,8 +54,12 @@ class WaGatewayController extends Controller
         if (! empty($validated['verify_token'])) {
             $credentials['verify_token'] = $validated['verify_token'];
         }
+        if (! empty($validated['app_secret'])) {
+            $credentials['app_secret'] = $validated['app_secret'];
+        }
         $credentials['access_token'] ??= '';
         $credentials['verify_token'] ??= '';
+        $credentials['app_secret'] ??= '';
 
         $gateway->fill([
             'provider' => $validated['provider'],

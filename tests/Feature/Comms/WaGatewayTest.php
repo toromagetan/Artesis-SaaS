@@ -18,6 +18,7 @@ use Database\Seeders\WaTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -69,6 +70,7 @@ class WaGatewayTest extends TestCase
                 'waba_id' => '99887766',
                 'access_token' => 'EAAB-secret-token-9999',
                 'verify_token' => 'lentera-verify',
+                'app_secret' => 'test-app-secret',
                 'api_version' => 'v21.0',
             ], $credentials),
             'is_active' => true,
@@ -264,7 +266,7 @@ class WaGatewayTest extends TestCase
             'body' => 'uji', 'direction' => 'out', 'status' => 'sent', 'trigger' => 'invoice',
             'provider_message_id' => 'wamid.DELIV1',
         ]);
-        $this->postJson(route('wa-webhook.handle'), [
+        $payload = [
             'entry' => [['changes' => [['value' => [
                 'statuses' => [['id' => 'wamid.DELIV1', 'status' => 'delivered']],
                 'messages' => [[
@@ -272,12 +274,53 @@ class WaGatewayTest extends TestCase
                     'text' => ['body' => 'Terima kasih'],
                 ]],
             ]]]]],
-        ])->assertOk();
+        ];
+        $this->signedWebhookPost($payload, 'test-app-secret')->assertOk();
 
         $this->assertSame('delivered', $message->fresh()->status);
         $incoming = WaMessage::where('direction', 'in')->first();
         $this->assertNotNull($incoming);
         $this->assertSame('Terima kasih', $incoming->body);
         $this->assertSame($this->customer->id, $incoming->customer_id);
+    }
+
+    /** Audit 23 Okt 2026 (A1): POST webhook tanpa tanda tangan App
+     *  Secret yang sah harus ditolak sebelum payload diproses. */
+    public function test_webhook_post_rejects_unsigned_forged_and_unconfigured(): void
+    {
+        $this->activeGateway();
+        $payload = [
+            'entry' => [['changes' => [['value' => [
+                'messages' => [[
+                    'id' => 'wamid.FORGED1', 'from' => '6281234567890', 'type' => 'text',
+                    'text' => ['body' => 'Pesan palsu'],
+                ]],
+            ]]]]],
+        ];
+
+        // Tanpa tanda tangan sama sekali.
+        $this->postJson(route('wa-webhook.handle'), $payload)->assertForbidden();
+        // Tanda tangan dengan secret yang salah.
+        $this->signedWebhookPost($payload, 'secret-yang-salah')->assertForbidden();
+        $this->assertSame(0, WaMessage::where('direction', 'in')->count());
+
+        // Gateway tanpa app_secret → fail-closed walau "ditandatangani".
+        WaGateway::query()->delete();
+        $this->activeGateway(['app_secret' => '']);
+        $this->signedWebhookPost($payload, 'test-app-secret')->assertForbidden();
+        $this->assertSame(0, WaMessage::where('direction', 'in')->count());
+    }
+
+    /** Kirim POST webhook dengan header X-Hub-Signature-256 yang benar
+     *  untuk secret yang diberikan (badan = JSON payload persis). */
+    private function signedWebhookPost(array $payload, string $secret): TestResponse
+    {
+        $json = json_encode($payload);
+        $signature = 'sha256='.hash_hmac('sha256', $json, $secret);
+
+        return $this->call('POST', route('wa-webhook.handle'), [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_HUB_SIGNATURE_256' => $signature,
+        ], $json);
     }
 }

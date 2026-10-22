@@ -946,6 +946,8 @@ return [
         'access_token' => 'Access Token',
         'token_hint' => 'Kosongkan bila tidak ingin mengganti token yang tersimpan.',
         'verify_token' => 'Verify Token (webhook)',
+        'app_secret' => 'App Secret (Meta)',
+        'app_secret_hint' => 'Dari aplikasi Meta (Pengaturan Aplikasi → Dasar). Dipakai memverifikasi tanda tangan webhook; tanpa nilai ini webhook POST ditolak. Kosongkan bila tidak ingin mengganti.',
         'api_version' => 'Versi API',
         'webhook_url' => 'URL Webhook (daftarkan di Meta)',
         'is_active' => 'Aktifkan gateway ini',

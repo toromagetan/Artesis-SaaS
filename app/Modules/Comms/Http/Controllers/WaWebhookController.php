@@ -16,7 +16,9 @@ use Illuminate\Http\Response;
  * POST = pembaruan status terkirim (delivered) + tangkap pesan masuk
  *        sebagai baris direction 'in' agar tidak ada pesan hilang.
  * Endpoint publik tanpa sesi; keaslian dijaga verify_token (GET) dan
- * pencocokan phone_number_id + provider_message_id (POST).
+ * tanda tangan X-Hub-Signature-256 (HMAC-SHA256 atas badan mentah
+ * dengan App Secret gateway) pada POST — audit 23 Okt 2026 (A1).
+ * Tanpa App Secret terkonfigurasi, POST selalu ditolak (fail-closed).
  */
 class WaWebhookController extends Controller
 {
@@ -33,8 +35,21 @@ class WaWebhookController extends Controller
         return response('Forbidden', 403);
     }
 
-    public function handle(Request $request): Response
+    public function handle(Request $request, GatewayFactory $factory): Response
     {
+        // Keaslian POST: Meta menandatangani badan mentah dengan App
+        // Secret aplikasi. Tanpa secret / tanda tangan tidak cocok →
+        // tolak SEBELUM payload apa pun diproses, agar pesan masuk dan
+        // status terkirim tidak dapat dipalsukan (audit 23 Okt 2026 A1).
+        $secret = $factory->activeGateway()?->credential('app_secret', '');
+        $expected = $secret === ''
+            ? ''
+            : 'sha256='.hash_hmac('sha256', $request->getContent(), $secret);
+        $signature = (string) $request->header('X-Hub-Signature-256', '');
+        if ($expected === '' || ! hash_equals($expected, $signature)) {
+            return response('Forbidden', 403);
+        }
+
         $entries = (array) $request->input('entry', []);
         foreach ($entries as $entry) {
             foreach ((array) ($entry['changes'] ?? []) as $change) {

@@ -946,6 +946,8 @@ return [
         'access_token' => 'Access Token',
         'token_hint' => 'Leave empty to keep the stored token.',
         'verify_token' => 'Verify Token (webhook)',
+        'app_secret' => 'App Secret (Meta)',
+        'app_secret_hint' => 'From the Meta app (App Settings → Basic). Used to verify webhook signatures; without it, webhook POSTs are rejected. Leave blank to keep the stored value.',
         'api_version' => 'API Version',
         'webhook_url' => 'Webhook URL (register it in Meta)',
         'is_active' => 'Activate this gateway',
