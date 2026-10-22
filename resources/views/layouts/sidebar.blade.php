@@ -292,9 +292,9 @@
         @endif
 
         {{-- KOMUNIKASI --}}
-        @if ($can('wa.send') || $can('wa.templates') || $can('wa.inbox') || $can('settings.manage'))
+        @if ($can('wa.send') || $can('wa.templates') || $can('wa.inbox') || $can('wa.campaigns'))
             <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70">{{ __('ui.nav.communication') }}</p>
-            @php $act = request()->routeIs('wa-*'); @endphp
+            @php $act = request()->routeIs('wa-inbox.*', 'wa-campaigns.*', 'wa-log.*', 'wa-templates.*'); @endphp
             <div x-data="{ open: {{ $act ? 'true' : 'false' }} }">
                 <button type="button" @click="open = !open" class="{{ $item }} {{ $act ? $itemActive : '' }}">
                     @if ($act) {!! $goldBar !!} @endif
@@ -315,22 +315,12 @@
                     @if ($can('wa.templates'))
                         <a href="{{ route('wa-templates.index') }}" class="{{ $sub }} {{ request()->routeIs('wa-templates.*') ? $subActive : '' }}">@if (request()->routeIs('wa-templates.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_templates') }}</a>
                     @endif
-                    @if ($can('settings.manage'))
-                        <a href="{{ route('wa-gateway.edit') }}" class="{{ $sub }} {{ request()->routeIs('wa-gateway.*') ? $subActive : '' }}">@if (request()->routeIs('wa-gateway.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_gateway') }}</a>
-                        <a href="{{ route('ai-setting.edit') }}" class="{{ $sub }} {{ request()->routeIs('ai-setting.*') ? $subActive : '' }}">@if (request()->routeIs('ai-setting.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.ai_settings') }}</a>
-                        <a href="{{ route('audit-logs.index') }}" class="{{ $sub }} {{ request()->routeIs('audit-logs.*') ? $subActive : '' }}">@if (request()->routeIs('audit-logs.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.audit_logs') }}</a>
-                        <a href="{{ route('backups.index') }}" class="{{ $sub }} {{ request()->routeIs('backups.*') ? $subActive : '' }}">@if (request()->routeIs('backups.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.backups') }}</a>
-                    @endif
-                    @if ($can('api_tokens.manage'))
-                        <a href="{{ route('api-tokens.index') }}" class="{{ $sub }} {{ request()->routeIs('api-tokens.*') ? $subActive : '' }}">@if (request()->routeIs('api-tokens.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.api_tokens') }}</a>
-                        <a href="{{ route('offline-devices.index') }}" class="{{ $sub }} {{ request()->routeIs('offline-devices.*') ? $subActive : '' }}">@if (request()->routeIs('offline-devices.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.offline_devices') }}</a>
-                    @endif
                 </div>
             </div>
         @endif
 
         {{-- MASTER & PENGATURAN --}}
-        @if ($can('products.view') || $can('users.manage') || $can('roles.manage') || $can('branches.manage') || $can('insurances.manage'))
+        @if ($can('products.view') || $can('users.manage') || $can('roles.manage') || $can('branches.manage') || $can('insurances.manage') || $can('settings.manage') || $can('api_tokens.manage'))
             <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70">{{ __('ui.nav.group_master_settings') }}</p>
             @if ($can('products.view'))
                 @php $act = request()->routeIs('products.*'); @endphp
@@ -375,6 +365,29 @@
                     <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 4.5 3.4 7.7 8 9 4.6-1.3 8-4.5 8-9V6l-8-3Z"/></svg>
                     {{ __('ui.nav.insurances') }}
                 </a>
+            @endif
+            @if ($can('settings.manage') || $can('api_tokens.manage'))
+                @php $act = request()->routeIs('wa-gateway.*', 'ai-setting.*', 'audit-logs.*', 'backups.*', 'api-tokens.*', 'offline-devices.*'); @endphp
+                <div x-data="{ open: {{ $act ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" class="{{ $item }} {{ $act ? $itemActive : '' }}">
+                        @if ($act) {!! $goldBar !!} @endif
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                        {{ __('ui.nav.settings') }}
+                        <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                        @if ($can('settings.manage'))
+                            <a href="{{ route('wa-gateway.edit') }}" class="{{ $sub }} {{ request()->routeIs('wa-gateway.*') ? $subActive : '' }}">@if (request()->routeIs('wa-gateway.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_gateway') }}</a>
+                            <a href="{{ route('ai-setting.edit') }}" class="{{ $sub }} {{ request()->routeIs('ai-setting.*') ? $subActive : '' }}">@if (request()->routeIs('ai-setting.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.ai_settings') }}</a>
+                            <a href="{{ route('audit-logs.index') }}" class="{{ $sub }} {{ request()->routeIs('audit-logs.*') ? $subActive : '' }}">@if (request()->routeIs('audit-logs.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.audit_logs') }}</a>
+                            <a href="{{ route('backups.index') }}" class="{{ $sub }} {{ request()->routeIs('backups.*') ? $subActive : '' }}">@if (request()->routeIs('backups.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.backups') }}</a>
+                        @endif
+                        @if ($can('api_tokens.manage'))
+                            <a href="{{ route('api-tokens.index') }}" class="{{ $sub }} {{ request()->routeIs('api-tokens.*') ? $subActive : '' }}">@if (request()->routeIs('api-tokens.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.api_tokens') }}</a>
+                            <a href="{{ route('offline-devices.index') }}" class="{{ $sub }} {{ request()->routeIs('offline-devices.*') ? $subActive : '' }}">@if (request()->routeIs('offline-devices.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.offline_devices') }}</a>
+                        @endif
+                    </div>
+                </div>
             @endif
         @endif
     </nav>
