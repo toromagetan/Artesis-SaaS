@@ -13,6 +13,7 @@ use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
 use App\Modules\Purchasing\Services\PurchaseOrderService;
 use App\Modules\Purchasing\Services\ReceiptService;
+use App\Modules\Sales\Models\BrokenStock;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\WarrantyCase;
 use App\Modules\Sales\Services\SalesService;
@@ -190,5 +191,55 @@ class WarrantyTest extends TestCase
         $this->actingAs($this->owner)->get(route('warranties.show', $case))->assertOk()->assertSee($case->number);
         $this->actingAs($this->owner)->post(route('warranties.send-old', $case))->assertRedirect();
         $this->assertSame('waiting_warehouse', $case->fresh()->status);
+    }
+
+    /** Audit 23 Okt 2026 (A2): detail & antrean garansi terpagar
+     *  cabang — kasir cabang lain tidak dapat membuka kasus satelit
+     *  lewat URL langsung maupun melihat stok rusaknya di daftar. */
+    public function test_warranty_detail_and_lists_are_branch_fenced(): void
+    {
+        // Cabang ketiga yang tidak dikelola kasir dan bukan gudang.
+        $satelit = Branch::factory()->create(['name' => 'Satelit']);
+        $satProduct = Product::factory()->ofType('frame')->create([
+            'sku' => 'WR-SAT', 'name' => 'Frame Satelit', 'cost_price' => '40000', 'sale_price' => '100000',
+        ]);
+        $orders = app(PurchaseOrderService::class);
+        $supplier = Supplier::firstOrFail();
+        $po = $orders->create($this->owner, $supplier->id, $satelit->id, [
+            ['product_id' => $satProduct->id, 'qty' => 2, 'unit_cost' => '40000'],
+        ]);
+        $orders->markSent($this->owner, $po);
+        app(ReceiptService::class)->store($this->owner, $po, [
+            ['purchase_order_item_id' => $po->items->first()->id, 'qty' => 2, 'unit_cost_actual' => '40000'],
+        ]);
+        $satCustomer = Customer::factory()->create(['branch_id' => $satelit->id]);
+        $satSale = app(SalesService::class)->createSale($this->owner, [
+            'customer_id' => $satCustomer->id, 'sale_date' => now()->toDateString(),
+            'tax_mode' => 'exclusive', 'branch_id' => $satelit->id,
+        ], [['product_id' => $satProduct->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
+        $satCase = app(WarrantyService::class)->createCase($this->owner, $satSale,
+            $satSale->items->first(), 1, 'Retak', null);
+        BrokenStock::create([
+            'branch_id' => $satelit->id, 'product_id' => $satProduct->id,
+            'warranty_case_id' => $satCase->id, 'quantity' => 1,
+            'status' => 'pending_inspection', 'created_by' => $this->owner->id,
+        ]);
+
+        $kasir = User::factory()->create();
+        $kasir->roles()->sync([Role::where('name', 'Kasir')->firstOrFail()->id]);
+        $kasir->branches()->sync([$this->branchA->id]);
+
+        // Detail kasus satelit: 404 untuk kasir Pusat, 200 untuk owner.
+        $this->actingAs($kasir)->get(route('warranties.show', $satCase))->assertNotFound();
+        $this->actingAs($this->owner)->get(route('warranties.show', $satCase))->assertOk();
+
+        // Daftar: nomor kasus + stok rusak satelit tak tampak bagi kasir.
+        $this->actingAs($kasir)->get(route('warranties.index'))
+            ->assertOk()
+            ->assertDontSee($satCase->number)
+            ->assertDontSee('Frame Satelit');
+        $this->actingAs($this->owner)->get(route('warranties.index'))
+            ->assertOk()
+            ->assertSee($satCase->number);
     }
 }

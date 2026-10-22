@@ -42,11 +42,21 @@ class WarrantyController extends Controller
             $query->where('status', $request->string('status'));
         }
 
+        // Antrean stok rusak mengikuti pagar keterlihatan yang sama
+        // dengan daftar kasus (audit 23 Okt 2026 A2): aktor non-global
+        // hanya melihat baris cabangnya + gudang utama.
+        $brokenQuery = BrokenStock::with(['product', 'warrantyCase'])
+            ->whereIn('status', ['pending_inspection', 'at_warehouse']);
+        if (! $context->hasGlobalAccess()) {
+            $brokenQuery->whereIn('branch_id', [
+                ...$context->managedBranchIds(),
+                $this->warranty->warehouseBranch()->id,
+            ]);
+        }
+
         return view('sales.warranty.index', [
             'cases' => $query->paginate(20)->withQueryString(),
-            'brokenPending' => BrokenStock::with(['product', 'warrantyCase'])
-                ->whereIn('status', ['pending_inspection', 'at_warehouse'])
-                ->orderBy('id')->limit(20)->get(),
+            'brokenPending' => $brokenQuery->orderBy('id')->limit(20)->get(),
             'warehouse' => $this->warranty->warehouseBranch(),
         ]);
     }
@@ -89,6 +99,19 @@ class WarrantyController extends Controller
         $actor = $request->user();
         if (! $actor->hasPermission('sales.view') && ! $actor->hasPermission('stock.view')) {
             abort(403);
+        }
+        // Pagar cabang untuk BACA (audit 23 Okt 2026 A2): kasus hanya
+        // terlihat oleh aktor global, pengelola cabang kasus, atau
+        // pengelola gudang utama (pemroses sentral). Di luar itu 404 —
+        // sama seperti daftar; aksi-aksi tahap tetap ditegakkan ulang
+        // di WarrantyService.
+        $context = BranchContext::for($actor);
+        if (! $context->hasGlobalAccess()
+            && ! in_array($warranty->branch_id, [
+                ...$context->managedBranchIds(),
+                $this->warranty->warehouseBranch()->id,
+            ], true)) {
+            abort(404);
         }
         $warranty->load(['sale.customer', 'saleItem.product', 'branch', 'creator',
             'replacement.product', 'replacement.purchaseOrder', 'brokenStocks', 'payments']);
