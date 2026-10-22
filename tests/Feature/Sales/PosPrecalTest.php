@@ -4,10 +4,10 @@ namespace Tests\Feature\Sales;
 
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Clinical\Models\Prescription;
+use App\Modules\Clinical\Services\PrecalService;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
-use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Purchasing\Models\PurchaseRequest;
 use App\Modules\Sales\Models\Sale;
@@ -290,6 +290,6 @@ class PosPrecalTest extends TestCase
     {
         $this->actingAs($this->owner)->get('/resep/'.$this->prescription->id.'/precal')->assertNotFound();
         $this->actingAs($this->owner)->get('/resep/'.$this->prescription->id.'/precal/cetak')->assertNotFound();
-        $this->assertFalse(class_exists(\App\Modules\Clinical\Services\PrecalService::class));
+        $this->assertFalse(class_exists(PrecalService::class));
     }
 }

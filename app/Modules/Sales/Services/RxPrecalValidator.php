@@ -71,6 +71,7 @@ class RxPrecalValidator
             if ($value === null || $value === '') {
                 $precal[$key] = null;
                 $complete = false;
+
                 continue;
             }
             $precal[$key] = $key === 'de' ? strtoupper((string) $value) : (string) $value;
