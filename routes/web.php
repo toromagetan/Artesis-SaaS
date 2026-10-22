@@ -105,7 +105,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pembelian/pr/{pr}', [PurchaseRequestController::class, 'show'])->middleware('permission:pr.view')->name('pr.show');
     Route::post('/pembelian/pr/{pr}/submit', [PurchaseRequestController::class, 'submit'])->middleware('permission:pr.create')->name('pr.submit');
     Route::post('/pembelian/pr/{pr}/approve', [PurchaseRequestController::class, 'approve'])->middleware('permission:pr.approve')->name('pr.approve');
-    Route::post('/pembelian/pr/{pr}/batal', [PurchaseRequestController::class, 'cancel'])->middleware('permission:pr.create')->name('pr.cancel');
+    Route::post('/pembelian/pr/{pr}/batal', [PurchaseRequestController::class, 'cancel'])->middleware('permission:pr.cancel')->name('pr.cancel');
     Route::post('/pembelian/pr/{pr}/konversi', [PurchaseRequestController::class, 'convert'])->middleware('permission:pr.approve')->name('pr.convert');
 
     Route::get('/pembelian/po', [PurchaseOrderController::class, 'index'])->middleware('permission:po.view')->name('po.index');
@@ -132,11 +132,11 @@ Route::middleware('auth')->group(function () {
     // ---- Lab (M.5) ----
     // Template QC (F2.1) — SEBELUM /lab/{process} agar tidak tertangkap wildcard.
     Route::get('/lab/template-qc', [QcTemplateController::class, 'index'])->middleware('permission:lab.view')->name('qc-templates.index');
-    Route::get('/lab/template-qc/buat', [QcTemplateController::class, 'create'])->middleware('permission:lab.view')->name('qc-templates.create');
-    Route::post('/lab/template-qc', [QcTemplateController::class, 'store'])->middleware('permission:lab.view')->name('qc-templates.store');
-    Route::get('/lab/template-qc/{template}/ubah', [QcTemplateController::class, 'edit'])->middleware('permission:lab.view')->name('qc-templates.edit');
-    Route::put('/lab/template-qc/{template}', [QcTemplateController::class, 'update'])->middleware('permission:lab.view')->name('qc-templates.update');
-    Route::post('/lab/template-qc/{template}/aktif', [QcTemplateController::class, 'toggleActive'])->middleware('permission:lab.view')->name('qc-templates.toggle');
+    Route::get('/lab/template-qc/buat', [QcTemplateController::class, 'create'])->middleware('permission:lab.templates.manage')->name('qc-templates.create');
+    Route::post('/lab/template-qc', [QcTemplateController::class, 'store'])->middleware('permission:lab.templates.manage')->name('qc-templates.store');
+    Route::get('/lab/template-qc/{template}/ubah', [QcTemplateController::class, 'edit'])->middleware('permission:lab.templates.manage')->name('qc-templates.edit');
+    Route::put('/lab/template-qc/{template}', [QcTemplateController::class, 'update'])->middleware('permission:lab.templates.manage')->name('qc-templates.update');
+    Route::post('/lab/template-qc/{template}/aktif', [QcTemplateController::class, 'toggleActive'])->middleware('permission:lab.templates.manage')->name('qc-templates.toggle');
 
     // Order lab (F2.3) — juga sebelum /lab/{process}.
 
@@ -243,7 +243,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/penjualan/pengecualian-sinkron', [OfflineExceptionController::class, 'index'])->middleware('permission:sales.view')->name('offline-exceptions.index');
     Route::get('/kasir-offline', [OfflineCashierController::class, 'show'])->middleware('permission:sales.create')->name('offline-cashier.show');
     Route::post('/penjualan/pengecualian-sinkron/{exception}/coba-lagi', [OfflineExceptionController::class, 'retry'])->middleware('permission:sales.create')->name('offline-exceptions.retry');
-    Route::post('/penjualan/pengecualian-sinkron/{exception}/buang', [OfflineExceptionController::class, 'discard'])->middleware('permission:sales.view')->name('offline-exceptions.discard');
+    Route::post('/penjualan/pengecualian-sinkron/{exception}/buang', [OfflineExceptionController::class, 'discard'])->middleware('permission:sales.exceptions')->name('offline-exceptions.discard');
     Route::get('/penjualan/baru', [SaleController::class, 'create'])->middleware('permission:sales.create')->name('sales.create');
     Route::post('/penjualan', [SaleController::class, 'store'])->middleware('permission:sales.create')->name('sales.store');
     Route::get('/penjualan/cari-produk', [SaleController::class, 'searchProducts'])->middleware('permission:sales.create')->name('sales.search-products');

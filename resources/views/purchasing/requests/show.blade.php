@@ -37,7 +37,7 @@
                         @endcan
                     @endif
                     @if (in_array($pr->status, ['draft', 'submitted'], true))
-                        @can('pr.create')
+                        @can('pr.cancel')
 
                             <form method="POST" action="{{ route('pr.cancel', $pr) }}" onsubmit="return confirm('{{ __('ui.purchasing.cancel') }}?')">
                                 @csrf

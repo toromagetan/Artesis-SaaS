@@ -54,11 +54,13 @@
                                                 @csrf
                                                 <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.offline.retry') }}</button>
                                             </form>
+                                            @can('sales.exceptions')
                                             <form method="POST" action="{{ route('offline-exceptions.discard', $exception) }}" onsubmit="return confirm('{{ __('ui.offline.discard_confirm') }}')">
                                                 @csrf
                                                 <input type="hidden" name="note" value="{{ __('ui.offline.discard_default_note') }}">
                                                 <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-red-600 shadow-soft transition duration-150 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.offline.discard') }}</button>
                                             </form>
+                                            @endcan
                                         </x-lentera.aksi-baris>
                                     @endif
                                 </td>

@@ -87,7 +87,10 @@ class QcTemplateController extends Controller
     {
         $user = auth()->user();
 
-        return $user !== null && ($user->hasRole('Owner') || $user->hasRole('Admin'));
+        // Izin khusus (audit 23 Okt 2026 A3) — sebelumnya peran
+        // Owner/Admin secara keras; kini satu-satunya sumber kebenaran
+        // adalah izin lab.templates.manage (Owner '*' + Admin).
+        return $user !== null && $user->hasPermission('lab.templates.manage');
     }
 
     private function guardManagePage(): void

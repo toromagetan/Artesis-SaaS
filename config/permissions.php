@@ -24,6 +24,7 @@ return [
             'sales.pay' => 'Terima pembayaran penjualan',
             'sales.discount.high' => 'Diskon di atas ambang',
             'sales.return' => 'Retur penjualan',
+            'sales.exceptions' => 'Kelola pengecualian sinkron offline',
         ],
     ],
     'customers' => [
@@ -61,6 +62,7 @@ return [
             'lab.qc' => 'Isi pemeriksaan QC',
             'lab.complete' => 'Selesaikan proses (Complete)',
             'lab.order.manage' => 'Kelola order lab eksternal',
+            'lab.templates.manage' => 'Kelola template QC',
         ],
     ],
     'purchasing' => [
@@ -69,6 +71,7 @@ return [
             'pr.view' => 'Lihat Purchase Request',
             'pr.create' => 'Buat Purchase Request',
             'pr.approve' => 'Setujui Purchase Request',
+            'pr.cancel' => 'Batalkan Purchase Request',
             'po.view' => 'Lihat Purchase Order',
             'po.create' => 'Buat Purchase Order',
             'po.update' => 'Ubah Purchase Order',
