@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Clinical\Models\FittingMeasurement;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -26,7 +27,7 @@ class FittingController extends Controller
         ]);
     }
 
-    public function store(Request $request, Customer $customer): RedirectResponse
+    public function store(Request $request, Customer $customer, AuditLogger $audit): RedirectResponse
     {
         $validated = $request->validate([
             'method' => ['required', 'in:camera,manual'],
@@ -49,7 +50,7 @@ class FittingController extends Controller
         $branchId = BranchContext::for($actor)->currentBranchId() ?? $customer->branch_id;
         $faceWidth = isset($validated['face_width']) ? $validated['face_width'] + 0 : null;
 
-        FittingMeasurement::create([
+        $measurement = FittingMeasurement::create([
             'customer_id' => $customer->id,
             'branch_id' => $branchId,
             'measured_by' => $actor->id,
@@ -64,6 +65,17 @@ class FittingController extends Controller
             'frame_size_recommendation' => $faceWidth !== null ? FittingMeasurement::sizeForFaceWidth($faceWidth) : null,
             'notes' => $validated['notes'] ?? null,
         ]);
+
+        // Rekam klinis dibuat — berjejak audit seperti resep
+        // (audit 23 Okt 2026 A4).
+        $audit->log(
+            action: 'clinical.fitting.record',
+            subjectType: 'fitting_measurement',
+            subjectId: $measurement->id,
+            newValues: ['method' => $measurement->method, 'customer_id' => $customer->id],
+            branchId: $branchId,
+            actor: $actor,
+        );
 
         return redirect()->route('fittings.measure', $customer)->with('status', __('ui.fitting.saved'));
     }

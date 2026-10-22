@@ -10,6 +10,7 @@ use App\Modules\Accounting\Services\IncentiveService;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
+use App\Modules\Platform\Models\AuditLog;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
@@ -274,6 +275,8 @@ class IncentiveTest extends TestCase
             ->where('period_start', '2026-10-01')->firstOrFail();
         $this->assertSame('draft', $october->status);
         $this->assertSame(2, $october->adjustments()->count());
+        // Clawback berjejak audit per penyesuaian (audit 23 Okt 2026 A4).
+        $this->assertSame(2, AuditLog::where('action', 'accounting.incentive.adjustment')->count());
         $this->assertSame('-7000.00', $october->adjustmentsTotal()->toDecimalString());
         $this->assertSame('-7000.00', $october->netTotal()->toDecimalString());
         // Item historis September tidak berubah.

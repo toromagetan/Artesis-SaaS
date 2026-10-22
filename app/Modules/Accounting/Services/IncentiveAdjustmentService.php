@@ -6,6 +6,7 @@ use App\Modules\Accounting\Models\IncentiveAdjustment;
 use App\Modules\Accounting\Models\IncentiveItem;
 use App\Modules\Accounting\Models\IncentivePeriod;
 use App\Modules\Identity\Models\User;
+use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Sales\Models\SaleReturn;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,8 @@ use Illuminate\Validation\ValidationException;
  */
 class IncentiveAdjustmentService
 {
+    public function __construct(private readonly AuditLogger $audit) {}
+
     /**
      * @return list<IncentiveAdjustment> penyesuaian yang dibuat
      */
@@ -36,6 +39,23 @@ class IncentiveAdjustmentService
         $created = [];
         foreach ($returnedByItem as $saleItemId => $returnedQty) {
             $created = [...$created, ...$this->processItem($return, (int) $saleItemId, (int) $returnedQty, $actor)];
+        }
+
+        // Clawback mengubah hak penghasilan staf — wajib berjejak
+        // audit per penyesuaian (audit 23 Okt 2026 A4).
+        foreach ($created as $adjustment) {
+            $this->audit->log(
+                action: 'accounting.incentive.adjustment',
+                subjectType: 'incentive_adjustment',
+                subjectId: $adjustment->id,
+                newValues: [
+                    'amount' => $adjustment->amount,
+                    'sale_return_id' => $adjustment->sale_return_id,
+                    'recipient_user_id' => $adjustment->recipient_user_id,
+                    'incentive_period_id' => $adjustment->incentive_period_id,
+                ],
+                actor: $actor,
+            );
         }
 
         return $created;

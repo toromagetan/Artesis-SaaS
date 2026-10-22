@@ -10,6 +10,7 @@ use App\Modules\Membership\Models\MembershipLevel;
 use App\Modules\Membership\Models\PointsLedger;
 use App\Modules\Membership\Services\MemberPortalService;
 use App\Modules\Membership\Services\PointsService;
+use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -70,18 +71,36 @@ class MemberController extends Controller
     }
 
     /** Terbitkan tautan portal (token lama tercabut) — F3.7. */
-    public function issuePortalToken(Customer $customer, MemberPortalService $portal): RedirectResponse
+    public function issuePortalToken(Request $request, Customer $customer, MemberPortalService $portal, AuditLogger $audit): RedirectResponse
     {
         $token = $portal->issueToken($customer);
+
+        // Kredensial akses pelanggan diterbitkan — berjejak audit
+        // (audit 23 Okt 2026 A4; nilai token TIDAK dicatat).
+        $audit->log(
+            action: 'member.portal_token.issue',
+            subjectType: 'customer',
+            subjectId: $customer->id,
+            branchId: $customer->branch_id,
+            actor: $request->user(),
+        );
 
         return redirect()->route('members.index')
             ->with('portal_url', route('portal.show', $token));
     }
 
     /** Cabut tautan portal pelanggan — F3.7. */
-    public function revokePortalToken(Customer $customer, MemberPortalService $portal): RedirectResponse
+    public function revokePortalToken(Request $request, Customer $customer, MemberPortalService $portal, AuditLogger $audit): RedirectResponse
     {
         $portal->revoke($customer);
+
+        $audit->log(
+            action: 'member.portal_token.revoke',
+            subjectType: 'customer',
+            subjectId: $customer->id,
+            branchId: $customer->branch_id,
+            actor: $request->user(),
+        );
 
         return redirect()->route('members.index')->with('status', __('ui.members.portal_revoked'));
     }

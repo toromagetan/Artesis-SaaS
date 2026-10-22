@@ -3,6 +3,7 @@
 namespace App\Modules\Sales\Services;
 
 use App\Modules\Identity\Models\User;
+use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Sales\Models\OfflineDevice;
 use App\Modules\Sales\Models\OfflineException;
 use App\Modules\Sales\Models\Sale;
@@ -22,7 +23,10 @@ use Illuminate\Validation\ValidationException;
  */
 class OfflineSyncService
 {
-    public function __construct(private readonly SalesService $sales) {}
+    public function __construct(
+        private readonly SalesService $sales,
+        private readonly AuditLogger $audit,
+    ) {}
 
     /**
      * @param  array<int, array<string, mixed>>  $intents
@@ -142,5 +146,16 @@ class OfflineSyncService
             'status' => 'discarded', 'resolution_note' => $note,
             'resolved_by' => $actor->id, 'resolved_at' => now(),
         ]);
+
+        // Membuang penjualan antrean adalah aksi destruktif — wajib
+        // berjejak audit (audit 23 Okt 2026 A4).
+        $this->audit->log(
+            action: 'offline.exception.discard',
+            subjectType: 'offline_exception',
+            subjectId: $exception->id,
+            newValues: ['note' => $note, 'client_uuid' => $exception->client_uuid],
+            branchId: $exception->branch_id,
+            actor: $actor,
+        );
     }
 }
