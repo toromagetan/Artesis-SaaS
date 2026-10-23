@@ -41,11 +41,19 @@ class PostingService
 
     public function lockPeriod(User $actor, string $period): void
     {
-        DB::table('period_locks')->updateOrInsert(
-            ['period' => $period],
-            ['locked_by' => $actor->id, 'locked_at' => now(), 'unlocked_by' => null, 'unlock_reason' => null, 'updated_at' => now(), 'created_at' => now()],
-        );
-        Journal::whereRaw('substr(journal_date, 1, 7) = ?', [$period])->update(['period_locked' => true]);
+        // Satu transaksi + kunci baris yang sama dengan yang diambil
+        // post() (LNT-002): penutupan periode dan penandaan jurnal
+        // terjadi atomik terhadap posting yang sedang berjalan.
+        DB::transaction(function () use ($actor, $period) {
+            $row = DB::table('period_locks')->where('period', $period)->lockForUpdate()->first();
+            $values = ['locked_by' => $actor->id, 'locked_at' => now(), 'unlocked_by' => null, 'unlock_reason' => null, 'updated_at' => now()];
+            if ($row === null) {
+                DB::table('period_locks')->insert($values + ['period' => $period, 'created_at' => now()]);
+            } else {
+                DB::table('period_locks')->where('period', $period)->update($values);
+            }
+            Journal::whereRaw('substr(journal_date, 1, 7) = ?', [$period])->update(['period_locked' => true]);
+        });
         $this->audit->log(action: 'periods.lock', subjectType: 'period_lock', newValues: ['period' => $period], actor: $actor);
     }
 
@@ -54,10 +62,13 @@ class PostingService
         if (trim($reason) === '') {
             throw ValidationException::withMessages(['reason' => __('ui.accounting.unlock_reason_required')]);
         }
-        DB::table('period_locks')->where('period', $period)->update([
-            'unlocked_by' => $actor->id, 'unlock_reason' => $reason, 'updated_at' => now(),
-        ]);
-        Journal::whereRaw('substr(journal_date, 1, 7) = ?', [$period])->update(['period_locked' => false]);
+        DB::transaction(function () use ($actor, $period, $reason) {
+            DB::table('period_locks')->where('period', $period)->lockForUpdate()->first();
+            DB::table('period_locks')->where('period', $period)->update([
+                'unlocked_by' => $actor->id, 'unlock_reason' => $reason, 'updated_at' => now(),
+            ]);
+            Journal::whereRaw('substr(journal_date, 1, 7) = ?', [$period])->update(['period_locked' => false]);
+        });
         $this->audit->log(action: 'periods.unlock', subjectType: 'period_lock', newValues: ['period' => $period, 'reason' => $reason], actor: $actor);
     }
 
@@ -105,7 +116,18 @@ class PostingService
             throw ValidationException::withMessages(['lines' => __('ui.accounting.journal_unbalanced')]);
         }
 
-        return DB::transaction(function () use ($sourceType, $sourceId, $dateString, $prepared, $description, $actor, $idempotencyKey) {
+        return DB::transaction(function () use ($sourceType, $sourceId, $dateString, $period, $prepared, $description, $actor, $idempotencyKey) {
+            // LNT-002: kunci baris periode & periksa ulang DI DALAM
+            // transaksi. Pemeriksaan di luar saja menyisakan balapan:
+            // posting yang lolos sesaat sebelum lockPeriod menutup
+            // periode dapat masuk ke periode yang sudah terkunci.
+            // lockForUpdate pada baris period_locks (unik per
+            // periode) menserialkan posting terhadap lock/unlock.
+            $lock = DB::table('period_locks')->where('period', $period)->lockForUpdate()->first();
+            if ($lock !== null && $lock->unlocked_by === null) {
+                throw ValidationException::withMessages(['period' => __('ui.accounting.period_locked', ['period' => $period])]);
+            }
+
             $journal = Journal::create([
                 'number' => Numbering::next('JU', now()),
                 'journal_date' => $dateString,
@@ -156,26 +178,36 @@ class PostingService
         if ($journal->source_type === 'reversal') {
             throw ValidationException::withMessages(['reason' => __('ui.accounting.reverse_of_reversal')]);
         }
-        if ($journal->isReversed()) {
-            throw ValidationException::withMessages(['reason' => __('ui.accounting.already_reversed')]);
-        }
 
-        $lines = $journal->lines->map(fn ($line) => [
-            'account' => $line->account->code,
-            'branch_id' => $line->branch_id,
-            'debit' => (string) $line->credit,
-            'credit' => (string) $line->debit,
-            'memo' => $line->memo,
-        ])->all();
+        // LNT-005: kunci baris jurnal asal di dalam transaksi dan
+        // periksa "sudah dibalik" DI BAWAH kunci itu — pemeriksaan
+        // baca-lalu-tulis tanpa kunci membiarkan dua pembalikan
+        // bersamaan sama-sama lolos (pembalikan ganda). Indeks unik
+        // reversal_of_id (migrasi 000045) adalah pagar basis data
+        // terakhir di belakang kunci ini.
+        return DB::transaction(function () use ($journal, $reason, $actor) {
+            $locked = Journal::whereKey($journal->id)->lockForUpdate()->firstOrFail();
+            if ($locked->isReversed()) {
+                throw ValidationException::withMessages(['reason' => __('ui.accounting.already_reversed')]);
+            }
 
-        $reversal = $this->post(
-            'reversal', $journal->id, now(),
-            $lines,
-            __('ui.accounting.reversal_description', ['number' => $journal->number, 'reason' => $reason]),
-            $actor,
-        );
-        $reversal->update(['reversal_of_id' => $journal->id]);
+            $lines = $locked->lines->map(fn ($line) => [
+                'account' => $line->account->code,
+                'branch_id' => $line->branch_id,
+                'debit' => (string) $line->credit,
+                'credit' => (string) $line->debit,
+                'memo' => $line->memo,
+            ])->all();
 
-        return $reversal;
+            $reversal = $this->post(
+                'reversal', $locked->id, now(),
+                $lines,
+                __('ui.accounting.reversal_description', ['number' => $locked->number, 'reason' => $reason]),
+                $actor,
+            );
+            $reversal->update(['reversal_of_id' => $locked->id]);
+
+            return $reversal;
+        });
     }
 }

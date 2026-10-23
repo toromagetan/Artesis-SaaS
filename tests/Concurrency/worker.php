@@ -8,6 +8,8 @@
  *
  * Argumen: worker.php <skenario> <params.json> <ready-file> <go-file> <result-file>
  */
+use App\Modules\Accounting\Models\Journal;
+use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Identity\Models\User;
 use App\Modules\Lab\Models\LensProcess;
 use App\Modules\Lab\Services\LensProcessService;
@@ -72,6 +74,23 @@ try {
         ),
         'submit' => app(PurchaseRequestService::class)->submit(
             $owner, PurchaseRequest::withoutGlobalScopes()->findOrFail($params['pr_id']),
+        ),
+        // Balapan LNT-002: pekerja -0 memposting, pekerja -1 mengunci
+        // periode yang sama, dilepas serentak.
+        'postlock' => (function () use ($params, $owner, $readyFile) {
+            $posting = app(PostingService::class);
+            if (str_ends_with($readyFile, '-0')) {
+                return $posting->post('race', null, $params['date'], [
+                    ['account' => '1-1100', 'debit' => '1000'],
+                    ['account' => '4-1100', 'credit' => '1000'],
+                ], 'uji balapan LNT-002', $owner);
+            }
+
+            return $posting->lockPeriod($owner, $params['period']);
+        })(),
+        // Balapan LNT-005: dua pekerja membalik jurnal yang sama.
+        'reverse' => app(PostingService::class)->reverse(
+            Journal::findOrFail($params['journal_id']), 'uji balapan LNT-005', $owner,
         ),
         default => throw new RuntimeException('Skenario tidak dikenal: '.$scenario),
     };
