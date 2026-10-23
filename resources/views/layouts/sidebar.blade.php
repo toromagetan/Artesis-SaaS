@@ -31,7 +31,7 @@
                 <span class="block text-[10.5px] leading-tight text-lentera-300/70">{{ __('ui.nav.tagline') }}</span>
             </span>
         </a>
-        <button type="button" @click="sidebar = false" class="ml-auto rounded-lg p-1.5 text-lentera-100/60 transition hover:bg-white/5 hover:text-white lg:hidden" aria-label="Tutup menu">
+        <button type="button" @click="sidebar = false" class="ml-auto rounded-lg p-1.5 text-lentera-100/60 transition hover:bg-white/5 hover:text-white lg:hidden" aria-label="{{ __('ui.close_menu') }}">
             <svg class="h-5 w-5" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
     </div>

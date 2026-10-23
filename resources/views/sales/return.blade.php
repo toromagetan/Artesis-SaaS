@@ -22,7 +22,7 @@
                                 </div>
                                 <input type="hidden" name="items[{{ $i }}][sale_item_id]" value="{{ $item->id }}">
                                 <div class="col-span-2">
-                                    <x-text-input name="items[{{ $i }}][qty]" type="number" min="0" max="{{ $item->qty - $item->returnedQty() }}" class="block w-full tnum" :value="old('items.'.$i.'.qty')" placeholder="Qty retur" />
+                                    <x-text-input name="items[{{ $i }}][qty]" type="number" min="0" max="{{ $item->qty - $item->returnedQty() }}" class="block w-full tnum" :value="old('items.'.$i.'.qty')" placeholder="{{ __('ui.sales.qty_return') }}" />
                                 </div>
                                 <div class="col-span-5">
                                     <select name="items[{{ $i }}][condition]" class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">

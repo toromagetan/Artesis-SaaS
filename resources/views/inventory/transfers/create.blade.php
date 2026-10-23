@@ -45,7 +45,7 @@
                                     </select>
                                 </div>
                                 <div class="col-span-4">
-                                    <x-text-input name="items[{{ $i }}][qty]" type="number" min="1" class="block w-full tnum" placeholder="Qty" />
+                                    <x-text-input name="items[{{ $i }}][qty]" type="number" min="1" class="block w-full tnum" placeholder="{{ __('ui.stock.qty') }}" />
                                 </div>
                             </div>
                         @endfor

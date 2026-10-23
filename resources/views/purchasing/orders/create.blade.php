@@ -95,7 +95,7 @@
                                     </select>
                                 </div>
                                 <div class="col-span-2">
-                                    <x-text-input name="items[{{ $i }}][qty]" type="number" min="1" class="block w-full tnum" placeholder="Qty" />
+                                    <x-text-input name="items[{{ $i }}][qty]" type="number" min="1" class="block w-full tnum" placeholder="{{ __('ui.purchasing.qty') }}" />
                                 </div>
                                 <div class="col-span-4">
                                     <x-text-input name="items[{{ $i }}][unit_cost]" type="number" step="0.01" min="0" class="block w-full tnum" :placeholder="__('ui.purchasing.unit_cost')" />

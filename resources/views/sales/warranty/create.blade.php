@@ -26,7 +26,7 @@
                             <x-input-label for="sale_item_id" :value="__('ui.warranty.item')" />
                             <select id="sale_item_id" name="sale_item_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500" required>
                                 @foreach ($sale->items as $item)
-                                    <option value="{{ $item->id }}">{{ $item->product_name_snapshot }} — qty {{ $item->qty }} × {{ \App\Support\Money::fromDecimal((string) $item->unit_price)->format() }}</option>
+                                    <option value="{{ $item->id }}">{{ $item->product_name_snapshot }} — {{ __('ui.warranty.qty') }} {{ $item->qty }} × {{ \App\Support\Money::fromDecimal((string) $item->unit_price)->format() }}</option>
                                 @endforeach
                             </select>
                             <x-input-error :messages="$errors->get('sale_item_id')" class="mt-2" />

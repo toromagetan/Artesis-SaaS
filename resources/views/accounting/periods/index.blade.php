@@ -19,7 +19,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($rows as $row)
+                        @forelse ($rows as $row)
                             <tr class="border-b border-gray-50 last:border-0">
                                 <td class="px-4 py-3 font-medium tnum">{{ $row['period'] }}</td>
                                 <td class="px-4 py-3">
@@ -64,7 +64,9 @@
                                     @endif
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr><td colspan="5"><x-lentera.empty-state>{{ __('ui.periods.empty') }}</x-lentera.empty-state></td></tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>

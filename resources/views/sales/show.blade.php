@@ -173,7 +173,7 @@
                                             <div class="grid grid-cols-3 gap-3">
                                                 @foreach (\App\Modules\Sales\Services\RxPrecalValidator::KEYS as $key)
                                                     <div @if ($key === 'type_frame') class="col-span-2" @endif>
-                                                        <label class="text-xs font-medium uppercase text-gray-500">{{ $key === 'type_frame' ? 'Type Frame' : strtoupper($key) }}</label>
+                                                        <label class="text-xs font-medium uppercase text-gray-500">{{ $key === 'type_frame' ? __('ui.sales.type_frame') : strtoupper($key) }}</label>
                                                         @if ($key === 'de')
                                                             <select name="precal[de]" class="mt-0.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
                                                                 <option value="">—</option>
@@ -194,7 +194,7 @@
                         <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                             @foreach (\App\Modules\Sales\Services\RxPrecalValidator::KEYS as $key)
                                 <div>
-                                    <div class="text-xs font-medium uppercase text-gray-400">{{ $key === 'type_frame' ? 'Type Frame' : strtoupper($key) }}</div>
+                                    <div class="text-xs font-medium uppercase text-gray-400">{{ $key === 'type_frame' ? __('ui.sales.type_frame') : strtoupper($key) }}</div>
                                     <div class="tnum text-sm font-medium text-gray-800">{{ $item->rx_parameters['precal'][$key] ?? '—' }}</div>
                                 </div>
                             @endforeach

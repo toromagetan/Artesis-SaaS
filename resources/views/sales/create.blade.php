@@ -180,7 +180,7 @@
                                     </select>
                                 </div>
                                 <div class="col-span-2">
-                                    <label class="text-xs font-medium uppercase text-gray-500">Type Frame</label>
+                                    <label class="text-xs font-medium uppercase text-gray-500">{{ __('ui.sales.type_frame') }}</label>
                                     <input type="text" maxlength="100" :name="`items[${idx}][precal][type_frame]`" x-model="item.precal.type_frame" class="mt-0.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
                                 </div>
                             </div>

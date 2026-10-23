@@ -118,7 +118,7 @@
                                     </div>
                                     <input type="hidden" name="items[{{ $i }}][product_id]" value="{{ $item->product_id }}">
                                     <div class="col-span-5">
-                                        <x-text-input name="items[{{ $i }}][qty]" type="number" min="0" max="{{ $distributable[$item->product_id] ?? 0 }}" class="block w-full tnum" placeholder="Qty kirim" />
+                                        <x-text-input name="items[{{ $i }}][qty]" type="number" min="0" max="{{ $distributable[$item->product_id] ?? 0 }}" class="block w-full tnum" placeholder="{{ __('ui.purchasing.qty_send') }}" />
                                     </div>
                                 </div>
                             @endforeach

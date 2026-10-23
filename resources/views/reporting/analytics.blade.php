@@ -51,7 +51,7 @@
                         <tr class="border-b border-gray-100 text-left text-gray-500">
                             <th class="px-4 py-3 font-medium">{{ __('ui.products.name') }}</th>
                             <th class="px-4 py-3 font-medium">SKU</th>
-                            <th class="px-4 py-3 text-right font-medium">Qty</th>
+                            <th class="px-4 py-3 text-right font-medium">{{ __('ui.reports.qty') }}</th>
                             <th class="px-4 py-3 text-right font-medium">{{ __('ui.analytics.revenue') }}</th>
                         </tr>
                     </thead>

@@ -25,7 +25,7 @@
             <div class="flex min-h-screen min-w-0 flex-1 flex-col">
                 <header class="sticky top-0 z-20 bg-white shadow-soft">
                     <div class="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
-                        <button type="button" @click="sidebar = true" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 transition duration-150 hover:text-lentera-800 lg:hidden" aria-label="Buka menu">
+                        <button type="button" @click="sidebar = true" class="inline-flex shrink-0 items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 transition duration-150 hover:text-lentera-800 lg:hidden" aria-label="{{ __('ui.open_menu') }}">
                             <svg class="h-5 w-5" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                         </button>
 

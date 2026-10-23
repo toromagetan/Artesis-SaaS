@@ -20,7 +20,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($roles as $role)
+                        @forelse ($roles as $role)
                             <tr class="border-b border-gray-50 last:border-0">
                                 <td class="px-4 py-3 font-medium text-gray-800">{{ $role->label }} <span class="text-xs text-gray-400">({{ $role->name }})</span></td>
                                 <td class="px-4 py-3 tnum">{{ $role->permissions_count }}</td>
@@ -31,7 +31,9 @@
                                     </x-lentera.aksi-baris>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr><td colspan="4"><x-lentera.empty-state>{{ __('ui.roles.empty') }}</x-lentera.empty-state></td></tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
