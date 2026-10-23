@@ -32,7 +32,9 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse ($entries as $entry)
                         <tr>
-                            <td class="px-4 py-3 font-medium text-gray-800">{{ $entry['name'] }}</td>
+                            <td class="px-4 py-3 font-medium text-gray-800">{{ $entry['name'] }}
+                                <div class="mt-1">@if ($entry['verified'])<x-lentera.badge tone="green">{{ __('ui.backups.verified') }}</x-lentera.badge>@else<x-lentera.badge tone="red">{{ __('ui.backups.unverified') }}</x-lentera.badge>@endif</div>
+                            </td>
                             <td class="px-4 py-3 text-gray-600">{{ number_format($entry['size'] / 1024, 1) }} KB</td>
                             <td class="px-4 py-3 text-gray-600">{{ date('d M Y H:i', $entry['created_at']) }}</td>
                             <td class="px-4 py-3 text-right">

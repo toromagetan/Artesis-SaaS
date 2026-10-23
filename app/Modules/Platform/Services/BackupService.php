@@ -31,7 +31,7 @@ class BackupService
         return $dir;
     }
 
-    /** @return array<int, array{name: string, size: int, created_at: int}> */
+    /** @return array<int, array{name: string, size: int, created_at: int, verified: bool}> */
     public function entries(): array
     {
         $entries = [];
@@ -40,11 +40,62 @@ class BackupService
                 'name' => basename($file),
                 'size' => (int) filesize($file),
                 'created_at' => (int) filemtime($file),
+                'verified' => $this->verify(basename($file)),
             ];
         }
         usort($entries, fn ($a, $b) => $b['created_at'] <=> $a['created_at']);
 
         return $entries;
+    }
+
+    /**
+     * Verifikasi keterbacaan backup (PRD-Detail 12.6): arsip zip
+     * harus terbuka dan backup.json di dalamnya harus terbaca,
+     * bertanda aplikasi ini, dan memuat tabel. Backup dianggap
+     * berhasil hanya bila lolos verifikasi ini.
+     */
+    public function verify(string $name): bool
+    {
+        $path = $this->path($name);
+        if ($path === null) {
+            return false;
+        }
+        $zip = new ZipArchive;
+        if ($zip->open($path, ZipArchive::RDONLY) !== true) {
+            return false;
+        }
+        $raw = $zip->getFromName('backup.json');
+        $zip->close();
+        if ($raw === false) {
+            return false;
+        }
+        $data = json_decode($raw, true);
+
+        return is_array($data)
+            && ($data['app'] ?? null) === 'lentera'
+            && isset($data['tables'])
+            && is_array($data['tables'])
+            && $data['tables'] !== [];
+    }
+
+    /**
+     * Kesehatan operasional untuk peringatan dashboard:
+     * backup terakhir + jumlah job antrean yang gagal.
+     *
+     * @return array{latest_at: int|null, latest_verified: bool, failed_jobs: int}
+     */
+    public function health(): array
+    {
+        $entries = $this->entries();
+        $latest = $entries[0] ?? null;
+
+        return [
+            'latest_at' => $latest['created_at'] ?? null,
+            'latest_verified' => $latest['verified'] ?? false,
+            'failed_jobs' => \Illuminate\Support\Facades\Schema::hasTable('failed_jobs')
+                ? (int) DB::table('failed_jobs')->count()
+                : 0,
+        ];
     }
 
     /**

@@ -1,3 +1,13 @@
+@if (!empty($ops_warnings))
+    <div class="mb-4 space-y-2">
+        @foreach ($ops_warnings as $warning)
+            <div class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                {{ __('ui.dashboard.ops_'.$warning['key'], $warning['params']) }}
+            </div>
+        @endforeach
+    </div>
+@endif
+
 @if (empty($cards))
     <div class="rounded-lg bg-white shadow-soft"><x-lentera.empty-state>{{ __('ui.dashboard.empty') }}</x-lentera.empty-state></div>
 @endif

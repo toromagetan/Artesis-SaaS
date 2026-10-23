@@ -12,6 +12,7 @@ use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Lab\Models\LensProcess;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Purchasing\Models\PurchaseRequest;
+use App\Modules\Platform\Services\BackupService;
 use App\Modules\Reporting\Services\ReportService;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleItem;
@@ -162,7 +163,29 @@ class DashboardController extends Controller
             ];
         }
 
-        return ['period' => $period, 'cards' => $cards, 'charts' => $charts];
+        // Peringatan operasional (PRD-Detail 12.6) — hanya untuk
+        // pemegang izin pengaturan: backup hilang/basi/rusak dan
+        // job antrean gagal adalah hal yang wajib terlihat dini.
+        $opsWarnings = [];
+        if ($user->hasPermission('settings.manage')) {
+            $health = app(BackupService::class)->health();
+            if ($health['latest_at'] === null) {
+                $opsWarnings[] = ['key' => 'backup_none', 'params' => []];
+            } else {
+                $ageHours = (int) floor((now()->timestamp - $health['latest_at']) / 3600);
+                if ($ageHours > 48) {
+                    $opsWarnings[] = ['key' => 'backup_stale', 'params' => ['hours' => $ageHours]];
+                }
+                if (! $health['latest_verified']) {
+                    $opsWarnings[] = ['key' => 'backup_unverified', 'params' => []];
+                }
+            }
+            if ($health['failed_jobs'] > 0) {
+                $opsWarnings[] = ['key' => 'queue_failed', 'params' => ['count' => $health['failed_jobs']]];
+            }
+        }
+
+        return ['period' => $period, 'cards' => $cards, 'charts' => $charts, 'ops_warnings' => $opsWarnings];
     }
 
     /**
