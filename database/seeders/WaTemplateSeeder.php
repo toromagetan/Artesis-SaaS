@@ -19,6 +19,7 @@ class WaTemplateSeeder extends Seeder
             'pickup_reminder' => 'Halo {nama}, kacamata untuk transaksi {nomor} sudah selesai dan dapat diambil di {cabang}. Kami tunggu kedatangan Anda.',
             'after_service' => 'Halo {nama}, semoga kacamata dari transaksi {nomor} nyaman dipakai. Bila ada yang kurang pas, balas pesan ini — kami siap membantu penyesuaian tanpa biaya.',
             'birthday' => 'Selamat ulang tahun, {nama}! Keluarga besar {cabang} mendoakan kesehatan dan penglihatan yang selalu jernih untuk Anda.',
+            'installment_reminder' => 'Halo {nama}, pengingat cicilan transaksi {nomor}: angsuran ke-{angsuran} sebesar {jumlah} jatuh tempo {tanggal}. Bila sudah membayar, abaikan pesan ini. Terima kasih.',
             'campaign' => '{isi}',
         ];
 

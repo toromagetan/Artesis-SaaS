@@ -6,6 +6,7 @@ use App\Modules\Comms\Models\WaMessage;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Lab\Models\LensProcess;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Models\SaleInstallment;
 use App\Support\Money;
 
 /**
@@ -103,6 +104,53 @@ class WaAutomationService
      *
      * @return int jumlah pesan yang diantrekan sesi ini
      */
+    /**
+     * Pengingat cicilan: angsuran belum lunas yang jatuh tempo besok
+     * sampai yang lewat paling lama 7 hari (audit 23 Okt 2026 C4).
+     * Anti-ganda per angsuran per hari (pola yang sama dengan
+     * purnajual: jejak pada badan pesan terkirim).
+     */
+    public function runInstallmentReminders(): int
+    {
+        $sent = 0;
+        $installments = SaleInstallment::with(['sale.customer', 'sale.branch'])
+            ->where('status', '!=', 'paid')
+            ->whereDate('due_date', '<=', today()->addDay())
+            ->whereDate('due_date', '>=', today()->subDays(7))
+            ->get();
+
+        foreach ($installments as $installment) {
+            $sale = $installment->sale;
+            $customer = $sale?->customer;
+            if ($sale === null || $customer === null || trim((string) $customer->phone) === '') {
+                continue;
+            }
+            $already = WaMessage::where('customer_id', $customer->id)
+                ->where('template_key', 'installment_reminder')
+                ->where('body', 'like', '%'.$sale->number.'%')
+                ->where('body', 'like', '%ke-'.$installment->sequence.' sebesar%')
+                ->whereDate('created_at', today())
+                ->exists();
+            if ($already) {
+                continue;
+            }
+            try {
+                $this->messages->send('installment_reminder', $customer, [
+                    'nomor' => $sale->number,
+                    'angsuran' => (string) $installment->sequence,
+                    'jumlah' => $installment->remaining()->format(),
+                    'tanggal' => $installment->due_date->format('d/m/Y'),
+                    'cabang' => $sale->branch?->name ?? '',
+                ], 'installment');
+                $sent++;
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return $sent;
+    }
+
     public function runBirthdays(): int
     {
         $sent = 0;

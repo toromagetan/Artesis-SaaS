@@ -42,12 +42,22 @@ Artisan::command('lentera:wa-otomatis', function () {
     $automation = app(WaAutomationService::class);
     $afterService = $automation->runAfterService();
     $birthdays = $automation->runBirthdays();
-    $this->info("WA otomatis: {$afterService} purnajual, {$birthdays} ulang tahun.");
+    $installments = $automation->runInstallmentReminders();
+    $this->info("WA otomatis: {$afterService} purnajual, {$birthdays} ulang tahun, {$installments} pengingat cicilan.");
 
     return 0;
 })->purpose('Kirim WA purnajual (H+7) dan ucapan ulang tahun hari ini');
 
 Schedule::command('lentera:wa-otomatis')->dailyAt('08:00');
+
+/*
+ * Penyusutan terjadwal (audit 23 Okt 2026 C3): tanggal 1 pukul
+ * 01:00 untuk periode BULAN SEBELUMNYA (perintahnya idempoten
+ * per aset-periode sehingga aman terhadap jalan ulang).
+ */
+Schedule::call(function () {
+    Artisan::call('lentera:penyusutan', ['periode' => now()->subMonth()->format('Y-m')]);
+})->monthlyOn(1, '01:00');
 
 /*
  * Kedaluwarsa poin membership (F3.6): sisa lot earn yang masa
