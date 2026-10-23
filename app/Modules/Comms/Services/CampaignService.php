@@ -4,6 +4,7 @@ namespace App\Modules\Comms\Services;
 
 use App\Modules\Comms\Jobs\SendCampaign;
 use App\Modules\Comms\Models\WaCampaign;
+use App\Modules\Comms\Models\WaMessage;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Platform\Services\AuditLogger;
@@ -113,13 +114,25 @@ class CampaignService
             return;
         }
         $template = $campaign->template;
-        $count = 0;
         foreach ($this->resolveRecipients($campaign) as $customer) {
+            // Idempotensi per penerima (audit 23 Okt 2026 C2): job
+            // yang diulang sesudah mati di tengah jalan MELANJUTKAN,
+            // bukan mengirim ulang — penerima yang sudah punya
+            // pesan pada kampanye ini (termasuk gagal opt-out)
+            // dilewati.
+            $already = WaMessage::where('campaign_id', $campaign->id)
+                ->where('customer_id', $customer->id)
+                ->exists();
+            if ($already) {
+                continue;
+            }
             $this->messaging->sendTemplate($template, $customer, [
                 'cabang' => $customer->branch?->name ?? '',
             ], 'campaign', null, $campaign->id);
-            $count++;
         }
-        $campaign->update(['recipient_count' => $count, 'status' => 'done']);
+        $campaign->update([
+            'recipient_count' => WaMessage::where('campaign_id', $campaign->id)->count(),
+            'status' => 'done',
+        ]);
     }
 }

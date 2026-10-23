@@ -3,9 +3,13 @@
 use App\Modules\Accounting\Services\FixedAssetService;
 use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Accounting\Support\Chart;
+use App\Modules\Comms\Jobs\SendWhatsAppMessage;
+use App\Modules\Comms\Models\WaMessage;
+use App\Modules\Comms\Services\GatewayFactory;
 use App\Modules\Comms\Services\WaAutomationService;
 use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Membership\Services\PointsService;
+use App\Modules\Platform\Services\AuditLogger;
 use App\Support\Money;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -49,6 +53,49 @@ Artisan::command('lentera:wa-otomatis', function () {
 })->purpose('Kirim WA purnajual (H+7) dan ucapan ulang tahun hari ini');
 
 Schedule::command('lentera:wa-otomatis')->dailyAt('08:00');
+
+/*
+ * Sapu antrean WA (audit 23 Okt 2026 C1): pesan keluar yang masih
+ * 'queued' sesudah 15 menit — termasuk yang terantre sebelum
+ * gateway dikonfigurasi (job pertamanya selesai diam-diam tanpa
+ * gateway) — didispatch ulang BILA gateway aktif. Kesehatan
+ * antrean (job gagal / pesan menggantung > 24 jam) dicatat ke
+ * log aktivitas sebagai wa.queue.health agar terlihat di UI.
+ */
+Artisan::command('lentera:wa-sapu', function () {
+    $factory = app(GatewayFactory::class);
+    $stale = WaMessage::where('direction', 'out')
+        ->where('status', 'queued')
+        ->where('created_at', '<=', now()->subMinutes(15));
+
+    $redispatched = 0;
+    if ($factory->active() !== null) {
+        $ids = (clone $stale)->orderBy('id')->limit(500)->pluck('id');
+        foreach ($ids as $id) {
+            SendWhatsAppMessage::dispatch($id);
+            $redispatched++;
+        }
+    }
+
+    $stuck24h = WaMessage::where('direction', 'out')
+        ->where('status', 'queued')
+        ->where('created_at', '<=', now()->subDay())
+        ->count();
+    $failedJobs = DB::table('failed_jobs')->count();
+    if ($stuck24h > 0 || $failedJobs > 0) {
+        app(AuditLogger::class)->log(
+            action: 'wa.queue.health',
+            subjectType: 'wa_queue',
+            subjectId: null,
+            newValues: ['stuck_over_24h' => $stuck24h, 'failed_jobs' => $failedJobs, 'redispatched' => $redispatched],
+        );
+    }
+    $this->info("Sapu WA: {$redispatched} didispatch ulang; menggantung >24 jam: {$stuck24h}; job gagal: {$failedJobs}.");
+
+    return 0;
+})->purpose('Dispatch ulang pesan WA queued yang menggantung + catat kesehatan antrean');
+
+Schedule::command('lentera:wa-sapu')->hourly();
 
 /*
  * Penyusutan terjadwal (audit 23 Okt 2026 C3): tanggal 1 pukul
