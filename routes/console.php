@@ -8,8 +8,10 @@ use App\Modules\Comms\Models\WaMessage;
 use App\Modules\Comms\Services\GatewayFactory;
 use App\Modules\Comms\Services\WaAutomationService;
 use App\Modules\Inventory\Services\FifoService;
+use App\Modules\Master\Models\Setting;
 use App\Modules\Membership\Services\PointsService;
 use App\Modules\Platform\Services\AuditLogger;
+use App\Modules\Platform\Services\BackupService;
 use App\Support\Money;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -96,6 +98,34 @@ Artisan::command('lentera:wa-sapu', function () {
 })->purpose('Dispatch ulang pesan WA queued yang menggantung + catat kesehatan antrean');
 
 Schedule::command('lentera:wa-sapu')->hourly();
+
+/*
+ * Backup otomatis harian (audit 23 Okt 2026): pukul 02:00,
+ * awalan 'auto', retensi 14 berkas otomatis terbaru (backup
+ * manual tidak pernah disentuh retensi). Offsite (Google Drive)
+ * aktif hanya bila pemilik memasang kredensial — selama belum,
+ * pengaktifan yang diminta lewat Pengaturan dicatat sebagai
+ * peringatan audit, bukan diam-diam diabaikan.
+ */
+Artisan::command('lentera:backup-otomatis', function () {
+    $service = app(BackupService::class);
+    $name = $service->createSystem();
+    $pruned = $service->pruneAuto(14);
+    if (filter_var(Setting::value('backup.offsite_enabled', '0'), FILTER_VALIDATE_BOOLEAN)) {
+        app(AuditLogger::class)->log(
+            action: 'backup.offsite_unconfigured',
+            subjectType: 'Backup',
+            subjectId: null,
+            newValues: ['file' => $name],
+        );
+        $this->warn('Offsite diminta tetapi kredensial Drive belum terpasang — backup hanya tersimpan lokal.');
+    }
+    $this->info("Backup otomatis: {$name}; retensi menghapus {$pruned} berkas.");
+
+    return 0;
+})->purpose('Backup otomatis harian + retensi (offsite bila kredensial Drive terpasang)');
+
+Schedule::command('lentera:backup-otomatis')->dailyAt('02:00');
 
 /*
  * Penyusutan terjadwal (audit 23 Okt 2026 C3): tanggal 1 pukul

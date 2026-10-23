@@ -47,7 +47,49 @@ class BackupService
         return $entries;
     }
 
+    /**
+     * Backup terjadwal oleh sistem (audit 23 Okt 2026): aktor
+     * dicatat sebagai 'system' dan pembuatan teraudit tanpa aktor
+     * pengguna. Retensi hanya menyentuh berkas awalan 'auto'.
+     */
+    public function createSystem(string $prefix = 'auto'): string
+    {
+        return $this->createInternal(null, $prefix);
+    }
+
+    /** Hapus backup otomatis tertua melebihi jumlah simpan; kembalikan jumlah terhapus. */
+    public function pruneAuto(int $keep = 14): int
+    {
+        $autos = array_values(array_filter(
+            $this->entries(),
+            fn (array $e) => str_starts_with($e['name'], 'auto-'),
+        ));
+        $deleted = 0;
+        foreach (array_slice($autos, $keep) as $entry) {
+            $path = $this->path($entry['name']);
+            if ($path !== null && is_file($path)) {
+                unlink($path);
+                $deleted++;
+            }
+        }
+        if ($deleted > 0) {
+            $this->audit->log(
+                action: 'backup.pruned',
+                subjectType: 'Backup',
+                subjectId: null,
+                newValues: ['deleted' => $deleted, 'keep' => $keep],
+            );
+        }
+
+        return $deleted;
+    }
+
     public function create(User $actor, string $prefix = 'backup'): string
+    {
+        return $this->createInternal($actor, $prefix);
+    }
+
+    private function createInternal(?User $actor, string $prefix): string
     {
         $tables = [];
         foreach (Schema::getTableListing() as $table) {
@@ -58,7 +100,7 @@ class BackupService
         $payload = json_encode([
             'app' => 'lentera',
             'created_at' => now()->toIso8601String(),
-            'created_by' => $actor->username,
+            'created_by' => $actor?->username ?? 'system',
             'tables' => $tables,
         ], JSON_UNESCAPED_UNICODE);
         if ($payload === false) {
@@ -74,7 +116,7 @@ class BackupService
         $zip->close();
 
         $this->audit->log(
-            action: 'backup.created',
+            action: $actor === null ? 'backup.auto_created' : 'backup.created',
             subjectType: 'Backup',
             subjectId: null,
             newValues: ['file' => $name, 'tables' => count($tables)],
