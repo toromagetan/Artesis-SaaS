@@ -92,7 +92,7 @@ class BackupService
         return [
             'latest_at' => $latest['created_at'] ?? null,
             'latest_verified' => $latest['verified'] ?? false,
-            'failed_jobs' => \Illuminate\Support\Facades\Schema::hasTable('failed_jobs')
+            'failed_jobs' => Schema::hasTable('failed_jobs')
                 ? (int) DB::table('failed_jobs')->count()
                 : 0,
         ];

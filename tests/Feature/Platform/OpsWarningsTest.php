@@ -2,11 +2,14 @@
 
 namespace Tests\Feature\Platform;
 
+use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Services\BackupService;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -22,7 +25,9 @@ class OpsWarningsTest extends TestCase
     use RefreshDatabase;
 
     private User $owner;
+
     private User $kasir;
+
     private BackupService $backups;
 
     protected function setUp(): void
@@ -31,8 +36,8 @@ class OpsWarningsTest extends TestCase
         $this->seed(IdentitySeeder::class);
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->kasir = User::factory()->create();
-        $this->kasir->roles()->attach(\App\Modules\Identity\Models\Role::where('name', 'Kasir')->firstOrFail());
-        $this->kasir->branches()->attach(\App\Modules\Master\Models\Branch::where('name', 'Pusat')->firstOrFail());
+        $this->kasir->roles()->attach(Role::where('name', 'Kasir')->firstOrFail());
+        $this->kasir->branches()->attach(Branch::where('name', 'Pusat')->firstOrFail());
         $this->backups = app(BackupService::class);
     }
 
@@ -54,7 +59,7 @@ class OpsWarningsTest extends TestCase
     public function test_dashboard_warns_owner_about_failed_jobs_but_not_cashier(): void
     {
         DB::table('failed_jobs')->insert([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'connection' => 'database', 'queue' => 'default',
             'payload' => '{}', 'exception' => 'boom', 'failed_at' => now(),
         ]);
