@@ -5,7 +5,7 @@
 | Dokumen | Roadmap pembangunan (dokumen kendali urutan) |
 | Produk | **Lentera** — Sistem Manajemen & POS Toko Optik, kepemilikan penuh |
 | Tanggal | 17 Oktober 2026 |
-| Status | Draf untuk persetujuan owner |
+| Status | Disetujui owner & terbangun penuh — Fase 0–5 selesai 2026-10-18; gerbang tersisa hanya smoke test owner (butir 103) |
 | Relasi | PRD (`docs/PRD.md`) menentukan *apa* · PRD Detail (`docs/PRD-DETAIL.md`) menentukan *perilaku per menu* · Blueprint (`docs/BLUEPRINT.md`) menentukan *bagaimana dibangun* · **Roadmap ini menentukan *urutan, dependensi, dan gerbang* — tidak ada pekerjaan yang sah di luar urutan ini tanpa revisi roadmap ber-commit yang disetujui owner.** |
 
 ---
@@ -165,7 +165,7 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 | Tugas | Hasil | Dependensi |
 |---|---|---|
 | F4.1 Opname terjadwal | Jadwal → lembar hitung (snapshot) → review → approval menerbitkan gerakan selisih; kunci mutasi cabang selama counting | MVP |
-| F4.2 **Gerbang costing** | Laporan audit metode berjalan vs FIFO (dampak ke nilai persediaan & HPP) → **keputusan owner tertulis** → ADR baru → implementasi metode terpilih + migrasi nilai. **DIPUTUSKAN 2026-10-18: FIFO per cabang (ADR-014 di Blueprint)** — implementasi menunggu kata memulai Fase 4 | F1 |
+| F4.2 **Gerbang costing** | Laporan audit metode berjalan vs FIFO (dampak ke nilai persediaan & HPP) → **keputusan owner tertulis** → ADR baru → implementasi metode terpilih + migrasi nilai. **DIPUTUSKAN 2026-10-18: FIFO per cabang (ADR-014 di Blueprint)** — implementasi **SELESAI di Fase 4** (ADR-014) | F1 |
 | F4.3 Expiry softlens | Peringatan < 90 hari di daftar & dashboard; penjualan softlens kedaluwarsa diblokir | MVP |
 | F4.4 Label barcode | Cetak massal EAN-13/Code 128 per produk/batch penerimaan | MVP |
 | F4.5 Analitik | Supplier Analytics (lead time, retur) & Sales Analytics (terlaris, margin, tren cabang) | F1 |
@@ -177,9 +177,9 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 - [x] Keputusan costing terdokumentasi sebagai ADR dan angka persediaan pasca-migrasi cocok dengan laporan auditnya.
 - [x] Angka analitik = angka laporan sumber pada dua periode uji.
 
-## 11. FASE 5 — RISET (bukan komitmen bangun)
+## 11. FASE 5 — RISET → DIPUTUSKAN BANGUN (ketiganya selesai dibangun 2026-10-18)
 
-Setiap butir berjalan sebagai **spike terbatas**: pertanyaan jelas → prototipe/uji terbatas → laporan kelayakan (nilai bisnis, biaya, risiko privasi, kompleksitas) → keputusan owner terpisah (bangun / tunda / coret). Tidak ada kode produksi dari fase ini.
+Setiap butir berjalan sebagai **spike terbatas**: pertanyaan jelas → prototipe/uji terbatas → laporan kelayakan (nilai bisnis, biaya, risiko privasi, kompleksitas) → keputusan owner terpisah (bangun / tunda / coret). Ketiga butir akhirnya DIPUTUSKAN BANGUN oleh owner 2026-10-18 dan selesai dibangun — lihat Keputusan owner di bawah bab ini.
 
 | Spike | Pertanyaan yang dijawab |
 |---|---|

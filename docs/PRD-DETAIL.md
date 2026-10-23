@@ -5,14 +5,14 @@
 | Dokumen | PRD Detail (pendamping PRD utama v1.0 di `docs/PRD.md`) |
 | Produk | **Lentera** — Sistem Manajemen & POS Toko Optik, model kepemilikan penuh |
 | Versi | 1.0 — 17 Oktober 2026 |
-| Status | Draf untuk keputusan owner |
+| Status | Disetujui owner & terbangun penuh (2026-10-18; diperbarui s.d. 2026-10-23) |
 
 **Cara membaca.** Setiap menu dispesifikasikan dengan pola yang sama: **Tujuan** · **Akses** (peran yang boleh) · **Daftar** (kolom tabel, pencarian, filter, urutan bawaan) · **Formulir** (field penting + validasi) · **Aksi** (tombol & akibatnya) · **Aturan kunci** (yang tidak boleh dilanggar sistem). Fase rilis mengikuti PRD utama: **MVP** = rilis pertama; **F1–F5** = fase lanjutan.
 
 **Peran:** Owner (pemilik, seluruh cabang) · Admin (pengelola, izin eksplisit) · Kasir · Gudang · Cabang (staf cabang) · Refraksionis · Teknisi Lab. Prinsip tetap: akses diberikan per peran + pagar cabang di server; platform/pemilik teknis tidak otomatis menjadi pelaku bisnis.
 
 **Peta navigasi (sidebar):**
-Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & Resep (Pelanggan, Resep) · Katalog (Frame, Lensa, Lensa RX, Softlens, Aksesori) · Lab (Antrean Proses, QC Faset) · Pembelian (Purchase Request, Purchase Order, Penerimaan, Pembayaran, Pembayaran Kolektif, Retur, Supplier) · Stok (Stok Cabang, Pergerakan, Transfer Distribusi, Opname, Impor Stok Awal, Label Barcode) · Akuntansi (Chart of Accounts, Jurnal, Buku Besar, Utang & Piutang, Laporan Keuangan, Aset Tetap, Tutup Buku, Payroll & Komisi) · Membership (Member, Poin, Follow-up, Portal Member) · Laporan (Penjualan, Pembelian, Stok, Supplier Analytics, Sales Analytics) · Komunikasi (Gateway WA, Template, Inbox, Kampanye, Log Kirim) · Pengaturan (Cabang, Pengguna & Peran, Asuransi, Dokter Perujuk, Umum & Pajak, Backup, Audit Log, API).
+Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & Resep (Pelanggan, Resep) · Katalog (Frame, Lensa, Lensa RX, Softlens, Aksesori) · Lab (Antrean Proses, QC Faset) · Pembelian (Purchase Request, Purchase Order, Penerimaan, Pembayaran, Pembayaran Kolektif, Retur, Supplier) · Stok (Stok Cabang, Pergerakan, Transfer Distribusi, Opname, Impor Stok Awal, Label Barcode) · Akuntansi (Chart of Accounts, Jurnal, Buku Besar, Utang & Piutang, Laporan Keuangan, Aset Tetap, Tutup Buku, Payroll & Komisi) · Membership (Member, Poin, Follow-up, Portal Member) · Laporan (Penjualan, Pembelian, Stok, Supplier Analytics, Sales Analytics) · Komunikasi (Template, Inbox, Kampanye, Log Kirim) · Pengaturan (Cabang, Pengguna & Peran, Asuransi, Dokter Perujuk, Umum & Pajak, Gateway WA, Asisten AI, Backup & Restore, Log Aktivitas, Token API, Perangkat Offline).
 
 ---
 

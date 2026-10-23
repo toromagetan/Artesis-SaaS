@@ -5,7 +5,7 @@
 | Dokumen | Product Requirements Document (PRD) |
 | Produk | **Lentera** — Sistem Manajemen & POS Toko Optik |
 | Repositori | `lentera` (baru, mandiri — **terpisah penuh dari repositori Artesis**) |
-| Versi | 1.0 — Draf untuk keputusan owner |
+| Versi | 1.0 — Disetujui owner & terbangun penuh (2026-10-18) |
 | Tanggal | 17 Oktober 2026 |
 | Disusun oleh | Crong (lead engineer) |
 | Dasar | Domain & alur bisnis yang terbukti di Artesis produksi (istori.my.id, terverifikasi s.d. 15 Okt 2026) + eksplorasi publik Lensiro (17 Okt 2026) |
@@ -75,7 +75,7 @@ MVP adalah inti yang membuat Lentera dapat menjalankan toko optik sungguhan dari
 | 3 | **Membership & Loyalitas** | Level + poin (tercatat sebagai liabilitas akuntansi), riwayat refraksi/rekam medis terpadu, follow-up, portal member ringan ber-token. |
 | 4 | **Inventaris Lanjut** | Opname terjadwal + selisih ber-alasan; costing FIFO (gerbang audit metode tersendiri); expiry softlens + peringatan; label barcode EAN-13/Code 128 & batch. |
 | 4 | **Analitik & API** | Supplier Analytics (lead time, retur), Sales Analytics (terlaris, margin, tren cabang); API publik read-only ber-token. |
-| 5 | **Riset: AI & Offline** | Asisten AI bisnis read-only khusus owner (kredensial AI milik pemilik, pagar data di lapisan query); fitting AI tanpa menyimpan foto; spike mode offline kasir (antrean lokal + sinkronisasi aman). Hasil riset menentukan bangun/tidak — bukan janji fitur. |
+| 5 | **Riset: AI & Offline** | Asisten AI bisnis read-only khusus owner (kredensial AI milik pemilik, pagar data di lapisan query); fitting AI tanpa menyimpan foto; spike mode offline kasir (antrean lokal + sinkronisasi aman). Hasil riset: ketiganya DIPUTUSKAN BANGUN oleh owner dan selesai dibangun 2026-10-18. |
 
 ## 8. Kebutuhan Non-Fungsional
 
@@ -113,7 +113,7 @@ Fase 0 (blueprint & fondasi repo) → MVP → Fase 1 → 2 → 3 → 4 → 5, se
 
 ## 13. Keputusan Owner Berikutnya
 
-1. Nama & identitas: **Lentera** (dipilih Crong atas mandat owner) — konfirmasi atau ganti.
-2. Repositori GitHub: buat `toromagetan/lentera` dan push awal (lewat Hermes — VM Crong tidak memiliki akses GitHub).
-3. Konfirmasi cakupan MVP (Bagian 6) dan prioritas Fase 1 (rekomendasi: Akuntansi Penuh).
-4. Payroll masuk Fase 1 atau Fase 4.
+1. Nama & identitas: **Lentera** — DIPUTUSKAN (dipilih Crong atas mandat owner, dipakai seterusnya).
+2. Repositori GitHub: `toromagetan/Lentera` — SELESAI (dibuat owner; push oleh Crong lewat konektor GitHub).
+3. Cakupan MVP & prioritas Fase 1 (Akuntansi Penuh) — DIKONFIRMASI & terbangun.
+4. Payroll — DIPUTUSKAN masuk **Fase 4** & terbangun.
