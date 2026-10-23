@@ -6,6 +6,7 @@ use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\UserService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
@@ -99,6 +100,36 @@ class OfflineSyncTest extends TestCase
         app(OfflineDeviceService::class)->revoke($this->owner, $device);
         $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/offline/sync', $this->syncPayload([$this->intent('a-1', 1)]))->assertUnauthorized();
+    }
+
+    public function test_deactivated_user_device_token_stops_working(): void
+    {
+        // LNT-006: token perangkat adalah kredensial akun kasirnya.
+        $headers = ['Authorization' => 'Bearer '.$this->token];
+
+        // Jalur sah selama pengguna aktif.
+        $this->withHeaders($headers)->getJson('/api/v1/offline/snapshot')->assertOk();
+        $salesBefore = Sale::count();
+
+        $device = OfflineDevice::findOrFail($this->deviceId);
+        $kasir = User::findOrFail($device->user_id);
+        app(UserService::class)->deactivateUser($kasir, $this->owner);
+
+        // Token lama langsung mati untuk kedua endpoint, dan tidak
+        // ada penjualan yang tercipta dari percobaan sync-nya.
+        $this->withHeaders($headers)->getJson('/api/v1/offline/snapshot')->assertUnauthorized();
+        $this->withHeaders($headers)
+            ->postJson('/api/v1/offline/sync', $this->syncPayload([$this->intent('c-1', 1)]))
+            ->assertUnauthorized();
+        $this->assertSame($salesBefore, Sale::count());
+
+        // Penonaktifan mencabut perangkat secara permanen …
+        $this->assertNotNull($device->fresh()->revoked_at);
+
+        // … sehingga pengaktifan kembali pengguna TIDAK
+        // menghidupkan token lama; perangkat wajib daftar ulang.
+        app(UserService::class)->activateUser($kasir, $this->owner);
+        $this->withHeaders($headers)->getJson('/api/v1/offline/snapshot')->assertUnauthorized();
     }
 
     public function test_sync_creates_sales_idempotently_and_routes_conflicts_to_exceptions(): void
