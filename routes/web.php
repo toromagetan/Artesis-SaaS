@@ -184,6 +184,7 @@ Route::middleware('auth')->group(function () {
 
     // ---- Akuntansi (M.9) ----
     Route::get('/jurnal', [JournalController::class, 'index'])->middleware('permission:journals.view')->name('journals.index');
+    Route::get('/jurnal/ekspor', [JournalController::class, 'export'])->middleware('permission:journals.view')->name('journals.export');
     Route::get('/jurnal/buat', [JournalController::class, 'create'])->middleware('permission:journals.manual')->name('journals.create');
     Route::post('/jurnal', [JournalController::class, 'store'])->middleware('permission:journals.manual')->name('journals.store');
     Route::get('/buku-besar', [LedgerController::class, 'index'])->middleware('permission:journals.view')->name('ledger.index');
@@ -205,9 +206,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/insentif/{period}/setujui', [IncentiveController::class, 'approve'])->middleware('permission:payroll.manage')->name('incentives.approve');
     Route::post('/insentif/{period}/bayar', [IncentiveController::class, 'pay'])->middleware('permission:payroll.manage')->name('incentives.pay');
     Route::get('/payroll', [PayrollController::class, 'index'])->middleware('permission:payroll.manage')->name('payroll.index');
+    Route::get('/payroll/ekspor', [PayrollController::class, 'export'])->middleware('permission:payroll.manage')->name('payroll.export');
     Route::post('/payroll/entri', [PayrollController::class, 'store'])->middleware('permission:payroll.manage')->name('payroll.store');
     Route::post('/payroll/posting', [PayrollController::class, 'post'])->middleware('permission:payroll.manage')->name('payroll.post');
     Route::get('/komisi', [CommissionController::class, 'index'])->middleware('permission:payroll.manage')->name('commissions.index');
+    Route::get('/komisi/ekspor', [CommissionController::class, 'export'])->middleware('permission:payroll.manage')->name('commissions.export');
     Route::post('/komisi/posting', [CommissionController::class, 'post'])->middleware('permission:payroll.manage')->name('commissions.post');
     Route::post('/komisi/bayar', [CommissionController::class, 'pay'])->middleware('permission:payroll.manage')->name('commissions.pay');
     Route::get('/jurnal/{journal}', [JournalController::class, 'show'])->middleware('permission:journals.view')->name('journals.show');

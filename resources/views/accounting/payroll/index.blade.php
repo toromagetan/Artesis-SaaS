@@ -13,6 +13,9 @@
                     </div>
                     <x-secondary-button type="submit">{{ __('ui.reports.apply') }}</x-secondary-button>
                 </form>
+                <x-lentera.aksi-bar>
+                    <x-lentera.menu-item :href="route('payroll.export', ['periode' => $period])">{{ __('ui.accounting.export_excel') }}</x-lentera.menu-item>
+                </x-lentera.aksi-bar>
                 @unless ($allPosted)
                     <x-lentera.aksi-bar>
                         <form method="POST" action="{{ route('payroll.post') }}">

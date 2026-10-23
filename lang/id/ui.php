@@ -1255,6 +1255,7 @@ return [
         'all_branches' => 'Semua Cabang',
         'memo' => 'Memo',
         'manual_journal' => 'Jurnal Manual',
+        'export_excel' => 'Ekspor Excel',
         'manual_hint' => 'Jurnal manual harus seimbang (total debit = total kredit) dan hanya boleh memakai akun daun — akun yang memiliki anak tidak dapat dipilih. Minimal dua baris bernilai.',
         'manual_created' => 'Jurnal manual dibuat.',
         'summary_not_allowed' => 'Akun :code adalah akun ringkasan (memiliki anak) — jurnal manual hanya boleh memakai akun daun.',

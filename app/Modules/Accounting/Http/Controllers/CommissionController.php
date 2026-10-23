@@ -5,9 +5,11 @@ namespace App\Modules\Accounting\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Models\Commission;
 use App\Modules\Accounting\Services\CommissionService;
+use App\Support\XlsxWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Komisi (F1.7): daftar akrual/koreksi, posting periode ke
@@ -49,6 +51,29 @@ class CommissionController extends Controller
             ->values();
 
         return view('accounting.commissions.index', compact('rows', 'period', 'payables'));
+    }
+
+    /** Ekspor Excel periode yang sedang tampil (audit 23 Okt 2026 B6). */
+    public function export(Request $request): StreamedResponse
+    {
+        $period = $request->query('periode', now()->format('Y-m'));
+        $rowsDb = Commission::with(['doctor', 'beneficiaryUser', 'sale', 'journal'])
+            ->where('period', $period)
+            ->orderByDesc('id')
+            ->get();
+        $rows = [
+            ['Tipe', 'Penerima', 'Penjualan', 'Basis', 'Tarif (%)', 'Jumlah', 'Status', 'Jurnal'],
+            ...$rowsDb->map(fn (Commission $c) => [
+                $c->type, $c->doctor?->name ?? $c->beneficiaryUser?->name, $c->sale?->number,
+                (string) $c->base_amount, (string) $c->rate, (string) $c->amount, $c->status, $c->journal?->number,
+            ])->all(),
+            ['TOTAL', '', '', '', '', (string) $rowsDb->sum('amount'), '', ''],
+        ];
+        $bytes = XlsxWriter::make([['title' => 'komisi-'.$period, 'rows' => $rows]]);
+
+        return response()->streamDownload(function () use ($bytes) {
+            echo $bytes;
+        }, 'komisi-'.$period.'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     public function post(Request $request): RedirectResponse

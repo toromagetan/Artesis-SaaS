@@ -7,9 +7,11 @@ use App\Modules\Accounting\Models\Payroll;
 use App\Modules\Accounting\Services\PayrollService;
 use App\Modules\Identity\Models\User;
 use App\Support\Money;
+use App\Support\XlsxWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Payroll (F1.7): entri gaji per karyawan per periode + posting
@@ -32,6 +34,30 @@ class PayrollController extends Controller
 
         return view('accounting.payroll.index', compact('entries', 'employees', 'period', 'allPosted'))
             ->with('totalNetFormatted', Money::of($totalNet)->format());
+    }
+
+    /** Ekspor Excel periode yang sedang tampil (audit 23 Okt 2026 B6). */
+    public function export(Request $request): StreamedResponse
+    {
+        $period = $request->query('periode', now()->format('Y-m'));
+        $entries = Payroll::with(['employee', 'journal'])
+            ->where('period', $period)
+            ->orderBy('employee_user_id')
+            ->get();
+        $rows = [
+            ['Karyawan', 'Periode', 'Gaji Pokok', 'Tunjangan', 'Potongan', 'Neto', 'Status', 'Jurnal'],
+            ...$entries->map(fn (Payroll $p) => [
+                $p->employee?->name, $p->period, (string) $p->base_amount, (string) $p->allowance_amount,
+                (string) $p->deduction_amount, $p->net()->toDecimalString(),
+                $p->isPosted() ? 'Terjurnal' : 'Belum', $p->journal?->number,
+            ])->all(),
+            ['TOTAL', '', '', '', '', Money::of($entries->sum(fn (Payroll $p) => $p->net()->cents()))->toDecimalString(), '', ''],
+        ];
+        $bytes = XlsxWriter::make([['title' => 'payroll-'.$period, 'rows' => $rows]]);
+
+        return response()->streamDownload(function () use ($bytes) {
+            echo $bytes;
+        }, 'payroll-'.$period.'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     public function store(Request $request): RedirectResponse

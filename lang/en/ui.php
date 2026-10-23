@@ -1255,6 +1255,7 @@ return [
         'all_branches' => 'All Branches',
         'memo' => 'Memo',
         'manual_journal' => 'Manual Journal',
+        'export_excel' => 'Export Excel',
         'manual_hint' => 'A manual journal must balance (total debits = total credits) and may only use leaf accounts — accounts with children cannot be selected. At least two valued lines are required.',
         'manual_created' => 'Manual journal created.',
         'summary_not_allowed' => 'Account :code is a summary account (it has children) — manual journals may only use leaf accounts.',

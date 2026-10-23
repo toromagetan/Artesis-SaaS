@@ -9,11 +9,14 @@ use App\Modules\Accounting\Services\ManualJournalService;
 use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
+use App\Support\Money;
+use App\Support\XlsxWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Jurnal baca-saja (M.9): daftar + detail halaman penuh; koreksi
@@ -38,6 +41,40 @@ class JournalController extends Controller
         $sources = Journal::select('source_type')->distinct()->orderBy('source_type')->pluck('source_type');
 
         return view('accounting.journals.index', compact('journals', 'source', 'period', 'sources'));
+    }
+
+    /** Ekspor Excel mengikuti filter daftar (sumber/periode), satu baris per baris jurnal (audit 23 Okt 2026 B6). */
+    public function export(Request $request): StreamedResponse
+    {
+        $source = (string) $request->query('sumber', '');
+        $period = (string) $request->query('periode', '');
+        $journals = Journal::with(['lines.account', 'lines.branch'])
+            ->when($source !== '', fn ($q) => $q->where('source_type', $source))
+            ->when(preg_match('/^\d{4}-\d{2}$/', $period) === 1, fn ($q) => $q->whereRaw('substr(journal_date, 1, 7) = ?', [$period]))
+            ->orderBy('journal_date')
+            ->orderBy('id')
+            ->get();
+        $rows = [['Nomor Jurnal', 'Tanggal', 'Sumber', 'Deskripsi', 'Kode Akun', 'Nama Akun', 'Cabang', 'Debit', 'Kredit', 'Memo']];
+        $totalDebitCents = 0;
+        $totalCreditCents = 0;
+        foreach ($journals as $journal) {
+            foreach ($journal->lines as $line) {
+                $rows[] = [
+                    $journal->number, $journal->journal_date->format('Y-m-d'), $journal->source_type, $journal->description,
+                    $line->account->code, $line->account->name, $line->branch?->name,
+                    (string) $line->debit, (string) $line->credit, $line->memo,
+                ];
+                $totalDebitCents += Money::fromDecimal((string) $line->debit)->cents();
+                $totalCreditCents += Money::fromDecimal((string) $line->credit)->cents();
+            }
+        }
+        $rows[] = ['TOTAL', '', '', '', '', '', '', Money::of($totalDebitCents)->toDecimalString(), Money::of($totalCreditCents)->toDecimalString(), ''];
+        $bytes = XlsxWriter::make([['title' => 'jurnal', 'rows' => $rows]]);
+        $filename = 'jurnal-'.($period !== '' ? $period : 'semua').'.xlsx';
+
+        return response()->streamDownload(function () use ($bytes) {
+            echo $bytes;
+        }, $filename, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     public function show(Journal $journal): View

@@ -20,6 +20,7 @@
                     @can('journals.manual')
                         <x-lentera.menu-item :href="route('journals.create')" primary>{{ __('ui.accounting.manual_journal') }}</x-lentera.menu-item>
                     @endcan
+                    <x-lentera.menu-item :href="route('journals.export', request()->only(['sumber', 'periode']))">{{ __('ui.accounting.export_excel') }}</x-lentera.menu-item>
                     <x-lentera.menu-item :href="route('ledger.index')">{{ __('ui.accounting.ledger') }}</x-lentera.menu-item>
                     @can('accounts.view')
                         <x-lentera.menu-item :href="route('accounts.index')">{{ __('ui.accounting.accounts') }}</x-lentera.menu-item>
