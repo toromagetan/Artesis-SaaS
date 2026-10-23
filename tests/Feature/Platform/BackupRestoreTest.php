@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Platform;
 
+use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Setting;
@@ -9,6 +10,7 @@ use App\Modules\Platform\Models\AuditLog;
 use App\Modules\Platform\Services\BackupService;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -54,6 +56,36 @@ class BackupRestoreTest extends TestCase
         $this->assertStringStartsWith('pra-restore-', $result['safety_backup']);
         $this->assertGreaterThan(10, $result['restored_tables']);
         $this->assertTrue(AuditLog::where('action', 'backup.restored')->exists());
+    }
+
+    public function test_roundtrip_with_generated_column_rows_and_scoped_tables(): void
+    {
+        // Baris dengan kolom ter-generate (poin earn): restore TIDAK
+        // boleh gagal 3105 dan kunci harus terhitung ulang utuh.
+        $customer = Customer::factory()->create();
+        DB::table('points_ledger')->insert([
+            'customer_id' => $customer->id, 'type' => 'earn', 'points' => 130,
+            'reference_type' => 'sale', 'reference_id' => 99,
+            'expires_at' => now()->addYear(), 'created_at' => now(),
+        ]);
+
+        $name = $this->service->create($this->owner);
+
+        // Payload backup hanya memuat tabel basis data berjalan
+        // (akun MySQL lokal melihat beberapa basis data sekaligus).
+        $zip = new \ZipArchive;
+        $zip->open($this->service->directory().'/'.$name);
+        $payload = json_decode((string) $zip->getFromName('backup.json'), true);
+        $zip->close();
+        $this->assertArrayNotHasKey('lentera.points_ledger', $payload['tables']);
+        $this->assertArrayHasKey('points_ledger', $payload['tables']);
+
+        DB::table('points_ledger')->delete();
+        $this->service->restore($this->owner, $name);
+
+        $row = DB::table('points_ledger')->first();
+        $this->assertNotNull($row);
+        $this->assertSame(99, (int) $row->earn_sale_key);
     }
 
     public function test_restore_is_owner_only_over_http(): void

@@ -142,8 +142,18 @@ class BackupService
 
     private function createInternal(?User $actor, string $prefix): string
     {
+        // HANYA tabel basis data koneksi saat ini: getTableListing()
+        // tanpa saringan mengembalikan tabel TERKUALIFIKASI dari
+        // SEMUA basis data yang dapat dilihat akun MySQL (pada akun
+        // multi-basis data, backup akan menyalin — dan restore akan
+        // menimpa — basis data LAIN). Tersaring ke skema berjalan.
+        $database = (string) DB::connection()->getDatabaseName();
         $tables = [];
-        foreach (Schema::getTableListing() as $table) {
+        foreach (Schema::getTables() as $meta) {
+            if (($meta['schema'] ?? $database) !== $database) {
+                continue;
+            }
+            $table = (string) $meta['name'];
             $tables[$table] = DB::table($table)->get()
                 ->map(fn ($row) => (array) $row)
                 ->all();
@@ -195,6 +205,17 @@ class BackupService
         $this->audit->log(action: 'backup.deleted', subjectType: 'Backup', newValues: ['file' => basename($name)], actor: $actor);
     }
 
+    /** @return list<string> */
+    private function generatedColumns(string $table): array
+    {
+        $rows = DB::select(
+            "SELECT COLUMN_NAME AS name FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND EXTRA LIKE '%GENERATED%'",
+            [(string) DB::connection()->getDatabaseName(), $table],
+        );
+
+        return array_map(static fn ($row) => (string) $row->name, $rows);
+    }
+
     /** @return array{restored_tables: int, safety_backup: string} */
     public function restore(User $actor, string $name): array
     {
@@ -222,6 +243,19 @@ class BackupService
             foreach ($payload['tables'] as $table => $rows) {
                 if (! Schema::hasTable($table)) {
                     continue;
+                }
+                // Kolom TER-GENERATE (mis. points_ledger.earn_sale_key)
+                // tidak boleh disisipkan eksplisit (MySQL 3105) —
+                // nilainya dihitung ulang server dari kolom sumber.
+                $generated = $this->generatedColumns((string) $table);
+                if ($generated !== []) {
+                    $rows = array_map(static function (array $row) use ($generated) {
+                        foreach ($generated as $column) {
+                            unset($row[$column]);
+                        }
+
+                        return $row;
+                    }, $rows);
                 }
                 DB::table($table)->delete();
                 foreach (array_chunk($rows, 200) as $chunk) {
