@@ -195,3 +195,38 @@ Artisan::command('lentera:fifo-migrasi', function () {
 
     return 0;
 })->purpose('Bangun lapisan FIFO dari riwayat gerakan + jurnal penyesuaian pembuka');
+
+/*
+ * Preflight migrasi indeks unik journals.reversal_of_id (LNT-005,
+ * migrasi 2026_10_23_000045). READ-ONLY: hanya SELECT. Migrasi
+ * 000045 gagal ERROR 1062 di tengah jalan bila database lama
+ * memuat reversal_of_id non-NULL ganda; perintah ini wajib
+ * dijalankan (dan lulus) SEBELUM migrasi pada database mana pun
+ * yang datanya berasal dari sebelum perbaikan LNT-005. Exit 0 =
+ * aman; exit 1 = duplikat ditemukan, JANGAN migrasi dulu —
+ * bersihkan dari backup terverifikasi (lihat README "Prosedur
+ * migrasi indeks unik reversal_of_id").
+ */
+Artisan::command('lentera:preflight-reversal', function () {
+    $dupes = DB::table('journals')
+        ->selectRaw('reversal_of_id, COUNT(*) AS jumlah')
+        ->whereNotNull('reversal_of_id')
+        ->groupBy('reversal_of_id')
+        ->having('jumlah', '>', 1)
+        ->orderBy('reversal_of_id')
+        ->get();
+
+    if ($dupes->isEmpty()) {
+        $this->info('PREFLIGHT LNT-005 AMAN: tidak ada reversal_of_id ganda — migrasi 000045 aman dijalankan.');
+
+        return 0;
+    }
+
+    $this->error('PREFLIGHT LNT-005 GAGAL: ditemukan jurnal asal dengan lebih dari satu jurnal pembalik:');
+    foreach ($dupes as $dupe) {
+        $this->line("  reversal_of_id={$dupe->reversal_of_id} jumlah={$dupe->jumlah}");
+    }
+    $this->warn('JANGAN jalankan migrasi 000045 sebelum duplikat dibersihkan dari backup yang terverifikasi.');
+
+    return 1;
+})->purpose('Preflight read-only duplikat reversal_of_id sebelum migrasi indeks unik 000045 (LNT-005)');

@@ -57,6 +57,16 @@ Dua proses ini adalah bagian dari produk, bukan pelengkap:
 - Restore hanya untuk Owner, menimpa seluruh data, dan selalu didahului backup keselamatan otomatis (awalan `pra-restore`).
 - Unggahan offsite (Google Drive pemilik) diaktifkan dari halaman yang sama setelah kredensial Service Account pemilik dipasang.
 
+## Prosedur migrasi indeks unik reversal_of_id (LNT-005)
+
+Migrasi `2026_10_23_000045` memasang indeks unik pada `journals.reversal_of_id`. Pada database yang datanya berasal dari sebelum perbaikan LNT-005, indeks itu **gagal terpasang (ERROR 1062)** bila sudah ada jurnal asal dengan lebih dari satu jurnal pembalik. Jalankan prosedur ini sebelum `php artisan migrate` pada database lama mana pun:
+
+1. **Preflight (read-only, wajib lulus):** `php artisan lentera:preflight-reversal` — exit 0 dan pesan `AMAN` berarti tidak ada duplikat. Exit 1 berarti duplikat ditemukan dan dilaporkan per jurnal asal; **jangan migrasi dulu**.
+2. **Backup:** buat backup dari **Pengaturan → Backup & Restore** dan pastikan statusnya Terverifikasi.
+3. Bila preflight gagal: bersihkan duplikat secara manual dari salinan backup yang terverifikasi (sisakan tepat satu jurnal pembalik per jurnal asal), pulihkan, lalu ulangi langkah 1.
+4. **Migrasi:** `php artisan migrate` — 000045 kini terpasang.
+5. **Verifikasi indeks:** `SHOW INDEX FROM journals WHERE Column_name = 'reversal_of_id';` harus menampilkan satu indeks `Non_unique = 0`.
+
 ## Pengujian
 
 ```bash
