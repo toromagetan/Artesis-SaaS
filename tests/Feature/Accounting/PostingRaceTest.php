@@ -9,6 +9,7 @@ use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Tests\Concurrency\ConcurrencyDatabase;
 use Tests\TestCase;
 
@@ -144,7 +145,21 @@ class PostingRaceTest extends TestCase
     public function test_post_vs_lock_race_never_leaves_unflagged_journal(): void
     {
         foreach (['2031-01', '2031-02', '2031-03'] as $period) {
-            $this->runWorkers('postlock', ['period' => $period, 'date' => $period.'-15'], 2);
+            $results = $this->runWorkers('postlock', ['period' => $period, 'date' => $period.'-15'], 2);
+
+            // LNT-002 lanjutan (audit ulang): asersi HASIL kedua
+            // pekerja, bukan hanya keadaan akhir — deadlock atau
+            // kegagalan tak terduga pada pekerja posting tidak
+            // boleh lagi tertoleransi diam-diam hanya karena
+            // keadaan akhir kebetulan benar. Pekerja -0 = posting,
+            // pekerja -1 = pengunci periode.
+            [$poster, $locker] = [$results[0], $results[1]];
+            $this->assertTrue(($locker['ok'] ?? false) === true,
+                "Periode {$period}: pekerja pengunci gagal (".($locker['error'] ?? 'tanpa galat').').');
+            $posterOk = ($poster['ok'] ?? false) === true;
+            $posterRejected = ! $posterOk && ($poster['error'] ?? null) === ValidationException::class;
+            $this->assertTrue($posterOk || $posterRejected,
+                "Periode {$period}: pekerja posting gagal dengan galat tak terduga (".($poster['error'] ?? 'tanpa galat').').');
 
             $this->assertTrue(app(PostingService::class)->isPeriodLocked($period), "Periode {$period} harus berakhir terkunci.");
             $unflagged = Journal::where('source_type', 'race')
