@@ -128,4 +128,13 @@ class InitialStockImportTest extends TestCase
             ->assertRedirect(route('stock.index'));
         $this->assertSame(3, app(InventoryService::class)->currentStock($this->lens->id, $this->branch->id));
     }
+
+    public function test_upload_rejects_non_spreadsheet_extension(): void
+    {
+        // Pengerasan audit 23 Okt 2026 (A5): unggahan impor wajib
+        // berekstensi xlsx/csv — berkas teks biasa ditolak validasi.
+        $file = UploadedFile::fake()->createWithContent('stok.txt', "sku,cabang,qty\nFR-IMP-1,{$this->branch->id},7\n");
+        $this->actingAs($this->owner)->post('/stok/impor/pratinjau', ['file' => $file])
+            ->assertSessionHasErrors('file');
+    }
 }

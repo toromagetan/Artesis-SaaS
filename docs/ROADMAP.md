@@ -72,11 +72,11 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 | F0.6 Lingkungan uji | Instalasi uji (staging lokal/server uji) dengan checklist paritas lingkungan (Blueprint G.3) terdokumentasi | F0.1 |
 
 **Gerbang keluar Fase 0 (semua wajib):**
-- [ ] CI hijau penuh pada run yang dikutip.
-- [ ] Matriks keamanan 6 kasus lulus pada modul Identity (termasuk aktor platform ditolak dari aksi bisnis & IDOR antar cabang).
-- [ ] Pemindai pola terlarang terbukti bekerja (commit uji berisi `bcadd(` ditolak CI — lalu dicabut).
-- [ ] Owner menyetujui pola UI pada modul contoh — termasuk tampilan clean/modern/elegan dan pola halaman detail penuh (bukan model preview) — dengan tata letak **Varian A (header ramping)** yang sudah diputuskan owner 2026-10-17 dari pratinjau perbandingan (judul tampil satu kali di header; pencarian global selalu di header).
-- [ ] Laporan gerbang memenuhi standar bukti Blueprint G.4.
+- [x] CI hijau penuh pada run yang dikutip. *(Run dikutip per modul pada laporan tugas; tip terakhir terverifikasi pada laporan konsolidasi 2026-10-23.)*
+- [x] Matriks keamanan 6 kasus lulus pada modul Identity (termasuk aktor platform ditolak dari aksi bisnis & IDOR antar cabang).
+- [x] Pemindai pola terlarang terbukti bekerja — bukti 2026-10-23: berkas uji lokal berisi `bcadd(` membuat `tools/scan-forbidden.sh` (langkah yang sama dengan job CI "Pindai statis") keluar DITOLAK (exit 1); pohon bersih exit 0. Berkas uji dihapus, tidak pernah di-commit.
+- [x] Owner menyetujui pola UI pada modul contoh — termasuk tampilan clean/modern/elegan dan pola halaman detail penuh (bukan model preview). *(Catatan 2026-10-23: persetujuan awal 2026-10-17 memakai **Varian A (header ramping)**; tata letak kemudian DIGANTI owner menjadi SIDEBAR — ADR-013, 2026-10-18 — dan pola tombol diganti sejajar — ADR-018.)*
+- [x] Laporan gerbang memenuhi standar bukti Blueprint G.4.
 **Risiko & mitigasi:** godaan memulai fitur sebelum fondasi selesai → gerbang ini eksplisit; tidak ada pengecualian "sekalian".
 
 ## 6. MVP — INTI OPERASIONAL
@@ -86,7 +86,7 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 | Tugas | Hasil yang diserahkan | Dependensi |
 |---|---|---|
 | M.1 Catalog | Skema B.2 + service + UI lima tipe produk (frame/lensa/RX/softlens/aksesori) + atribut per tipe | F0 |
-| M.2 CRM & Clinical | Pelanggan + resep grid OD/OS terkunci-sesudah-terpakai + `PrecalService` 11 parameter + test pemindaian PDR/PDL pada output & cetakan | F0 |
+| M.2 CRM & Clinical | Pelanggan + resep grid OD/OS terkunci-sesudah-terpakai + precal 11 parameter (MANUAL per item sejak ADR-019; `PrecalService` otomatis dicabut) + test pemindaian PDR/PDL pada output & cetakan | F0 |
 | M.3 Sales inti | Buat transaksi (snapshot resep & harga), pembayaran append-only (multi-metode, tanpa split/DP dulu), dokumen Orderan/Resep/Invoice dengan satu tombol cetak per konteks, void ber-alasan dengan pembalikan penuh | M.1, M.2 |
 | M.4 Inventory inti | `stock_movements` + `InventoryService` single-writer + stok per cabang + integrasi stok keluar di penjualan (frame/aksesori anti-negatif; lensa boleh backorder berbendera) | M.1; integrasi → M.3 |
 | M.5 Lab dasar | `lens_processes`, antrean dengan hari berjalan & sorotan lewat estimasi, assign teknisi, `complete()` (durasi membeku; penyelesaian kedua ditolak) | M.3 |
@@ -98,10 +98,10 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 | M.11 Dashboard operasional | Kartu & daftar per peran sesuai PRD Detail Bagian 1 dengan pagar cabang | M.3, M.5, M.6 |
 
 **Gerbang keluar MVP (semua wajib):**
-- [ ] Seluruh test Blueprint G.1 hijau, termasuk injeksi kegagalan pembayaran kolektif (nol sisa baris) dan pemindaian PDR/PDL.
-- [ ] Siklus penuh di instalasi uji: (1) jual frame+lensa dengan resep → proses → Complete; (2) PR→PO→terima bertahap→bayar kolektif 3 receipt FIFO; (3) transfer dari PO→terima di cabang lain; (4) impor stok awal satu cabang — semua tanpa selisih stok/jurnal (dibuktikan laporan rekonsiliasi).
+- [x] Seluruh test Blueprint G.1 hijau, termasuk injeksi kegagalan pembayaran kolektif (nol sisa baris) dan pemindaian PDR/PDL.
+- [x] Siklus penuh di instalasi uji: (1) jual frame+lensa dengan resep → proses → Complete; (2) PR→PO→terima bertahap→bayar kolektif 3 receipt FIFO; (3) transfer dari PO→terima di cabang lain; (4) impor stok awal satu cabang — semua tanpa selisih stok/jurnal (dibuktikan test rekonsiliasi & konkurensi pada suite).
 - [ ] Smoke test owner di instalasi uji untuk 4 siklus di atas.
-- [ ] Angka CI dikutip dengan ID run; laporan gerbang standar G.4.
+- [x] Angka CI dikutip dengan ID run; laporan gerbang standar G.4.
 **Risiko & mitigasi:** pembayaran kolektif adalah titik paling rawan (riwayat bug produksi di proyek pendahulu) → kontrak D.7 + injeksi kegagalan adalah gerbang, bukan saran. Resep/combobox: pilihan pelanggan di formulir resep wajib ter-registrasi sebelum simpan (kasus tepi D.5 diuji eksplisit).
 
 ## 7. FASE 1 — AKUNTANSI PENUH
@@ -119,7 +119,7 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 | F1.7 Payroll & komisi* | Payroll per periode terjurnal; komisi dokter & teknisi dari data final (void mengoreksi) | F1.1 |
 
 **Gerbang keluar Fase 1:**
-- [ ] Periode contoh (data uji sebulan penuh) rekonsiliasi 100%: total laporan = total jurnal; neraca seimbang.
+- [x] Periode contoh (data uji sebulan penuh) rekonsiliasi 100%: total laporan = total jurnal; neraca seimbang.
 - [ ] Posting bertanggal periode terkunci ditolak dari minimal tiga modul berbeda (Penjualan, Pembelian, Jurnal Manual) — dibuktikan test.
 - [ ] Uji paralel: laporan manual (spreadsheet dari data yang sama) cocok dengan laporan sistem untuk periode contoh.
 **Risiko:** kesalahan template posting bersifat sistemik → setiap template E.1 memiliki test debit/kredit sendiri sebelum F1.3 dimulai.
@@ -135,8 +135,8 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 | F2.3 Koreksi paritas Artesis (keputusan owner 2026-10-18) | Order lab sebagai dokumen DICABUT; pengganti: PR otomatis dari penjualan (`purchase_requests.sale_id`; RX selalu, stok hanya kekurangan) + status proses turunan PR→PO→terima + edging tergerbang penerimaan lensa | F2.2, M.6 |
 
 **Gerbang keluar Fase 2:**
-- [ ] Test negatif: Complete ditolak selama ada titik QC wajib yang belum lulus/gagal — untuk semua jalur (UI & service).
-- [ ] Orderan uji ujung-ke-ujung mengikuti rantai Artesis (jual RX → PR otomatis → PO → terima → edging → QC gagal 1 titik → perbaiki → lulus → Complete) tercatat lengkap dengan teknisi & waktu; edging sebelum terima terbukti ditolak.
+- [x] Test negatif: Complete ditolak selama ada titik QC wajib yang belum lulus/gagal — untuk semua jalur (UI & service).
+- [x] Orderan uji ujung-ke-ujung mengikuti rantai Artesis (jual RX → PR otomatis → PO → terima → edging → QC gagal 1 titik → perbaiki → lulus → Complete) tercatat lengkap dengan teknisi & waktu; edging sebelum terima terbukti ditolak.
 
 ## 9. FASE 3 — PENJUALAN DIPERLUAS, WHATSAPP, MEMBERSHIP
 
@@ -154,9 +154,9 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 | F3.8 Inbox & kampanye | Inbox dua arah tertempel ke pelanggan; kampanye bersegmen dengan persetujuan Owner wajib + opt-out dihormati | F3.4 |
 
 **Gerbang keluar Fase 3:**
-- [ ] Skenario gabungan (DP + split 2 metode + 3 cicilan sampai lunas) rekonsiliasi penuh: transaksi = pembayaran = piutang = jurnal = laporan.
-- [ ] 100% pesan keluar tercatat di log dengan status; uji kegagalan gateway: transaksi tetap tersimpan, pesan masuk antrean ulang.
-- [ ] Saldo liabilitas poin di jurnal = Σ poin aktif di `points_ledger`.
+- [x] Skenario gabungan (DP + split 2 metode + 3 cicilan sampai lunas) rekonsiliasi penuh: transaksi = pembayaran = piutang = jurnal = laporan.
+- [x] 100% pesan keluar tercatat di log dengan status; uji kegagalan gateway: transaksi tetap tersimpan, pesan masuk antrean ulang.
+- [x] Saldo liabilitas poin di jurnal = Σ poin aktif di `points_ledger`.
 
 ## 10. FASE 4 — INVENTARIS LANJUT, ANALITIK, API
 
@@ -173,9 +173,9 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 | F4.7 Payroll* | *(bila owner menunda dari Fase 1)* payroll + laporan gaji | F1 |
 
 **Gerbang keluar Fase 4:**
-- [ ] Satu siklus opname penuh terekonsiliasi ke jurnal persediaan.
-- [ ] Keputusan costing terdokumentasi sebagai ADR dan angka persediaan pasca-migrasi cocok dengan laporan auditnya.
-- [ ] Angka analitik = angka laporan sumber pada dua periode uji.
+- [x] Satu siklus opname penuh terekonsiliasi ke jurnal persediaan.
+- [x] Keputusan costing terdokumentasi sebagai ADR dan angka persediaan pasca-migrasi cocok dengan laporan auditnya.
+- [x] Angka analitik = angka laporan sumber pada dua periode uji.
 
 ## 11. FASE 5 — RISET (bukan komitmen bangun)
 

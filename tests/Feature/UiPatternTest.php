@@ -11,8 +11,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Pola UI F0.5 (Blueprint F.2 + skill lentera-frontend): Varian A, judul
- * tepat satu kali, GlobalSearch selalu di header, sensus tombol sejajar
+ * Pola UI F0.5 (Blueprint F.2 + skill lentera-frontend): sidebar
+ * (ADR-013), judul tepat satu kali, GlobalSearch selalu di topbar, sensus tombol sejajar
  * (ADR-018: AksiBar di kepala layar + AksiBaris per baris, tanpa dropdown
  * perintah), detail = halaman penuh, mesin cetak A5, pencarian global
  * terpagar izin + cabang.

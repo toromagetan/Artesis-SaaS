@@ -38,7 +38,7 @@ class InitialStockImportController extends Controller
     public function preview(Request $request): View
     {
         Gate::authorize('stock.import-initial');
-        $request->validate(['file' => ['required', 'file', 'max:2048']]);
+        $request->validate(['file' => ['required', 'file', 'mimes:xlsx,csv', 'max:2048']]);
 
         $content = (string) file_get_contents($request->file('file')->getRealPath());
         $preview = $this->service->preview($content);

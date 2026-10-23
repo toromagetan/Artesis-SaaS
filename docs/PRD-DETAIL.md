@@ -281,9 +281,11 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 - **Daftar:** nama, klinik, kontak, tarif komisi, total rujukan & komisi berjalan (menembus 8.8).
 ### 12.5 Pengaturan Umum & Pajak — MVP
 - **Isi:** identitas toko (nama, alamat, logo untuk dokumen), format nomor dokumen, tarif **PPN** bawaan & mode (inklusif/eksklusif), ukuran kertas dokumen (58mm/80mm/A5/A4), mata uang & format tanggal.
+- **Status terbangun (2026-10-23):** layar `/pengaturan/umum` mengelola tepat kunci yang dibaca kode — identitas toko (nama, alamat, telepon; mengalir ke kepala cetak), tarif PPN bawaan & mode, ambang diskon tinggi, tarif komisi teknisi lab. Format nomor dokumen, mata uang (IDR), dan format tanggal adalah konvensi tetap sistem (bukan pengaturan); ukuran kertas termal dipilih per aksi cetak (58/80mm), dokumen lain A5. Logo dokumen belum menjadi pengaturan (memakai logo merek Lentera).
 ### 12.6 Backup & Pulih — MVP (operasional)
 - **Isi:** jadwal backup otomatis, tujuan **offsite milik pemilik** (mis. Drive pemilik), daftar backup + status verifikasi, uji pulih terpandu.
 - **Aturan kunci:** backup dianggap berhasil hanya sesudah terverifikasi dapat dibuka; kegagalan backup memberi peringatan di Dashboard Owner.
+- **Status terbangun (2026-10-23):** backup manual + pulih dari layar Backup & Restore (Owner, terkonfirmasi DialogKonfirmasi); backup OTOMATIS harian 02:00 dengan retensi 14 berkas otomatis (perintah `lentera:backup-otomatis`, teraudit). Unggahan offsite (Drive pemilik) MENUNGGU kredensial pemilik (Service Account + Folder ID) — menyalakan sakelar offsite tanpa kredensial mencatat peringatan audit, tidak gagal diam-diam. Status verifikasi buka & peringatan Dashboard belum terbangun.
 ### 12.7 Audit Log — MVP
 - **Isi:** siapa, melakukan apa, pada data apa, kapan, dari cabang mana — untuk mutasi penting & aksi sensitif (izin, tutup buku, impor, void, pembayaran).
 - **Aturan kunci:** audit log hanya dapat dibaca peran tertinggi dan tidak dapat diedit dari aplikasi.
@@ -291,10 +293,12 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 - **Isi:** token API per keperluan (nama, cakupan baca, terakhir dipakai), cabut token; semua pemakaian tercatat.
 - **Aturan kunci:** API tidak pernah dapat menulis; token dicabut berlaku seketika.
 
-## 13. FASE RISET (ringkas — rincian di PRD utama)
-- **Asisten AI Bisnis (F5):** tanya-jawab bahasa alami atas data toko, khusus Owner, hanya baca, setiap jawaban menyertakan dasar datanya, kredensial AI milik pemilik.
-- **Fitting AI (F5):** ukur PD/dimensi wajah dari kamera toko, ranking frame dari stok cabang, foto tidak disimpan.
-- **Mode Offline Kasir (F5, spike):** antrean transaksi lokal saat internet mati dengan sinkronisasi & konflik stok yang aman — hasil spike menentukan dibangun atau tidak.
+## 13. FITUR LANJUT (terbangun di F5 — ringkas; rincian di PRD utama & Blueprint)
+- **Asisten AI Bisnis:** tanya-jawab bahasa alami atas data toko, khusus Owner (pagar peran di controller + service), hanya baca lewat daftar-putih maksud, setiap jawaban menyertakan dasar datanya, kredensial AI milik pemilik diatur di Pengaturan (terenkripsi); data toko tidak dikirim ke penyedia.
+- **Fitting AI:** ukur PD/dimensi wajah dari kamera perangkat (pemrosesan di perangkat), ranking frame dari stok cabang, rekaman fitting pada data klinis pelanggan (teraudit); hasil ukur wajib dikonfirmasi manual sebelum dipakai.
+- **Mode Offline Kasir:** antrean transaksi lokal saat internet mati dengan sinkronisasi & konflik stok yang aman (pengecualian sinkron ditinjau dari antrean, teraudit saat dibuang).
+- **Garansi & Stok Rusak (selaras Artesis):** klaim garansi per item penjualan dengan penyelesaian dari stok atau PO, inspeksi stok rusak menjadi penyesuaian stok; daftar & detail terpagar cabang penjualan asal.
+- **Insentif (selaras Artesis, ADR-017):** basis per item atas penjualan Lunas, penerima staf cabang + kepala optik, persetujuan periode, clawback otomatis periode berikutnya, ekspor Excel; tanpa jurnal akuntansi.
 
 ---
 *Akhir PRD Detail v1.0. Perubahan atas dokumen ini mengikuti gerbang yang sama: keputusan owner → revisi dokumen → commit baru di repositori Lentera.*
