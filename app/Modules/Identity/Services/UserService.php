@@ -6,6 +6,7 @@ use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Services\AuditLogger;
+use App\Modules\Sales\Services\OfflineDeviceService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -88,10 +89,16 @@ class UserService
             ]);
         }
 
-        $user->update(['is_active' => false]);
-        $this->audit($actor, 'users.deactivate', $user, ['is_active' => true], ['is_active' => false]);
+        // LNT-006 lapis kedua: penonaktifan mencabut seluruh perangkat
+        // kasir offline milik pengguna dalam transaksi yang sama —
+        // token perangkat tidak boleh hidup lebih lama dari akunnya.
+        return DB::transaction(function () use ($user, $actor) {
+            $user->update(['is_active' => false]);
+            app(OfflineDeviceService::class)->revokeAllForUser($user, $actor);
+            $this->audit($actor, 'users.deactivate', $user, ['is_active' => true], ['is_active' => false]);
 
-        return $user;
+            return $user;
+        });
     }
 
     public function activateUser(User $user, ?User $actor = null): User

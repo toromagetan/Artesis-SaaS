@@ -40,7 +40,38 @@ class OfflineDeviceService
             return null;
         }
 
+        // LNT-006: token perangkat adalah kredensial atas nama akun
+        // kasirnya — pengguna yang sudah dinonaktifkan tidak boleh
+        // lagi bertindak lewat perangkat, sama seperti sesi web-nya
+        // yang diputus EnsureUserIsActive. Fail-closed: akun hilang
+        // atau nonaktif = perangkat tidak sah.
+        $user = $device->user;
+        if ($user === null || ! $user->is_active) {
+            return null;
+        }
+
         return $device;
+    }
+
+    /**
+     * Cabut SEMUA perangkat aktif milik seorang pengguna (dipakai
+     * saat pengguna dinonaktifkan — LNT-006 lapis kedua). Pencabutan
+     * permanen: pengaktifan kembali pengguna tidak menghidupkan
+     * token lama; perangkat harus didaftarkan ulang. Mengembalikan
+     * jumlah perangkat yang dicabut.
+     */
+    public function revokeAllForUser(User $user, ?User $actor = null): int
+    {
+        $revoked = 0;
+        OfflineDevice::where('user_id', $user->id)->whereNull('revoked_at')->get()
+            ->each(function (OfflineDevice $device) use ($actor, &$revoked) {
+                $device->update(['revoked_at' => now()]);
+                $this->audit->log(action: 'offline_device.revoke', subjectType: 'offline_device', subjectId: $device->id,
+                    newValues: ['reason' => 'user_deactivated'], actor: $actor);
+                $revoked++;
+            });
+
+        return $revoked;
     }
 
     public function revoke(User $actor, OfflineDevice $device): void
