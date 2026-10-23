@@ -14,9 +14,9 @@
                 </div>
             @endif
 
-            <div class="mb-4 flex items-center justify-between">
+            <div class="mb-4 flex flex-wrap items-center gap-3">
                 <a href="{{ route('sales.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
-                <div class="flex items-center gap-2">
+                <div class="ms-auto flex flex-wrap items-center gap-2">
                     <x-lentera.aksi-bar>
                         <x-lentera.menu-item :href="route('sales.print-order', $sale)" target="_blank" print>{{ __('ui.sales.print_order') }}</x-lentera.menu-item>
                         <x-lentera.menu-item :href="route('sales.print-invoice', $sale)" target="_blank" print>{{ __('ui.sales.print_invoice') }}</x-lentera.menu-item>
