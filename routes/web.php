@@ -351,6 +351,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pengaturan/backup/unduh', [BackupController::class, 'download'])->middleware('permission:settings.manage')->name('backups.download');
     Route::post('/pengaturan/backup/hapus', [BackupController::class, 'destroy'])->middleware('permission:settings.manage')->name('backups.destroy');
     Route::post('/pengaturan/backup/pulihkan', [BackupController::class, 'restore'])->middleware('permission:settings.manage')->name('backups.restore');
+    Route::post('/pengaturan/backup/offsite', [BackupController::class, 'offsite'])->middleware('permission:settings.manage')->name('backups.offsite');
     Route::get('/pengaturan/log-aktivitas', [AuditLogController::class, 'index'])->middleware('permission:settings.manage')->name('audit-logs.index');
     Route::get('/pengaturan/log-aktivitas/{log}', [AuditLogController::class, 'show'])->middleware('permission:settings.manage')->name('audit-logs.show');
     Route::get('/pengaturan/ai', [AiSettingController::class, 'edit'])->middleware('permission:settings.manage')->name('ai-setting.edit');

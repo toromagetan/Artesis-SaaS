@@ -3,6 +3,8 @@
 namespace App\Modules\Platform\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Master\Models\Setting;
+use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Platform\Services\BackupService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +22,26 @@ class BackupController extends Controller
 
     public function index(): View
     {
-        return view('settings.backups.index', ['entries' => $this->backups->entries()]);
+        return view('settings.backups.index', [
+            'entries' => $this->backups->entries(),
+            'offsiteEnabled' => filter_var(Setting::value('backup.offsite_enabled', '0'), FILTER_VALIDATE_BOOLEAN),
+        ]);
+    }
+
+    /** Sakelar unggahan offsite — satu-satunya penulis kunci
+     *  backup.offsite_enabled yang dibaca jadwal backup otomatis. */
+    public function offsite(Request $request): RedirectResponse
+    {
+        $aktif = $request->boolean('aktif');
+        Setting::set('backup.offsite_enabled', $aktif ? '1' : '0');
+        app(AuditLogger::class)->log(
+            action: 'backup.offsite_toggle',
+            subjectType: 'Backup',
+            subjectId: null,
+            newValues: ['enabled' => $aktif],
+        );
+
+        return back()->with('status', __('ui.backups.offsite_saved'));
     }
 
     public function store(Request $request): RedirectResponse

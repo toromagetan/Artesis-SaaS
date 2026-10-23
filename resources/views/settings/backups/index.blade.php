@@ -19,6 +19,19 @@
             </x-lentera.aksi-bar>
         </div>
 
+        <div class="mb-4 rounded-xl bg-white p-4 shadow-sm">
+            <h3 class="text-sm font-semibold text-gray-800">{{ __('ui.backups.offsite') }}</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ __('ui.backups.offsite_help') }}</p>
+            <form method="POST" action="{{ route('backups.offsite') }}" class="mt-3 flex flex-wrap items-center gap-3">
+                @csrf
+                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" name="aktif" value="1" @checked($offsiteEnabled) class="rounded border-gray-300 text-lentera-600 focus:ring-lentera-500">
+                    {{ __('ui.backups.offsite_enable') }}
+                </label>
+                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.backups.offsite_save') }}</button>
+            </form>
+        </div>
+
         <div class="overflow-hidden rounded-xl bg-white shadow-sm">
             <table class="min-w-full divide-y divide-gray-200 text-sm">
                 <thead class="bg-gray-50 text-left text-gray-500">
