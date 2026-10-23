@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Journal extends Model
 {
     protected $fillable = [
-        'number', 'journal_date', 'source_type', 'source_id', 'description',
+        'number', 'journal_date', 'source_type', 'source_id', 'idempotency_key', 'description',
         'period_locked', 'reversal_of_id', 'created_by',
     ];
 

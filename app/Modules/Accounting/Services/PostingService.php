@@ -9,6 +9,7 @@ use App\Modules\Platform\Services\AuditLogger;
 use App\Support\Money;
 use App\Support\Numbering;
 use Carbon\CarbonInterface;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -63,7 +64,7 @@ class PostingService
     /**
      * @param  array<int, array{account: string, branch_id?: ?int, debit?: string, credit?: string, memo?: ?string}>  $lines
      */
-    public function post(string $sourceType, ?int $sourceId, CarbonInterface|string $date, array $lines, ?string $description = null, ?User $actor = null): Journal
+    public function post(string $sourceType, ?int $sourceId, CarbonInterface|string $date, array $lines, ?string $description = null, ?User $actor = null, ?string $idempotencyKey = null): Journal
     {
         $dateString = $date instanceof CarbonInterface ? $date->format('Y-m-d') : substr((string) $date, 0, 10);
         $period = substr($dateString, 0, 7);
@@ -104,12 +105,13 @@ class PostingService
             throw ValidationException::withMessages(['lines' => __('ui.accounting.journal_unbalanced')]);
         }
 
-        return DB::transaction(function () use ($sourceType, $sourceId, $dateString, $prepared, $description, $actor) {
+        return DB::transaction(function () use ($sourceType, $sourceId, $dateString, $prepared, $description, $actor, $idempotencyKey) {
             $journal = Journal::create([
                 'number' => Numbering::next('JU', now()),
                 'journal_date' => $dateString,
                 'source_type' => $sourceType,
                 'source_id' => $sourceId,
+                'idempotency_key' => $idempotencyKey,
                 'description' => $description,
                 'created_by' => $actor?->id,
             ]);
@@ -128,8 +130,22 @@ class PostingService
         if ($existing !== null) {
             return $existing;
         }
+        if ($sourceId === null) {
+            return $this->post($sourceType, $sourceId, $date, $lines, $description, $actor);
+        }
 
-        return $this->post($sourceType, $sourceId, $date, $lines, $description, $actor);
+        // Keunikan ditegakkan basis data lewat idempotency_key
+        // (migrasi 000044): balapan dua pembuat bersamaan berakhir
+        // dengan jurnal pemenang, bukan jurnal ganda.
+        try {
+            return $this->post($sourceType, $sourceId, $date, $lines, $description, $actor, $sourceType.':'.$sourceId);
+        } catch (QueryException $e) {
+            $winner = Journal::where('source_type', $sourceType)->where('source_id', $sourceId)->first();
+            if ($winner !== null) {
+                return $winner;
+            }
+            throw $e;
+        }
     }
 
     public function reverse(Journal $journal, string $reason, ?User $actor = null): Journal
