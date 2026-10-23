@@ -120,8 +120,8 @@ Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, teta
 
 **Gerbang keluar Fase 1:**
 - [x] Periode contoh (data uji sebulan penuh) rekonsiliasi 100%: total laporan = total jurnal; neraca seimbang.
-- [ ] Posting bertanggal periode terkunci ditolak dari minimal tiga modul berbeda (Penjualan, Pembelian, Jurnal Manual) — dibuktikan test.
-- [ ] Uji paralel: laporan manual (spreadsheet dari data yang sama) cocok dengan laporan sistem untuk periode contoh.
+- [x] Posting bertanggal periode terkunci ditolak dari minimal tiga modul berbeda (Penjualan, Pembelian, Jurnal Manual) — dibuktikan test. *(Bukti terverifikasi 2026-10-23: `PeriodCloseTest::test_locked_period_rejects_postings_from_three_modules` — penjualan, penerimaan pembelian, dan jurnal manual HTTP masing-masing gagal total tanpa sisa baris/stok.)*
+- [x] Uji paralel: laporan manual (spreadsheet dari data yang sama) cocok dengan laporan sistem untuk periode contoh. *(Bukti 2026-10-23: `ParallelReportComparisonTest` — seluruh baris jurnal periode contoh dijumlahkan ulang baris demi baris di luar FinancialReportService; laba rugi + neraca cocok persis, termasuk isolasi periode.)*
 **Risiko:** kesalahan template posting bersifat sistemik → setiap template E.1 memiliki test debit/kredit sendiri sebelum F1.3 dimulai.
 
 ## 8. FASE 2 — QC FASET & PROSES LAB
