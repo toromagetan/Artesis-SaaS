@@ -63,4 +63,4 @@ Dua proses ini adalah bagian dari produk, bukan pelengkap:
 php artisan test
 ```
 
-Suite mencakup regresi penuh + gerbang konkurensi (basis data MySQL nyata `lentera_test` dan `lentera_conc`; lihat `.env.testing` setempat). CI menjalankan pemindaian pola terlarang (`tools/scan-forbidden.sh` — antara lain larangan fungsi `bc*`), Pint, dan seluruh suite pada setiap push.
+Suite mencakup regresi penuh + gerbang konkurensi (basis data MySQL nyata `lentera_test`; test konkurensi membuat basis data unik per run berpola `lentera_conc_<pid>_<acak>` dan hanya menghapus buatannya sendiri — LNT-007; lihat `.env.testing` setempat). CI menjalankan pemindaian pola terlarang (`tools/scan-forbidden.sh` — antara lain larangan fungsi `bc*`), Pint, dan seluruh suite pada setiap push.

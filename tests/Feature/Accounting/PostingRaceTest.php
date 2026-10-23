@@ -9,11 +9,13 @@ use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Tests\Concurrency\ConcurrencyDatabase;
 use Tests\TestCase;
 
 /**
  * Bukti balapan untuk audit eksternal LNT-002 & LNT-005 (proses
- * PHP paralel melawan MySQL nyata lentera_conc, pola yang sama
+ * PHP paralel melawan MySQL nyata (database unik per run,
+ * LNT-007), pola yang sama
  * dengan ConcurrencyGateTest):
  * - LNT-002: posting vs kunci periode serentak TIDAK PERNAH
  *   meninggalkan jurnal tak-tertandai di periode terkunci.
@@ -22,7 +24,9 @@ use Tests\TestCase;
  */
 class PostingRaceTest extends TestCase
 {
-    private const DB_NAME = 'lentera_conc';
+    private string $dbName;
+
+    private string $dbToken;
 
     private User $owner;
 
@@ -50,21 +54,13 @@ class PostingRaceTest extends TestCase
     {
         parent::setUp();
 
+        // LNT-007: nama unik per run + penanda kepemilikan (sama
+        // seperti ConcurrencyGateTest).
         $admin = $this->adminPdo();
-        $admin->exec('DROP DATABASE IF EXISTS '.self::DB_NAME);
-        $admin->exec('CREATE DATABASE '.self::DB_NAME);
-        $appUser = (string) env('DB_USERNAME', 'lentera');
-        if ($appUser !== 'root') {
-            foreach (['127.0.0.1', 'localhost', '%'] as $host) {
-                try {
-                    $admin->exec('GRANT ALL ON '.self::DB_NAME.".* TO '{$appUser}'@'{$host}'");
-                } catch (\Throwable) {
-                    // akun host itu tidak ada — lewati
-                }
-            }
-        }
+        $this->dbName = ConcurrencyDatabase::uniqueName();
+        $this->dbToken = ConcurrencyDatabase::create($admin, $this->dbName, (string) env('DB_USERNAME', 'lentera'));
 
-        config(['database.connections.mysql.database' => self::DB_NAME]);
+        config(['database.connections.mysql.database' => $this->dbName]);
         DB::purge('mysql');
         DB::reconnect('mysql');
 
@@ -77,16 +73,24 @@ class PostingRaceTest extends TestCase
 
     protected function tearDown(): void
     {
-        $admin = $this->adminPdo();
-        $admin->exec('DROP DATABASE IF EXISTS '.self::DB_NAME);
-        foreach (glob($this->workDir.'/*') ?: [] as $file) {
-            @unlink($file);
+        // Pemulihan koneksi lebih dulu (try), penghapusan hanya
+        // atas nama unik milik run ini dengan bukti penanda
+        // kepemilikan (LNT-007) — sama seperti ConcurrencyGateTest.
+        try {
+            config(['database.connections.mysql.database' => env('DB_DATABASE', 'lentera_test')]);
+            DB::purge('mysql');
+            DB::reconnect('mysql');
+        } finally {
+            try {
+                ConcurrencyDatabase::dropOwned($this->adminPdo(), $this->dbName, $this->dbToken);
+            } catch (\Throwable $e) {
+                fwrite(STDERR, 'tearDown PostingRaceTest: '.$e->getMessage().PHP_EOL);
+            }
+            foreach (glob($this->workDir.'/*') ?: [] as $file) {
+                @unlink($file);
+            }
+            @rmdir($this->workDir);
         }
-        @rmdir($this->workDir);
-
-        config(['database.connections.mysql.database' => env('DB_DATABASE', 'lentera_test')]);
-        DB::purge('mysql');
-        DB::reconnect('mysql');
 
         parent::tearDown();
     }
@@ -108,7 +112,7 @@ class PostingRaceTest extends TestCase
             $resultFiles[$i] = $this->workDir.'/'.$tag.'-result-'.$i;
             $cmd = sprintf(
                 'DB_DATABASE=%s %s %s %s %s %s %s %s >%s 2>&1 &',
-                self::DB_NAME, $php, escapeshellarg($worker), escapeshellarg($scenario),
+                $this->dbName, $php, escapeshellarg($worker), escapeshellarg($scenario),
                 escapeshellarg($paramsFile), escapeshellarg($readyFiles[$i]),
                 escapeshellarg($goFile), escapeshellarg($resultFiles[$i]),
                 escapeshellarg($this->workDir.'/'.$tag.'-worker-'.$i.'.log'),

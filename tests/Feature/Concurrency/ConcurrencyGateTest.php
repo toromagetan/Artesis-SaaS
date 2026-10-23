@@ -23,12 +23,13 @@ use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Tests\Concurrency\ConcurrencyDatabase;
 use Tests\TestCase;
 
 /**
  * GERBANG KONKURENSI (aturan berdiri owner 2026-10-17 + Blueprint
  * G.1.7): skenario tetap dijalankan proses-proses PHP PARALEL
- * melawan MySQL nyata (database khusus lentera_conc), dilepas
+ * melawan MySQL nyata (database unik per run, LNT-007), dilepas
  * serentak lewat berkas aba-aba. Satu kegagalan = gerbang gagal.
  *
  * Skenario: pembayaran bersamaan tak melampaui tagihan; bayar
@@ -38,7 +39,9 @@ use Tests\TestCase;
  */
 class ConcurrencyGateTest extends TestCase
 {
-    private const DB_NAME = 'lentera_conc';
+    private string $dbName;
+
+    private string $dbToken;
 
     private User $owner;
 
@@ -73,21 +76,14 @@ class ConcurrencyGateTest extends TestCase
     {
         parent::setUp();
 
+        // LNT-007: nama unik per run + penanda kepemilikan — tidak
+        // ada lagi DROP atas nama tetap yang bisa menghancurkan
+        // database milik run lain / milik developer.
         $admin = $this->adminPdo();
-        $admin->exec('DROP DATABASE IF EXISTS '.self::DB_NAME);
-        $admin->exec('CREATE DATABASE '.self::DB_NAME);
-        $appUser = (string) env('DB_USERNAME', 'lentera');
-        if ($appUser !== 'root') {
-            foreach (['127.0.0.1', 'localhost', '%'] as $host) {
-                try {
-                    $admin->exec('GRANT ALL ON '.self::DB_NAME.".* TO '{$appUser}'@'{$host}'");
-                } catch (\Throwable) {
-                    // akun host itu tidak ada — lewati
-                }
-            }
-        }
+        $this->dbName = ConcurrencyDatabase::uniqueName();
+        $this->dbToken = ConcurrencyDatabase::create($admin, $this->dbName, (string) env('DB_USERNAME', 'lentera'));
 
-        config(['database.connections.mysql.database' => self::DB_NAME]);
+        config(['database.connections.mysql.database' => $this->dbName]);
         DB::purge('mysql');
         DB::reconnect('mysql');
 
@@ -103,19 +99,26 @@ class ConcurrencyGateTest extends TestCase
 
     protected function tearDown(): void
     {
-        $admin = $this->adminPdo();
-        $admin->exec('DROP DATABASE IF EXISTS '.self::DB_NAME);
-        foreach (glob($this->workDir.'/*') ?: [] as $file) {
-            @unlink($file);
+        // Pulihkan koneksi ke database test reguler DULU (dalam
+        // try) agar test berikutnya tidak tertinggal di database
+        // konkurensi; penghapusan database sesudahnya hanya untuk
+        // nama unik milik run ini dan dibuktikan penandanya
+        // (LNT-007) — kegagalannya tidak menutupi hasil test.
+        try {
+            config(['database.connections.mysql.database' => env('DB_DATABASE', 'lentera_test')]);
+            DB::purge('mysql');
+            DB::reconnect('mysql');
+        } finally {
+            try {
+                ConcurrencyDatabase::dropOwned($this->adminPdo(), $this->dbName, $this->dbToken);
+            } catch (\Throwable $e) {
+                fwrite(STDERR, 'tearDown ConcurrencyGateTest: '.$e->getMessage().PHP_EOL);
+            }
+            foreach (glob($this->workDir.'/*') ?: [] as $file) {
+                @unlink($file);
+            }
+            @rmdir($this->workDir);
         }
-        @rmdir($this->workDir);
-
-        // Pulihkan koneksi ke database test reguler agar test
-        // berikutnya dalam proses yang sama tidak tertinggal di
-        // database konkurensi yang sudah dihapus.
-        config(['database.connections.mysql.database' => env('DB_DATABASE', 'lentera_test')]);
-        DB::purge('mysql');
-        DB::reconnect('mysql');
 
         parent::tearDown();
     }
@@ -142,7 +145,7 @@ class ConcurrencyGateTest extends TestCase
             $resultFiles[$i] = $this->workDir.'/'.$tag.'-result-'.$i;
             $cmd = sprintf(
                 'DB_DATABASE=%s %s %s %s %s %s %s %s >%s 2>&1 &',
-                self::DB_NAME, $php, escapeshellarg($worker), escapeshellarg($scenario),
+                $this->dbName, $php, escapeshellarg($worker), escapeshellarg($scenario),
                 escapeshellarg($paramsFile), escapeshellarg($readyFiles[$i]),
                 escapeshellarg($goFile), escapeshellarg($resultFiles[$i]),
                 escapeshellarg($this->workDir.'/'.$tag.'-worker-'.$i.'.log'),
