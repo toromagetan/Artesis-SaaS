@@ -88,6 +88,37 @@ class BackupRestoreTest extends TestCase
         $this->assertSame(99, (int) $row->earn_sale_key);
     }
 
+    public function test_failed_restore_rolls_back_and_reenables_foreign_key_checks(): void
+    {
+        // LNT-001: restore yang gagal DI TENGAH (tabel kedua berisi
+        // baris tidak sah) harus (a) ter-rollback penuh — nilai probe
+        // tidak berubah — dan (b) pemeriksaan foreign key pada
+        // koneksi yang sama AKTIF kembali (jaminan finally).
+        $name = 'backup-gagal-uji.zip';
+        $zip = new \ZipArchive;
+        $zip->open($this->service->directory().'/'.$name, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addFromString('backup.json', (string) json_encode([
+            'app' => 'lentera',
+            'created_at' => now()->toIso8601String(),
+            'tables' => [
+                'settings' => [['key' => 'backup.probe', 'value' => 'RUSAK']],
+                'users' => [['id' => 999]],
+            ],
+        ]));
+        $zip->close();
+
+        try {
+            $this->service->restore($this->owner, $name);
+            $this->fail('Restore seharusnya gagal pada baris users tidak sah.');
+        } catch (\Throwable) {
+            // diharapkan: QueryException dari sisip users
+        }
+
+        $this->assertSame('sebelum', Setting::value('backup.probe'));
+        $fk = DB::selectOne('SELECT @@SESSION.foreign_key_checks AS fk');
+        $this->assertSame(1, (int) $fk->fk, 'FK checks harus aktif kembali sesudah restore gagal.');
+    }
+
     public function test_restore_is_owner_only_over_http(): void
     {
         $name = $this->service->create($this->owner);

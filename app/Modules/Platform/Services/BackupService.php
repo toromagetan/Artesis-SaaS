@@ -238,33 +238,40 @@ class BackupService
         $safety = $this->create($actor, 'pra-restore');
 
         $restored = 0;
-        DB::transaction(function () use ($payload, &$restored) {
-            Schema::disableForeignKeyConstraints();
-            foreach ($payload['tables'] as $table => $rows) {
-                if (! Schema::hasTable($table)) {
-                    continue;
-                }
-                // Kolom TER-GENERATE (mis. points_ledger.earn_sale_key)
-                // tidak boleh disisipkan eksplisit (MySQL 3105) —
-                // nilainya dihitung ulang server dari kolom sumber.
-                $generated = $this->generatedColumns((string) $table);
-                if ($generated !== []) {
-                    $rows = array_map(static function (array $row) use ($generated) {
-                        foreach ($generated as $column) {
-                            unset($row[$column]);
-                        }
+        // FK checks adalah setelan SESI koneksi: pengaktifan kembali
+        // WAJIB di finally (audit LNT-001) — kegagalan di tengah
+        // restore tidak boleh meninggalkan koneksi dengan
+        // pemeriksaan foreign key mati.
+        Schema::disableForeignKeyConstraints();
+        try {
+            DB::transaction(function () use ($payload, &$restored) {
+                foreach ($payload['tables'] as $table => $rows) {
+                    if (! Schema::hasTable($table)) {
+                        continue;
+                    }
+                    // Kolom TER-GENERATE (mis. points_ledger.earn_sale_key)
+                    // tidak boleh disisipkan eksplisit (MySQL 3105) —
+                    // nilainya dihitung ulang server dari kolom sumber.
+                    $generated = $this->generatedColumns((string) $table);
+                    if ($generated !== []) {
+                        $rows = array_map(static function (array $row) use ($generated) {
+                            foreach ($generated as $column) {
+                                unset($row[$column]);
+                            }
 
-                        return $row;
-                    }, $rows);
+                            return $row;
+                        }, $rows);
+                    }
+                    DB::table($table)->delete();
+                    foreach (array_chunk($rows, 200) as $chunk) {
+                        DB::table($table)->insert($chunk);
+                    }
+                    $restored++;
                 }
-                DB::table($table)->delete();
-                foreach (array_chunk($rows, 200) as $chunk) {
-                    DB::table($table)->insert($chunk);
-                }
-                $restored++;
-            }
+            });
+        } finally {
             Schema::enableForeignKeyConstraints();
-        });
+        }
 
         // Audit ditulis sesudah restore (baris audit lama ikut
         // tergantikan snapshot — jejak restore harus bertahan).
