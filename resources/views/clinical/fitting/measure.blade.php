@@ -121,7 +121,7 @@
     </div>
 
 <script type="module">
-import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+import { FaceLandmarker, FilesetResolver } from "{{ asset('vendor/mediapipe/vision_bundle.mjs') }}";
 const IRIS_MM = 11.7;
 const video = document.getElementById('cam');
 const statusEl = document.getElementById('camStatus');
@@ -130,9 +130,9 @@ const median = (arr) => { const s = [...arr].sort((x, y) => x - y); return s[Mat
 let samples = [];
 let latest = null;
 try {
-    const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    const vision = await FilesetResolver.forVisionTasks("{{ asset('vendor/mediapipe/wasm') }}");
     const landmarker = await FaceLandmarker.createFromOptions(vision, {
-        baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task", delegate: "GPU" },
+        baseOptions: { modelAssetPath: "{{ asset('vendor/mediapipe/face_landmarker.task') }}", delegate: "GPU" },
         runningMode: "VIDEO", numFaces: 1,
     });
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 1280, height: 720 } });
