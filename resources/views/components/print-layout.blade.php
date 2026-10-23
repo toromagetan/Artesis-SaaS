@@ -26,11 +26,15 @@
     @php
         // Identitas toko dari Pengaturan Umum (B2) bila pemanggil tidak
         // memberinya secara eksplisit — berlaku ke semua dokumen cetak.
+        $storeLogo = $storeLogo ?? \App\Modules\Master\Models\Setting::value('store.logo_path');
         $storeName = $storeName ?? \App\Modules\Master\Models\Setting::value('store.name', config('app.name', 'Lentera'));
         $storeAddress = $storeAddress ?? \App\Modules\Master\Models\Setting::value('store.address');
         $storePhone = $storePhone ?? \App\Modules\Master\Models\Setting::value('store.phone');
     @endphp
     <div class="store">
+        @if ($storeLogo)
+            <img src="{{ asset($storeLogo) }}" alt="" style="max-height: 14mm; max-width: 60mm; margin-bottom: 4px;">
+        @endif
         <div class="name">{{ $storeName }}</div>
         @if ($storeAddress)
             <div>{{ $storeAddress }}</div>

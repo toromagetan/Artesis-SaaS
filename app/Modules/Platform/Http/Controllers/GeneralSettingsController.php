@@ -22,7 +22,7 @@ class GeneralSettingsController extends Controller
 {
     /** @var list<string> */
     private const KEYS = [
-        'store.name', 'store.address', 'store.phone',
+        'store.name', 'store.address', 'store.phone', 'store.logo_path',
         'tax.rate_default', 'tax.mode',
         'sales.discount_threshold_percent', 'lab.technician_commission_rate',
     ];
@@ -49,6 +49,8 @@ class GeneralSettingsController extends Controller
             'tax_mode' => ['required', Rule::in(['inclusive', 'exclusive'])],
             'discount_threshold' => ['required', 'numeric', 'min:0', 'max:100'],
             'technician_commission_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'store_logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:512'],
+            'remove_logo' => ['sometimes', 'boolean'],
         ]);
 
         $map = [
@@ -64,6 +66,22 @@ class GeneralSettingsController extends Controller
             Setting::set($key, $value);
         }
 
+        // Logo dokumen (PRD-Detail 12.5): berkas tunggal di public/,
+        // dirujuk relatif dari aset web. Ganti = hapus berkas lama;
+        // centang hapus = kembali tanpa logo (kepala cetak teks saja).
+        if ($request->boolean('remove_logo')) {
+            $this->deleteLogoFiles();
+            Setting::set('store.logo_path', '');
+            $map['store.logo_path'] = '';
+        } elseif ($request->hasFile('store_logo')) {
+            $file = $request->file('store_logo');
+            $ext = strtolower($file->getClientOriginalExtension() ?: 'png');
+            $this->deleteLogoFiles();
+            $file->move(public_path(), 'store-logo.'.$ext);
+            Setting::set('store.logo_path', 'store-logo.'.$ext);
+            $map['store.logo_path'] = 'store-logo.'.$ext;
+        }
+
         // Nilai pajak/identitas finansial sensitif — catat kunci yang
         // berubah TANPA isi kredensial apa pun (tak ada di sini).
         app(AuditLogger::class)->log(
@@ -75,5 +93,12 @@ class GeneralSettingsController extends Controller
 
         return redirect()->route('settings.general.edit')
             ->with('status', __('ui.settings_general.saved'));
+    }
+
+    private function deleteLogoFiles(): void
+    {
+        foreach (glob(public_path('store-logo.*')) ?: [] as $old) {
+            @unlink($old);
+        }
     }
 }

@@ -10,13 +10,28 @@
             @endif
 
             <div class="bg-white shadow-sm rounded-lg p-6">
-                <form method="POST" action="{{ route('settings.general.update') }}">
+                <form method="POST" enctype="multipart/form-data" action="{{ route('settings.general.update') }}">
                     @csrf
                     @method('PUT')
 
                     <h2 class="text-sm font-semibold text-lentera-950">{{ __('ui.settings_general.store_section') }}</h2>
                     <div class="mt-3 grid gap-4">
                         <div>
+                            @if (!empty($values['store.logo_path']))
+                                <div class="mb-3">
+                                    <img src="{{ asset($values['store.logo_path']) }}" alt="" class="max-h-16 rounded border border-gray-200 bg-white p-1">
+                                </div>
+                            @endif
+                            <x-input-label for="store_logo" :value="__('ui.settings_general.store_logo')" />
+                            <input id="store_logo" name="store_logo" type="file" accept=".png,.jpg,.jpeg,.webp" class="mt-1 block w-full text-sm text-gray-600">
+                            <p class="mt-1 text-xs text-gray-400">{{ __('ui.settings_general.store_logo_hint') }}</p>
+                            <x-input-error :messages="$errors->get('store_logo')" class="mt-2" />
+                            @if (!empty($values['store.logo_path']))
+                                <label class="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                                    <input type="checkbox" name="remove_logo" value="1" class="rounded border-gray-300 text-lentera-600 focus:ring-lentera-500">
+                                    {{ __('ui.settings_general.remove_logo') }}
+                                </label>
+                            @endif
                             <x-input-label for="store_name" :value="__('ui.settings_general.store_name')" />
                             <x-text-input id="store_name" name="store_name" class="block mt-1 w-full" :value="old('store_name', $values['store.name'])" required />
                             <x-input-error :messages="$errors->get('store_name')" class="mt-2" />

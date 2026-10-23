@@ -9,6 +9,7 @@ use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Models\AuditLog;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 /**
@@ -72,5 +73,35 @@ class GeneralSettingsTest extends TestCase
             ->assertSee('Optik Istori')
             ->assertSee('Jl. Raya Menganti No. 88, Surabaya')
             ->assertSee('031-5551234');
+    }
+
+    public function test_store_logo_upload_flows_into_print_header_and_can_be_removed(): void
+    {
+        $logo = UploadedFile::fake()->image('logo.png', 120, 40);
+        $this->actingAs($this->owner)->put(route('settings.general.update'), [
+            'store_name' => 'Lentera',
+            'tax_rate_default' => '11',
+            'tax_mode' => 'exclusive',
+            'discount_threshold' => '20',
+            'technician_commission_rate' => '5',
+            'store_logo' => $logo,
+        ])->assertRedirect(route('settings.general.edit'));
+
+        $this->assertSame('store-logo.png', Setting::value('store.logo_path'));
+        $this->assertFileExists(public_path('store-logo.png'));
+        $this->actingAs($this->owner)->get(route('users.print'))
+            ->assertOk()->assertSee('store-logo.png');
+
+        // Hapus logo: pengaturan kosong dan kepala cetak kembali teks.
+        $this->actingAs($this->owner)->put(route('settings.general.update'), [
+            'store_name' => 'Lentera',
+            'tax_rate_default' => '11',
+            'tax_mode' => 'exclusive',
+            'discount_threshold' => '20',
+            'technician_commission_rate' => '5',
+            'remove_logo' => '1',
+        ])->assertRedirect(route('settings.general.edit'));
+        $this->assertSame('', Setting::value('store.logo_path'));
+        $this->assertFileDoesNotExist(public_path('store-logo.png'));
     }
 }
