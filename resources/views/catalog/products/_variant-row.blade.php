@@ -5,6 +5,9 @@
                 <img src="{{ $product->imageUrl() }}" alt="" class="h-9 w-9 rounded object-cover">
             @endif
             <a href="{{ route('products.show', $product) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $product->name }}</a>
+            @if ($product->type === 'accessory' && $product->is_process_item)
+                <span class="inline-flex items-center rounded-full border border-lentera-200 bg-lentera-50 px-2 py-0.5 text-xs font-semibold text-lentera-700">{{ __('ui.products.process_badge') }}</span>
+            @endif
         </span>
     </td>
     <td class="px-4 py-3">{{ $product->sku }}</td>

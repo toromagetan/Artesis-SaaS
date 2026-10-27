@@ -361,6 +361,9 @@ class SalesService
             // PR OTOMATIS kekurangan lensa (paritas Artesis): lensa RX
             // selalu diproses melalui PR; lensa stok & softlens dibuatkan
             // PR hanya untuk qty yang tidak tersedia di cabang transaksi.
+            // Add-on proses (aksesoris is_process_item, owner 2026-10-27)
+            // mengikuti pola RX: qty penuh masuk PR karena ia pekerjaan
+            // yang menyertai lensa, bukan ready stok.
             // Saldo dibaca SEBELUM gerakan keluar penjualan dicatat
             // listener SaleCompleted. Masih dalam transaksi yang sama —
             // penjualan gagal, PR ikut gulung.
@@ -368,10 +371,11 @@ class SalesService
             $available = [];
             foreach ($lines as $line) {
                 $type = $line['product']->type;
-                if (! in_array($type, ['lens', 'rx', 'softlens'], true)) {
+                $isProcessAddon = $type === 'accessory' && $line['product']->is_process_item;
+                if (! in_array($type, ['lens', 'rx', 'softlens'], true) && ! $isProcessAddon) {
                     continue;
                 }
-                if ($type === 'rx') {
+                if ($type === 'rx' || $isProcessAddon) {
                     $shortages[$line['product']->id] = ($shortages[$line['product']->id] ?? 0) + $line['qty'];
 
                     continue;

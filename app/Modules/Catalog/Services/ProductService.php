@@ -60,6 +60,9 @@ class ProductService
                 'cost_price' => Money::fromDecimal((string) $data['cost_price'])->toDecimalString(),
                 'sale_price' => Money::fromDecimal((string) $data['sale_price'])->toDecimalString(),
                 'is_active' => true,
+                // Add-on proses hanya bermakna untuk aksesoris (owner 2026-10-27).
+                'is_process_item' => $data['type'] === 'accessory'
+                    && filter_var($data['is_process_item'] ?? false, FILTER_VALIDATE_BOOLEAN),
             ]);
 
             $this->syncAttributes($product, $attributes);
@@ -116,6 +119,8 @@ class ProductService
                 'image_path' => array_key_exists('image_path', $data) ? $data['image_path'] : $product->image_path,
                 'cost_price' => Money::fromDecimal((string) ($data['cost_price'] ?? $product->cost_price))->toDecimalString(),
                 'sale_price' => Money::fromDecimal((string) ($data['sale_price'] ?? $product->sale_price))->toDecimalString(),
+                'is_process_item' => $newType === 'accessory'
+                    && filter_var($data['is_process_item'] ?? $product->is_process_item, FILTER_VALIDATE_BOOLEAN),
             ]);
 
             $this->syncAttributes($product, $attributes);
