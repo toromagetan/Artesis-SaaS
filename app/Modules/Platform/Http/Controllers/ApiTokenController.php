@@ -7,6 +7,7 @@ use App\Modules\Platform\Models\ApiToken;
 use App\Modules\Platform\Services\ApiTokenService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 /**
@@ -30,8 +31,12 @@ class ApiTokenController extends Controller
             'name' => ['required', 'string', 'max:100'],
             'scopes' => ['required', 'array', 'min:1'],
             'scopes.*' => ['string', 'in:'.implode(',', ApiToken::SCOPES)],
+            'expires_at' => ['nullable', 'date', 'after:now'],
         ]);
-        $issued = $this->tokens->issue($request->user(), $validated['name'], $validated['scopes']);
+        $issued = $this->tokens->issue(
+            $request->user(), $validated['name'], $validated['scopes'],
+            isset($validated['expires_at']) ? Carbon::parse($validated['expires_at']) : null,
+        );
 
         return redirect()->route('api-tokens.index')
             ->with('status', __('ui.api_tokens.issued'))

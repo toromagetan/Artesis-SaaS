@@ -36,6 +36,12 @@
                         </div>
                         <x-input-error :messages="$errors->get('scopes')" class="mt-2" />
                     </div>
+                    <div>
+                        <x-input-label for="expires_at" :value="__('ui.api_tokens.expires_at')" />
+                        <input id="expires_at" name="expires_at" type="datetime-local" value="{{ old('expires_at') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                        <p class="mt-1 text-xs text-gray-400">{{ __('ui.api_tokens.expires_hint') }}</p>
+                        <x-input-error :messages="$errors->get('expires_at')" class="mt-2" />
+                    </div>
                     <div class="flex justify-end">
                         <x-primary-button>{{ __('ui.api_tokens.issue') }}</x-primary-button>
                     </div>
@@ -50,6 +56,7 @@
                             <th class="px-4 py-3 font-medium">{{ __('ui.api_tokens.name') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.api_tokens.scopes') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.api_tokens.last_used') }}</th>
+                            <th class="px-4 py-3 font-medium">{{ __('ui.api_tokens.expires_at') }}</th>
                             <th class="px-4 py-3 font-medium">{{ __('ui.api_tokens.status') }}</th>
                             <th class="px-4 py-3"></th>
                         </tr>
@@ -60,9 +67,12 @@
                                 <td class="px-4 py-3 font-medium text-gray-800">{{ $token->name }}</td>
                                 <td class="px-4 py-3">{{ collect($token->scopes)->map(fn ($s) => __('ui.api_tokens.scope_names.'.$s))->implode(', ') }}</td>
                                 <td class="px-4 py-3 tnum">{{ $token->last_used_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                                <td class="px-4 py-3 tnum">{{ $token->expires_at?->format('d/m/Y H:i') ?? __('ui.api_tokens.never_expires') }}</td>
                                 <td class="px-4 py-3">
                                     @if ($token->revoked_at)
                                         <span class="text-red-600">{{ __('ui.api_tokens.revoked_label') }}</span>
+                                    @elseif ($token->isExpired())
+                                        <span class="text-red-600">{{ __('ui.api_tokens.expired_label') }}</span>
                                     @else
                                         <span class="text-lentera-700">{{ __('ui.active') }}</span>
                                     @endif
@@ -79,7 +89,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5"><x-lentera.empty-state>{{ __('ui.api_tokens.empty') }}</x-lentera.empty-state></td></tr>
+                            <tr><td colspan="6"><x-lentera.empty-state>{{ __('ui.api_tokens.empty') }}</x-lentera.empty-state></td></tr>
                         @endforelse
                     </tbody>
                 </table>
