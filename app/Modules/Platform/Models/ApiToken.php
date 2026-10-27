@@ -10,10 +10,15 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ApiToken extends Model
 {
-    /** Cakupan sah — seluruhnya baca-saja, tak ada cakupan tulis. */
-    public const SCOPES = ['products.read', 'customers.read', 'sales.read', 'stock.read', 'reports.read'];
+    /**
+     * Cakupan sah — seluruhnya baca-saja, tak ada cakupan tulis.
+     * LNT-004: data sensitif punya cakupan sendiri — products.cost
+     * (harga modal) dan customers.contact (nomor HP) TIDAK ikut
+     * cakupan baca umum.
+     */
+    public const SCOPES = ['products.read', 'products.cost', 'customers.read', 'customers.contact', 'sales.read', 'stock.read', 'reports.read'];
 
-    protected $fillable = ['name', 'token_hash', 'scopes', 'last_used_at', 'revoked_at', 'created_by'];
+    protected $fillable = ['name', 'token_hash', 'scopes', 'last_used_at', 'revoked_at', 'expires_at', 'created_by'];
 
     protected function casts(): array
     {
@@ -21,12 +26,18 @@ class ApiToken extends Model
             'scopes' => 'array',
             'last_used_at' => 'datetime',
             'revoked_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
     }
 
     public function isUsable(): bool
     {
-        return $this->revoked_at === null;
+        return $this->revoked_at === null && ! $this->isExpired();
     }
 
     public function allows(string $scope): bool

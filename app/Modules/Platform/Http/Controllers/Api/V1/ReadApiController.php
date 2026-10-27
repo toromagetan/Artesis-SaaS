@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Membership\Services\PointsService;
+use App\Modules\Platform\Models\ApiToken;
 use App\Modules\Reporting\Services\ReportService;
 use App\Modules\Sales\Models\Sale;
 use App\Support\Money;
@@ -21,6 +23,9 @@ class ReadApiController extends Controller
 {
     public function products(Request $request): JsonResponse
     {
+        // LNT-004: harga modal hanya untuk token bercakupan products.cost.
+        $token = $request->attributes->get('api_token');
+        $withCost = $token instanceof ApiToken && $token->allows('products.cost');
         $products = Product::query()
             ->where('is_active', true)
             ->when($request->query('q'), fn ($q, $term) => $q->where(fn ($sub) => $sub
@@ -29,17 +34,27 @@ class ReadApiController extends Controller
             ->paginate(50);
 
         return response()->json([
-            'data' => collect($products->items())->map(fn (Product $p) => [
-                'id' => $p->id, 'sku' => $p->sku, 'barcode' => $p->barcode, 'type' => $p->type,
-                'name' => $p->name, 'brand' => $p->brand,
-                'cost_price' => (string) $p->cost_price, 'sale_price' => (string) $p->sale_price,
-            ])->all(),
+            'data' => collect($products->items())->map(function (Product $p) use ($withCost) {
+                $row = [
+                    'id' => $p->id, 'sku' => $p->sku, 'barcode' => $p->barcode, 'type' => $p->type,
+                    'name' => $p->name, 'brand' => $p->brand, 'sale_price' => (string) $p->sale_price,
+                ];
+                if ($withCost) {
+                    $row['cost_price'] = (string) $p->cost_price;
+                }
+
+                return $row;
+            })->all(),
             'meta' => ['current_page' => $products->currentPage(), 'last_page' => $products->lastPage(), 'total' => $products->total()],
         ]);
     }
 
     public function customers(Request $request): JsonResponse
     {
+        // LNT-004: nomor HP hanya untuk token bercakupan customers.contact.
+        $token = $request->attributes->get('api_token');
+        $withContact = $token instanceof ApiToken && $token->allows('customers.contact');
+        $points = app(PointsService::class);
         $customers = Customer::query()
             ->when($request->query('q'), fn ($q, $term) => $q->where(fn ($sub) => $sub
                 ->where('name', 'like', "%{$term}%")->orWhere('phone', 'like', "%{$term}%")))
@@ -47,10 +62,17 @@ class ReadApiController extends Controller
             ->paginate(50);
 
         return response()->json([
-            'data' => collect($customers->items())->map(fn (Customer $c) => [
-                'id' => $c->id, 'name' => $c->name, 'phone' => $c->phone,
-                'branch_id' => $c->branch_id, 'points_balance' => $c->pointsBalance(),
-            ])->all(),
+            'data' => collect($customers->items())->map(function (Customer $c) use ($withContact, $points) {
+                $row = [
+                    'id' => $c->id, 'name' => $c->name,
+                    'branch_id' => $c->branch_id, 'points_balance' => $points->balance($c),
+                ];
+                if ($withContact) {
+                    $row['phone'] = $c->phone;
+                }
+
+                return $row;
+            })->all(),
             'meta' => ['current_page' => $customers->currentPage(), 'last_page' => $customers->lastPage(), 'total' => $customers->total()],
         ]);
     }

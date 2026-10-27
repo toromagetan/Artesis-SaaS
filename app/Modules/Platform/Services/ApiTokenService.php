@@ -23,22 +23,26 @@ class ApiTokenService
      * @param  string[]  $scopes
      * @return array{token: ApiToken, plain: string}
      */
-    public function issue(User $actor, string $name, array $scopes): array
+    public function issue(User $actor, string $name, array $scopes, ?\DateTimeInterface $expiresAt = null): array
     {
         $scopes = array_values(array_intersect(ApiToken::SCOPES, $scopes));
         if ($scopes === []) {
             throw ValidationException::withMessages(['scopes' => __('ui.api_tokens.scopes_required')]);
+        }
+        if ($expiresAt !== null && $expiresAt <= now()) {
+            throw ValidationException::withMessages(['expires_at' => __('ui.api_tokens.expires_future')]);
         }
         $plain = Str::random(48);
         $token = ApiToken::create([
             'name' => $name,
             'token_hash' => hash('sha256', $plain),
             'scopes' => $scopes,
+            'expires_at' => $expiresAt,
             'created_by' => $actor->id,
         ]);
         $this->audit->log(
             action: 'api_token.issue', subjectType: 'api_token', subjectId: $token->id,
-            newValues: ['name' => $name, 'scopes' => $scopes], actor: $actor,
+            newValues: ['name' => $name, 'scopes' => $scopes, 'expires_at' => $expiresAt?->format('Y-m-d H:i:s')], actor: $actor,
         );
 
         return ['token' => $token, 'plain' => $plain];
