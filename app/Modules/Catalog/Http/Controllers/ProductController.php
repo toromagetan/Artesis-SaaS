@@ -109,6 +109,7 @@ class ProductController extends Controller
             'eye_side' => ['nullable', Rule::in(['R', 'L'])],
             'image' => ['nullable', 'image', 'max:2048'],
             'image_remove' => ['nullable', 'boolean'],
+            'is_process_item' => ['nullable', 'boolean'],
             'cost_price' => ['required', 'numeric', 'min:0'],
             'sale_price' => ['required', 'numeric', 'min:0'],
             'attributes' => ['nullable', 'array'],
@@ -143,6 +144,8 @@ class ProductController extends Controller
 
         $validated = $request->validate($this->variantRules());
         $validated['image_path'] = $this->handleImage($request);
+        // Checkbox tak tercentang tidak terkirim — normalkan eksplisit.
+        $validated['is_process_item'] = $request->boolean('is_process_item');
         unset($validated['image'], $validated['image_remove']);
 
         $product = $this->service->create(
@@ -173,6 +176,8 @@ class ProductController extends Controller
             'type' => ['required', Rule::in(Product::TYPES)],
         ]);
         $validated['image_path'] = $this->handleImage($request, $product);
+        // Checkbox tak tercentang tidak terkirim — normalkan eksplisit.
+        $validated['is_process_item'] = $request->boolean('is_process_item');
         unset($validated['image'], $validated['image_remove']);
 
         $this->service->update(

@@ -79,7 +79,7 @@ class PurchaseRequestService
             'branch_id' => $sale->branch_id,
             'sale_id' => $sale->id,
             'status' => 'submitted',
-            'notes' => 'Otomatis dari penjualan '.$sale->number.'. Lensa RX selalu diproses melalui Purchase Request; lensa stok dibuatkan PR untuk kebutuhan yang tidak tersedia di cabang.',
+            'notes' => 'Otomatis dari penjualan '.$sale->number.'. Lensa RX selalu diproses melalui Purchase Request; lensa stok dibuatkan PR untuk kebutuhan yang tidak tersedia di cabang; add-on proses (aksesoris Item Proses) ikut PR untuk qty penuh seperti Lensa RX.',
         ]);
         foreach ($items as $line) {
             $pr->items()->create([

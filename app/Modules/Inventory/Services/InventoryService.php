@@ -76,7 +76,12 @@ class InventoryService
 
         $newBalance = $lastBalance + $qty;
 
-        if ($newBalance < 0 && in_array($product->type, StockMovement::STRICT_TYPES, true)) {
+        // Add-on proses (aksesoris is_process_item, owner 2026-10-27)
+        // dikecualikan dari pagar ketat: ia pekerjaan, bukan ready stok —
+        // kekurangannya menjadi backorder PR seperti Lensa RX.
+        $isStrict = in_array($product->type, StockMovement::STRICT_TYPES, true)
+            && ! ($product->type === 'accessory' && $product->is_process_item);
+        if ($newBalance < 0 && $isStrict) {
             throw ValidationException::withMessages([
                 'qty' => __('ui.stock.insufficient', ['product' => $product->name, 'branch' => $branch->name]),
             ]);

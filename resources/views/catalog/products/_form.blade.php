@@ -71,6 +71,18 @@
             <x-input-error :messages="$errors->get('power')" class="mt-2" />
         </div>
     @endif
+    @if ($type === 'accessory')
+        <div>
+            <label class="inline-flex items-start gap-2 text-sm">
+                <input type="checkbox" name="is_process_item" value="1" class="mt-0.5 rounded border-gray-300" @checked(old('is_process_item', $product->is_process_item ?? false))>
+                <span>
+                    <span class="font-medium">{{ __('ui.products.process_item') }}</span>
+                    <span class="block text-xs text-gray-500">{{ __('ui.products.process_item_hint') }}</span>
+                </span>
+            </label>
+            <x-input-error :messages="$errors->get('is_process_item')" class="mt-2" />
+        </div>
+    @endif
     <div class="grid grid-cols-2 gap-4">
         <div>
             <x-input-label for="cost_price" :value="__('ui.products.cost_price')" />
