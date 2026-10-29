@@ -401,6 +401,24 @@
                 </div>
             @endif
         @endif
+        {{-- PLATFORM SAAS (M3) — hanya aktor platform --}}
+        @if (auth()->user()?->is_platform && ($can('plans.manage') || $can('tenants.manage')))
+            <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70">{{ __('ui.nav.group_platform') }}</p>
+            @if ($can('plans.manage'))
+                <a href="{{ route('platform.plans.index') }}" class="{{ $item }} {{ request()->routeIs('platform.plans.*') ? $itemActive : '' }}">
+                    @if (request()->routeIs('platform.plans.*')) {!! $goldBar !!} @endif
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>
+                    {{ __('ui.nav.plans') }}
+                </a>
+            @endif
+            @if ($can('tenants.manage'))
+                <a href="{{ route('platform.tenants.index') }}" class="{{ $item }} {{ request()->routeIs('platform.tenants.*') ? $itemActive : '' }}">
+                    @if (request()->routeIs('platform.tenants.*')) {!! $goldBar !!} @endif
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+                    {{ __('ui.nav.tenants') }}
+                </a>
+            @endif
+        @endif
     </nav>
 
     {{-- Pengguna aktif --}}

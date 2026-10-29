@@ -46,6 +46,8 @@ use App\Modules\Platform\Http\Controllers\AuditLogController;
 use App\Modules\Platform\Http\Controllers\BackupController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Platform\Http\Controllers\GeneralSettingsController;
+use App\Modules\Platform\Http\Controllers\PlanController;
+use App\Modules\Platform\Http\Controllers\TenantController;
 use App\Modules\Purchasing\Http\Controllers\CollectivePaymentController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseRequestController;
@@ -406,6 +408,22 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/laporan/pemakaian-asuransi', [ReportController::class, 'insuranceUsages'])->middleware('permission:reports.sales')->name('reports.insurance-usages');
+
+    // Panel SaaS (M3): khusus aktor platform — gerbang ganda middleware
+    // 'platform' (is_platform) + izin grup platform.
+    Route::middleware(['platform', 'permission:plans.manage'])->group(function () {
+        Route::get('/platform/paket', [PlanController::class, 'index'])->name('platform.plans.index');
+        Route::put('/platform/paket', [PlanController::class, 'update'])->name('platform.plans.update');
+    });
+    Route::middleware(['platform', 'permission:tenants.manage'])->group(function () {
+        Route::get('/platform/tenant', [TenantController::class, 'index'])->name('platform.tenants.index');
+        Route::get('/platform/tenant/buat', [TenantController::class, 'create'])->name('platform.tenants.create');
+        Route::post('/platform/tenant', [TenantController::class, 'store'])->name('platform.tenants.store');
+        Route::get('/platform/tenant/{tenant}', [TenantController::class, 'show'])->name('platform.tenants.show');
+        Route::post('/platform/tenant/{tenant}/paket', [TenantController::class, 'assignPlan'])->name('platform.tenants.assign-plan');
+        Route::post('/platform/tenant/{tenant}/pengecualian', [TenantController::class, 'storeOverride'])->name('platform.tenants.override');
+        Route::post('/platform/tenant/{tenant}/alih-aktif', [TenantController::class, 'toggle'])->name('platform.tenants.toggle');
+    });
 });
 
 // Webhook Meta (publik, tanpa sesi/CSRF — dijaga verify_token & ID pesan).
