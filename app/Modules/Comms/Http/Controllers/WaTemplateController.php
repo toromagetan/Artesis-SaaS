@@ -7,12 +7,14 @@ use App\Modules\Comms\Models\WaTemplate;
 use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\View\View;
 
 /**
  * Kelola template WhatsApp (F3.4). Kunci template tetap (Blueprint
  * B.7); yang disunting hanya badannya. Terpagar wa.templates.
  */
+#[Middleware('plan.feature:whatsapp')]
 class WaTemplateController extends Controller
 {
     public function index(): View

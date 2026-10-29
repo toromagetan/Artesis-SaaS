@@ -9,6 +9,7 @@ use App\Modules\Purchasing\Models\PurchasePayment;
 use App\Modules\Purchasing\Services\CollectivePaymentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -19,6 +20,7 @@ use Illuminate\View\View;
  * SATU transaksi. Kegagalan apa pun menjadi pesan ramah, TIDAK PERNAH
  * halaman error mentah (kontrak D.7 butir 4).
  */
+#[Middleware('plan.feature:purchasing_full')]
 class CollectivePaymentController extends Controller
 {
     public function __construct(private readonly CollectivePaymentService $collective) {}

@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Modules\Platform\Services\AiAssistantService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\View\View;
 
 /**
  * Halaman Asisten AI (F5.1) — owner-only (ditegakkan service),
  * read-only. Setiap jawaban dirender bersama dasar datanya.
  */
+#[Middleware('plan.feature:ai_assistant')]
 class AssistantController extends Controller
 {
     public function index(Request $request): View

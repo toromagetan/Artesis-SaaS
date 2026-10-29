@@ -7,6 +7,7 @@ use App\Modules\Catalog\Models\ProductCategory;
 use App\Modules\Catalog\Models\ProductParent;
 use App\Modules\Identity\Models\User;
 use App\Modules\Platform\Services\AuditLogger;
+use App\Modules\Platform\Services\PlanGate;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -38,6 +39,9 @@ class ProductService
      */
     public function create(User $actor, array $data, array $attributes = []): Product
     {
+        // M4: batas produk paket SaaS (tenant aktor); instalasi mandiri lolos.
+        app(PlanGate::class)->assertWithinLimit($actor, 'products_max');
+
         $attributes = $this->normalizeAttributes($data['type'], $attributes);
 
         return DB::transaction(function () use ($actor, $data, $attributes) {
@@ -60,6 +64,7 @@ class ProductService
                 'cost_price' => Money::fromDecimal((string) $data['cost_price'])->toDecimalString(),
                 'sale_price' => Money::fromDecimal((string) $data['sale_price'])->toDecimalString(),
                 'is_active' => true,
+                'tenant_id' => $actor->tenant_id,
                 // Add-on proses hanya bermakna untuk aksesoris (owner 2026-10-27).
                 'is_process_item' => $data['type'] === 'accessory'
                     && filter_var($data['is_process_item'] ?? false, FILTER_VALIDATE_BOOLEAN),

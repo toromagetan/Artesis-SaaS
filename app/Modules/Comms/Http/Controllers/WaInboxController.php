@@ -8,6 +8,7 @@ use App\Modules\Comms\Services\MessagingService;
 use App\Modules\CRM\Models\Customer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\View\View;
 
 /**
@@ -16,6 +17,7 @@ use Illuminate\View\View;
  * mengelompokkannya per percakapan, menandai terbaca saat dibuka,
  * dan membalas lewat MessagingService (tercatat + terantre).
  */
+#[Middleware('plan.feature:whatsapp')]
 class WaInboxController extends Controller
 {
     public function index(): View

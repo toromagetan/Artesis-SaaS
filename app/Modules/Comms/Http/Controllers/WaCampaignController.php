@@ -10,6 +10,7 @@ use App\Modules\Master\Models\Branch;
 use App\Modules\Membership\Models\MembershipLevel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\View\View;
 
 /**
@@ -17,6 +18,7 @@ use Illuminate\View\View;
  * (wa.campaigns.approve, hanya Owner) -> kirim. Gerbang persetujuan
  * ganda ditegakkan CampaignService; controller hanya memetakan hasil.
  */
+#[Middleware('plan.feature:whatsapp')]
 class WaCampaignController extends Controller
 {
     public function __construct(private readonly CampaignService $campaigns) {}

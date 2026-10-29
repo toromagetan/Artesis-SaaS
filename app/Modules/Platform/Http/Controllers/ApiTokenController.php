@@ -7,6 +7,7 @@ use App\Modules\Platform\Models\ApiToken;
 use App\Modules\Platform\Services\ApiTokenService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
@@ -14,6 +15,7 @@ use Illuminate\View\View;
  * Pengaturan Token API (F4.6), sepagar api_tokens.manage.
  * Token mentah tampil SATU KALI lewat flash sesudah penerbitan.
  */
+#[Middleware('plan.feature:api_access')]
 class ApiTokenController extends Controller
 {
     public function __construct(private readonly ApiTokenService $tokens) {}

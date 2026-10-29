@@ -7,6 +7,7 @@ use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Identity\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -15,6 +16,7 @@ use Illuminate\View\View;
  * izin periods.lock; buka kunci periods.unlock DAN peran Owner
  * (Blueprint E.3: unlock hanya Owner, wajib alasan, teraudit).
  */
+#[Middleware('plan.feature:accounting_full')]
 class PeriodController extends Controller
 {
     public function __construct(private readonly PostingService $posting) {}

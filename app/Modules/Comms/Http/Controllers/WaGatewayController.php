@@ -11,6 +11,7 @@ use App\Modules\Comms\Services\MessagingService;
 use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -20,6 +21,7 @@ use Illuminate\View\View;
  * status koneksi & tombol uji kirim. Terpagar settings.manage.
  * Token yang dikosongkan saat simpan = token lama dipertahankan.
  */
+#[Middleware('plan.feature:whatsapp')]
 class WaGatewayController extends Controller
 {
     public function edit(): View

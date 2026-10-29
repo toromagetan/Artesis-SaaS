@@ -22,7 +22,7 @@ class Product extends Model
     protected $fillable = [
         'parent_id', 'sku', 'barcode', 'type', 'name', 'brand', 'color',
         'sph', 'cyl', 'add', 'power', 'eye_side', 'image_path',
-        'cost_price', 'sale_price', 'is_active', 'is_process_item',
+        'cost_price', 'sale_price', 'is_active', 'is_process_item', 'tenant_id',
     ];
 
     protected function casts(): array

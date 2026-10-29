@@ -4,6 +4,7 @@ namespace App\Modules\Master\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Platform\Services\PlanGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -38,6 +39,10 @@ class BranchController extends Controller
             'address' => ['nullable', 'string'],
             'phone' => ['nullable', 'string', 'max:30'],
         ]);
+
+        // M4: batas cabang paket SaaS + cap tenant pemilik.
+        app(PlanGate::class)->assertWithinLimit($request->user(), 'branches_max');
+        $data['tenant_id'] = $request->user()->tenant_id;
 
         Branch::create($data);
 

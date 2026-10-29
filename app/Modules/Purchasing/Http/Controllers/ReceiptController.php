@@ -11,6 +11,7 @@ use App\Modules\Purchasing\Services\PurchasePaymentService;
 use App\Modules\Purchasing\Services\PurchaseReturnService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\View\View;
 
 /**
@@ -18,6 +19,7 @@ use Illuminate\View\View;
  * retur, dan formulir bayar tunggal + retur (PRD 6.3/6.4/6.6).
  * Pagar cabang lewat PO induk.
  */
+#[Middleware('plan.feature:purchasing_full')]
 class ReceiptController extends Controller
 {
     public function __construct(

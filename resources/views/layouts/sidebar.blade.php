@@ -377,7 +377,7 @@
                 </a>
             @endif
             @if ($can('settings.manage') || $can('api_tokens.manage'))
-                @php $act = request()->routeIs('settings.general.*', 'wa-gateway.*', 'ai-setting.*', 'audit-logs.*', 'backups.*', 'api-tokens.*', 'offline-devices.*'); @endphp
+                @php $act = request()->routeIs('settings.general.*', 'wa-gateway.*', 'ai-setting.*', 'audit-logs.*', 'backups.*', 'api-tokens.*', 'offline-devices.*', 'plans.my'); @endphp
                 <div x-data="{ open: {{ $act ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" class="{{ $item }} {{ $act ? $itemActive : '' }}">
                         @if ($act) {!! $goldBar !!} @endif
@@ -388,6 +388,9 @@
                     <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         @if ($can('settings.manage'))
                             <a href="{{ route('settings.general.edit') }}" class="{{ $sub }} {{ request()->routeIs('settings.general.*') ? $subActive : '' }}">@if (request()->routeIs('settings.general.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.general_settings') }}</a>
+                            @unless (auth()->user()->is_platform)
+                                <a href="{{ route('plans.my') }}" class="{{ $sub }} {{ request()->routeIs('plans.my') ? $subActive : '' }}">@if (request()->routeIs('plans.my')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.my_plan') }}</a>
+                            @endunless
                             <a href="{{ route('wa-gateway.edit') }}" class="{{ $sub }} {{ request()->routeIs('wa-gateway.*') ? $subActive : '' }}">@if (request()->routeIs('wa-gateway.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_gateway') }}</a>
                             <a href="{{ route('ai-setting.edit') }}" class="{{ $sub }} {{ request()->routeIs('ai-setting.*') ? $subActive : '' }}">@if (request()->routeIs('ai-setting.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.ai_settings') }}</a>
                             <a href="{{ route('audit-logs.index') }}" class="{{ $sub }} {{ request()->routeIs('audit-logs.*') ? $subActive : '' }}">@if (request()->routeIs('audit-logs.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.audit_logs') }}</a>

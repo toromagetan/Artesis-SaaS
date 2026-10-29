@@ -5,6 +5,8 @@ namespace App\Modules\Comms\Services;
 use App\Modules\Comms\Models\WaMessage;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Lab\Models\LensProcess;
+use App\Modules\Master\Models\Branch;
+use App\Modules\Platform\Services\PlanService;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleInstallment;
 use App\Support\Money;
@@ -24,6 +26,9 @@ class WaAutomationService
     /** Invoice transaksi -> WA pelanggan (pemicu: SaleCompleted). */
     public function sendInvoiceForSale(Sale $sale): void
     {
+        if (! $this->whatsappAllowed($sale->branch)) {
+            return;
+        }
         $customer = $sale->customer;
         if ($customer === null || trim((string) $customer->phone) === '') {
             return;
@@ -45,6 +50,9 @@ class WaAutomationService
         $sale = $process->sale;
         $customer = $sale?->customer;
         if ($sale === null || $customer === null || trim((string) $customer->phone) === '') {
+            return;
+        }
+        if (! $this->whatsappAllowed($sale->branch)) {
             return;
         }
         try {
@@ -75,6 +83,9 @@ class WaAutomationService
             $sale = $process->sale;
             $customer = $sale?->customer;
             if ($sale === null || $customer === null || trim((string) $customer->phone) === '') {
+                continue;
+            }
+            if (! $this->whatsappAllowed($sale->branch)) {
                 continue;
             }
             $already = WaMessage::where('customer_id', $customer->id)
@@ -125,6 +136,9 @@ class WaAutomationService
             if ($sale === null || $customer === null || trim((string) $customer->phone) === '') {
                 continue;
             }
+            if (! $this->whatsappAllowed($sale->branch)) {
+                continue;
+            }
             $already = WaMessage::where('customer_id', $customer->id)
                 ->where('template_key', 'installment_reminder')
                 ->where('body', 'like', '%'.$sale->number.'%')
@@ -165,6 +179,9 @@ class WaAutomationService
             if (trim((string) $customer->phone) === '') {
                 continue;
             }
+            if (! $this->whatsappAllowed($customer->branch)) {
+                continue;
+            }
             $already = WaMessage::where('customer_id', $customer->id)
                 ->where('template_key', 'birthday')
                 ->whereYear('created_at', today()->year)
@@ -183,5 +200,18 @@ class WaAutomationService
         }
 
         return $sent;
+    }
+
+    /**
+     * M4: WhatsApp adalah fitur paket — tenant cabang tanpa fitur
+     * whatsapp tidak menerima kiriman otomatis apa pun. Cabang tanpa
+     * tenant (instalasi mandiri) selalu diizinkan.
+     */
+    private function whatsappAllowed(?Branch $branch): bool
+    {
+        $tenant = $branch?->tenant;
+
+        return $tenant === null
+            || app(PlanService::class)->featureEnabled($tenant, 'whatsapp');
     }
 }

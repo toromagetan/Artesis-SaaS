@@ -8,9 +8,11 @@ use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Services\FixedAssetService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\View\View;
 
 /** Aset tetap (F1.4): master + pelepasan + picu penyusutan. */
+#[Middleware('plan.feature:accounting_full')]
 class FixedAssetController extends Controller
 {
     public function __construct(private readonly FixedAssetService $assets) {}

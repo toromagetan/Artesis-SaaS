@@ -13,6 +13,7 @@ use App\Modules\Membership\Services\PointsService;
 use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\View\View;
 
 /**
@@ -20,6 +21,7 @@ use Illuminate\View\View;
  * poin; penyesuaian poin manual ber-alasan (points.adjust); daftar
  * follow-up purnajual (proses lensa Complete ≥ 7 hari).
  */
+#[Middleware('plan.feature:crm_members')]
 class MemberController extends Controller
 {
     public function __construct(private readonly PointsService $points) {}
