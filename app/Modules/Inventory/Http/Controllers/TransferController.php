@@ -112,7 +112,7 @@ class TransferController extends Controller
 
         return view('inventory.transfers.print', [
             'transfer' => $transfer,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
         ]);
     }
 

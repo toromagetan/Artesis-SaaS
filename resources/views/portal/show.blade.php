@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ __('ui.portal.title') }} — Lentera</title>
+    <title>{{ __('ui.portal.title') }} — Artesis</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-[#f7f8f7] font-sans text-gray-800 antialiased">
@@ -11,7 +11,7 @@
         <header class="mb-6 flex items-center gap-3">
             <span class="flex h-10 w-10 items-center justify-center rounded-full bg-lentera-900 text-lg font-bold text-gold">L</span>
             <div>
-                <p class="text-lg font-bold leading-tight text-lentera-950">Lentera</p>
+                <p class="text-lg font-bold leading-tight text-lentera-950">Artesis</p>
                 <p class="text-xs text-gray-500">{{ __('ui.portal.tagline') }}</p>
             </div>
         </header>

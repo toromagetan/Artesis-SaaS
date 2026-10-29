@@ -85,7 +85,7 @@ class PrescriptionController extends Controller
 
         return view('clinical.prescriptions.print', [
             'prescription' => $prescription,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
         ]);
     }
 

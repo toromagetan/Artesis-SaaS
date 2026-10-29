@@ -92,7 +92,7 @@ class JournalController extends Controller
 
         return view('accounting.journals.print', [
             'journal' => $journal,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
             'printedBy' => auth()->user(),
         ]);
     }

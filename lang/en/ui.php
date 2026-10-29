@@ -62,7 +62,7 @@ return [
         'f2_body' => 'Branch-fenced stock with FIFO valuation, inter-branch transfers, and controlled stock counts.',
         'f3_title' => 'Accounting & Reports',
         'f3_body' => 'Double-entry journals, receivables & installments, incentives, and financial reports that always balance.',
-        'footer' => 'Lentera — Optical Store System',
+        'footer' => 'Artesis — Optical Store System',
     ],
     'nav' => [
         'dashboard' => 'Dashboard',
@@ -820,7 +820,7 @@ return [
         'offsite_saved' => 'Offsite setting saved.',
         'not_found' => 'Backup file not found.',
         'unreadable' => 'Backup file cannot be opened.',
-        'invalid' => 'Not a valid Lentera backup file.',
+        'invalid' => 'Not a valid Artesis backup file.',
         'encode_failed' => 'Failed to assemble backup data.',
         'write_failed' => 'Failed to write the backup file.',
     ],
@@ -1027,7 +1027,7 @@ return [
         'test_hint' => 'Sends one real text message through the active gateway to verify credentials and connection.',
         'test_phone' => 'Test Destination Number',
         'test_send' => 'Send Test',
-        'test_body' => 'Test message from Lentera: the WhatsApp gateway connection works.',
+        'test_body' => 'Test message from Artesis: the WhatsApp gateway connection works.',
         'test_success' => 'Test send succeeded — the message was delivered to the gateway.',
         'test_failed' => 'Test send failed',
         'test_no_gateway' => 'No active gateway yet. Save the settings and activate it first.',
@@ -1659,7 +1659,7 @@ return [
         'is_active' => 'Enable the AI Assistant',
         'save' => 'Save AI Settings',
         'saved' => 'AI settings saved.',
-        'privacy_hint' => 'Only your question text is sent to the provider — store data is never sent; figures are computed by Lentera\'s own services.',
+        'privacy_hint' => 'Only your question text is sent to the provider — store data is never sent; figures are computed by Artesis\' own services.',
     ],
 
     'fitting' => [

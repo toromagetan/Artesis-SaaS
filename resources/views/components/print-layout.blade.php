@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
-    <title>{{ $title ?? config('app.name', 'Lentera') }}</title>
+    <title>{{ $title ?? config('app.name', 'Artesis') }}</title>
     <style>
         /* Mesin cetak dasar Lentera (Blueprint E.5): dokumen PENUH di tab baru,
            kertas bawaan A5 potret; dokumen lain dapat menimpa lewat $paper. */
@@ -27,7 +27,7 @@
         // Identitas toko dari Pengaturan Umum (B2) bila pemanggil tidak
         // memberinya secara eksplisit — berlaku ke semua dokumen cetak.
         $storeLogo = $storeLogo ?? \App\Modules\Master\Models\Setting::value('store.logo_path');
-        $storeName = $storeName ?? \App\Modules\Master\Models\Setting::value('store.name', config('app.name', 'Lentera'));
+        $storeName = $storeName ?? \App\Modules\Master\Models\Setting::value('store.name', config('app.name', 'Artesis'));
         $storeAddress = $storeAddress ?? \App\Modules\Master\Models\Setting::value('store.address');
         $storePhone = $storePhone ?? \App\Modules\Master\Models\Setting::value('store.phone');
     @endphp
@@ -48,7 +48,7 @@
 
     <div class="footer">
         <span>{{ __('ui.print_doc.printed_at') }} {{ now()->format('d/m/Y H:i') }} {{ __('ui.print_doc.by') }} {{ $printedBy?->name ?? '—' }}</span>
-        <span>Lentera</span>
+        <span>Artesis</span>
     </div>
 </body>
 </html>

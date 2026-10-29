@@ -81,7 +81,7 @@ class CollectivePaymentController extends Controller
 
         return view('purchasing.payments.print', [
             'payment' => $payment,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
             'printedBy' => auth()->user(),
         ]);
     }

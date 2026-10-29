@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#022c22">
     <link rel="manifest" href="/kasir-manifest.json">
-    <title>{{ __('ui.offline_cashier.title') }} — Lentera</title>
+    <title>{{ __('ui.offline_cashier.title') }} — Artesis</title>
     @vite(['resources/css/app.css'])
 </head>
 <body class="bg-[#f7f8f7] font-sans text-gray-800 antialiased">

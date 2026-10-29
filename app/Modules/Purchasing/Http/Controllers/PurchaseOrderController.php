@@ -365,7 +365,7 @@ class PurchaseOrderController extends Controller
 
         return view('purchasing.orders.print', [
             'po' => $po,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
         ]);
     }
 }

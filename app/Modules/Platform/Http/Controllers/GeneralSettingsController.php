@@ -33,7 +33,7 @@ class GeneralSettingsController extends Controller
         foreach (self::KEYS as $key) {
             $values[$key] = Setting::value($key, '');
         }
-        $values['store.name'] = $values['store.name'] !== '' ? $values['store.name'] : 'Lentera';
+        $values['store.name'] = $values['store.name'] !== '' ? $values['store.name'] : 'Artesis';
         $values['tax.mode'] = $values['tax.mode'] !== '' ? $values['tax.mode'] : 'exclusive';
 
         return view('settings.general', ['values' => $values]);

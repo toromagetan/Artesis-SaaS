@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Audit 23 Okt 2026 (D1): halaman muka `/` adalah Lentera — bukan
+ * Audit 23 Okt 2026 (D1): halaman muka `/` adalah Artesis — bukan
  * halaman sambutan bawaan Laravel — dan pengguna yang sudah login
  * diarahkan ke dashboard.
  */
@@ -20,7 +20,7 @@ class LandingPageTest extends TestCase
     {
         $this->get('/')
             ->assertOk()
-            ->assertSee('Lentera')
+            ->assertSee('Artesis')
             ->assertSee('Jernih Datanya, Terang Bisnisnya')
             ->assertSee(route('login'))
             ->assertDontSee('Laravel');
