@@ -39,6 +39,16 @@
                     @csrf
                     <button type="submit" class="underline-offset-2 hover:underline {{ app()->getLocale() === 'en' ? 'font-semibold text-lentera-800' : '' }}">English</button>
                 </form>
+                <span aria-hidden="true">·</span>
+                <form method="POST" action="{{ route('locale.switch', 'ms') }}">
+                    @csrf
+                    <button type="submit" class="underline-offset-2 hover:underline {{ app()->getLocale() === 'ms' ? 'font-semibold text-lentera-800' : '' }}">Bahasa Melayu</button>
+                </form>
+                <span aria-hidden="true">·</span>
+                <form method="POST" action="{{ route('locale.switch', 'zh') }}">
+                    @csrf
+                    <button type="submit" class="underline-offset-2 hover:underline {{ app()->getLocale() === 'zh' ? 'font-semibold text-lentera-800' : '' }}">中文</button>
+                </form>
             </div>
         </div>
     </body>

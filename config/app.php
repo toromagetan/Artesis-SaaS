@@ -90,7 +90,7 @@ return [
     |
     */
 
-    'supported_locales' => ['id', 'en'],
+    'supported_locales' => ['id', 'en', 'ms', 'zh'],
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
