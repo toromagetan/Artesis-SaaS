@@ -1,0 +1,20 @@
+# Contoh unit systemd untuk queue worker Artesis.
+# Salin ke /etc/systemd/system/artesis-queue.service, sesuaikan
+# WorkingDirectory dan User, lalu:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now artesis-queue
+# Restart unit ini sesudah setiap deploy kode.
+[Unit]
+Description=Artesis Queue Worker
+After=network.target mysql.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/artesis
+ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
