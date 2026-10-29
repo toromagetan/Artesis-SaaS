@@ -9,8 +9,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Multi-bahasa id/en (ADR-011): bawaan id, pengalih menyimpan preferensi
- * per pengguna, tamu memakai sesi, locale liar ditolak.
+ * Multi-bahasa id/en/ms/zh (ADR-011 + M2): bawaan id, pengalih menyimpan
+ * preferensi per pengguna, tamu memakai sesi, locale liar ditolak.
  */
 class LocaleTest extends TestCase
 {
@@ -80,5 +80,48 @@ class LocaleTest extends TestCase
         $this->actingAs($this->owner)
             ->post('/bahasa/fr')
             ->assertNotFound();
+    }
+
+    public function test_switching_to_malay_persists_and_renders_malay(): void
+    {
+        $this->actingAs($this->owner)
+            ->post('/bahasa/ms')
+            ->assertRedirect();
+
+        $this->assertSame('ms', $this->owner->refresh()->locale);
+
+        $this->actingAs($this->owner)
+            ->get('/cabang')
+            ->assertOk()
+            ->assertSee('Buat Cawangan');
+    }
+
+    public function test_switching_to_chinese_persists_and_renders_chinese(): void
+    {
+        $this->actingAs($this->owner)
+            ->post('/bahasa/zh')
+            ->assertRedirect();
+
+        $this->assertSame('zh', $this->owner->refresh()->locale);
+
+        $this->actingAs($this->owner)
+            ->get('/cabang')
+            ->assertOk()
+            ->assertSee('创建门店');
+    }
+
+    public function test_guest_switch_to_malay_and_chinese_on_landing_and_login(): void
+    {
+        $this->post('/bahasa/ms');
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Jernih Datanya, Terang Bisnesnya');
+
+        $this->post('/bahasa/zh');
+
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('用户名或邮箱');
     }
 }

@@ -18,7 +18,7 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Plus Jakarta Sans"', ...defaultTheme.fontFamily.sans],
+                sans: ['"Plus Jakarta Sans"', '"PingFang SC"', '"Microsoft YaHei"', '"Noto Sans SC"', ...defaultTheme.fontFamily.sans],
             },
             colors: {
                 lentera: {

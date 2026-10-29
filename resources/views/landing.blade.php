@@ -27,6 +27,14 @@
                     @csrf
                     <button type="submit" class="rounded-lg px-2.5 py-1.5 font-medium {{ app()->getLocale() === 'en' ? 'bg-lentera-100 text-lentera-900' : 'text-gray-500 hover:bg-white' }}">English</button>
                 </form>
+                <form method="POST" action="{{ route('locale.switch', 'ms') }}">
+                    @csrf
+                    <button type="submit" class="rounded-lg px-2.5 py-1.5 font-medium {{ app()->getLocale() === 'ms' ? 'bg-lentera-100 text-lentera-900' : 'text-gray-500 hover:bg-white' }}">Bahasa Melayu</button>
+                </form>
+                <form method="POST" action="{{ route('locale.switch', 'zh') }}">
+                    @csrf
+                    <button type="submit" class="rounded-lg px-2.5 py-1.5 font-medium {{ app()->getLocale() === 'zh' ? 'bg-lentera-100 text-lentera-900' : 'text-gray-500 hover:bg-white' }}">中文</button>
+                </form>
             </div>
         </header>
 

@@ -143,13 +143,25 @@ class ArchitectureTest extends TestCase
 
     public function test_locale_files_have_matching_keys(): void
     {
-        // ADR-011: kunci id dan en harus selalu berpasangan.
+        // ADR-011 + M2 (empat bahasa id/en/ms/zh): kunci semua locale yang
+        // didukung harus selalu berpasangan dengan id, termasuk paket JSON.
+        $locales = array_diff(config('app.supported_locales', ['id', 'en']), ['id']);
         foreach (['ui', 'auth', 'validation', 'pagination', 'passwords'] as $file) {
             $id = $this->flattenKeys(require lang_path("id/{$file}.php"));
-            $en = $this->flattenKeys(require lang_path("en/{$file}.php"));
             sort($id);
-            sort($en);
-            $this->assertSame($id, $en, "Kunci lang/{$file} tidak berpasangan antara id dan en.");
+            foreach ($locales as $locale) {
+                $other = $this->flattenKeys(require lang_path("{$locale}/{$file}.php"));
+                sort($other);
+                $this->assertSame($id, $other, "Kunci lang/{$file} tidak berpasangan antara id dan {$locale}.");
+            }
+        }
+
+        $idJson = array_keys(json_decode(file_get_contents(lang_path('id.json')), true));
+        sort($idJson);
+        foreach ($locales as $locale) {
+            $otherJson = array_keys(json_decode(file_get_contents(lang_path("{$locale}.json")), true));
+            sort($otherJson);
+            $this->assertSame($idJson, $otherJson, "Kunci lang JSON tidak berpasangan antara id dan {$locale}.");
         }
     }
 

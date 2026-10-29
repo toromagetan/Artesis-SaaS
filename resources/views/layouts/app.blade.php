@@ -56,6 +56,14 @@
                                         @csrf
                                         <x-dropdown-link :href="route('locale.switch', 'en')" onclick="event.preventDefault(); this.closest('form').submit();">English</x-dropdown-link>
                                     </form>
+                                    <form method="POST" action="{{ route('locale.switch', 'ms') }}">
+                                        @csrf
+                                        <x-dropdown-link :href="route('locale.switch', 'ms')" onclick="event.preventDefault(); this.closest('form').submit();">Bahasa Melayu</x-dropdown-link>
+                                    </form>
+                                    <form method="POST" action="{{ route('locale.switch', 'zh') }}">
+                                        @csrf
+                                        <x-dropdown-link :href="route('locale.switch', 'zh')" onclick="event.preventDefault(); this.closest('form').submit();">中文</x-dropdown-link>
+                                    </form>
                                 </x-slot>
                             </x-dropdown>
 
