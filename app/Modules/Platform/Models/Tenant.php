@@ -36,6 +36,11 @@ class Tenant extends Model
         return $this->hasMany(TenantSubscription::class)->latest('id');
     }
 
+    public function billingRequests(): HasMany
+    {
+        return $this->hasMany(TenantBillingRequest::class);
+    }
+
     public function overrides(): HasMany
     {
         return $this->hasMany(TenantFeatureOverride::class)->latest('id');

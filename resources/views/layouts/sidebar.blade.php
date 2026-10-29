@@ -421,6 +421,11 @@
                     {{ __('ui.nav.tenants') }}
                 </a>
             @endif
+                <a href="{{ route('platform.billing.index') }}" class="{{ $item }} {{ request()->routeIs('platform.billing.*') ? $itemActive : '' }}">
+                    @if (request()->routeIs('platform.billing.*')) {!! $goldBar !!} @endif
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>
+                    {{ __('ui.nav.billing') }}
+                </a>
         @endif
     </nav>
 
