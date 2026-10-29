@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             IdentitySeeder::class,
+            SaasSeeder::class,
             AccountingSeeder::class,
             QcPointTemplateSeeder::class,
             WaTemplateSeeder::class,
