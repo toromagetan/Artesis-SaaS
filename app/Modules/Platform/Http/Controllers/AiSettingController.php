@@ -7,6 +7,7 @@ use App\Modules\Platform\Models\AiSetting;
 use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\View\View;
 
 /**
@@ -15,6 +16,7 @@ use Illuminate\View\View;
  * (keputusan owner 2026-10-18). API key kosong saat simpan =
  * nilai lama dipertahankan; key tidak pernah tampil penuh.
  */
+#[Middleware('plan.feature:ai_assistant')]
 class AiSettingController extends Controller
 {
     public function edit(): View

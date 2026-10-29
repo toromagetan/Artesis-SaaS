@@ -19,11 +19,13 @@ use App\Modules\Purchasing\Services\ReceiptService;
 use App\Support\XlsxWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Purchase Order + penerimaan dari detailnya (PRD Detail 6.2/6.3). */
+#[Middleware('plan.feature:purchasing_full')]
 class PurchaseOrderController extends Controller
 {
     public function __construct(

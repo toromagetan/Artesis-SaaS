@@ -12,9 +12,11 @@ use App\Modules\Purchasing\Models\PurchaseRequest;
 use App\Modules\Purchasing\Services\PurchaseRequestService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\View\View;
 
 /** Purchase Request (PRD Detail 6.1). */
+#[Middleware('plan.feature:purchasing_full')]
 class PurchaseRequestController extends Controller
 {
     public function __construct(private readonly PurchaseRequestService $service) {}

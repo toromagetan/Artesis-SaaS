@@ -46,6 +46,7 @@ use App\Modules\Platform\Http\Controllers\AuditLogController;
 use App\Modules\Platform\Http\Controllers\BackupController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Platform\Http\Controllers\GeneralSettingsController;
+use App\Modules\Platform\Http\Controllers\MyPlanController;
 use App\Modules\Platform\Http\Controllers\PlanController;
 use App\Modules\Platform\Http\Controllers\TenantController;
 use App\Modules\Purchasing\Http\Controllers\CollectivePaymentController;
@@ -100,8 +101,8 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('permission:roles.manage')->group(function () {
         Route::get('/peran', [RoleController::class, 'index'])->name('roles.index');
-        Route::get('/peran/{role}/ubah', [RoleController::class, 'edit'])->name('roles.edit');
-        Route::put('/peran/{role}', [RoleController::class, 'update'])->name('roles.update');
+        Route::get('/peran/{role}/ubah', [RoleController::class, 'edit'])->middleware('plan.feature:roles_permissions')->name('roles.edit');
+        Route::put('/peran/{role}', [RoleController::class, 'update'])->middleware('plan.feature:roles_permissions')->name('roles.update');
     });
 
     // ---- Pembelian (M.6) ----
@@ -187,8 +188,8 @@ Route::middleware('auth')->group(function () {
     // ---- Akuntansi (M.9) ----
     Route::get('/jurnal', [JournalController::class, 'index'])->middleware('permission:journals.view')->name('journals.index');
     Route::get('/jurnal/ekspor', [JournalController::class, 'export'])->middleware('permission:journals.view')->name('journals.export');
-    Route::get('/jurnal/buat', [JournalController::class, 'create'])->middleware('permission:journals.manual')->name('journals.create');
-    Route::post('/jurnal', [JournalController::class, 'store'])->middleware('permission:journals.manual')->name('journals.store');
+    Route::get('/jurnal/buat', [JournalController::class, 'create'])->middleware(['permission:journals.manual', 'plan.feature:accounting_full'])->name('journals.create');
+    Route::post('/jurnal', [JournalController::class, 'store'])->middleware(['permission:journals.manual', 'plan.feature:accounting_full'])->name('journals.store');
     Route::get('/buku-besar', [LedgerController::class, 'index'])->middleware('permission:journals.view')->name('ledger.index');
     Route::get('/aset-tetap', [FixedAssetController::class, 'index'])->middleware('permission:assets.manage')->name('assets.index');
     Route::get('/aset-tetap/buat', [FixedAssetController::class, 'create'])->middleware('permission:assets.manage')->name('assets.create');
@@ -219,12 +220,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/jurnal/{journal}/cetak', [JournalController::class, 'print'])->middleware('permission:journals.view')->name('journals.print');
     Route::post('/jurnal/{journal}/balik', [JournalController::class, 'reverse'])->middleware('permission:journals.reverse')->name('journals.reverse');
     Route::get('/akun', [AccountController::class, 'index'])->middleware('permission:accounts.view')->name('accounts.index');
-    Route::get('/akun/buat', [AccountController::class, 'create'])->middleware('permission:accounts.manage')->name('accounts.create');
-    Route::post('/akun', [AccountController::class, 'store'])->middleware('permission:accounts.manage')->name('accounts.store');
+    Route::get('/akun/buat', [AccountController::class, 'create'])->middleware(['permission:accounts.manage', 'plan.feature:accounting_full'])->name('accounts.create');
+    Route::post('/akun', [AccountController::class, 'store'])->middleware(['permission:accounts.manage', 'plan.feature:accounting_full'])->name('accounts.store');
     Route::get('/akun/{account}', [AccountController::class, 'show'])->middleware('permission:accounts.view')->name('accounts.show');
-    Route::get('/akun/{account}/ubah', [AccountController::class, 'edit'])->middleware('permission:accounts.manage')->name('accounts.edit');
-    Route::put('/akun/{account}', [AccountController::class, 'update'])->middleware('permission:accounts.manage')->name('accounts.update');
-    Route::post('/akun/{account}/aktif', [AccountController::class, 'toggleActive'])->middleware('permission:accounts.manage')->name('accounts.toggle-active');
+    Route::get('/akun/{account}/ubah', [AccountController::class, 'edit'])->middleware(['permission:accounts.manage', 'plan.feature:accounting_full'])->name('accounts.edit');
+    Route::put('/akun/{account}', [AccountController::class, 'update'])->middleware(['permission:accounts.manage', 'plan.feature:accounting_full'])->name('accounts.update');
+    Route::post('/akun/{account}/aktif', [AccountController::class, 'toggleActive'])->middleware(['permission:accounts.manage', 'plan.feature:accounting_full'])->name('accounts.toggle-active');
 
     // ---- Laporan inti (M.10) ----
     Route::get('/laporan/penjualan', [ReportController::class, 'sales'])->middleware('permission:reports.sales')->name('reports.sales');
@@ -408,6 +409,10 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/laporan/pemakaian-asuransi', [ReportController::class, 'insuranceUsages'])->middleware('permission:reports.sales')->name('reports.insurance-usages');
+
+    // Paket Saya (M4): ringkasan paket untuk admin tenant (dan status
+    // Instalasi Mandiri untuk aktor tanpa tenant).
+    Route::get('/paket-saya', [MyPlanController::class, 'index'])->middleware('permission:settings.manage')->name('plans.my');
 
     // Panel SaaS (M3): khusus aktor platform — gerbang ganda middleware
     // 'platform' (is_platform) + izin grup platform.

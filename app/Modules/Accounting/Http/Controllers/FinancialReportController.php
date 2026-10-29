@@ -8,6 +8,7 @@ use App\Modules\Master\Models\Branch;
 use App\Support\XlsxWriter;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -18,6 +19,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * memakai jalur data yang sama dengan layar dan dipagari izin
  * reports.export — pola yang sama dengan laporan inti M.10.
  */
+#[Middleware('plan.feature:accounting_full')]
 class FinancialReportController extends Controller
 {
     public function __construct(private readonly FinancialReportService $financial) {}

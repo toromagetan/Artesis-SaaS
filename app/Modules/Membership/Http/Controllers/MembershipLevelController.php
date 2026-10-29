@@ -8,6 +8,7 @@ use App\Modules\Membership\Models\MembershipLevel;
 use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\View\View;
 
 /**
@@ -15,6 +16,7 @@ use Illuminate\View\View;
  * members.manage. Pengaturan poin disimpan sebagai settings:
  * points.earn_amount / points.redeem_value / points.expiry_months.
  */
+#[Middleware('plan.feature:crm_members')]
 class MembershipLevelController extends Controller
 {
     public function index(): View

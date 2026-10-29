@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\EnsurePermission;
+use App\Http\Middleware\EnsurePlanFeature;
 use App\Http\Middleware\EnsurePlatformUser;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\SetLocale;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => EnsurePermission::class,
             'platform' => EnsurePlatformUser::class,
+            'plan.feature' => EnsurePlanFeature::class,
             'api.token' => AuthenticateApiToken::class,
             'device.token' => AuthenticateOfflineDevice::class,
         ]);

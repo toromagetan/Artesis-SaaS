@@ -6,6 +6,7 @@ use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Services\AuditLogger;
+use App\Modules\Platform\Services\PlanGate;
 use App\Modules\Sales\Services\OfflineDeviceService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +24,11 @@ class UserService
      */
     public function createUser(array $data, ?User $actor = null): User
     {
+        // M4: batas akun paket SaaS — hanya bila aktor berasal dari tenant.
+        if ($actor !== null) {
+            app(PlanGate::class)->assertWithinLimit($actor, 'users_max');
+        }
+
         return DB::transaction(function () use ($data, $actor) {
             $user = User::create([
                 'name' => $data['name'],
@@ -32,6 +38,7 @@ class UserService
                 'password' => Hash::make($data['password']),
                 'is_active' => true,
                 'is_platform' => (bool) ($data['is_platform'] ?? false),
+                'tenant_id' => $actor?->tenant_id,
             ]);
 
             $this->syncRolesAndBranches($user, $data, $actor, checkSelf: false);

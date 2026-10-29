@@ -5,6 +5,7 @@ namespace App\Modules\Reporting\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Platform\Services\PlanGate;
 use App\Modules\Reporting\Services\AnalyticsService;
 use App\Modules\Reporting\Services\ReportService;
 use App\Support\Money;
@@ -264,6 +265,16 @@ class ReportController extends Controller
         if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) !== 1) {
             $to = now()->format('Y-m-d');
         }
+
+        // M4: klem riwayat laporan sesuai batas paket (mis. Free 90 hari).
+        $historyDays = app(PlanGate::class)
+            ->limit($request->user(), 'report_history_days');
+        if ($historyDays !== null) {
+            $earliest = now()->subDays(max(0, $historyDays - 1))->format('Y-m-d');
+            if ($from < $earliest) {
+                $from = $earliest;
+            }
+        }
         $context = BranchContext::current();
         $branchIds = $context->hasGlobalAccess()
             ? Branch::pluck('id')->map(fn ($id) => (int) $id)->all()
@@ -320,6 +331,12 @@ class ReportController extends Controller
     private function authorizeExport(): void
     {
         Gate::authorize('reports.export'); // kemampuan dari registry (Gate::before)
+
+        // M4: ekspor termasuk laporan lanjutan paket SaaS.
+        $user = auth()->user();
+        if ($user !== null) {
+            app(PlanGate::class)->assertEnabled($user, 'reports_advanced');
+        }
     }
 
     /** Ekspor CSV (bawaan) atau XLSX asli bila ?format=xlsx. */
