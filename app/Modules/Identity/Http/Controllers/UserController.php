@@ -48,7 +48,7 @@ class UserController extends Controller
 
         return view('identity.users.print-list', [
             'users' => $users,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
             'printedBy' => $request->user(),
         ]);
     }
@@ -60,7 +60,7 @@ class UserController extends Controller
 
         return view('identity.users.print-profile', [
             'user' => $user,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
             'printedBy' => request()->user(),
         ]);
     }

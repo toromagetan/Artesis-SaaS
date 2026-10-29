@@ -109,7 +109,7 @@ class PurchaseRequestController extends Controller
 
         return view('purchasing.requests.print', [
             'pr' => $pr,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
             'printedBy' => auth()->user(),
         ]);
     }

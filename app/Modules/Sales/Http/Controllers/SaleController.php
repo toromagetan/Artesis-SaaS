@@ -417,7 +417,7 @@ class SaleController extends Controller
 
         return view('sales.print-order', [
             'sale' => $sale,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
         ]);
     }
 
@@ -427,7 +427,7 @@ class SaleController extends Controller
 
         return view('sales.print-invoice', [
             'sale' => $sale,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
         ]);
     }
 
@@ -451,7 +451,7 @@ class SaleController extends Controller
 
         return view('sales.print-return', [
             'return' => $return,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
             'printedBy' => auth()->user(),
         ]);
     }
@@ -464,7 +464,7 @@ class SaleController extends Controller
         return view('sales.print-prescription', [
             'sale' => $sale,
             'snapshot' => $sale->prescription_snapshot,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
         ]);
     }
 }

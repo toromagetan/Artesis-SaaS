@@ -1,5 +1,5 @@
 @php
-    $storeName = \App\Modules\Master\Models\Setting::value('store.name', 'Lentera');
+    $storeName = \App\Modules\Master\Models\Setting::value('store.name', 'Artesis');
     $storeAddress = \App\Modules\Master\Models\Setting::value('store.address');
     $storePhone = \App\Modules\Master\Models\Setting::value('store.phone');
 @endphp

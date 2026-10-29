@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Lentera') }}</title>
+        <title>{{ config('app.name', 'Artesis') }}</title>
 
         <!-- Fonts: Plus Jakarta Sans (token tipografi F.2.0) -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -20,7 +20,7 @@
                 <span class="flex h-10 w-10 items-center justify-center rounded-full bg-lentera-800">
                     <span class="h-3 w-3 rounded-full bg-gold"></span>
                 </span>
-                <span class="text-2xl font-extrabold tracking-tight text-lentera-950">Lentera</span>
+                <span class="text-2xl font-extrabold tracking-tight text-lentera-950">Artesis</span>
             </a>
 
             <div class="mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-soft sm:max-w-md sm:rounded-xl">

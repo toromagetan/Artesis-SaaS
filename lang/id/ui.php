@@ -62,7 +62,7 @@ return [
         'f2_body' => 'Stok terpagar per cabang dengan penilaian FIFO, transfer antar cabang, dan opname yang terkendali.',
         'f3_title' => 'Akuntansi & Laporan',
         'f3_body' => 'Jurnal double-entry, piutang & cicilan, insentif, dan laporan keuangan yang selalu seimbang.',
-        'footer' => 'Lentera — Sistem Toko Optik',
+        'footer' => 'Artesis — Sistem Toko Optik',
     ],
     'nav' => [
         'dashboard' => 'Dashboard',
@@ -820,7 +820,7 @@ return [
         'offsite_saved' => 'Pengaturan offsite disimpan.',
         'not_found' => 'Berkas backup tidak ditemukan.',
         'unreadable' => 'Berkas backup tidak dapat dibuka.',
-        'invalid' => 'Berkas bukan backup Lentera yang sah.',
+        'invalid' => 'Berkas bukan backup Artesis yang sah.',
         'encode_failed' => 'Gagal menyusun data backup.',
         'write_failed' => 'Gagal menulis berkas backup.',
     ],
@@ -1027,7 +1027,7 @@ return [
         'test_hint' => 'Mengirim satu pesan teks nyata lewat gateway aktif untuk memeriksa kredensial & koneksi.',
         'test_phone' => 'Nomor Tujuan Uji',
         'test_send' => 'Kirim Uji',
-        'test_body' => 'Pesan uji dari Lentera: koneksi gateway WhatsApp berhasil.',
+        'test_body' => 'Pesan uji dari Artesis: koneksi gateway WhatsApp berhasil.',
         'test_success' => 'Uji kirim berhasil — pesan terkirim lewat gateway.',
         'test_failed' => 'Uji kirim gagal',
         'test_no_gateway' => 'Belum ada gateway aktif. Simpan pengaturan dan aktifkan dulu.',
@@ -1659,7 +1659,7 @@ return [
         'is_active' => 'Aktifkan Asisten AI',
         'save' => 'Simpan Pengaturan AI',
         'saved' => 'Pengaturan AI disimpan.',
-        'privacy_hint' => 'Yang dikirim ke penyedia hanya teks pertanyaan Anda — data toko tidak pernah dikirim; angka dihitung server Lentera dari service internal.',
+        'privacy_hint' => 'Yang dikirim ke penyedia hanya teks pertanyaan Anda — data toko tidak pernah dikirim; angka dihitung server Artesis dari service internal.',
     ],
 
     'fitting' => [

@@ -45,7 +45,7 @@ class ReceiptController extends Controller
 
         return view('purchasing.receipts.print', [
             'receipt' => $receipt,
-            'storeName' => Setting::value('store.name', 'Lentera'),
+            'storeName' => Setting::value('store.name', 'Artesis'),
             'printedBy' => auth()->user(),
         ]);
     }

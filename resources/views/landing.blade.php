@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Lentera — {{ __('ui.nav.tagline') }}</title>
+    <title>Artesis — {{ __('ui.nav.tagline') }}</title>
     @vite(['resources/css/app.css'])
 </head>
 <body class="bg-lentera-50 font-sans text-gray-800 antialiased">
@@ -14,7 +14,7 @@
                     <span class="h-2.5 w-2.5 rounded-full bg-gold"></span>
                 </span>
                 <span>
-                    <span class="block text-lg font-bold leading-tight text-lentera-950">Lentera</span>
+                    <span class="block text-lg font-bold leading-tight text-lentera-950">Artesis</span>
                     <span class="block text-[11px] leading-tight text-gray-500">{{ __('ui.nav.tagline') }}</span>
                 </span>
             </div>

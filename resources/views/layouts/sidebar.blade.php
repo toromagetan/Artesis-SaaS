@@ -27,7 +27,7 @@
                 <span class="h-3 w-3 rounded-full bg-gold"></span>
             </span>
             <span>
-                <span class="block text-[17px] font-extrabold leading-tight tracking-tight text-white">Lentera</span>
+                <span class="block text-[17px] font-extrabold leading-tight tracking-tight text-white">Artesis</span>
                 <span class="block text-[10.5px] leading-tight text-lentera-300/70">{{ __('ui.nav.tagline') }}</span>
             </span>
         </a>
