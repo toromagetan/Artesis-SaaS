@@ -44,10 +44,13 @@ use App\Modules\Platform\Http\Controllers\ApiTokenController;
 use App\Modules\Platform\Http\Controllers\AssistantController;
 use App\Modules\Platform\Http\Controllers\AuditLogController;
 use App\Modules\Platform\Http\Controllers\BackupController;
+use App\Modules\Platform\Http\Controllers\BillingController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Platform\Http\Controllers\GeneralSettingsController;
 use App\Modules\Platform\Http\Controllers\MyPlanController;
 use App\Modules\Platform\Http\Controllers\PlanController;
+use App\Modules\Platform\Http\Controllers\PlatformBillingController;
+use App\Modules\Platform\Http\Controllers\SignupController;
 use App\Modules\Platform\Http\Controllers\TenantController;
 use App\Modules\Purchasing\Http\Controllers\CollectivePaymentController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
@@ -69,6 +72,14 @@ Route::get('/', function () {
     // sambutan bawaan Laravel dihapus); pengguna login langsung ke
     // dashboard.
     return auth()->check() ? redirect()->route('dashboard') : view('landing');
+});
+
+// Pendaftaran mandiri TENANT (M5): bisnis baru + pemilik + paket Free.
+// Pendaftaran di level platform — registrasi PENGGUNA di dalam tenant
+// tetap tidak ada (pengguna dibuat pengelola; lihat routes/auth.php).
+Route::middleware('guest')->group(function () {
+    Route::get('/daftar', [SignupController::class, 'create'])->name('signup.create');
+    Route::post('/daftar', [SignupController::class, 'store'])->middleware('throttle:6,1')->name('signup.store');
 });
 
 Route::post('/bahasa/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
@@ -413,6 +424,7 @@ Route::middleware('auth')->group(function () {
     // Paket Saya (M4): ringkasan paket untuk admin tenant (dan status
     // Instalasi Mandiri untuk aktor tanpa tenant).
     Route::get('/paket-saya', [MyPlanController::class, 'index'])->middleware('permission:settings.manage')->name('plans.my');
+    Route::post('/paket-saya/tagihan', [BillingController::class, 'store'])->middleware('permission:settings.manage')->name('billing.store');
 
     // Panel SaaS (M3): khusus aktor platform — gerbang ganda middleware
     // 'platform' (is_platform) + izin grup platform.
@@ -428,6 +440,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/platform/tenant/{tenant}/paket', [TenantController::class, 'assignPlan'])->name('platform.tenants.assign-plan');
         Route::post('/platform/tenant/{tenant}/pengecualian', [TenantController::class, 'storeOverride'])->name('platform.tenants.override');
         Route::post('/platform/tenant/{tenant}/alih-aktif', [TenantController::class, 'toggle'])->name('platform.tenants.toggle');
+        Route::get('/platform/penagihan', [PlatformBillingController::class, 'index'])->name('platform.billing.index');
+        Route::put('/platform/penagihan/pengaturan', [PlatformBillingController::class, 'updateSettings'])->name('platform.billing.settings');
+        Route::post('/platform/penagihan/{billingRequest}/konfirmasi', [PlatformBillingController::class, 'confirm'])->name('platform.billing.confirm');
+        Route::post('/platform/penagihan/{billingRequest}/tolak', [PlatformBillingController::class, 'reject'])->name('platform.billing.reject');
     });
 });
 

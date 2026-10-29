@@ -43,6 +43,7 @@
             <p class="mt-5 max-w-xl text-base leading-relaxed text-gray-600">{{ __('ui.landing.description') }}</p>
             <div class="mt-8 flex flex-col items-center gap-3">
                 <a href="{{ route('login') }}" class="inline-flex items-center justify-center rounded-lg bg-lentera-800 px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-lentera-700 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.landing.login') }}</a>
+                <a href="{{ route('signup.create') }}" class="inline-flex items-center justify-center rounded-lg border border-lentera-700 px-6 py-3 text-sm font-semibold text-lentera-800 transition hover:bg-lentera-100 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.landing.register') }}</a>
                 <p class="text-xs text-gray-500">{{ __('ui.landing.internal_note') }}</p>
             </div>
 

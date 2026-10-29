@@ -58,6 +58,8 @@
                 </ul>
                 <p class="mt-4 text-sm text-slate-500">{{ __('ui.plans.my_note') }}</p>
             </section>
+
+            @include('platform.partials.billing')
         @endif
     </div>
 </x-app-layout>
