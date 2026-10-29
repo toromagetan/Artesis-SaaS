@@ -143,6 +143,8 @@ return [
             'branches.manage' => 'Kelola cabang',
             'settings.manage' => 'Kelola pengaturan umum',
             'api_tokens.manage' => 'Kelola token API',
+            'plans.manage' => 'Kelola paket langganan SaaS',
+            'tenants.manage' => 'Kelola tenant SaaS',
         ],
     ],
     'master' => [

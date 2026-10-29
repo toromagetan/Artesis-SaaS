@@ -102,7 +102,9 @@ class ArchitectureTest extends TestCase
         // 75 → 78 pada audit 23 Okt 2026 (A3): + lab.templates.manage,
         // pr.cancel, sales.exceptions — izin khusus untuk mutasi berat
         // yang sebelumnya berpagar izin level-lihat/buat.
-        $this->assertCount(75, PermissionRegistry::all());
+        // 75 → 77 pada M3 SaaS (29 Okt 2026): + plans.manage,
+        // tenants.manage — panel platform khusus aktor is_platform.
+        $this->assertCount(77, PermissionRegistry::all());
     }
 
     public function test_no_float_casts_in_application_code(): void

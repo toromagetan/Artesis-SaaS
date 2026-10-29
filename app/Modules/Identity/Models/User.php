@@ -4,9 +4,11 @@ namespace App\Modules\Identity\Models;
 
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Platform\Models\Tenant;
 use App\Support\PermissionRegistry;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -30,6 +32,7 @@ class User extends Authenticatable
         'locale',
         'is_active',
         'is_platform',
+        'tenant_id',
     ];
 
     protected $hidden = [
@@ -50,6 +53,12 @@ class User extends Authenticatable
     protected static function newFactory(): UserFactory
     {
         return UserFactory::new();
+    }
+
+    /** Tenant SaaS pemilik pengguna bisnis ini (M3); null untuk aktor platform & instalasi lama. */
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     public function roles(): BelongsToMany
