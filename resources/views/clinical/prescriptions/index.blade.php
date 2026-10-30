@@ -20,6 +20,11 @@
                     </select>
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
+                @can('prescriptions.create')
+                    <x-lentera.aksi-bar>
+                        <x-lentera.menu-item :href="route('prescriptions.pick-customer')" primary>{{ __('ui.prescriptions.add_new') }}</x-lentera.menu-item>
+                    </x-lentera.aksi-bar>
+                @endcan
             </div>
 
             <div class="overflow-hidden rounded-lg bg-white shadow-soft">
