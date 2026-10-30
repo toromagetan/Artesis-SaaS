@@ -136,16 +136,39 @@ class TenantContextTest extends TestCase
         }
     }
 
-    public function test_standalone_user_is_distinct_from_platform_and_tenant(): void
+    public function test_unassigned_account_on_shared_install_is_not_standalone(): void
     {
+        // Instalasi bersama: setUp mendaftarkan DUA tenant. Akun
+        // legacy 'owner' (tanpa tenant, bukan platform) TIDAK boleh
+        // diklasifikasikan standalone (perbaikan audit R-3).
+        $this->assertSame(2, Tenant::count());
+
         $ctx = TenantContext::for($this->standalone);
-        $this->assertSame(TenantContext::MODE_STANDALONE, $ctx->mode());
+        $this->assertSame(TenantContext::MODE_UNASSIGNED, $ctx->mode());
+        $this->assertTrue($ctx->isUnassigned());
+        $this->assertFalse($ctx->isStandalone());
         $this->assertFalse($ctx->isPlatform());
         $this->assertNull($ctx->tenantId());
+        $this->assertNull($ctx->tenant());
 
-        $this->expectException(AuthorizationException::class);
-        $ctx->requireTenant();
+        try {
+            $ctx->requireTenant();
+            $this->fail('requireTenant akun unassigned harus menolak.');
+        } catch (AuthorizationException) {
+            $this->addToAssertionCount(1);
+        }
+        try {
+            $ctx->assertTenantAccess($this->tenantA->id);
+            $this->fail('assertTenantAccess akun unassigned harus menolak.');
+        } catch (AuthorizationException) {
+            $this->addToAssertionCount(1);
+        }
     }
+
+    // Kondisi instalasi individual (nol tenant) dibuktikan di
+    // TenantContextIndividualTest — setUp kelas ini selalu
+    // mendaftarkan dua tenant, jadi klasifikasi standalone sejati
+    // tidak dapat dibuktikan dari sini.
 
     public function test_guest_context_is_safe(): void
     {

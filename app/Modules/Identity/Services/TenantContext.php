@@ -15,12 +15,20 @@ use Illuminate\Auth\Access\AuthorizationException;
  * baris tenant nyata — TIDAK PERNAH dari input request (URL, query,
  * header, payload, sesi): kelas ini bahkan tidak membaca request.
  *
- * Empat mode eksplisit (akun tanpa tenant_id BUKAN otomatis
- * platform — keduanya dibedakan tegas):
+ * Lima mode eksplisit (akun tanpa tenant_id BUKAN otomatis
+ * platform, dan BUKAN otomatis standalone — keduanya dibedakan
+ * tegas):
  * - tenant     : pengguna bisnis dengan tenant_id yang sah.
  * - platform   : aktor platform (is_platform) — BUKAN identitas
  *                tenant; tidak pernah memperoleh konteks tenant.
- * - standalone : pengguna tanpa tenant pada instalasi individual.
+ * - standalone : pengguna tanpa tenant pada instalasi yang BENAR-
+ *                BENAR individual (belum ada satu pun tenant
+ *                terdaftar — prinsip yang sama dengan penjaga
+ *                BackupPolicy pada R-1).
+ * - unassigned : pengguna tanpa tenant pada instalasi BERSAMA
+ *                (tenant sudah terdaftar) — bukan operator
+ *                instalasi, bukan anggota tenant; semua primitif
+ *                bisnis menolaknya.
  * - guest      : tidak ada pengguna (konsol/tamu).
  *
  * Resolusi identitas dipisahkan dari otorisasi: tenant yang
@@ -41,6 +49,8 @@ class TenantContext
     public const MODE_PLATFORM = 'platform';
 
     public const MODE_STANDALONE = 'standalone';
+
+    public const MODE_UNASSIGNED = 'unassigned';
 
     public const MODE_GUEST = 'guest';
 
@@ -76,7 +86,15 @@ class TenantContext
             return new self($user, self::MODE_TENANT, Tenant::query()->find($user->tenant_id));
         }
 
-        return new self($user, self::MODE_STANDALONE, null);
+        // Tanpa tenant_id: standalone HANYA bila instalasi benar-benar
+        // individual (belum ada tenant terdaftar). Begitu instalasi
+        // melayani tenant, akun tanpa tenant yang bukan platform
+        // adalah UNASSIGNED — tenant_id NULL tidak boleh menjadi
+        // kesimpulan "operator instalasi" (audit R-3, menyelaraskan
+        // prinsip penjaga NULL pada BackupPolicy R-1).
+        return Tenant::count() === 0
+            ? new self($user, self::MODE_STANDALONE, null)
+            : new self($user, self::MODE_UNASSIGNED, null);
     }
 
     /**
@@ -130,6 +148,11 @@ class TenantContext
     public function isStandalone(): bool
     {
         return $this->mode === self::MODE_STANDALONE;
+    }
+
+    public function isUnassigned(): bool
+    {
+        return $this->mode === self::MODE_UNASSIGNED;
     }
 
     public function isGuest(): bool
