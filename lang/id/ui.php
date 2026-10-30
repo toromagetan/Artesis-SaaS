@@ -813,7 +813,7 @@ return [
 
     'backups' => [
         'title' => 'Backup & Restore',
-        'help' => 'Backup berisi snapshot data seluruh tabel (skema mengikuti migrasi). Restore menimpa SELURUH data saat ini dengan isi backup — sebelum restore, sistem selalu membuat backup keselamatan (awalan pra-restore). Restore hanya untuk Owner dan wajib mengetik RESTORE.',
+        'help' => 'Backup berisi snapshot data seluruh tabel (skema mengikuti migrasi). Restore menimpa SELURUH data saat ini dengan isi backup — sebelum restore, sistem selalu membuat backup keselamatan (awalan pra-restore). Restore hanya untuk operator platform (atau Owner pada instalasi individual) dan wajib mengetik RESTORE.',
         'create' => 'Buat Backup',
         'created' => 'Backup dibuat: :name.',
         'file' => 'Berkas',
@@ -827,6 +827,8 @@ return [
         'delete_confirm' => 'Hapus berkas backup ini?',
         'restore' => 'Pulihkan (Restore)',
         'restore_confirm_label' => 'Ketik RESTORE untuk mengaktifkan:',
+        'forbidden' => 'Backup database global hanya untuk operator platform atau instalasi individual.',
+        'restore_tenant_count_label' => 'Restore ini menimpa data :count tenant. Ketik jumlah tenant yang terdampak untuk melanjutkan:',
         'restored' => 'Restore selesai: :tables tabel dipulihkan. Backup keselamatan: :safety.',
         'empty' => 'Belum ada berkas backup.',
         'offsite' => 'Backup Offsite (Google Drive pemilik)',

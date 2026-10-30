@@ -104,7 +104,9 @@ class ArchitectureTest extends TestCase
         // yang sebelumnya berpagar izin level-lihat/buat.
         // 75 → 77 pada M3 SaaS (29 Okt 2026): + plans.manage,
         // tenants.manage — panel platform khusus aktor is_platform.
-        $this->assertCount(77, PermissionRegistry::all());
+        // 77 → 78 pada R-1 (30 Okt 2026): + backups.manage — gerbang
+        // khusus backup database global (audit Fase 1, temuan P0-1).
+        $this->assertCount(78, PermissionRegistry::all());
     }
 
     public function test_no_float_casts_in_application_code(): void

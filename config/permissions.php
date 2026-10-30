@@ -145,6 +145,7 @@ return [
             'api_tokens.manage' => 'Kelola token API',
             'plans.manage' => 'Kelola paket langganan SaaS',
             'tenants.manage' => 'Kelola tenant SaaS',
+            'backups.manage' => 'Kelola backup & restore database (platform/instalasi individual)',
         ],
     ],
     'master' => [
