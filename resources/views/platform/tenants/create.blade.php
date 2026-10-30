@@ -14,13 +14,29 @@
                 </div>
                 <div>
                     <x-input-label for="email" :value="__('ui.tenants.email')" />
-                    <x-text-input id="email" type="email" name="email" :value="old('email')" class="mt-1 block w-full" />
+                    <x-text-input id="email" type="email" name="email" :value="old('email')" class="mt-1 block w-full" required />
                     <x-input-error :messages="$errors->get('email')" class="mt-1" />
                 </div>
                 <div>
                     <x-input-label for="phone" :value="__('ui.tenants.phone')" />
                     <x-text-input id="phone" name="phone" :value="old('phone')" class="mt-1 block w-full" />
                     <x-input-error :messages="$errors->get('phone')" class="mt-1" />
+                </div>
+                <div>
+                    <x-input-label for="owner_name" :value="__('ui.tenants.owner_name')" />
+                    <x-text-input id="owner_name" name="owner_name" :value="old('owner_name')" class="mt-1 block w-full" />
+                    <x-input-error :messages="$errors->get('owner_name')" class="mt-1" />
+                </div>
+                <div>
+                    <x-input-label for="branch_name" :value="__('ui.tenants.branch_name')" />
+                    <x-text-input id="branch_name" name="branch_name" :value="old('branch_name', 'Pusat')" class="mt-1 block w-full" />
+                    <x-input-error :messages="$errors->get('branch_name')" class="mt-1" />
+                </div>
+                <div>
+                    <x-input-label for="password" :value="__('ui.tenants.initial_password')" />
+                    <x-text-input id="password" type="password" name="password" class="mt-1 block w-full" autocomplete="new-password" />
+                    <p class="mt-1 text-xs text-gray-500">{{ __('ui.tenants.initial_password_hint') }}</p>
+                    <x-input-error :messages="$errors->get('password')" class="mt-1" />
                 </div>
                 <div class="flex items-center justify-end gap-2 pt-2">
                     <a href="{{ route('platform.tenants.index') }}" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50">{{ __('ui.back') }}</a>
