@@ -54,6 +54,31 @@ class PrescriptionController extends Controller
         return view('clinical.prescriptions.index', compact('prescriptions', 'q', 'branchId', 'branches'));
     }
 
+    /**
+     * Pintu masuk "Tambah Resep" dari daftar resep: resep tetap lahir dari
+     * konteks pelanggan (rute bersarang), jadi langkah pertama adalah
+     * memilih pelanggan — atau membuat pelanggan baru dari sini.
+     * Pelanggan adalah master global (ADR-012): tanpa pagar cabang.
+     */
+    public function pickCustomer(Request $request): View
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $customers = Customer::query()
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('name', 'like', "%{$q}%")
+                        ->orWhere('phone', 'like', "%{$q}%");
+                });
+            })
+            ->with('branch')
+            ->orderBy('name')
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('clinical.prescriptions.pick-customer', compact('customers', 'q'));
+    }
+
     public function create(Request $request, Customer $customer): View
     {
         return view('clinical.prescriptions.create', [
