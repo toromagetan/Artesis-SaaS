@@ -50,10 +50,12 @@ class UiPatternTest extends TestCase
         $html = $this->actingAs($this->owner)->get('/pengguna')->assertOk()->getContent();
 
         // ADR-018: kepala layar memuat kelompok tombol sejajar AksiBar;
-        // AksiBaris per baris = jumlah baris (2 pengguna terseed);
+        // AksiBaris per baris = jumlah baris pengguna bisnis yang tampil
+        // (2 pengguna terseed: owner + platform; aktor platform tersembunyi
+        // dari pengelolaan pengguna tenant — lihat UserTenantIsolationTest);
         // tidak ada lagi dropdown perintah dalam bentuk apa pun.
         $this->assertGreaterThanOrEqual(1, substr_count($html, 'data-lentera="aksi-bar"'));
-        $this->assertSame(2, substr_count($html, 'data-lentera="aksi-baris"'));
+        $this->assertSame(1, substr_count($html, 'data-lentera="aksi-baris"'));
         $this->assertStringNotContainsString('data-lentera="dropdown-aksi"', $html);
         $this->assertStringNotContainsString('data-lentera="dropdown-cetak"', $html);
         $this->assertStringNotContainsString('data-lentera="row-actions"', $html);

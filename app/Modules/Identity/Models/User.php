@@ -7,6 +7,7 @@ use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Models\Tenant;
 use App\Support\PermissionRegistry;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -59,6 +60,18 @@ class User extends Authenticatable
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Ruang lingkup pengelolaan pengguna dari sisi tenant: aktor platform
+     * TIDAK PERNAH tampil di pengelolaan pengguna tenant, dan aktor yang
+     * terikat tenant hanya melihat pengguna tenantnya sendiri. Aktor tanpa
+     * tenant (instalasi mandiri) melihat seluruh pengguna bisnis.
+     */
+    public function scopeVisibleInTenantManagement(Builder $query, User $actor): Builder
+    {
+        return $query->where('is_platform', false)
+            ->when($actor->tenant_id !== null, fn (Builder $q) => $q->where('tenant_id', $actor->tenant_id));
     }
 
     public function roles(): BelongsToMany
