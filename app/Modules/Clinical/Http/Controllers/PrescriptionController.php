@@ -7,6 +7,7 @@ use App\Modules\Clinical\Models\Prescription;
 use App\Modules\Clinical\Services\PrescriptionService;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
+use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,11 +27,38 @@ class PrescriptionController extends Controller
         private readonly PrescriptionService $service,
     ) {}
 
-    public function create(Customer $customer): View
+    /**
+     * Daftar resep global (ADR-012: master mengikuti pelanggan, berlaku di
+     * semua cabang; branch_id = cabang pemeriksaan, tampil sebagai saringan
+     * asal — pola yang sama dengan daftar pelanggan).
+     */
+    public function index(Request $request): View
+    {
+        $q = trim((string) $request->query('q', ''));
+        $branchId = $request->query('cabang');
+
+        $prescriptions = Prescription::with(['customer', 'branch', 'examiner'])
+            ->when($q !== '', function ($query) use ($q) {
+                $query->whereHas('customer', fn ($sub) => $sub
+                    ->where('name', 'like', "%{$q}%")
+                    ->orWhere('phone', 'like', "%{$q}%"));
+            })
+            ->when($branchId, fn ($query) => $query->where('branch_id', (int) $branchId))
+            ->orderByDesc('examined_at')
+            ->orderByDesc('id')
+            ->paginate(25)
+            ->withQueryString();
+
+        $branches = Branch::orderBy('name')->get();
+
+        return view('clinical.prescriptions.index', compact('prescriptions', 'q', 'branchId', 'branches'));
+    }
+
+    public function create(Request $request, Customer $customer): View
     {
         return view('clinical.prescriptions.create', [
             'customer' => $customer,
-            'examiners' => User::where('is_active', true)->orderBy('name')->get(),
+            'examiners' => User::visibleInTenantManagement($request->user())->where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 
@@ -51,13 +79,13 @@ class PrescriptionController extends Controller
         return view('clinical.prescriptions.show', compact('prescription'));
     }
 
-    public function edit(Prescription $prescription): View
+    public function edit(Request $request, Prescription $prescription): View
     {
         $prescription->load('customer');
 
         return view('clinical.prescriptions.edit', [
             'prescription' => $prescription,
-            'examiners' => User::where('is_active', true)->orderBy('name')->get(),
+            'examiners' => User::visibleInTenantManagement($request->user())->where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 

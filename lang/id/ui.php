@@ -124,6 +124,7 @@ return [
         'insurance_usages' => 'Pemakaian Asuransi',
         'offline_exceptions' => 'Pengecualian Sinkron',
         'customers_list' => 'Daftar Pelanggan',
+        'prescriptions_list' => 'Daftar Resep',
         'member_levels' => 'Level Member',
         'follow_up' => 'Follow-up Purnajual',
         'members_list' => 'Daftar Member',
@@ -346,6 +347,12 @@ return [
     ],
 
     'prescriptions' => [
+        'title' => 'Daftar Resep',
+        'status' => 'Status',
+        'customer' => 'Pelanggan',
+        'exam_branch' => 'Cabang Periksa',
+        'search_placeholder' => 'Cari nama pelanggan…',
+        'empty' => 'Belum ada resep.',
         'create' => 'Resep Baru',
         'edit' => 'Ubah Resep',
         'detail' => 'Detail Resep',

@@ -93,6 +93,9 @@
                     <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         <a href="{{ route('customers.index') }}" class="{{ $sub }} {{ request()->routeIs('customers.index') ? $subActive : '' }}">@if (request()->routeIs('customers.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.customers_list') }}</a>
                         <a href="{{ route('customers.create') }}" class="{{ $sub }} {{ request()->routeIs('customers.create') ? $subActive : '' }}">@if (request()->routeIs('customers.create')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.customers_create') }}</a>
+                        @if ($can('prescriptions.view'))
+                            <a href="{{ route('prescriptions.index') }}" class="{{ $sub }} {{ request()->routeIs('prescriptions.index') ? $subActive : '' }}">@if (request()->routeIs('prescriptions.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.prescriptions_list') }}</a>
+                        @endif
                     </div>
                 </div>
             @endif
