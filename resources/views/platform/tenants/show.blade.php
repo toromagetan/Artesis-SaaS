@@ -13,6 +13,16 @@
         @if (session('status'))
             <div class="rounded-lg bg-lentera-50 px-4 py-3 text-sm font-medium text-lentera-900 ring-1 ring-lentera-200">{{ session('status') }}</div>
         @endif
+        @if (session('initial_password'))
+            <div class="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
+                <p class="font-semibold">{{ __('ui.tenants.credentials_title') }}</p>
+                <dl class="mt-2 space-y-1">
+                    <div class="flex gap-2"><dt class="text-amber-700">{{ __('ui.tenants.username') }}:</dt><dd class="font-mono font-medium">{{ session('owner_username') }}</dd></div>
+                    <div class="flex gap-2"><dt class="text-amber-700">{{ __('ui.tenants.initial_password') }}:</dt><dd class="font-mono font-medium">{{ session('initial_password') }}</dd></div>
+                </dl>
+                <p class="mt-2 text-xs text-amber-700">{{ __('ui.tenants.credentials_note') }}</p>
+            </div>
+        @endif
         @if ($errors->any())
             <div class="rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-danger ring-1 ring-red-200">{{ $errors->first() }}</div>
         @endif

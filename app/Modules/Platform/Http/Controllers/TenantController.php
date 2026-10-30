@@ -6,23 +6,29 @@ use App\Http\Controllers\Controller;
 use App\Modules\Platform\Models\Plan;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Platform\Services\PlanService;
+use App\Modules\Platform\Services\TenantSignupService;
 use App\Support\PlanFeatureRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
  * Panel tenant SaaS (M3) — khusus aktor platform (gerbang middleware
- * 'platform' + izin tenants.manage). Membuat tenant, menetapkan
- * paket, memberi pengecualian fitur berbatas waktu, dan mengaktifkan/
+ * 'platform' + izin tenants.manage). Membuat tenant SEKALIGUS
+ * memprovisioning cabang pertama + pengguna pemilik berkata sandi awal
+ * (layanan yang sama dengan pendaftaran mandiri M5), menetapkan paket,
+ * memberi pengecualian fitur berbatas waktu, dan mengaktifkan/
  * menonaktifkan tenant (tanpa hapus — aturan berdiri owner).
- * Provisioning cabang + pengguna pemilik adalah modul M5.
  */
 class TenantController extends Controller
 {
-    public function __construct(private readonly PlanService $plans) {}
+    public function __construct(
+        private readonly PlanService $plans,
+        private readonly TenantSignupService $signup,
+    ) {}
 
     public function index(): View
     {
@@ -40,29 +46,32 @@ class TenantController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
-            'email' => ['nullable', 'email', 'max:150'],
+            'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')],
             'phone' => ['nullable', 'string', 'max:30'],
+            'owner_name' => ['nullable', 'string', 'max:150'],
+            'branch_name' => ['nullable', 'string', 'max:100'],
+            'password' => ['nullable', 'string', 'min:8', 'max:100'],
         ]);
 
-        $slug = Str::slug($validated['name']);
-        $base = $slug === '' ? 'tenant' : $slug;
-        $slug = $base;
-        $suffix = 2;
-        while (Tenant::where('slug', $slug)->exists()) {
-            $slug = $base.'-'.$suffix++;
-        }
+        // Kata sandi awal: diisi admin, atau dibuatkan acak — dalam kedua
+        // hal DITAMPILKAN SATU KALI di halaman detail untuk diserahkan ke
+        // pemilik tenant (tidak pernah disimpan sebagai teks terang).
+        $initialPassword = $validated['password'] ?? Str::password(12);
 
-        $tenant = Tenant::create([
-            'name' => $validated['name'],
-            'slug' => $slug,
-            'email' => $validated['email'] ?? null,
+        $owner = $this->signup->register([
+            'business_name' => $validated['name'],
+            'owner_name' => $validated['owner_name'] ?? $validated['name'],
+            'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
-            'is_active' => true,
-        ]);
+            'branch_name' => $validated['branch_name'] ?? 'Pusat',
+            'password' => $initialPassword,
+        ], $request->user());
 
         return redirect()
-            ->route('platform.tenants.show', $tenant)
-            ->with('status', __('ui.tenants.created'));
+            ->route('platform.tenants.show', $owner->tenant)
+            ->with('status', __('ui.tenants.created'))
+            ->with('owner_username', $owner->username)
+            ->with('initial_password', $initialPassword);
     }
 
     public function show(Tenant $tenant): View

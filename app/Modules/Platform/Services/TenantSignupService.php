@@ -25,10 +25,13 @@ class TenantSignupService
 
     /**
      * @param  array{business_name: string, owner_name: string, email: string, phone?: ?string, branch_name: string, password: string}  $data
+     * @param  ?User  $actor  Aktor pencatat penetapan paket (panel platform:
+     *                        admin platform; pendaftaran mandiri: pemilik
+     *                        sendiri, sesuai perilaku semula).
      */
-    public function register(array $data): User
+    public function register(array $data, ?User $actor = null): User
     {
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $actor) {
             $tenant = Tenant::create([
                 'name' => $data['business_name'],
                 'slug' => $this->uniqueSlug($data['business_name']),
@@ -60,8 +63,9 @@ class TenantSignupService
                 $this->plans->seedDefaultPlans();
                 $free = Plan::where('key', 'free')->firstOrFail();
             }
-            // Penetapan Free dicatat atas nama pemilik sendiri (audit).
-            $this->plans->assignPlan($tenant, $free, null, $user);
+            // Penetapan Free dicatat atas nama aktor (audit): pemilik
+            // sendiri pada pendaftaran mandiri, admin platform dari panel.
+            $this->plans->assignPlan($tenant, $free, null, $actor ?? $user);
 
             return $user;
         });
