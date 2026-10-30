@@ -11,7 +11,7 @@ use Illuminate\Database\Seeder;
 
 /**
  * Penanaman SaaS (M3): definisi paket dari PlanFeatureRegistry dan
- * peran 'Platform' (plans.manage + tenants.manage) untuk aktor
+ * peran 'Platform' (plans.manage + tenants.manage + backups.manage) untuk aktor
  * platform. Idempoten; jalankan SETELAH IdentitySeeder (yang menanam
  * registry izin, peran bawaan, dan pengguna platform).
  *
@@ -26,7 +26,7 @@ class SaasSeeder extends Seeder
 
         $role = Role::updateOrCreate(['name' => 'Platform'], ['label' => 'Platform']);
         $permissionIds = [];
-        foreach (['plans.manage', 'tenants.manage'] as $name) {
+        foreach (['plans.manage', 'tenants.manage', 'backups.manage'] as $name) {
             PermissionRegistry::assertExists($name);
             $permission = Permission::updateOrCreate(
                 ['name' => $name],

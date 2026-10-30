@@ -798,7 +798,7 @@ return [
     ],
     'backups' => [
         'title' => 'Backup & Restore',
-        'help' => 'Backup berisi snapshot data seluruh tabel (skema mengikuti migrasi). Restore menimpa SELURUH data saat ini dengan isi backup — sebelum restore, sistem selalu membuat backup keselamatan (awalan pra-restore). Restore hanya untuk Owner dan wajib mengetik RESTORE.',
+        'help' => 'Backup berisi snapshot data seluruh tabel (skema mengikuti migrasi). Restore menimpa SELURUH data saat ini dengan isi backup — sebelum restore, sistem selalu membuat backup keselamatan (awalan pra-restore). Restore hanya untuk operator platform (atau Owner pada instalasi individual) dan wajib mengetik RESTORE.',
         'create' => 'Buat Backup',
         'created' => 'Backup dibuat: :name.',
         'file' => 'Fail',
@@ -812,6 +812,8 @@ return [
         'delete_confirm' => 'Padam fail backup ini?',
         'restore' => 'Pulihkan (Restore)',
         'restore_confirm_label' => 'Ketik RESTORE untuk mengaktifkan:',
+        'forbidden' => 'Sandaran pangkalan data global hanya untuk pengendali platform atau pemasangan kendiri.',
+        'restore_tenant_count_label' => 'Pemulihan ini menimpa data :count penyewa. Taip bilangan penyewa yang terjejas untuk meneruskan:',
         'restored' => 'Restore selesai: :tables tabel dipulihkan. Backup keselamatan: :safety.',
         'empty' => 'Belum ada fail backup.',
         'offsite' => 'Backup Offsite (Google Drive pemilik)',

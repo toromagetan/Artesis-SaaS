@@ -827,6 +827,8 @@ return [
         'delete_confirm' => 'Delete this backup file?',
         'restore' => 'Restore',
         'restore_confirm_label' => 'Type RESTORE to enable:',
+        'forbidden' => 'Global database backups are restricted to the platform operator or a standalone installation.',
+        'restore_tenant_count_label' => 'This restore overwrites data belonging to :count tenants. Type the number of affected tenants to continue:',
         'restored' => 'Restore complete: :tables tables restored. Safety backup: :safety.',
         'empty' => 'No backup files yet.',
         'offsite' => 'Offsite Backup (owner Google Drive)',

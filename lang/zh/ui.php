@@ -812,6 +812,8 @@ return [
         'delete_confirm' => '删除此备份文件？',
         'restore' => '恢复',
         'restore_confirm_label' => '输入 RESTORE 以启用：',
+        'forbidden' => '全局数据库备份仅限平台运营者或独立安装使用。',
+        'restore_tenant_count_label' => '此恢复将覆盖 :count 个租户的数据。输入受影响的租户数量以继续：',
         'restored' => '恢复完成：已恢复 :tables 张表。安全备份：:safety。',
         'empty' => '暂无备份文件。',
         'offsite' => '异地备份（店主 Google Drive）',

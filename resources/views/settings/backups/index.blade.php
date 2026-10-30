@@ -53,7 +53,7 @@
                             <td class="px-4 py-3 text-right">
                                 <x-lentera.aksi-baris>
                                     <x-lentera.menu-item :href="route('backups.download', ['berkas' => $entry['name']])" sm>{{ __('ui.backups.download') }}</x-lentera.menu-item>
-                                    @if (auth()->user()->hasRole('Owner'))
+                                    @if ($canRestore)
                                         <x-lentera.aksi-dialog danger sm :label="__('ui.backups.restore')" :title="__('ui.backups.restore').'?'">
                                             <form method="POST" action="{{ route('backups.restore') }}">
                                                 @csrf
@@ -61,6 +61,11 @@
                                                 <label class="block text-left text-xs text-gray-500">{{ __('ui.backups.restore_confirm_label') }}
                                                     <input type="text" name="konfirmasi" required class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
                                                 </label>
+                                                @if (auth()->user()->is_platform && $tenantCount > 0)
+                                                    <label class="mt-3 block text-left text-xs text-gray-500">{{ __('ui.backups.restore_tenant_count_label', ['count' => $tenantCount]) }}
+                                                        <input type="number" name="jumlah_tenant" required min="0" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                                    </label>
+                                                @endif
                                                 <div class="mt-4 flex justify-end gap-2">
                                                     <button type="button" @click="open = false" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{{ __('ui.back') }}</button>
                                                     <button type="submit" class="inline-flex items-center rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-red-700">{{ __('ui.backups.restore') }}</button>
