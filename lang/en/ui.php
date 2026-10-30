@@ -124,6 +124,7 @@ return [
         'insurance_usages' => 'Insurance Usage',
         'offline_exceptions' => 'Sync Exceptions',
         'customers_list' => 'Customer List',
+        'prescriptions_list' => 'Prescription List',
         'member_levels' => 'Membership Levels',
         'follow_up' => 'After-Service Follow-up',
         'members_list' => 'Member List',
@@ -346,6 +347,12 @@ return [
     ],
 
     'prescriptions' => [
+        'title' => 'Prescription List',
+        'status' => 'Status',
+        'customer' => 'Customer',
+        'exam_branch' => 'Exam Branch',
+        'search_placeholder' => 'Search customer name…',
+        'empty' => 'No prescriptions yet.',
         'create' => 'New Prescription',
         'edit' => 'Edit Prescription',
         'detail' => 'Prescription Detail',

@@ -305,6 +305,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/pelanggan/{customer}/fitting', [FittingController::class, 'store'])->middleware('permission:prescriptions.create')->name('fittings.store');
     Route::get('/pelanggan/{customer}/resep/baru', [PrescriptionController::class, 'create'])->middleware('permission:prescriptions.create')->name('prescriptions.create');
     Route::post('/pelanggan/{customer}/resep', [PrescriptionController::class, 'store'])->middleware('permission:prescriptions.create')->name('prescriptions.store');
+    Route::get('/resep', [PrescriptionController::class, 'index'])->middleware('permission:prescriptions.view')->name('prescriptions.index');
     Route::get('/resep/{prescription}', [PrescriptionController::class, 'show'])->middleware('permission:prescriptions.view')->name('prescriptions.show');
     Route::get('/resep/{prescription}/ubah', [PrescriptionController::class, 'edit'])->middleware('permission:prescriptions.create')->name('prescriptions.edit');
     Route::put('/resep/{prescription}', [PrescriptionController::class, 'update'])->middleware('permission:prescriptions.create')->name('prescriptions.update');
