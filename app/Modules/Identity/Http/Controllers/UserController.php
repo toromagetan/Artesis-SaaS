@@ -19,7 +19,8 @@ class UserController extends Controller
 
     public function index(Request $request): View
     {
-        $query = User::with(['roles', 'branches'])->orderBy('name');
+        $query = User::visibleInTenantManagement($request->user())
+            ->with(['roles', 'branches'])->orderBy('name');
         if ($search = $request->string('q')->toString()) {
             $query->where(fn ($q) => $q
                 ->where('name', 'like', "%{$search}%")
@@ -34,8 +35,9 @@ class UserController extends Controller
     }
 
     /** Detail pengguna — HALAMAN PENUH dengan rute sendiri (F.2 butir 7). */
-    public function show(User $user): View
+    public function show(Request $request, User $user): View
     {
+        $this->ensureManageable($request->user(), $user);
         $user->load(['roles', 'branches']);
 
         return view('identity.users.show', compact('user'));
@@ -44,7 +46,8 @@ class UserController extends Controller
     /** Dokumen cetak: daftar pengguna (A5, tab baru). */
     public function printList(Request $request): View
     {
-        $users = User::with(['roles', 'branches'])->orderBy('name')->get();
+        $users = User::visibleInTenantManagement($request->user())
+            ->with(['roles', 'branches'])->orderBy('name')->get();
 
         return view('identity.users.print-list', [
             'users' => $users,
@@ -54,8 +57,9 @@ class UserController extends Controller
     }
 
     /** Dokumen cetak: profil satu pengguna (A5, tab baru). */
-    public function printProfile(User $user): View
+    public function printProfile(Request $request, User $user): View
     {
+        $this->ensureManageable($request->user(), $user);
         $user->load(['roles', 'branches']);
 
         return view('identity.users.print-profile', [
@@ -65,11 +69,11 @@ class UserController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('identity.users.create', [
             'roles' => Role::orderBy('name')->get(),
-            'branches' => Branch::orderBy('name')->get(),
+            'branches' => Branch::where('tenant_id', $request->user()->tenant_id)->orderBy('name')->get(),
         ]);
     }
 
@@ -84,7 +88,7 @@ class UserController extends Controller
             'roles' => ['array'],
             'roles.*' => ['string', Rule::exists('roles', 'name')],
             'branches' => ['array'],
-            'branches.*' => ['integer', Rule::exists('branches', 'id')],
+            'branches.*' => ['integer', Rule::exists('branches', 'id')->where('tenant_id', $request->user()->tenant_id)],
         ]);
 
         $this->users->createUser($data, $request->user());
@@ -92,17 +96,21 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('status', __('ui.users.created'));
     }
 
-    public function edit(User $user): View
+    public function edit(Request $request, User $user): View
     {
+        $this->ensureManageable($request->user(), $user);
+
         return view('identity.users.edit', [
             'user' => $user->load(['roles', 'branches']),
             'roles' => Role::orderBy('name')->get(),
-            'branches' => Branch::orderBy('name')->get(),
+            'branches' => Branch::where('tenant_id', $request->user()->tenant_id)->orderBy('name')->get(),
         ]);
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
+        $this->ensureManageable($request->user(), $user);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user->id)],
@@ -111,7 +119,7 @@ class UserController extends Controller
             'roles' => ['array'],
             'roles.*' => ['string', Rule::exists('roles', 'name')],
             'branches' => ['array'],
-            'branches.*' => ['integer', Rule::exists('branches', 'id')],
+            'branches.*' => ['integer', Rule::exists('branches', 'id')->where('tenant_id', $request->user()->tenant_id)],
         ]);
 
         $this->users->updateUser($user, $data, $request->user());
@@ -121,6 +129,8 @@ class UserController extends Controller
 
     public function toggleActive(Request $request, User $user): RedirectResponse
     {
+        $this->ensureManageable($request->user(), $user);
+
         if ($user->is_active) {
             $this->users->deactivateUser($user, $request->user());
             $message = __('ui.users.deactivated');
@@ -130,5 +140,15 @@ class UserController extends Controller
         }
 
         return back()->with('status', $message);
+    }
+
+    /**
+     * Pagar akses satu pengguna dari pengelolaan tenant: pengguna platform
+     * dan pengguna milik tenant lain tidak dapat dibuka/diubah sama sekali.
+     */
+    private function ensureManageable(User $actor, User $target): void
+    {
+        abort_if($target->is_platform, 403);
+        abort_if($actor->tenant_id !== null && $target->tenant_id !== $actor->tenant_id, 403);
     }
 }

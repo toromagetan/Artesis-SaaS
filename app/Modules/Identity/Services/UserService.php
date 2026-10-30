@@ -132,7 +132,11 @@ class UserService
         }
 
         if (array_key_exists('branches', $data)) {
-            $branchIds = Branch::whereIn('id', $data['branches'])->pluck('id');
+            // Lapis kedua isolasi tenant: cabang yang disinkronkan hanya
+            // cabang milik tenant aktor (instalasi mandiri: tenant null).
+            $branchIds = Branch::whereIn('id', $data['branches'])
+                ->when($actor !== null, fn ($q) => $q->where('tenant_id', $actor->tenant_id))
+                ->pluck('id');
             $user->branches()->sync($branchIds);
         }
     }
