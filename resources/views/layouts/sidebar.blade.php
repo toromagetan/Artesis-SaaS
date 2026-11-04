@@ -65,7 +65,7 @@
                         {{ __('ui.nav.sales') }}
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         <a href="{{ route('sales.index') }}" class="{{ $sub }} {{ request()->routeIs('sales.index') ? $subActive : '' }}">@if (request()->routeIs('sales.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.sales_list') }}</a>
                         <a href="{{ route('sales.create') }}" class="{{ $sub }} {{ request()->routeIs('sales.create') ? $subActive : '' }}">@if (request()->routeIs('sales.create')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.sales_create') }}</a>
                         <a href="{{ route('receivables.index') }}" class="{{ $sub }} {{ request()->routeIs('receivables.*') ? $subActive : '' }}">@if (request()->routeIs('receivables.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.receivables') }}</a>
@@ -90,7 +90,7 @@
                         {{ __('ui.nav.customers') }}
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         <a href="{{ route('customers.index') }}" class="{{ $sub }} {{ request()->routeIs('customers.index') ? $subActive : '' }}">@if (request()->routeIs('customers.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.customers_list') }}</a>
                         <a href="{{ route('customers.create') }}" class="{{ $sub }} {{ request()->routeIs('customers.create') ? $subActive : '' }}">@if (request()->routeIs('customers.create')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.customers_create') }}</a>
                         @if ($can('prescriptions.view'))
@@ -108,7 +108,7 @@
                         {{ __('ui.nav.members') }}
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         <a href="{{ route('members.index') }}" class="{{ $sub }} {{ request()->routeIs('members.index') ? $subActive : '' }}">@if (request()->routeIs('members.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.members_list') }}</a>
                         <a href="{{ route('members.follow-up') }}" class="{{ $sub }} {{ request()->routeIs('members.follow-up') ? $subActive : '' }}">@if (request()->routeIs('members.follow-up')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.follow_up') }}</a>
                         @if ($can('members.manage'))
@@ -126,7 +126,7 @@
                         {{ __('ui.nav.lab') }}
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         <a href="{{ route('lab.index') }}" class="{{ $sub }} {{ request()->routeIs('lab.index') || request()->routeIs('lab.show') ? $subActive : '' }}">@if (request()->routeIs('lab.index') || request()->routeIs('lab.show')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.lab.title') }}</a>
                         @if ($isManager)
                             <a href="{{ route('qc-templates.index') }}" class="{{ $sub }} {{ request()->routeIs('qc-templates.*') ? $subActive : '' }}">@if (request()->routeIs('qc-templates.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.qc_templates') }}</a>
@@ -148,7 +148,7 @@
                         {{ __('ui.nav.purchasing') }}
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         @if ($can('pr.view'))
                             <a href="{{ route('pr.index') }}" class="{{ $sub }} {{ request()->routeIs('pr.*') ? $subActive : '' }}">@if (request()->routeIs('pr.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.purchasing.pr_title') }}</a>
                         @endif
@@ -173,7 +173,7 @@
                         {{ __('ui.nav.stock_group') }}
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         <a href="{{ route('stock.index') }}" class="{{ $sub }} {{ request()->routeIs('stock.index') ? $subActive : '' }}">@if (request()->routeIs('stock.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.stock') }}</a>
                         <a href="{{ route('stock.movements') }}" class="{{ $sub }} {{ request()->routeIs('stock.movements') ? $subActive : '' }}">@if (request()->routeIs('stock.movements')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.stock_movements') }}</a>
                         <a href="{{ route('transfers.index') }}" class="{{ $sub }} {{ request()->routeIs('transfers.*') ? $subActive : '' }}">@if (request()->routeIs('transfers.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.transfers') }}</a>
@@ -201,7 +201,7 @@
                         {{ __('ui.nav.journals') }}
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         <a href="{{ route('journals.index') }}" class="{{ $sub }} {{ request()->routeIs('journals.index') ? $subActive : '' }}">@if (request()->routeIs('journals.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.journals_list') }}</a>
                         <a href="{{ route('journals.create') }}" class="{{ $sub }} {{ request()->routeIs('journals.create') ? $subActive : '' }}">@if (request()->routeIs('journals.create')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.journal_manual') }}</a>
                         <a href="{{ route('ledger.index') }}" class="{{ $sub }} {{ request()->routeIs('ledger.*') ? $subActive : '' }}">@if (request()->routeIs('ledger.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.ledger') }}</a>
@@ -238,7 +238,7 @@
                         {{ __('ui.nav.payroll') }}
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         <a href="{{ route('payroll.index') }}" class="{{ $sub }} {{ request()->routeIs('payroll.*') ? $subActive : '' }}">@if (request()->routeIs('payroll.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.payroll_item') }}</a>
                         <a href="{{ route('commissions.index') }}" class="{{ $sub }} {{ request()->routeIs('commissions.*') ? $subActive : '' }}">@if (request()->routeIs('commissions.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.commissions_item') }}</a>
                         <a href="{{ route('incentives.index') }}" class="{{ $sub }} {{ request()->routeIs('incentives.*') ? $subActive : '' }}">@if (request()->routeIs('incentives.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.incentives_item') }}</a>
@@ -259,7 +259,7 @@
                         {{ __('ui.nav.reports_operations') }}
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         @if ($can('reports.sales'))
                             <a href="{{ route('reports.sales') }}" class="{{ $sub }} {{ request()->routeIs('reports.sales') ? $subActive : '' }}">@if (request()->routeIs('reports.sales')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.sales') }}</a>
                         @endif
@@ -288,7 +288,7 @@
                         {{ __('ui.nav.reports_finance') }}
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         <a href="{{ route('financial.balance-sheet') }}" class="{{ $sub }} {{ request()->routeIs('financial.balance-sheet') ? $subActive : '' }}">@if (request()->routeIs('financial.balance-sheet')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.fin_balance') }}</a>
                         <a href="{{ route('financial.income') }}" class="{{ $sub }} {{ request()->routeIs('financial.income') ? $subActive : '' }}">@if (request()->routeIs('financial.income')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.fin_income') }}</a>
                         <a href="{{ route('financial.cash-flow') }}" class="{{ $sub }} {{ request()->routeIs('financial.cash-flow') ? $subActive : '' }}">@if (request()->routeIs('financial.cash-flow')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.fin_cashflow') }}</a>
@@ -308,7 +308,7 @@
                     {{ __('ui.nav.whatsapp') }}
                     <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                 </button>
-                <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                     @if ($can('wa.inbox'))
                         <a href="{{ route('wa-inbox.index') }}" class="{{ $sub }} {{ request()->routeIs('wa-inbox.*') ? $subActive : '' }}">@if (request()->routeIs('wa-inbox.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.wa_inbox') }}</a>
                     @endif
@@ -337,7 +337,7 @@
                         {{ __('ui.nav.catalog') }}
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         @foreach (\App\Modules\Catalog\Models\Product::TYPES as $t)
                             <a href="{{ route('products.index', $t) }}" class="{{ $sub }} {{ request()->routeIs('products.index') && request()->route('type') === $t ? $subActive : '' }}">@if (request()->routeIs('products.index') && request()->route('type') === $t) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.products.types.'.$t) }}</a>
                         @endforeach
@@ -388,7 +388,7 @@
                         {{ __('ui.nav.settings') }}
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div x-show="open" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         @if ($can('settings.manage'))
                             <a href="{{ route('settings.general.edit') }}" class="{{ $sub }} {{ request()->routeIs('settings.general.*') ? $subActive : '' }}">@if (request()->routeIs('settings.general.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.general_settings') }}</a>
                             @unless (auth()->user()->is_platform)
