@@ -94,7 +94,7 @@
                 </header>
 
                 <!-- Page Content -->
-                <main class="flex-1">
+                <main class="page-enter flex-1">
                     {{ $slot }}
                 </main>
             </div>
