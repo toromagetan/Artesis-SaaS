@@ -1,8 +1,8 @@
 <x-guest-layout>
-    <h1 class="text-center text-xl font-bold text-lentera-950">{{ __('ui.signup.title') }}</h1>
-    <p class="mt-1 text-center text-sm text-gray-600">{{ __('ui.signup.subtitle') }}</p>
+    <h1 class="auth-step text-center text-xl font-bold text-lentera-950" style="--d:260ms">{{ __('ui.signup.title') }}</h1>
+    <p class="auth-step mt-1 text-center text-sm text-gray-600" style="--d:300ms">{{ __('ui.signup.subtitle') }}</p>
 
-    <form method="POST" action="{{ route('signup.store') }}" class="mt-6 space-y-4">
+    <form method="POST" action="{{ route('signup.store') }}" class="auth-signup-form mt-6 space-y-4">
         @csrf
 
         <div>
@@ -47,7 +47,7 @@
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 
-        <x-primary-button class="w-full justify-center">
+        <x-primary-button class="auth-submit w-full justify-center">
             {{ __('ui.signup.submit') }}
         </x-primary-button>
 
