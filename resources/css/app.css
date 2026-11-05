@@ -17,3 +17,122 @@
         display: none !important;
     }
 }
+
+/* ============================================================
+   PANGGUNG MASUK — halaman tamu (login, daftar, lupa sandi).
+   Acuan: Reel "Creative Login Page" (Codewithayansh) yang
+   dibagikan owner 5 Nov 2026, diterjemahkan ke identitas
+   emerald Lentera: latar mengikuti konsep visual login Toris
+   (panggung emerald pekat + lingkaran lensa raksasa); kartu
+   putih masuk "terbangun bertahap" — logo memantul masuk,
+   kartu naik, lalu isi form menyusul berjenjang; tombol
+   memakai kilau menyapu yang sama dengan kartu kaca
+   dashboard. Satu kali putar; transform/opacity saja;
+   prefers-reduced-motion dimatikan total.
+   ============================================================ */
+/* Latar mengikuti konsep visual login Toris: panggung emerald
+   pekat — pijar emerald lembut di kiri-bawah di atas gradasi
+   linear 145deg (nyaris hitam-hijau → emerald dalam → emerald
+   terang di sudut kanan-bawah) + satu lingkaran raksasa tipis
+   berdarah keluar sudut kanan-bawah, motif lensa khas Toris. */
+.auth-stage {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 12% 90%, rgb(52 211 153 / .25), transparent 36%),
+        linear-gradient(145deg, #061614 0%, #0b3228 56%, #087f63 100%);
+}
+.auth-stage::after {
+    content: "";
+    position: absolute;
+    right: -8rem;
+    bottom: -10rem;
+    width: 26rem;
+    height: 26rem;
+    border: 2rem solid rgb(255 255 255 / .07);
+    border-radius: 50%;
+    pointer-events: none;
+}
+@keyframes auth-pop {
+    from { opacity: 0; transform: scale(.55); }
+    60% { opacity: 1; transform: scale(1.06); }
+    to { opacity: 1; transform: scale(1); }
+}
+.auth-logo {
+    animation: auth-pop .6s cubic-bezier(.22,.8,.3,1) .05s both;
+}
+.auth-logo .auth-medal {
+    box-shadow: 0 10px 24px rgb(2 44 34 / .35), 0 0 0 3px rgb(231 206 122 / .65);
+}
+@keyframes auth-rise {
+    from { opacity: 0; transform: translateY(16px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.auth-card {
+    animation: auth-rise .55s cubic-bezier(.22,.8,.3,1) .15s both;
+    box-shadow: 0 24px 48px -12px rgb(2 44 34 / .35);
+}
+@keyframes auth-step-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.auth-step {
+    opacity: 0;
+    animation: auth-step-in .45s ease-out both;
+    animation-delay: var(--d, 0ms);
+}
+/* Formulir daftar: anak-anaknya berjenjang tanpa kelas per baris.
+   nth-of-type dipakai karena input token CSRF adalah anak pertama form. */
+.auth-signup-form > div,
+.auth-signup-form > button,
+.auth-signup-form > p {
+    opacity: 0;
+    animation: auth-step-in .45s ease-out both;
+}
+.auth-signup-form > div:nth-of-type(1) { animation-delay: .34s; }
+.auth-signup-form > div:nth-of-type(2) { animation-delay: .41s; }
+.auth-signup-form > div:nth-of-type(3) { animation-delay: .48s; }
+.auth-signup-form > div:nth-of-type(4) { animation-delay: .55s; }
+.auth-signup-form > div:nth-of-type(5) { animation-delay: .62s; }
+.auth-signup-form > div:nth-of-type(6) { animation-delay: .69s; }
+.auth-signup-form > div:nth-of-type(7) { animation-delay: .76s; }
+.auth-signup-form > button { animation-delay: .84s; }
+.auth-signup-form > p { animation-delay: .92s; }
+/* Kolom isian: ring fokus bertransisi halus. */
+.auth-card input,
+.auth-card select,
+.auth-card textarea {
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+/* Tombol utama: terangkat + kilau menyapu saat hover. */
+.auth-submit {
+    position: relative;
+    overflow: hidden;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+.auth-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px -8px rgb(4 120 87 / .55);
+}
+.auth-submit::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / .35) 50%, transparent 60%);
+    transform: translateX(-120%);
+    transition: transform .6s ease;
+    pointer-events: none;
+}
+.auth-submit:hover::after { transform: translateX(120%); }
+@media (prefers-reduced-motion: reduce) {
+    .auth-logo, .auth-card, .auth-step,
+    .auth-signup-form > div, .auth-signup-form > button, .auth-signup-form > p {
+        animation: none;
+        opacity: 1;
+    }
+    .auth-submit, .auth-submit::after,
+    .auth-card input, .auth-card select, .auth-card textarea {
+        transition: none;
+    }
+    .auth-submit:hover { transform: none; }
+}
