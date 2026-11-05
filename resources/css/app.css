@@ -22,35 +22,36 @@
    PANGGUNG MASUK — halaman tamu (login, daftar, lupa sandi).
    Acuan: Reel "Creative Login Page" (Codewithayansh) yang
    dibagikan owner 5 Nov 2026, diterjemahkan ke identitas
-   emerald Lentera: latar gradasi radial emerald penuh layar
-   (tengah terang, tepi pekat) + satu aksen cahaya emas; kartu
+   emerald Lentera: latar mengikuti konsep visual login Toris
+   (panggung emerald pekat + lingkaran lensa raksasa); kartu
    putih masuk "terbangun bertahap" — logo memantul masuk,
    kartu naik, lalu isi form menyusul berjenjang; tombol
    memakai kilau menyapu yang sama dengan kartu kaca
    dashboard. Satu kali putar; transform/opacity saja;
    prefers-reduced-motion dimatikan total.
    ============================================================ */
+/* Latar mengikuti konsep visual login Toris: panggung emerald
+   pekat — pijar emerald lembut di kiri-bawah di atas gradasi
+   linear 145deg (nyaris hitam-hijau → emerald dalam → emerald
+   terang di sudut kanan-bawah) + satu lingkaran raksasa tipis
+   berdarah keluar sudut kanan-bawah, motif lensa khas Toris. */
 .auth-stage {
     position: relative;
     overflow: hidden;
-    background: radial-gradient(ellipse 95% 72% at 50% 36%, #f0fdf7 0%, #a7f3d0 38%, #34d399 68%, #065f46 100%);
+    background:
+        radial-gradient(circle at 12% 90%, rgb(52 211 153 / .25), transparent 36%),
+        linear-gradient(145deg, #061614 0%, #0b3228 56%, #087f63 100%);
 }
-.auth-stage::before,
 .auth-stage::after {
     content: "";
     position: absolute;
-    border-radius: 9999px;
+    right: -8rem;
+    bottom: -10rem;
+    width: 26rem;
+    height: 26rem;
+    border: 2rem solid rgb(255 255 255 / .07);
+    border-radius: 50%;
     pointer-events: none;
-}
-.auth-stage::before {
-    width: 34rem; height: 34rem;
-    top: -10rem; right: -8rem;
-    background: radial-gradient(circle, rgb(231 206 122 / .5) 0%, rgb(231 206 122 / 0) 65%);
-}
-.auth-stage::after {
-    width: 30rem; height: 30rem;
-    bottom: -12rem; left: -8rem;
-    background: radial-gradient(circle, rgb(209 250 229 / .55) 0%, rgb(209 250 229 / 0) 65%);
 }
 @keyframes auth-pop {
     from { opacity: 0; transform: scale(.55); }
