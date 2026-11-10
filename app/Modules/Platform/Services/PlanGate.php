@@ -4,15 +4,23 @@ namespace App\Modules\Platform\Services;
 
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Models\Tenant;
 use Illuminate\Validation\ValidationException;
 
 /**
  * Gerbang penegakan paket di server (M4). Semua pemeriksaan berpangkal
- * pada tenant aktor (users.tenant_id). Aktor TANPA tenant = instalasi
- * mandiri/satu bisnis (perilaku lama): semua fitur menyala, semua
- * batas tak terbatas — penegakan hanya berlaku untuk tenant SaaS.
+ * pada klasifikasi TenantContext aktor (S-04), BUKAN sekadar
+ * users.tenant_id mentah:
+ *
+ * - MODE_TENANT (tenant nyata) → penegakan paket tenant itu.
+ * - MODE_STANDALONE (instalasi individual, belum ada tenant terdaftar)
+ *   → perilaku lama: semua fitur menyala, semua batas tak terbatas.
+ * - Mode lain (UNASSIGNED di instalasi bertenant, tenant_id
+ *   menggantung, aktor PLATFORM pada jalur bisnis) → GAGAL-TUTUP:
+ *   fitur mati, batas 0. tenant_id NULL tidak lagi otomatis berarti
+ *   "operator instalasi".
  *
  * Fitur boolean digerbang middleware 'plan.feature' / assertEnabled;
  * batas angka digerbang di layanan pembuat entitas lewat
@@ -25,27 +33,34 @@ class PlanGate
 
     public function tenantFor(User $user): ?Tenant
     {
-        return $user->tenant;
+        $context = TenantContext::for($user);
+
+        return $context->mode() === TenantContext::MODE_TENANT ? $context->tenant() : null;
+    }
+
+    private function isStandalone(User $user): bool
+    {
+        return TenantContext::for($user)->mode() === TenantContext::MODE_STANDALONE;
     }
 
     public function enabled(User $user, string $featureKey): bool
     {
         $tenant = $this->tenantFor($user);
-        if ($tenant === null) {
-            return true;
+        if ($tenant !== null) {
+            return $this->plans->featureEnabled($tenant, $featureKey);
         }
 
-        return $this->plans->featureEnabled($tenant, $featureKey);
+        return $this->isStandalone($user);
     }
 
     public function limit(User $user, string $featureKey): ?int
     {
         $tenant = $this->tenantFor($user);
-        if ($tenant === null) {
-            return null;
+        if ($tenant !== null) {
+            return $this->plans->featureLimit($tenant, $featureKey);
         }
 
-        return $this->plans->featureLimit($tenant, $featureKey);
+        return $this->isStandalone($user) ? null : 0;
     }
 
     /** Lempar 403 berbahasa pengguna bila fitur terkunci untuk tenant aktor. */

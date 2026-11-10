@@ -9,8 +9,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Middleware 'plan.feature:<kunci>' (M4): menolak (403) aktor tenant
- * SaaS yang paket efektifnya tidak membuka fitur tersebut. Aktor
- * tanpa tenant (instalasi mandiri) selalu lolos — lihat PlanGate.
+ * SaaS yang paket efektifnya tidak membuka fitur tersebut. Hanya
+ * aktor standalone (instalasi mandiri tanpa tenant terdaftar) yang
+ * selalu lolos; aktor unassigned/platform gagal-tutup (S-04) —
+ * lihat PlanGate.
  */
 class EnsurePlanFeature
 {

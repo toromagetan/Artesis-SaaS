@@ -206,10 +206,17 @@ class SaasEnforcementTest extends TestCase
             ->getJson('/api/v1/products')
             ->assertOk();
 
+        // S-04 (menyusul klasifikasi R-3): di instalasi yang SUDAH
+        // melayani tenant, akun lama tanpa tenant BUKAN standalone —
+        // ia UNASSIGNED dan gerbang paket gagal-tutup, jadi tokennya
+        // ditolak. Perilaku standalone yang bebas hanya berlaku bila
+        // belum ada tenant terdaftar sama sekali (lihat
+        // test_legacy_actor_without_tenant_is_unrestricted dan
+        // PlanGateTenantContextTest).
         $legacyToken = $tokens->issue($this->owner, 'Uji Mandiri', ['products.read']);
         $this->withHeaders(['Authorization' => 'Bearer '.$legacyToken['plain']])
             ->getJson('/api/v1/products')
-            ->assertOk();
+            ->assertForbidden();
     }
 
     public function test_wa_automation_skips_tenant_without_whatsapp_feature(): void
