@@ -29,9 +29,10 @@ class PeriodController extends Controller
         // ember NULL, platform melihat semua untuk pengawasan.
         $actor = request()->user();
         $tenant = TenantContext::for($actor);
-        $locks = DB::table('period_locks')
-            ->when($tenant->isValid(), fn ($q) => $q->where('tenant_id', $tenant->tenantId()))
-            ->when($tenant->isStandalone(), fn ($q) => $q->whereNull('tenant_id'))
+        // Pagar lima mode yang sama dengan daftar pengguna
+        // (putaran koreksi temuan 3): unassigned = daftar kosong,
+        // platform = semua ember untuk pengawasan.
+        $locks = $tenant->constrainByTenant(DB::table('period_locks'))
             ->get()->keyBy('period');
         $users = User::whereIn('id', $locks->flatMap(fn ($l) => [$l->locked_by, $l->unlocked_by])->filter()->unique())->get()->keyBy('id');
 

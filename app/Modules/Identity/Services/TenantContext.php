@@ -5,6 +5,8 @@ namespace App\Modules\Identity\Services;
 use App\Modules\Identity\Models\User;
 use App\Modules\Platform\Models\Tenant;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * Konteks tenant aktor (fondasi R-3; pasangan BranchContext).
@@ -197,6 +199,34 @@ class TenantContext
     public function isActive(): bool
     {
         return $this->isValid() && $this->tenant->is_active;
+    }
+
+    /**
+     * Terapkan pagar tenant pada query berkolom tenant_id
+     * (daftar pengguna, daftar kunci periode, daftar pilihan
+     * sejenis) — SATU kebijakan untuk kelima mode, dipakai semua
+     * modul agar tidak ada daftar yang menyaring hanya untuk
+     * mode tenant/standalone lalu bocor pada mode lain
+     * (putaran koreksi audit independen, temuan 3):
+     * - tenant sah : hanya baris tenantnya;
+     * - standalone : hanya baris tenant_id NULL (milik instalasi);
+     * - platform   : tanpa penyaringan (pengawasan platform);
+     * - unassigned / tamu / tenant menggantung: hasil KOSONG
+     *   (gagal-tertutup — bukan seluruh baris).
+     */
+    public function constrainByTenant(EloquentBuilder|QueryBuilder $query, string $column = 'tenant_id'): EloquentBuilder|QueryBuilder
+    {
+        if ($this->isValid()) {
+            $query->where($column, $this->tenantId());
+        } elseif ($this->isStandalone()) {
+            $query->whereNull($column);
+        } elseif ($this->isPlatform()) {
+            // Pengawasan platform: tanpa penyaringan tenant.
+        } else {
+            $query->whereIn($column, [0]);
+        }
+
+        return $query;
     }
 
     /**
