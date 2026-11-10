@@ -155,14 +155,24 @@ class FinancialReportService
         return ['opening' => $opening, 'closing' => $closing, 'groups' => $groups];
     }
 
-    /** Saldo Kas + Bank saat ini (semua mutasi s.d. hari ini). */
-    public function cashPosition(): Money
+    /**
+     * Saldo Kas + Bank saat ini (semua mutasi s.d. hari ini).
+     * $branchIds null = tanpa pagar cabang (konteks tepercaya/konsol);
+     * array = hanya baris jurnal pada cabang-cabang itu (pagar tenant).
+     *
+     * @param  int[]|null  $branchIds
+     */
+    public function cashPosition(?array $branchIds = null): Money
     {
         $cashAccountIds = Account::whereIn('code', [Chart::KAS, Chart::BANK])->pluck('id');
         $row = DB::table('journal_lines')
             ->join('journals', 'journals.id', '=', 'journal_lines.journal_id')
             ->whereIn('journal_lines.account_id', $cashAccountIds)
             ->where('journals.journal_date', '<=', now()->toDateString())
+            ->when(
+                $branchIds !== null,
+                fn ($query) => $query->whereIn('journal_lines.branch_id', $branchIds === [] ? [0] : $branchIds),
+            )
             ->selectRaw('COALESCE(SUM(journal_lines.debit),0) as d, COALESCE(SUM(journal_lines.credit),0) as c')
             ->first();
 

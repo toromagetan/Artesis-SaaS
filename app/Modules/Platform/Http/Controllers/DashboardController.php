@@ -158,8 +158,13 @@ class DashboardController extends Controller
             $cards['finance'] = [
                 'net' => $periodNet,
                 'by_branch' => $byBranch,
-                'branch_names' => Branch::pluck('name', 'id')->all(),
-                'cash' => $context->hasGlobalAccess() ? $financial->cashPosition() : null,
+                // Metadata nama cabang HANYA untuk cabang wilayah
+                // aktor — payload HTML & JSON (/dashboard/data)
+                // sama-sama tersusun dari payload() ini.
+                'branch_names' => Branch::whereIn('id', $branchIds)->pluck('name', 'id')->all(),
+                'cash' => $context->isTenantWide()
+                    ? $financial->cashPosition($context->hasGlobalAccess() ? null : $context->managedBranchIds())
+                    : null,
             ];
         }
 
