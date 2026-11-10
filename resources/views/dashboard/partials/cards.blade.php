@@ -9,12 +9,12 @@
 @endif
 
 @if (empty($cards))
-    <div class="rounded-lg bg-white shadow-soft"><x-lentera.empty-state>{{ __('ui.dashboard.empty') }}</x-lentera.empty-state></div>
+    <div class="glass-card"><x-lentera.empty-state>{{ __('ui.dashboard.empty') }}</x-lentera.empty-state></div>
 @endif
 
 <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
     @isset($cards['sales'])
-        <a href="{{ route('sales.index') }}" class="rounded-lg bg-white p-6 shadow-soft transition duration-150 hover:shadow">
+        <a href="{{ route('sales.index') }}" class="glass-card p-6">
             <p class="text-sm text-gray-500">{{ __('ui.dashboard.sales_period') }}</p>
             <p class="mt-1 text-2xl font-semibold tnum">{{ $cards['sales']['total']->format() }}</p>
             <p class="text-sm text-gray-400">{{ $cards['sales']['count'] }} {{ __('ui.dashboard.transactions') }}</p>
@@ -23,7 +23,7 @@
     @endisset
 
     @isset($cards['lab'])
-        <a href="{{ route('lab.index') }}" class="rounded-lg bg-white p-6 shadow-soft transition duration-150 hover:shadow">
+        <a href="{{ route('lab.index') }}" class="glass-card p-6">
             <p class="text-sm text-gray-500">{{ __('ui.dashboard.lab_queue') }}</p>
             <p class="mt-1 text-2xl font-semibold tnum">{{ $cards['lab']['waiting'] + $cards['lab']['edging'] + $cards['lab']['qc'] + $cards['lab']['ready'] }}</p>
             <p class="text-sm text-gray-400">
@@ -36,7 +36,7 @@
     @endisset
 
     @isset($cards['stock'])
-        <a href="{{ route('stock.index') }}" class="rounded-lg bg-white p-6 shadow-soft transition duration-150 hover:shadow">
+        <a href="{{ route('stock.index') }}" class="glass-card p-6">
             <p class="text-sm text-gray-500">{{ __('ui.dashboard.stock_alerts') }}</p>
             <p class="mt-1 text-2xl font-semibold tnum">{{ $cards['stock']['low'] + $cards['stock']['out'] + $cards['stock']['backorder'] }}</p>
             <p class="text-sm text-gray-400">
@@ -47,7 +47,7 @@
             <p class="mt-3 text-sm text-gray-500">{{ __('ui.dashboard.transfers_in') }}: <span class="font-medium tnum">{{ $cards['transfers_in'] }}</span></p>
         </a>
         @if (! empty($cards['stock']['expiring']))
-            <div class="rounded-lg border border-gold/50 bg-gold/10 p-6">
+            <div class="glass-card glass-card-gold p-6">
                 <p class="text-sm font-medium text-gold-dark">{{ __('ui.dashboard.expiring_title') }}</p>
                 <ul class="mt-2 space-y-1 text-sm text-gold-dark">
                     @foreach (array_slice($cards['stock']['expiring'], 0, 5) as $row)
@@ -62,21 +62,21 @@
     @endisset
 
     @isset($cards['pr_pending'])
-        <a href="{{ route('pr.index') }}" class="rounded-lg bg-white p-6 shadow-soft transition duration-150 hover:shadow">
+        <a href="{{ route('pr.index') }}" class="glass-card p-6">
             <p class="text-sm text-gray-500">{{ __('ui.dashboard.pr_pending') }}</p>
             <p class="mt-1 text-2xl font-semibold tnum">{{ $cards['pr_pending'] }}</p>
         </a>
     @endisset
 
     @isset($cards['payables'])
-        <a href="{{ route('reports.payables') }}" class="rounded-lg bg-white p-6 shadow-soft transition duration-150 hover:shadow">
+        <a href="{{ route('reports.payables') }}" class="glass-card p-6">
             <p class="text-sm text-gray-500">{{ __('ui.dashboard.payables') }}</p>
             <p class="mt-1 text-2xl font-semibold tnum">{{ $cards['payables']->format() }}</p>
         </a>
     @endisset
 
     @isset($cards['finance'])
-        <div class="rounded-lg bg-white p-6 shadow-soft">
+        <div class="glass-card p-6">
             <p class="text-sm text-gray-500">{{ __('ui.dashboard.finance_period') }}</p>
             <p class="mt-1 text-2xl font-semibold tnum">{{ $cards['finance']['net']->format() }}</p>
             <p class="text-sm text-gray-400">{{ __('ui.dashboard.period_net') }}</p>
