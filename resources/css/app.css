@@ -285,3 +285,54 @@ a.glass-card:hover::after {
         transition: none !important;
     }
 }
+
+/* ============================================================
+   Paket A — gerak halaman umum untuk SEMUA menu (acuan Reel
+   Code & Chill: perpindahan panel terasa hidup tanpa SPA).
+   Berlaku di layout aplikasi: masuk halaman fade/slide halus,
+   baris tabel menyala saat kursor lewat, pill status bertransisi
+   warna, submenu sidebar membuka beranimasi (x-transition di
+   sidebar.blade.php). Disiplin: opacity/transform/warna saja,
+   durasi pendek, hormati prefers-reduced-motion, tanpa pustaka.
+   ============================================================ */
+.page-enter {
+    animation: page-in 280ms ease-out both;
+}
+
+@keyframes page-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Baris tabel: warna latar bertransisi; baris yang sudah punya
+   warna sendiri (peringatan/total) tidak ditimpa saat hover. */
+main tbody tr {
+    transition: background-color 150ms ease;
+}
+
+main tbody tr:not([class*="bg-"]):hover {
+    background-color: rgb(236 253 245 / 0.55);
+}
+
+/* Pill status (span rounded-full di konten): perubahan warna
+   (mis. toggle aktif/nonaktif, pergantian status) bertransisi. */
+main span[class*="rounded-full"] {
+    transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-enter {
+        animation: none;
+    }
+
+    main tbody tr,
+    main span[class*="rounded-full"] {
+        transition: none;
+    }
+}
