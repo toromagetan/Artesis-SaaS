@@ -1477,6 +1477,7 @@ return [
         'in_transit' => '在途',
         'empty' => '暂无调拨记录。',
         'same_branch' => '目的门店必须与来源门店不同。',
+        'outside_company' => '目的门店不在您的公司范围内。',
         'exceeds_available' => ':product 的调拨数量超过可用余量（:available）。',
         'receive_invalid' => '状态为 :status 的调拨不能接收。',
         'cancel_invalid' => '状态为 :status 的调拨不能取消（仅限收货前）。',

@@ -7,6 +7,7 @@ use App\Modules\Clinical\Models\Prescription;
 use App\Modules\Clinical\Services\PrescriptionService;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
 use Illuminate\Http\RedirectResponse;
@@ -49,7 +50,10 @@ class PrescriptionController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $branches = Branch::orderBy('name')->get();
+        $branchContext = BranchContext::current();
+        $branches = $branchContext->hasGlobalAccess()
+            ? Branch::orderBy('name')->get()
+            : Branch::whereIn('id', $branchContext->companyBranchIds())->orderBy('name')->get();
 
         return view('clinical.prescriptions.index', compact('prescriptions', 'q', 'branchId', 'branches'));
     }

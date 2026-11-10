@@ -4,6 +4,8 @@ namespace App\Modules\Sales\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Sales\Models\OfflineDevice;
 use App\Modules\Sales\Services\OfflineDeviceService;
@@ -20,10 +22,25 @@ class OfflineDeviceController extends Controller
 {
     public function index(): View
     {
+        // Daftar perangkat, cabang, dan pengguna terpagari wilayah
+        // perusahaan aktor — perangkat tenant lain tidak ditampilkan
+        // dan tidak dapat dipilih untuk pendaftaran baru.
+        $context = BranchContext::current();
+        $branchIds = $context->companyBranchIds();
+        $tenant = TenantContext::for(auth()->user());
+        // Pagar lima mode TenantContext (putaran koreksi temuan 3):
+        // mode unassigned kini menghasilkan daftar KOSONG, bukan
+        // seluruh pengguna non-platform se-instalasi.
+        $users = User::where('is_active', true)->orderBy('name');
+        $tenant->constrainByTenant($users);
+        if ($tenant->isStandalone()) {
+            $users->where('is_platform', false);
+        }
+
         return view('settings.offline-devices.index', [
-            'devices' => OfflineDevice::with(['branch', 'user'])->orderBy('name')->get(),
-            'branches' => Branch::orderBy('name')->get(),
-            'users' => User::where('is_active', true)->orderBy('name')->get(),
+            'devices' => OfflineDevice::with(['branch', 'user'])->whereIn('branch_id', $branchIds)->orderBy('name')->get(),
+            'branches' => Branch::whereIn('id', $branchIds)->orderBy('name')->get(),
+            'users' => $users->get(),
         ]);
     }
 

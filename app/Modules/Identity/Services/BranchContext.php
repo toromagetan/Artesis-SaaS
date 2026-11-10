@@ -35,6 +35,7 @@ class BranchContext
         private readonly array $managedBranchIds,
         private readonly bool $globalAccess,
         private readonly bool $tenantWide = false,
+        private readonly ?int $tenantId = null,
     ) {
         $this->userId = $user?->id;
     }
@@ -67,6 +68,7 @@ class BranchContext
                     Branch::query()->where('tenant_id', $tenantContext->tenantId())->pluck('id')->all(),
                     false,
                     true,
+                    $tenantContext->tenantId(),
                 );
             }
 
@@ -92,6 +94,8 @@ class BranchContext
                     ->pluck('branches.id')
                     ->all(),
                 false,
+                false,
+                $tenantContext->tenantId(),
             );
         }
 
@@ -164,6 +168,31 @@ class BranchContext
     /** @return int[] */
     public function managedBranchIds(): array
     {
+        return $this->managedBranchIds;
+    }
+
+    /**
+     * Seluruh cabang perusahaan aktor: untuk aktor bertenant = semua
+     * cabang tenantnya (termasuk yang tidak melekat padanya — memilih
+     * tujuan transfer/penerima di dalam perusahaan yang sama adalah
+     * wajar); instalasi mandiri = semua cabang; aktor platform/tanpa
+     * tenant sah = hanya cabang terkelolanya (umumnya kosong).
+     * Dipakai untuk daftar pilihan & pemeriksaan batas perusahaan —
+     * BUKAN pengganti managedBranchIds() untuk pagar data.
+     *
+     * @return int[]
+     */
+    public function companyBranchIds(): array
+    {
+        if ($this->tenantId !== null) {
+            return Branch::query()->where('tenant_id', $this->tenantId)->pluck('id')
+                ->map(fn ($id) => (int) $id)->all();
+        }
+
+        if ($this->globalAccess) {
+            return Branch::query()->pluck('id')->map(fn ($id) => (int) $id)->all();
+        }
+
         return $this->managedBranchIds;
     }
 

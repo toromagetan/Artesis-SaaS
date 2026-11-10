@@ -1501,6 +1501,7 @@ return [
         'in_transit' => 'In Transit',
         'empty' => 'No transfers yet.',
         'same_branch' => 'The destination branch must differ from the origin branch.',
+        'outside_company' => 'The destination branch is outside your company.',
         'exceeds_available' => 'Transfer quantity for :product exceeds the available remainder (:available).',
         'receive_invalid' => 'A transfer with status :status cannot be received.',
         'cancel_invalid' => 'A transfer with status :status cannot be cancelled (only before receipt).',
