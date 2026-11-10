@@ -11,6 +11,11 @@ use Illuminate\Support\Facades\Schema;
  * bukan referensi global. tenant_id nullable: baris lama NULL
  * = data instalasi mandiri / warisan, hanya terlihat platform
  * & konteks mandiri; baris bertenant hanya terlihat tenantnya.
+ *
+ * Putaran koreksi audit independen (temuan 6): FK tenant memakai
+ * restrictOnDelete — menghapus tenant TIDAK boleh mengubah
+ * kepemilikan data bisnisnya menjadi NULL (ember instalasi
+ * mandiri); basis data menolak penghapusan selama data ada.
  */
 return new class extends Migration
 {
@@ -19,7 +24,7 @@ return new class extends Migration
         foreach (['doctors', 'membership_levels'] as $table) {
             Schema::table($table, function (Blueprint $blueprint) {
                 $blueprint->foreignId('tenant_id')->nullable()->after('id')
-                    ->constrained('tenants')->nullOnDelete();
+                    ->constrained('tenants')->restrictOnDelete();
                 $blueprint->index('tenant_id');
             });
         }

@@ -17,6 +17,7 @@ use App\Modules\Sales\Services\SalesService;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\SaasSeeder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -145,5 +146,57 @@ class MasterRemainderIsolationTest extends TestCase
         ]);
         $this->actingAs($adminA);
         $this->assertSame('Platinum A', app(PointsService::class)->currentLevel($customerA)?->name);
+    }
+
+    /**
+     * Data warisan bertenant NULL (dibuat sebelum Modul C) hanya
+     * milik instalasi mandiri/platform — tenant mana pun tidak
+     * boleh melihatnya (pola S-02 yang sama).
+     */
+    public function test_legacy_null_master_rows_are_invisible_to_tenants(): void
+    {
+        [, $adminA] = $this->tenantAdmin('a');
+        $this->tenantAdmin('b');
+
+        $legacyDoctor = Doctor::withoutGlobalScopes()->create([
+            'name' => 'dr. Warisan Lama', 'commission_rate' => 5,
+            'is_active' => true, 'tenant_id' => null,
+        ]);
+        $legacyLevel = MembershipLevel::withoutGlobalScopes()->create([
+            'name' => 'Level Warisan', 'min_accumulation' => 1,
+            'point_multiplier' => 1, 'tenant_id' => null,
+        ]);
+
+        $this->actingAs($adminA)->get(route('doctors.index'))
+            ->assertOk()->assertDontSee('dr. Warisan Lama');
+        $this->assertNull(Doctor::find($legacyDoctor->id));
+        $this->assertNull(MembershipLevel::find($legacyLevel->id));
+
+        // Platform tetap dapat melihatnya untuk pengawasan.
+        $this->actingAs($this->platform);
+        $this->assertNotNull(Doctor::find($legacyDoctor->id));
+    }
+
+    /**
+     * Temuan 6 (koreksi audit independen): tenant yang masih
+     * memiliki dokter/level membership TIDAK dapat dihapus —
+     * kepemilikan master tidak boleh berubah menjadi NULL.
+     */
+    public function test_tenant_with_master_data_cannot_be_deleted(): void
+    {
+        [$tenantA, $adminA] = $this->tenantAdmin('a');
+
+        $this->actingAs($adminA)->post(route('doctors.store'), [
+            'name' => 'dr. Penjaga A', 'commission_rate' => 5,
+        ])->assertRedirect();
+        $doctor = Doctor::withoutGlobalScopes()->where('name', 'dr. Penjaga A')->firstOrFail();
+
+        try {
+            $tenantA->delete();
+            $this->fail('Penghapusan tenant bermaster seharusnya ditolak basis data.');
+        } catch (QueryException) {
+        }
+        $this->assertDatabaseHas('tenants', ['id' => $tenantA->id]);
+        $this->assertSame($tenantA->id, (int) $doctor->fresh()->tenant_id);
     }
 }
