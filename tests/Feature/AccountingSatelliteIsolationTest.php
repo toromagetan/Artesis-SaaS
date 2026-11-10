@@ -328,9 +328,14 @@ class AccountingSatelliteIsolationTest extends TestCase
         $this->assertNull($service->accrueForTechnician($processB2));
         $this->assertSame(1, Commission::withoutGlobalScopes()->where('type', 'technician')->count());
 
-        // Komisi dokter: tercap tenant penjualan juga.
+        // Komisi dokter: tercap tenant penjualan juga. Dokter dibuat
+        // eksplisit sebagai dokter tenant A — sejak Modul C (PR #30)
+        // dokter bertenant dan penjualan hanya dapat merujuk dokter
+        // se-tenant (pagar SalesService), jadi dokter NULL-tenant pada
+        // penjualan bertenant memang tidak menghasilkan komisi.
         $doctorA = Doctor::create([
             'name' => 'dr. F5 A', 'commission_rate' => 5, 'is_active' => true,
+            'tenant_id' => $tenantA->id,
         ]);
         $sale3 = Sale::create([
             'number' => 'SL-UJI-F5-A3', 'customer_id' => $customer->id,
