@@ -5,6 +5,7 @@ namespace App\Modules\Platform\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
+use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Membership\Services\PointsService;
 use App\Modules\Platform\Models\ApiToken;
@@ -21,6 +22,36 @@ use Illuminate\Http\Request;
  */
 class ReadApiController extends Controller
 {
+    /**
+     * Cabang yang boleh dibaca token ini (S-02): cabang milik
+     * tenant pembuat token; ?cabang= di luar himpunan itu
+     * menghasilkan himpunan kosong. Pembuat tanpa tenant
+     * (platform/instalasi mandiri) membaca semua cabang.
+     *
+     * @return int[]
+     */
+    private function branchIdsFor(Request $request): array
+    {
+        $token = $request->attributes->get('api_token');
+        $creator = $token instanceof ApiToken && $token->created_by !== null
+            ? User::find($token->created_by)
+            : null;
+
+        $allowed = Branch::query()
+            ->when(
+                $creator?->tenant_id !== null,
+                fn ($q) => $q->where('tenant_id', $creator->tenant_id),
+            )
+            ->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        $branch = $request->query('cabang');
+        if ($branch !== null) {
+            return in_array((int) $branch, $allowed, true) ? [(int) $branch] : [0];
+        }
+
+        return $allowed;
+    }
+
     public function products(Request $request): JsonResponse
     {
         // LNT-004: harga modal hanya untuk token bercakupan products.cost.
@@ -103,9 +134,7 @@ class ReadApiController extends Controller
 
     public function stock(Request $request): JsonResponse
     {
-        $branchIds = $request->query('cabang')
-            ? [(int) $request->query('cabang')]
-            : Branch::pluck('id')->map(fn ($id) => (int) $id)->all();
+        $branchIds = $this->branchIdsFor($request);
         $report = app(ReportService::class)->stockReport($branchIds);
 
         return response()->json([
@@ -129,9 +158,7 @@ class ReadApiController extends Controller
         if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) !== 1) {
             $to = now()->toDateString();
         }
-        $branchIds = $request->query('cabang')
-            ? [(int) $request->query('cabang')]
-            : Branch::pluck('id')->map(fn ($id) => (int) $id)->all();
+        $branchIds = $this->branchIdsFor($request);
         $rows = app(ReportService::class)->salesSummary($from, $to, $branchIds);
         $total = Money::zero();
         foreach ($rows as $row) {

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Catalog\Models;
 
+use App\Support\Concerns\TenantScoped;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,7 +14,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class ProductParent extends Model
 {
-    protected $fillable = ['name', 'brand', 'category_id', 'type', 'is_active'];
+    use TenantScoped;
+
+    protected $fillable = ['name', 'brand', 'category_id', 'type', 'is_active', 'tenant_id'];
 
     protected function casts(): array
     {

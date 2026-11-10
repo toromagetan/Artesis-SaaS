@@ -50,6 +50,14 @@ class AuthenticateApiToken
         }
         $request->attributes->set('api_token', $token);
 
+        // S-02: pembuat token menjadi aktor permintaan ini, agar
+        // pagar query berbasis aktor (TenantScope/BranchScope)
+        // berlaku juga di jalur API — data antar-tenant tidak
+        // menyeberang lewat token integrasi.
+        if ($creator !== null) {
+            auth()->setUser($creator);
+        }
+
         return $next($request);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Master\Models;
 
+use App\Support\Concerns\TenantScoped;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -12,7 +13,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Insurance extends Model
 {
-    protected $fillable = ['name', 'claim_value', 'is_active'];
+    use TenantScoped;
+
+    protected $fillable = ['name', 'claim_value', 'is_active', 'tenant_id'];
 
     protected function casts(): array
     {
