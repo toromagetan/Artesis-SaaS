@@ -10,6 +10,7 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Inventory\Services\InventoryService;
+use App\Modules\Master\Models\Doctor;
 use App\Modules\Master\Models\Insurance;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Membership\Services\PointsService;
@@ -102,6 +103,13 @@ class SalesService
                 $branchId = (int) $data['branch_id'];
             } else {
                 $branchId = $context->currentBranchId() ?? $customer->branch_id;
+            }
+
+            // Dokter perujuk diselesaikan ulang dalam lingkup aktor
+            // (Modul C): penjualan tidak dapat menunjuk dokter milik
+            // tenant lain — komisi dokter mengikuti rujukan ini.
+            if (! empty($data['doctor_id'])) {
+                Doctor::findOrFail($data['doctor_id']);
             }
 
             $prescription = null;
