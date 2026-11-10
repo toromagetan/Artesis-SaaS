@@ -112,6 +112,7 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('permission:roles.manage')->group(function () {
         Route::get('/peran', [RoleController::class, 'index'])->name('roles.index');
+        Route::post('/peran', [RoleController::class, 'store'])->middleware('plan.feature:roles_permissions')->name('roles.store');
         Route::get('/peran/{role}/ubah', [RoleController::class, 'edit'])->middleware('plan.feature:roles_permissions')->name('roles.edit');
         Route::put('/peran/{role}', [RoleController::class, 'update'])->middleware('plan.feature:roles_permissions')->name('roles.update');
     });

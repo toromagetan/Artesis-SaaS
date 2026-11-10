@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Platform\Services\ApiTokenService;
 use App\Modules\Platform\Services\PlanGate;
 use Closure;
@@ -31,9 +32,19 @@ class AuthenticateApiToken
             return response()->json(['message' => 'Scope tidak tercakup token.'], 403);
         }
 
+        // S-01: token berhenti melayani begitu pembuatnya
+        // dinonaktifkan, atau tenant pembuatnya dinonaktifkan
+        // platform — lifecycle ditegakkan juga di jalur API.
+        $creator = $token->created_by !== null ? User::find($token->created_by) : null;
+        if ($creator !== null && ! $creator->is_active) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+        if ($creator !== null && TenantContext::for($creator)->isSuspended()) {
+            return response()->json(['message' => 'Tenant dinonaktifkan.'], 403);
+        }
+
         // M4: akses API adalah fitur paket — token tenant tanpa fitur
         // api_access ditolak walau tokennya sah.
-        $creator = $token->created_by !== null ? User::find($token->created_by) : null;
         if ($creator !== null && ! $this->gate->enabled($creator, 'api_access')) {
             return response()->json(['message' => 'Paket tenant tidak mencakup akses API.'], 403);
         }

@@ -4,6 +4,7 @@ use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsurePlanFeature;
 use App\Http\Middleware\EnsurePlatformUser;
+use App\Http\Middleware\EnsureTenantIsActive;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\SetLocale;
 use App\Modules\Sales\Http\Middleware\AuthenticateOfflineDevice;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             SetLocale::class,
             EnsureUserIsActive::class,
+            EnsureTenantIsActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
