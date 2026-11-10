@@ -80,6 +80,13 @@ class TransferService
     {
         $context = BranchContext::for($actor);
         $context->assertCanAccess($fromBranchId);
+        // Tujuan transfer WAJIB satu perusahaan dengan aktor: tanpa
+        // pemeriksaan ini transfer dapat dibuat menuju cabang tenant
+        // lain (penerimaan di sisi sana bahkan lolos, karena cabang
+        // itu memang wilayah staf penerimanya).
+        if (! in_array($toBranchId, $context->companyBranchIds(), true)) {
+            throw ValidationException::withMessages(['to_branch_id' => __('ui.transfer.outside_company')]);
+        }
         if ($fromBranchId === $toBranchId) {
             throw ValidationException::withMessages(['to_branch_id' => __('ui.transfer.same_branch')]);
         }

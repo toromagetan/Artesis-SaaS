@@ -3,8 +3,11 @@
 namespace App\Modules\Sales\Services;
 
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Sales\Models\OfflineDevice;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Str;
 
 /**
@@ -19,6 +22,23 @@ class OfflineDeviceService
     /** @return array{device: OfflineDevice, plain_token: string} */
     public function register(User $actor, string $name, int $branchId, int $userId): array
     {
+        // Perangkat adalah kredensial atas nama akun kasir: cabang dan
+        // akun yang diikat WAJIB berada dalam perusahaan aktor.
+        $context = BranchContext::for($actor);
+        if (! in_array($branchId, $context->companyBranchIds(), true)) {
+            throw new AuthorizationException('Cabang perangkat di luar perusahaan pengguna.');
+        }
+        $target = User::findOrFail($userId);
+        $tenant = TenantContext::for($actor);
+        $sameCompany = match (true) {
+            $tenant->isValid() => (int) $target->tenant_id === $tenant->tenantId(),
+            $tenant->isStandalone() => $target->tenant_id === null && ! $target->is_platform,
+            default => false,
+        };
+        if (! $sameCompany) {
+            throw new AuthorizationException('Akun perangkat di luar perusahaan pengguna.');
+        }
+
         $plain = Str::random(48);
         $device = OfflineDevice::create([
             'name' => $name,
@@ -76,6 +96,9 @@ class OfflineDeviceService
 
     public function revoke(User $actor, OfflineDevice $device): void
     {
+        if (! in_array((int) $device->branch_id, BranchContext::for($actor)->companyBranchIds(), true)) {
+            throw new AuthorizationException('Perangkat di luar perusahaan pengguna.');
+        }
         if ($device->revoked_at === null) {
             $device->update(['revoked_at' => now()]);
             $this->audit->log(action: 'offline_device.revoke', subjectType: 'offline_device', subjectId: $device->id, actor: $actor);

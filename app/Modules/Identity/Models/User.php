@@ -3,6 +3,7 @@
 namespace App\Modules\Identity\Models;
 
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Models\Tenant;
 use App\Support\PermissionRegistry;
@@ -67,11 +68,19 @@ class User extends Authenticatable
      * TIDAK PERNAH tampil di pengelolaan pengguna tenant, dan aktor yang
      * terikat tenant hanya melihat pengguna tenantnya sendiri. Aktor tanpa
      * tenant (instalasi mandiri) melihat seluruh pengguna bisnis.
+     *
+     * Putaran koreksi audit independen (temuan 3): penyaringan kini
+     * memakai TenantContext — aktor UNASSIGNED (tanpa tenant pada
+     * instalasi bersama) memperoleh hasil KOSONG; sebelumnya klaim
+     * tenant_id mentah aktor menentukan pagar, sehingga aktor tanpa
+     * tenant_id pada instalasi bertenant melihat semua pengguna.
      */
     public function scopeVisibleInTenantManagement(Builder $query, User $actor): Builder
     {
-        return $query->where('is_platform', false)
-            ->when($actor->tenant_id !== null, fn (Builder $q) => $q->where('tenant_id', $actor->tenant_id));
+        $query->where('is_platform', false);
+        TenantContext::for($actor)->constrainByTenant($query);
+
+        return $query;
     }
 
     public function roles(): BelongsToMany
