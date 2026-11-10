@@ -5,10 +5,13 @@ namespace App\Modules\Accounting\Services;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Journal;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
+use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Support\Money;
 use App\Support\Numbering;
 use Carbon\CarbonInterface;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -32,27 +35,91 @@ class PostingService
 {
     public function __construct(private readonly AuditLogger $audit) {}
 
-    public function isPeriodLocked(string $period): bool
+    /**
+     * Kunci periode berlaku PER TENANT (Modul B1): $tenantId null
+     * memeriksa ember instalasi mandiri (tenant_id NULL).
+     */
+    public function isPeriodLocked(string $period, ?int $tenantId = null): bool
     {
-        $row = DB::table('period_locks')->where('period', $period)->first();
+        $row = DB::table('period_locks')
+            ->where('period', $period)
+            ->when($tenantId === null, fn ($q) => $q->whereNull('tenant_id'), fn ($q) => $q->where('tenant_id', $tenantId))
+            ->first();
 
         return $row !== null && $row->unlocked_by === null;
     }
 
+    /** Baris kunci (periode, tenant) untuk dipakai di dalam transaksi. */
+    private function lockRowQuery(string $period, ?int $tenantId)
+    {
+        return DB::table('period_locks')
+            ->where('period', $period)
+            ->when($tenantId === null, fn ($q) => $q->whereNull('tenant_id'), fn ($q) => $q->where('tenant_id', $tenantId));
+    }
+
+    /**
+     * Tenant pemilik sebuah posting: dari aktor bertenant; aktor
+     * mandiri -> null; aktor platform/konsol -> diturunkan dari
+     * cabang baris jurnal pertama yang bercabang.
+     *
+     * @param  array<int, array{branch_id?: ?int}>  $lines
+     */
+    private function tenantIdFor(?User $actor, array $lines): ?int
+    {
+        if ($actor !== null) {
+            $context = TenantContext::for($actor);
+            if ($context->isValid()) {
+                return $context->tenantId();
+            }
+            if ($context->isStandalone()) {
+                return null;
+            }
+        }
+        foreach ($lines as $line) {
+            if (! empty($line['branch_id'])) {
+                $tenantId = Branch::whereKey((int) $line['branch_id'])->value('tenant_id');
+
+                return $tenantId !== null ? (int) $tenantId : null;
+            }
+        }
+
+        return null;
+    }
+
+    /** Tenant ember kunci untuk aksi kunci/buka oleh seorang aktor. */
+    private function lockTenantFor(User $actor): ?int
+    {
+        $context = TenantContext::for($actor);
+        if ($context->isValid()) {
+            return $context->tenantId();
+        }
+        if ($context->isStandalone()) {
+            return null;
+        }
+
+        throw new AuthorizationException('Kunci periode hanya untuk aktor bisnis bertenant atau instalasi mandiri.');
+    }
+
     public function lockPeriod(User $actor, string $period): void
     {
+        $tenantId = $this->lockTenantFor($actor);
         // Satu transaksi + kunci baris yang sama dengan yang diambil
         // post() (LNT-002): penutupan periode dan penandaan jurnal
         // terjadi atomik terhadap posting yang sedang berjalan.
-        DB::transaction(function () use ($actor, $period) {
-            $row = DB::table('period_locks')->where('period', $period)->lockForUpdate()->first();
+        // Kunci & penandaan hanya menyentuh ember tenant aktor
+        // (Modul B1) — tenant lain tidak ikut terkunci.
+        DB::transaction(function () use ($actor, $period, $tenantId) {
+            $row = $this->lockRowQuery($period, $tenantId)->lockForUpdate()->first();
             $values = ['locked_by' => $actor->id, 'locked_at' => now(), 'unlocked_by' => null, 'unlock_reason' => null, 'updated_at' => now()];
             if ($row === null) {
-                DB::table('period_locks')->insert($values + ['period' => $period, 'created_at' => now()]);
+                DB::table('period_locks')->insert($values + ['period' => $period, 'tenant_id' => $tenantId, 'created_at' => now()]);
             } else {
-                DB::table('period_locks')->where('period', $period)->update($values);
+                $this->lockRowQuery($period, $tenantId)->update($values);
             }
-            Journal::whereRaw('substr(journal_date, 1, 7) = ?', [$period])->update(['period_locked' => true]);
+            Journal::withoutGlobalScopes()
+                ->whereRaw('substr(journal_date, 1, 7) = ?', [$period])
+                ->when($tenantId === null, fn ($q) => $q->whereNull('tenant_id'), fn ($q) => $q->where('tenant_id', $tenantId))
+                ->update(['period_locked' => true]);
         });
         $this->audit->log(action: 'periods.lock', subjectType: 'period_lock', newValues: ['period' => $period], actor: $actor);
     }
@@ -62,12 +129,16 @@ class PostingService
         if (trim($reason) === '') {
             throw ValidationException::withMessages(['reason' => __('ui.accounting.unlock_reason_required')]);
         }
-        DB::transaction(function () use ($actor, $period, $reason) {
-            DB::table('period_locks')->where('period', $period)->lockForUpdate()->first();
-            DB::table('period_locks')->where('period', $period)->update([
+        $tenantId = $this->lockTenantFor($actor);
+        DB::transaction(function () use ($actor, $period, $reason, $tenantId) {
+            $this->lockRowQuery($period, $tenantId)->lockForUpdate()->first();
+            $this->lockRowQuery($period, $tenantId)->update([
                 'unlocked_by' => $actor->id, 'unlock_reason' => $reason, 'updated_at' => now(),
             ]);
-            Journal::whereRaw('substr(journal_date, 1, 7) = ?', [$period])->update(['period_locked' => false]);
+            Journal::withoutGlobalScopes()
+                ->whereRaw('substr(journal_date, 1, 7) = ?', [$period])
+                ->when($tenantId === null, fn ($q) => $q->whereNull('tenant_id'), fn ($q) => $q->where('tenant_id', $tenantId))
+                ->update(['period_locked' => false]);
         });
         $this->audit->log(action: 'periods.unlock', subjectType: 'period_lock', newValues: ['period' => $period, 'reason' => $reason], actor: $actor);
     }
@@ -79,9 +150,6 @@ class PostingService
     {
         $dateString = $date instanceof CarbonInterface ? $date->format('Y-m-d') : substr((string) $date, 0, 10);
         $period = substr($dateString, 0, 7);
-        if ($this->isPeriodLocked($period)) {
-            throw ValidationException::withMessages(['period' => __('ui.accounting.period_locked', ['period' => $period])]);
-        }
 
         $prepared = [];
         $totalDebit = Money::zero();
@@ -116,14 +184,20 @@ class PostingService
             throw ValidationException::withMessages(['lines' => __('ui.accounting.journal_unbalanced')]);
         }
 
-        return DB::transaction(function () use ($sourceType, $sourceId, $dateString, $period, $prepared, $description, $actor, $idempotencyKey) {
+        $tenantId = $this->tenantIdFor($actor, $prepared);
+        if ($this->isPeriodLocked($period, $tenantId)) {
+            throw ValidationException::withMessages(['period' => __('ui.accounting.period_locked', ['period' => $period])]);
+        }
+
+        return DB::transaction(function () use ($sourceType, $sourceId, $dateString, $period, $prepared, $description, $actor, $idempotencyKey, $tenantId) {
             // LNT-002: kunci baris periode & periksa ulang DI DALAM
             // transaksi. Pemeriksaan di luar saja menyisakan balapan:
             // posting yang lolos sesaat sebelum lockPeriod menutup
             // periode dapat masuk ke periode yang sudah terkunci.
             // lockForUpdate pada baris period_locks (unik per
-            // periode) menserialkan posting terhadap lock/unlock.
-            $lock = DB::table('period_locks')->where('period', $period)->lockForUpdate()->first();
+            // (periode, tenant)) menserialkan posting terhadap
+            // lock/unlock DALAM ember tenant yang sama (Modul B1).
+            $lock = $this->lockRowQuery($period, $tenantId)->lockForUpdate()->first();
             if ($lock !== null && $lock->unlocked_by === null) {
                 throw ValidationException::withMessages(['period' => __('ui.accounting.period_locked', ['period' => $period])]);
             }
@@ -136,6 +210,7 @@ class PostingService
                 'idempotency_key' => $idempotencyKey,
                 'description' => $description,
                 'created_by' => $actor?->id,
+                'tenant_id' => $tenantId,
             ]);
             foreach ($prepared as $line) {
                 $journal->lines()->create($line);

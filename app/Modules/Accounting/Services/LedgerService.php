@@ -24,14 +24,15 @@ class LedgerService
      *         description: ?string, memo: ?string, debit: Money, credit: Money, balance: Money}>
      * }
      */
-    public function ledger(Account $account, string $from, string $to, ?int $branchId = null): array
+    public function ledger(Account $account, string $from, string $to, ?int $branchId = null, ?int $tenantId = null): array
     {
         $debitNormal = in_array($account->group, ['asset', 'expense'], true);
 
         $base = JournalLine::query()
             ->where('journal_lines.account_id', $account->id)
             ->when($branchId !== null, fn ($q) => $q->where('journal_lines.branch_id', $branchId))
-            ->join('journals', 'journals.id', '=', 'journal_lines.journal_id');
+            ->join('journals', 'journals.id', '=', 'journal_lines.journal_id')
+            ->when($tenantId !== null, fn ($q) => $q->where('journals.tenant_id', $tenantId));
 
         // Saldo awal: seluruh mutasi sebelum tanggal mulai.
         $openingRow = (clone $base)

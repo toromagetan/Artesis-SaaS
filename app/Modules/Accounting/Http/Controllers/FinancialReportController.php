@@ -4,6 +4,8 @@ namespace App\Modules\Accounting\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Services\FinancialReportService;
+use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Support\XlsxWriter;
 use Illuminate\Database\Eloquent\Collection;
@@ -27,7 +29,7 @@ class FinancialReportController extends Controller
     public function balanceSheet(Request $request): View|StreamedResponse
     {
         $asOf = $this->dateParam($request, 'per', now()->toDateString());
-        $sheet = $this->financial->balanceSheet($asOf);
+        $sheet = $this->financial->balanceSheet($asOf, $this->tenantId($request));
 
         if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
             $this->authorizeExport();
@@ -53,9 +55,19 @@ class FinancialReportController extends Controller
         $branchParam = $request->query('cabang');
         $selected = is_numeric($branchParam) ? (int) $branchParam : null;
 
-        $statement = $this->financial->incomeStatement($from, $to, $selected);
-        $byBranch = $this->financial->incomeByBranch($from, $to);
-        $branches = Branch::orderBy('name')->get();
+        // Pagar tenant (Modul B1): hitungan hanya dari jurnal tenant
+        // aktor; pilihan cabang dibatasi cabang perusahaan aktor.
+        $branchContext = BranchContext::for($request->user());
+        $companyIds = $branchContext->companyBranchIds();
+        if ($selected !== null && ! $branchContext->hasGlobalAccess() && ! in_array($selected, $companyIds, true)) {
+            $selected = null;
+        }
+        $tenantId = $this->tenantId($request);
+        $statement = $this->financial->incomeStatement($from, $to, $selected, $tenantId);
+        $byBranch = $this->financial->incomeByBranch($from, $to, $tenantId);
+        $branches = $branchContext->hasGlobalAccess()
+            ? Branch::orderBy('name')->get()
+            : Branch::whereIn('id', $companyIds)->orderBy('name')->get();
 
         if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
             $this->authorizeExport();
@@ -82,7 +94,7 @@ class FinancialReportController extends Controller
     public function cashFlow(Request $request): View|StreamedResponse
     {
         [$from, $to] = $this->range($request);
-        $flow = $this->financial->cashFlow($from, $to);
+        $flow = $this->financial->cashFlow($from, $to, $this->tenantId($request));
 
         if ($request->boolean('ekspor') || $request->query('format') === 'xlsx') {
             $this->authorizeExport();
@@ -96,6 +108,14 @@ class FinancialReportController extends Controller
         }
 
         return view('accounting.financial.cash-flow', compact('flow', 'from', 'to'));
+    }
+
+    /** Tenant aktor untuk pagar laporan; null = instalasi mandiri/konsol. */
+    private function tenantId(Request $request): ?int
+    {
+        $tenant = TenantContext::for($request->user());
+
+        return $tenant->isValid() ? $tenant->tenantId() : null;
     }
 
     /** @return array{0: string, 1: string} */

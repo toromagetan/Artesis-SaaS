@@ -7,6 +7,7 @@ use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Services\ManualJournalService;
 use App\Modules\Accounting\Services\PostingService;
+use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
 use App\Support\Money;
@@ -108,9 +109,13 @@ class JournalController extends Controller
     /** Formulir jurnal manual (F1.2, izin journals.manual). */
     public function create(): View
     {
+        $branchContext = BranchContext::current();
+
         return view('accounting.journals.create', [
             'accounts' => Account::where('is_active', true)->orderBy('code')->get(),
-            'branches' => Branch::orderBy('name')->get(),
+            'branches' => $branchContext->hasGlobalAccess()
+                ? Branch::orderBy('name')->get()
+                : Branch::whereIn('id', $branchContext->companyBranchIds())->orderBy('name')->get(),
         ]);
     }
 
