@@ -5,6 +5,7 @@ namespace App\Modules\Accounting\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Middleware;
@@ -23,7 +24,16 @@ class PeriodController extends Controller
 
     public function index(): View
     {
-        $locks = DB::table('period_locks')->get()->keyBy('period');
+        // Daftar kunci hanya menampilkan ember aktor sendiri
+        // (Modul B1): tenant melihat kuncinya, instalasi mandiri
+        // ember NULL, platform melihat semua untuk pengawasan.
+        $actor = request()->user();
+        $tenant = TenantContext::for($actor);
+        // Pagar lima mode yang sama dengan daftar pengguna
+        // (putaran koreksi temuan 3): unassigned = daftar kosong,
+        // platform = semua ember untuk pengawasan.
+        $locks = $tenant->constrainByTenant(DB::table('period_locks'))
+            ->get()->keyBy('period');
         $users = User::whereIn('id', $locks->flatMap(fn ($l) => [$l->locked_by, $l->unlocked_by])->filter()->unique())->get()->keyBy('id');
 
         $periods = collect();

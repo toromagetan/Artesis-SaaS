@@ -5,6 +5,7 @@ namespace App\Modules\Accounting\Services;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Journal;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Validation\ValidationException;
 
@@ -28,8 +29,14 @@ class ManualJournalService
      */
     public function postManual(User $actor, string $date, ?string $description, array $lines): Journal
     {
+        $companyIds = BranchContext::for($actor)->companyBranchIds();
         $prepared = [];
         foreach ($lines as $i => $line) {
+            // Baris jurnal manual hanya boleh menunjuk cabang
+            // perusahaan aktor sendiri (Modul B1).
+            if (! empty($line['branch_id']) && ! in_array((int) $line['branch_id'], $companyIds, true)) {
+                throw ValidationException::withMessages(["lines.{$i}.branch_id" => __('ui.accounting.branch_outside_company')]);
+            }
             $account = Account::find((int) $line['account_id']);
             if ($account === null) {
                 throw ValidationException::withMessages(["lines.{$i}.account_id" => __('ui.accounting.account_missing', ['code' => (string) $line['account_id']])]);

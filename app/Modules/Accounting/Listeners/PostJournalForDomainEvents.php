@@ -20,6 +20,7 @@ use App\Modules\Sales\Events\SaleReturned;
 use App\Modules\Sales\Events\SaleVoided;
 use App\Modules\Sales\Models\Sale;
 use App\Support\Money;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Penerjemah peristiwa domain → jurnal (Blueprint D.9 + peta E.1).
@@ -208,10 +209,19 @@ class PostJournalForDomainEvents
     public function onPurchasePaymentPosted(PurchasePaymentPosted $event): void
     {
         $payment = $event->payment;
+        // Jurnal pembayaran supplier tidak berdimensi cabang —
+        // tenant sumbernya adalah tenant SUPPLIER yang dibayar,
+        // diteruskan sebagai penimpa tervalidasi (putaran koreksi
+        // temuan 2: posting tanpa aktor pada instalasi bersama
+        // wajib membuktikan tenant sumbernya). Dibaca langsung ke
+        // tabel agar bebas dari global scope sesi.
+        $supplierTenant = $payment->supplier_id !== null
+            ? DB::table('suppliers')->where('id', $payment->supplier_id)->value('tenant_id')
+            : null;
         $this->posting->postOnce('purchase_payment', $payment->id, $payment->payment_date, [
             ['account' => Chart::UTANG_SUPPLIER, 'debit' => (string) $payment->amount, 'memo' => $payment->number],
             ['account' => Chart::tenderAccount($payment->method), 'credit' => (string) $payment->amount, 'memo' => $payment->number],
-        ], 'Pembayaran supplier '.$payment->number);
+        ], 'Pembayaran supplier '.$payment->number, null, $supplierTenant !== null ? (int) $supplierTenant : null, true);
     }
 
     /**

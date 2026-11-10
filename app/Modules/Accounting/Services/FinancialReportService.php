@@ -18,6 +18,10 @@ use Illuminate\Support\Facades\DB;
  *   maupun per cabang (dimensi branch_id baris jurnal).
  * - Arus Kas sederhana: perubahan akun Kas+Bank dikelompokkan
  *   menurut jenis sumber jurnal; saldo awal + mutasi = saldo akhir.
+ *
+ * Pagar tenant (Modul B1): parameter $tenantId pada metode publik
+ * membatasi hitungan ke jurnal milik tenant itu (journals.tenant_id);
+ * null = tanpa pagar (konteks tepercaya/konsol/instalasi mandiri).
  */
 class FinancialReportService
 {
@@ -30,18 +34,18 @@ class FinancialReportService
      *     earnings: Money, balanced: bool
      * }
      */
-    public function balanceSheet(string $asOf): array
+    public function balanceSheet(string $asOf, ?int $tenantId = null): array
     {
-        $assets = $this->balances('asset', null, $asOf);
-        $liabilities = $this->balances('liability', null, $asOf);
-        $equity = $this->balances('equity', null, $asOf);
+        $assets = $this->balances('asset', null, $asOf, null, $tenantId);
+        $liabilities = $this->balances('liability', null, $asOf, null, $tenantId);
+        $equity = $this->balances('equity', null, $asOf, null, $tenantId);
 
         $totalAssets = $this->sum($assets);
         $totalLiabilities = $this->sum($liabilities);
         $totalEquity = $this->sum($equity);
 
-        $revenue = $this->sum($this->balances('revenue', null, $asOf));
-        $expense = $this->sum($this->balances('expense', null, $asOf));
+        $revenue = $this->sum($this->balances('revenue', null, $asOf, null, $tenantId));
+        $expense = $this->sum($this->balances('expense', null, $asOf, null, $tenantId));
         $earnings = $revenue->sub($expense);
 
         return [
@@ -63,10 +67,10 @@ class FinancialReportService
      *     total_revenue: Money, total_expense: Money, net: Money
      * }
      */
-    public function incomeStatement(string $from, string $to, ?int $branchId = null): array
+    public function incomeStatement(string $from, string $to, ?int $branchId = null, ?int $tenantId = null): array
     {
-        $revenues = $this->balances('revenue', $from, $to, $branchId);
-        $expenses = $this->balances('expense', $from, $to, $branchId);
+        $revenues = $this->balances('revenue', $from, $to, $branchId, $tenantId);
+        $expenses = $this->balances('expense', $from, $to, $branchId, $tenantId);
         $totalRevenue = $this->sum($revenues);
         $totalExpense = $this->sum($expenses);
 
@@ -86,12 +90,13 @@ class FinancialReportService
      *
      * @return array<int, array{branch_id: ?int, revenue: Money, expense: Money, net: Money}>
      */
-    public function incomeByBranch(string $from, string $to): array
+    public function incomeByBranch(string $from, string $to, ?int $tenantId = null): array
     {
         $rows = DB::table('journal_lines')
             ->join('journals', 'journals.id', '=', 'journal_lines.journal_id')
             ->join('accounts', 'accounts.id', '=', 'journal_lines.account_id')
             ->whereIn('accounts.group', ['revenue', 'expense'])
+            ->when($tenantId !== null, fn ($q) => $q->where('journals.tenant_id', $tenantId))
             ->whereBetween('journals.journal_date', [$from, $to])
             ->groupBy('journal_lines.branch_id', 'accounts.group')
             ->selectRaw('journal_lines.branch_id as bid, accounts.group as grp, COALESCE(SUM(journal_lines.debit),0) as d, COALESCE(SUM(journal_lines.credit),0) as c')
@@ -122,7 +127,7 @@ class FinancialReportService
      *     groups: array<int, array{source_type: string, amount: Money}>
      * }
      */
-    public function cashFlow(string $from, string $to): array
+    public function cashFlow(string $from, string $to, ?int $tenantId = null): array
     {
         $cashAccountIds = Account::whereIn('code', [Chart::KAS, Chart::BANK])->pluck('id');
 
@@ -132,7 +137,8 @@ class FinancialReportService
 
         $base = DB::table('journal_lines')
             ->join('journals', 'journals.id', '=', 'journal_lines.journal_id')
-            ->whereIn('journal_lines.account_id', $cashAccountIds);
+            ->whereIn('journal_lines.account_id', $cashAccountIds)
+            ->when($tenantId !== null, fn ($q) => $q->where('journals.tenant_id', $tenantId));
 
         $openingRow = $signed((clone $base)->where('journals.journal_date', '<', $from));
         $opening = Money::fromDecimal((string) $openingRow->d)->sub(Money::fromDecimal((string) $openingRow->c));
@@ -185,7 +191,7 @@ class FinancialReportService
      *
      * @return array<int, array{account: Account, balance: Money}>
      */
-    private function balances(string $group, ?string $from, string $to, ?int $branchId = null): array
+    private function balances(string $group, ?string $from, string $to, ?int $branchId = null, ?int $tenantId = null): array
     {
         $debitNormal = in_array($group, ['asset', 'expense'], true);
 
@@ -196,6 +202,7 @@ class FinancialReportService
             ->where('journals.journal_date', '<=', $to)
             ->when($from !== null, fn ($q) => $q->where('journals.journal_date', '>=', $from))
             ->when($branchId !== null, fn ($q) => $q->where('journal_lines.branch_id', $branchId))
+            ->when($tenantId !== null, fn ($q) => $q->where('journals.tenant_id', $tenantId))
             ->groupBy('journal_lines.account_id')
             ->selectRaw('journal_lines.account_id as aid, COALESCE(SUM(journal_lines.debit),0) as d, COALESCE(SUM(journal_lines.credit),0) as c')
             ->get()

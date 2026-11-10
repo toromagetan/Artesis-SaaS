@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Services\FinancialReportService;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Models\StockTransfer;
 use App\Modules\Inventory\Services\FifoService;
@@ -145,7 +146,8 @@ class DashboardController extends Controller
         }
 
         if ($user->hasPermission('reports.financial')) {
-            $byBranch = collect($financial->incomeByBranch($fromDate, $toDate))
+            $tenantContext = TenantContext::for($user);
+            $byBranch = collect($financial->incomeByBranch($fromDate, $toDate, $tenantContext->isValid() ? $tenantContext->tenantId() : null))
                 ->filter(fn ($row) => $row['branch_id'] === null
                     ? $context->hasGlobalAccess()
                     : in_array($row['branch_id'], $branchIds, true))
