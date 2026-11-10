@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Models;
 
 use App\Modules\Identity\Models\User;
+use App\Support\Concerns\TenantScoped;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,9 +11,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** Aset tetap (F1.4): nilai buku = harga perolehan − akumulasi. */
 class FixedAsset extends Model
 {
+    use TenantScoped;
+
     protected $fillable = [
         'name', 'acquired_at', 'acquisition_cost', 'useful_life_months',
         'method', 'accumulated_amount', 'status', 'created_by',
+        'tenant_id',
     ];
 
     protected function casts(): array

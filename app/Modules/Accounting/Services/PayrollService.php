@@ -6,9 +6,11 @@ use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Models\Payroll;
 use App\Modules\Accounting\Support\Chart;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Support\Money;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -29,27 +31,45 @@ class PayrollService
     public function upsertEntry(User $actor, int $employeeId, string $period, string $base, string $allowance, string $deduction): Payroll
     {
         $employee = User::where('id', $employeeId)->where('is_active', true)->where('is_platform', false)->first();
-        if ($employee === null) {
+        // Karyawan WAJIB satu perusahaan dengan aktor (Modul B2):
+        // entri gaji tidak dapat dibuat untuk staf tenant lain.
+        $actorTenant = TenantContext::for($actor);
+        $sameCompany = $employee !== null && match (true) {
+            $actorTenant->isValid() => (int) $employee->tenant_id === $actorTenant->tenantId(),
+            $actorTenant->isStandalone() => $employee->tenant_id === null,
+            default => false,
+        };
+        if (! $sameCompany) {
             throw ValidationException::withMessages(['employee' => __('ui.payroll.employee_invalid')]);
         }
+        // Ember tenant baris payroll dicap EKSPLISIT dari aktor —
+        // tidak bergantung pada auth() sesi (putaran koreksi
+        // temuan 4): pencarian & penulisan memakai ember ini
+        // tanpa global scope, agar jalur konsol/antrean dengan
+        // aktor berbeda dari sesi tetap seember.
+        $bucket = $actorTenant->isValid() ? $actorTenant->tenantId() : null;
         $net = Money::fromDecimal($base)->add(Money::fromDecimal($allowance))->sub(Money::fromDecimal($deduction));
         if ($net->isNegative()) {
             throw ValidationException::withMessages(['net' => __('ui.payroll.net_negative')]);
         }
 
-        return DB::transaction(function () use ($actor, $employee, $period, $base, $allowance, $deduction, $net) {
-            $row = Payroll::where('employee_user_id', $employee->id)->where('period', $period)->lockForUpdate()->first();
+        return DB::transaction(function () use ($actor, $employee, $period, $base, $allowance, $deduction, $net, $bucket) {
+            $row = Payroll::withoutGlobalScopes()
+                ->where('employee_user_id', $employee->id)->where('period', $period)
+                ->when($bucket === null, fn ($q) => $q->whereNull('tenant_id'), fn ($q) => $q->where('tenant_id', $bucket))
+                ->lockForUpdate()->first();
             if ($row !== null && $row->isPosted()) {
                 throw ValidationException::withMessages(['period' => __('ui.payroll.entry_locked')]);
             }
-            $row = Payroll::updateOrCreate(
-                ['employee_user_id' => $employee->id, 'period' => $period],
+            $row = Payroll::withoutGlobalScopes()->updateOrCreate(
+                ['employee_user_id' => $employee->id, 'period' => $period, 'tenant_id' => $bucket],
                 [
                     'base_amount' => Money::fromDecimal($base)->toDecimalString(),
                     'allowance_amount' => Money::fromDecimal($allowance)->toDecimalString(),
                     'deduction_amount' => Money::fromDecimal($deduction)->toDecimalString(),
                     'net_amount' => $net->toDecimalString(),
                     'created_by' => $actor->id,
+                    'tenant_id' => $bucket,
                 ],
             );
             $this->audit->log(action: 'payrolls.save', subjectType: 'payroll', subjectId: $row->id, newValues: ['period' => $period, 'net' => $net->toDecimalString()], actor: $actor);
@@ -58,18 +78,53 @@ class PayrollService
         });
     }
 
-    /** Posting semua entri belum terjurnal pada satu periode. */
+    /**
+     * Posting semua entri belum terjurnal pada satu periode.
+     *
+     * Putaran koreksi audit independen (temuan 4): pagar tenant
+     * ditegakkan EKSPLISIT di sini, bukan hanya mengandalkan
+     * global scope (yang tidak berlaku tanpa sesi auth, mis.
+     * konsol/antrean):
+     * - aktor wajib bertenant sah atau standalone; platform &
+     *   unassigned ditolak (bukan pelaku bisnis);
+     * - baris yang diproses HANYA baris ember aktor (query tanpa
+     *   global scope + saringan tenant eksplisit di bawah kunci);
+     * - setiap karyawan wajib seember dengan aktor — baris
+     *   tercampur membatalkan seluruh posting, tidak disaring
+     *   diam-diam;
+     * - dimensi cabang jurnal hanya boleh cabang seember:
+     *   relasi cabang karyawan yang menunjuk tenant lain diabaikan
+     *   (bukan dipakai), dan ketiadaan cabang seember membuat
+     *   baris berdimensi null seperti perilaku lama.
+     */
     public function postPeriod(User $actor, string $period, string $method): ?Journal
     {
-        return DB::transaction(function () use ($actor, $period, $method) {
-            $rows = Payroll::where('period', $period)->whereNull('journal_id')->with('employee.branches')->lockForUpdate()->get();
+        $context = TenantContext::for($actor);
+        $bucket = match (true) {
+            $context->isValid() => $context->tenantId(),
+            $context->isStandalone() => null,
+            default => throw new AuthorizationException('Posting payroll hanya untuk aktor bisnis bertenant atau instalasi mandiri.'),
+        };
+
+        return DB::transaction(function () use ($actor, $period, $method, $bucket) {
+            $rows = Payroll::withoutGlobalScopes()
+                ->where('period', $period)->whereNull('journal_id')
+                ->when($bucket === null, fn ($q) => $q->whereNull('tenant_id'), fn ($q) => $q->where('tenant_id', $bucket))
+                ->with('employee.branches')->lockForUpdate()->get();
             if ($rows->isEmpty()) {
                 return null;
             }
             $tender = Chart::tenderAccount($method);
             $byBranch = [];
             foreach ($rows as $row) {
-                $branchId = $row->employee?->branches->first()?->id;
+                $employee = $row->employee;
+                $employeeBucket = $employee?->tenant_id !== null && $employee !== null ? (int) $employee->tenant_id : null;
+                if ($employee === null || $employeeBucket !== $bucket) {
+                    throw ValidationException::withMessages(['employee' => __('ui.payroll.employee_invalid')]);
+                }
+                $branchId = $employee->branches
+                    ->first(fn ($branch) => ($branch->tenant_id !== null ? (int) $branch->tenant_id : null) === $bucket)
+                    ?->id;
                 $key = $branchId ?? 0;
                 $byBranch[$key] = ($byBranch[$key] ?? Money::zero())->add($row->net());
             }
@@ -88,7 +143,7 @@ class PayrollService
                 return null;
             }
             $journal = $this->posting->post('payroll', null, $this->postingDateFor($period), $lines, __('ui.payroll.payroll_journal', ['period' => $period]), $actor);
-            Payroll::whereIn('id', $rows->pluck('id'))->update(['journal_id' => $journal->id]);
+            Payroll::withoutGlobalScopes()->whereIn('id', $rows->pluck('id'))->update(['journal_id' => $journal->id]);
             $this->audit->log(action: 'payrolls.post', subjectType: 'payroll_period', newValues: ['period' => $period, 'total' => $total->toDecimalString(), 'rows' => $rows->count()], actor: $actor);
 
             return $journal;

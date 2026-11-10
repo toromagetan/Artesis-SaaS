@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Models;
 
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
+use App\Support\Concerns\TenantScoped;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -14,9 +15,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class IncentiveRule extends Model
 {
+    use TenantScoped;
+
     protected $fillable = [
         'name', 'recipient_role', 'product_id', 'calculation_type',
         'value', 'effective_from', 'effective_to', 'is_active', 'created_by',
+        'tenant_id',
     ];
 
     protected function casts(): array

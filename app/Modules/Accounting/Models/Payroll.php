@@ -3,15 +3,19 @@
 namespace App\Modules\Accounting\Models;
 
 use App\Modules\Identity\Models\User;
+use App\Support\Concerns\TenantScoped;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payroll extends Model
 {
+    use TenantScoped;
+
     protected $fillable = [
         'employee_user_id', 'period', 'base_amount', 'allowance_amount',
         'deduction_amount', 'net_amount', 'journal_id', 'created_by',
+        'tenant_id',
     ];
 
     public function employee(): BelongsTo
