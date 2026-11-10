@@ -17,6 +17,7 @@ use App\Modules\Sales\Services\SalesService;
 use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 /**
@@ -46,6 +47,10 @@ class AnalyticsTest extends TestCase
 
     public function test_supplier_and_sales_analytics_reconcile_with_sources(): void
     {
+        // Analitik menghitung retur pembelian menurut created_at —
+        // bekukan waktu di dalam jendela analitik (Sep-Okt) agar hasil
+        // deterministik pada bulan apa pun suite dijalankan.
+        $this->travelTo(Carbon::parse('2026-10-15 12:00:00'));
         $supplierA = Supplier::create(['name' => 'PT Analitik A', 'is_active' => true]);
         $supplierB = Supplier::create(['name' => 'PT Analitik B', 'is_active' => true]);
         $frame = Product::factory()->ofType('frame')->create([
