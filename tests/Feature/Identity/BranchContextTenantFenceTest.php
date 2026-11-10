@@ -163,4 +163,69 @@ class BranchContextTenantFenceTest extends TestCase
         $this->assertSame([$branchA->id], $context->managedBranchIds());
         $this->assertFalse($context->allowsBranch($branchB->id));
     }
+
+    public function test_unassigned_non_owner_with_cross_tenant_pivots_gets_no_branches(): void
+    {
+        [, $branchA] = $this->tenantOwner('Alpha');
+        [, $branchB] = $this->tenantOwner('Beta');
+        // Pengguna biasa TANPA tenant pada instalasi bersama, dengan
+        // pivot warisan ke cabang dua tenant — pivot tidak boleh
+        // memberi akses apa pun (klasifikasi unassigned, R3).
+        $stray = User::create([
+            'name' => 'Staf Liar', 'username' => 'staf-liar',
+            'email' => 'staf-liar@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
+        ]);
+        $stray->roles()->attach(Role::where('name', 'Kasir')->firstOrFail());
+        $stray->branches()->attach([$branchA->id, $branchB->id]);
+
+        $context = BranchContext::for($stray);
+        $this->assertFalse($context->hasGlobalAccess());
+        $this->assertFalse($context->isTenantWide());
+        $this->assertSame([], $context->managedBranchIds());
+        $this->assertFalse($context->allowsBranch($branchA->id));
+        $this->assertFalse($context->allowsBranch($branchB->id));
+    }
+
+    public function test_standalone_non_owner_is_limited_to_pivot_branches(): void
+    {
+        // Tanpa tenant sama sekali: pengguna biasa standalone tetap
+        // dibatasi pivot cabangnya (perilaku historis dipertahankan).
+        $branchA = Branch::create(['name' => 'Cabang Mandiri A']);
+        $branchB = Branch::create(['name' => 'Cabang Mandiri B']);
+        $staff = User::create([
+            'name' => 'Staf Mandiri', 'username' => 'staf-mandiri',
+            'email' => 'staf-mandiri@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
+        ]);
+        $staff->roles()->attach(Role::where('name', 'Kasir')->firstOrFail());
+        $staff->branches()->attach($branchA);
+
+        $context = BranchContext::for($staff);
+        $this->assertFalse($context->hasGlobalAccess());
+        $this->assertSame([$branchA->id], $context->managedBranchIds());
+        $this->assertTrue($context->allowsBranch($branchA->id));
+        $this->assertFalse($context->allowsBranch($branchB->id));
+    }
+
+    public function test_platform_actor_gets_no_business_branches(): void
+    {
+        [, $branchA] = $this->tenantOwner('Alpha');
+
+        $context = BranchContext::for($this->platform);
+        $this->assertFalse($context->hasGlobalAccess());
+        $this->assertFalse($context->isTenantWide());
+        $this->assertSame([], $context->managedBranchIds());
+        $this->assertFalse($context->allowsBranch($branchA->id));
+    }
+
+    public function test_guest_gets_no_business_branches(): void
+    {
+        $context = BranchContext::for(null);
+        $this->assertNull($context->user());
+        $this->assertFalse($context->hasGlobalAccess());
+        $this->assertFalse($context->isTenantWide());
+        $this->assertSame([], $context->managedBranchIds());
+        $this->assertFalse($context->allowsBranch(1));
+    }
 }

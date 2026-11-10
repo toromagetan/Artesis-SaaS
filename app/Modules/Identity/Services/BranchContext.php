@@ -4,7 +4,6 @@ namespace App\Modules\Identity\Services;
 
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
-use App\Modules\Platform\Models\Tenant;
 use Illuminate\Auth\Access\AuthorizationException;
 
 /**
@@ -51,41 +50,64 @@ class BranchContext
             return new self($user, [], false);
         }
 
+        // Identitas tenant SELALU dari klasifikasi TenantContext —
+        // bukan dari tenant_id mentah dan bukan dari tebakan
+        // "tenant_id null = standalone". isValid() dipakai (mode
+        // tenant + baris tenant nyata ada); status aktif tenant
+        // SENGAJA tidak diperiksa di sini — penegakan suspensi
+        // adalah pekerjaan modul lifecycle, bukan konteks cabang.
+        $tenantContext = TenantContext::for($user);
+
         if ($user->hasRole('Owner')) {
-            // Owner bertenant: seluruh cabang tenant miliknya sendiri,
-            // tidak pernah cabang tenant lain.
-            if ($user->tenant_id !== null) {
+            // Owner bertenant sah: seluruh cabang tenant miliknya
+            // sendiri, tidak pernah cabang tenant lain.
+            if ($tenantContext->isValid()) {
                 return new self(
                     $user,
-                    Branch::query()->where('tenant_id', $user->tenant_id)->pluck('id')->all(),
+                    Branch::query()->where('tenant_id', $tenantContext->tenantId())->pluck('id')->all(),
                     false,
                     true,
                 );
             }
 
-            // Instalasi mandiri (belum ada tenant sama sekali):
-            // perilaku historis Blueprint B.1 — akses global.
-            if (Tenant::query()->count() === 0) {
+            // Instalasi mandiri (klasifikasi standalone): perilaku
+            // historis Blueprint B.1 — akses global.
+            if ($tenantContext->isStandalone()) {
                 return new self($user, Branch::query()->pluck('id')->all(), true, true);
             }
 
-            // Akun tanpa tenant pada instalasi yang sudah bertenant:
-            // gagal-tutup, tanpa akses cabang bisnis apa pun.
+            // Unassigned atau tenant_id menggantung: gagal-tutup,
+            // tanpa akses cabang bisnis apa pun.
             return new self($user, [], false);
         }
 
-        // Aktor biasa: cabang yang melekat padanya, dipotong ke cabang
-        // tenant miliknya sendiri bila ia bertenant (lampiran lintas
+        // Aktor biasa bertenant sah: cabang yang melekat padanya,
+        // dipotong ke cabang tenantnya sendiri (lampiran lintas
         // tenant pada pivot tidak pernah memberi akses).
-        $branchIds = $user->branches()
-            ->when(
-                $user->tenant_id !== null,
-                fn ($query) => $query->where('branches.tenant_id', $user->tenant_id),
-            )
-            ->pluck('branches.id')
-            ->all();
+        if ($tenantContext->isValid()) {
+            return new self(
+                $user,
+                $user->branches()
+                    ->where('branches.tenant_id', $tenantContext->tenantId())
+                    ->pluck('branches.id')
+                    ->all(),
+                false,
+            );
+        }
 
-        return new self($user, $branchIds, false);
+        // Aktor biasa standalone: cabang sesuai pivot, seperti
+        // perilaku historis instalasi mandiri.
+        if ($tenantContext->isStandalone()) {
+            return new self(
+                $user,
+                $user->branches()->pluck('branches.id')->all(),
+                false,
+            );
+        }
+
+        // Unassigned atau tenant_id menggantung: pivot TIDAK memberi
+        // akses apa pun — gagal-tutup.
+        return new self($user, [], false);
     }
 
     /**
