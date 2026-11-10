@@ -12,6 +12,14 @@ use Illuminate\Auth\Access\AuthorizationException;
  * SATU-SATUNYA sumber kebenaran untuk "cabang mana yang boleh diakses
  * pengguna ini". branch_id pada query bisnis WAJIB berasal dari sini —
  * tidak pernah dari input request mentah.
+ *
+ * PAGAR TENANT (P0): konteks TIDAK PERNAH memuat cabang milik tenant
+ * lain. Owner bertenant berwilayah seluruh cabang tenantnya sendiri —
+ * dinyatakan lewat daftar cabang terkelola, bukan akses global, agar
+ * BranchScope dan seluruh filter cabang ikut terpagar. Akses global
+ * hanya tersisa pada instalasi mandiri yang belum memiliki tenant
+ * sama sekali; akun tanpa tenant pada instalasi yang sudah bertenant
+ * gagal-tutup (sejalan klasifikasi TenantContext: unassigned).
  */
 class BranchContext
 {
@@ -26,6 +34,7 @@ class BranchContext
         private readonly ?User $user,
         private readonly array $managedBranchIds,
         private readonly bool $globalAccess,
+        private readonly bool $tenantWide = false,
     ) {
         $this->userId = $user?->id;
     }
@@ -41,16 +50,64 @@ class BranchContext
             return new self($user, [], false);
         }
 
-        // Peran Owner = akses global ke semua cabang (Blueprint B.1).
+        // Identitas tenant SELALU dari klasifikasi TenantContext —
+        // bukan dari tenant_id mentah dan bukan dari tebakan
+        // "tenant_id null = standalone". isValid() dipakai (mode
+        // tenant + baris tenant nyata ada); status aktif tenant
+        // SENGAJA tidak diperiksa di sini — penegakan suspensi
+        // adalah pekerjaan modul lifecycle, bukan konteks cabang.
+        $tenantContext = TenantContext::for($user);
+
         if ($user->hasRole('Owner')) {
-            return new self($user, Branch::query()->pluck('id')->all(), true);
+            // Owner bertenant sah: seluruh cabang tenant miliknya
+            // sendiri, tidak pernah cabang tenant lain.
+            if ($tenantContext->isValid()) {
+                return new self(
+                    $user,
+                    Branch::query()->where('tenant_id', $tenantContext->tenantId())->pluck('id')->all(),
+                    false,
+                    true,
+                );
+            }
+
+            // Instalasi mandiri (klasifikasi standalone): perilaku
+            // historis Blueprint B.1 — akses global.
+            if ($tenantContext->isStandalone()) {
+                return new self($user, Branch::query()->pluck('id')->all(), true, true);
+            }
+
+            // Unassigned atau tenant_id menggantung: gagal-tutup,
+            // tanpa akses cabang bisnis apa pun.
+            return new self($user, [], false);
         }
 
-        return new self(
-            $user,
-            $user->branches()->pluck('branches.id')->all(),
-            false,
-        );
+        // Aktor biasa bertenant sah: cabang yang melekat padanya,
+        // dipotong ke cabang tenantnya sendiri (lampiran lintas
+        // tenant pada pivot tidak pernah memberi akses).
+        if ($tenantContext->isValid()) {
+            return new self(
+                $user,
+                $user->branches()
+                    ->where('branches.tenant_id', $tenantContext->tenantId())
+                    ->pluck('branches.id')
+                    ->all(),
+                false,
+            );
+        }
+
+        // Aktor biasa standalone: cabang sesuai pivot, seperti
+        // perilaku historis instalasi mandiri.
+        if ($tenantContext->isStandalone()) {
+            return new self(
+                $user,
+                $user->branches()->pluck('branches.id')->all(),
+                false,
+            );
+        }
+
+        // Unassigned atau tenant_id menggantung: pivot TIDAK memberi
+        // akses apa pun — gagal-tutup.
+        return new self($user, [], false);
     }
 
     /**
@@ -91,6 +148,17 @@ class BranchContext
     public function hasGlobalAccess(): bool
     {
         return $this->globalAccess;
+    }
+
+    /**
+     * Aktor berwilayah seluruh perusahaannya: Owner pada instalasi
+     * mandiri, atau Owner di dalam tenant miliknya. Dipakai untuk
+     * tampilan tingkat perusahaan (mis. posisi kas dashboard) yang
+     * tetap WAJIB terpagar ke cabang wilayah aktor.
+     */
+    public function isTenantWide(): bool
+    {
+        return $this->tenantWide;
     }
 
     /** @return int[] */

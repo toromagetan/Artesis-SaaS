@@ -21,6 +21,7 @@ use App\Modules\Sales\Services\SalesService;
 use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 /**
@@ -78,6 +79,10 @@ class ReportTest extends TestCase
 
     public function test_sales_report_excludes_void_and_nets_returns(): void
     {
+        // Laporan menghitung retur menurut created_at — bekukan waktu
+        // di dalam jendela laporan (Oktober) agar hasil deterministik
+        // pada bulan apa pun suite dijalankan.
+        $this->travelTo(Carbon::parse('2026-10-15 12:00:00'));
         $sale = $this->sell(2, '200000');                    // total 200rb lunas
         $this->sell(1, '40000');                              // total 100rb, piutang 60rb
         $voided = $this->sell(1, '100000');
@@ -99,6 +104,9 @@ class ReportTest extends TestCase
 
     public function test_purchases_net_and_payables_inclusion(): void
     {
+        // Sama seperti di atas: retur pembelian dihitung menurut
+        // created_at — bekukan waktu di dalam jendela laporan.
+        $this->travelTo(Carbon::parse('2026-10-20 12:00:00'));
         $supplier = Supplier::create(['name' => 'PT Laporan', 'is_active' => true]);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $supplier->id, $this->branch->id, [
