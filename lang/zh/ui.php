@@ -1973,6 +1973,7 @@ return [
         'unlimited_hint' => '限额留空 = 无限制',
         'locked' => '此功能不包含在您的租户订阅套餐中。',
         'limit_reached' => '已达到套餐上限（:limit）。升级套餐以添加更多。',
+        'tenant_suspended' => '您的租户已被平台停用。访问仅限于“我的套餐”页面——请结清账单或联系平台。',
         'my_title' => '我的套餐',
         'my_current' => '当前套餐',
         'my_price' => '价格',
