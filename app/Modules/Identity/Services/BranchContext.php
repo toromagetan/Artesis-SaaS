@@ -4,6 +4,7 @@ namespace App\Modules\Identity\Services;
 
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Platform\Models\Tenant;
 use Illuminate\Auth\Access\AuthorizationException;
 
 /**
@@ -12,6 +13,14 @@ use Illuminate\Auth\Access\AuthorizationException;
  * SATU-SATUNYA sumber kebenaran untuk "cabang mana yang boleh diakses
  * pengguna ini". branch_id pada query bisnis WAJIB berasal dari sini —
  * tidak pernah dari input request mentah.
+ *
+ * PAGAR TENANT (P0): konteks TIDAK PERNAH memuat cabang milik tenant
+ * lain. Owner bertenant berwilayah seluruh cabang tenantnya sendiri —
+ * dinyatakan lewat daftar cabang terkelola, bukan akses global, agar
+ * BranchScope dan seluruh filter cabang ikut terpagar. Akses global
+ * hanya tersisa pada instalasi mandiri yang belum memiliki tenant
+ * sama sekali; akun tanpa tenant pada instalasi yang sudah bertenant
+ * gagal-tutup (sejalan klasifikasi TenantContext: unassigned).
  */
 class BranchContext
 {
@@ -26,6 +35,7 @@ class BranchContext
         private readonly ?User $user,
         private readonly array $managedBranchIds,
         private readonly bool $globalAccess,
+        private readonly bool $tenantWide = false,
     ) {
         $this->userId = $user?->id;
     }
@@ -41,16 +51,41 @@ class BranchContext
             return new self($user, [], false);
         }
 
-        // Peran Owner = akses global ke semua cabang (Blueprint B.1).
         if ($user->hasRole('Owner')) {
-            return new self($user, Branch::query()->pluck('id')->all(), true);
+            // Owner bertenant: seluruh cabang tenant miliknya sendiri,
+            // tidak pernah cabang tenant lain.
+            if ($user->tenant_id !== null) {
+                return new self(
+                    $user,
+                    Branch::query()->where('tenant_id', $user->tenant_id)->pluck('id')->all(),
+                    false,
+                    true,
+                );
+            }
+
+            // Instalasi mandiri (belum ada tenant sama sekali):
+            // perilaku historis Blueprint B.1 — akses global.
+            if (Tenant::query()->count() === 0) {
+                return new self($user, Branch::query()->pluck('id')->all(), true, true);
+            }
+
+            // Akun tanpa tenant pada instalasi yang sudah bertenant:
+            // gagal-tutup, tanpa akses cabang bisnis apa pun.
+            return new self($user, [], false);
         }
 
-        return new self(
-            $user,
-            $user->branches()->pluck('branches.id')->all(),
-            false,
-        );
+        // Aktor biasa: cabang yang melekat padanya, dipotong ke cabang
+        // tenant miliknya sendiri bila ia bertenant (lampiran lintas
+        // tenant pada pivot tidak pernah memberi akses).
+        $branchIds = $user->branches()
+            ->when(
+                $user->tenant_id !== null,
+                fn ($query) => $query->where('branches.tenant_id', $user->tenant_id),
+            )
+            ->pluck('branches.id')
+            ->all();
+
+        return new self($user, $branchIds, false);
     }
 
     /**
@@ -91,6 +126,17 @@ class BranchContext
     public function hasGlobalAccess(): bool
     {
         return $this->globalAccess;
+    }
+
+    /**
+     * Aktor berwilayah seluruh perusahaannya: Owner pada instalasi
+     * mandiri, atau Owner di dalam tenant miliknya. Dipakai untuk
+     * tampilan tingkat perusahaan (mis. posisi kas dashboard) yang
+     * tetap WAJIB terpagar ke cabang wilayah aktor.
+     */
+    public function isTenantWide(): bool
+    {
+        return $this->tenantWide;
     }
 
     /** @return int[] */

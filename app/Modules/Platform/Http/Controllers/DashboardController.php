@@ -159,7 +159,9 @@ class DashboardController extends Controller
                 'net' => $periodNet,
                 'by_branch' => $byBranch,
                 'branch_names' => Branch::pluck('name', 'id')->all(),
-                'cash' => $context->hasGlobalAccess() ? $financial->cashPosition() : null,
+                'cash' => $context->isTenantWide()
+                    ? $financial->cashPosition($context->hasGlobalAccess() ? null : $context->managedBranchIds())
+                    : null,
             ];
         }
 
