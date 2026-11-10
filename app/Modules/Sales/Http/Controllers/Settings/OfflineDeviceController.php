@@ -28,11 +28,13 @@ class OfflineDeviceController extends Controller
         $context = BranchContext::current();
         $branchIds = $context->companyBranchIds();
         $tenant = TenantContext::for(auth()->user());
+        // Pagar lima mode TenantContext (putaran koreksi temuan 3):
+        // mode unassigned kini menghasilkan daftar KOSONG, bukan
+        // seluruh pengguna non-platform se-instalasi.
         $users = User::where('is_active', true)->orderBy('name');
-        if ($tenant->isValid()) {
-            $users->where('tenant_id', $tenant->tenantId());
-        } elseif ($tenant->isStandalone()) {
-            $users->whereNull('tenant_id')->where('is_platform', false);
+        $tenant->constrainByTenant($users);
+        if ($tenant->isStandalone()) {
+            $users->where('is_platform', false);
         }
 
         return view('settings.offline-devices.index', [

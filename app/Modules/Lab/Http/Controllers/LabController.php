@@ -5,6 +5,7 @@ namespace App\Modules\Lab\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Lab\Models\LensProcess;
 use App\Modules\Lab\Models\QcCheck;
 use App\Modules\Lab\Models\QcPointTemplate;
@@ -52,10 +53,14 @@ class LabController extends Controller
     {
         $this->assertVisible($process);
         $process->load(['sale.customer', 'sale.branch', 'sale.items', 'technician']);
+        // Daftar teknisi terpagari tenant aktor (putaran koreksi
+        // temuan 3 — pola daftar pengguna yang sama): teknisi
+        // tenant lain tidak ditawarkan untuk penugasan.
         $technicians = User::where('is_active', true)
             ->where('is_platform', false)
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
+        TenantContext::for(auth()->user())->constrainByTenant($technicians);
+        $technicians = $technicians->get();
 
         // Daftar periksa QC (F2.2): titik aktif terurut + hasil terakhir
         // per titik + seluruh riwayat percobaan (tidak ditimpa).
