@@ -14,6 +14,10 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Lab\Models\LensProcess;
 use App\Modules\Lab\Services\LensProcessService;
 use App\Modules\Master\Models\Supplier;
+use App\Modules\Platform\Models\Plan;
+use App\Modules\Platform\Models\Tenant;
+use App\Modules\Platform\Models\TenantBillingRequest;
+use App\Modules\Platform\Services\BillingService;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use App\Modules\Purchasing\Models\PurchaseRequest;
 use App\Modules\Purchasing\Services\CollectivePaymentService;
@@ -91,6 +95,21 @@ try {
         // Balapan LNT-005: dua pekerja membalik jurnal yang sama.
         'reverse' => app(PostingService::class)->reverse(
             Journal::findOrFail($params['journal_id']), 'uji balapan LNT-005', $owner,
+        ),
+        // Balapan B-01: pembuatan permintaan billing bersamaan untuk
+        // tenant yang sama — hanya satu pending yang boleh lahir.
+        'billing-create' => app(BillingService::class)->createRequest(
+            Tenant::findOrFail($params['tenant_id']),
+            Plan::findOrFail($params['plan_id']),
+            (int) $params['months'],
+            null,
+            User::findOrFail($params['actor_id']),
+        ),
+        // Balapan B-01: konfirmasi bersamaan atas request yang sama —
+        // paket hanya boleh diterapkan satu kali.
+        'billing-confirm' => app(BillingService::class)->confirm(
+            TenantBillingRequest::findOrFail($params['request_id']),
+            User::findOrFail($params['actor_id']),
         ),
         default => throw new RuntimeException('Skenario tidak dikenal: '.$scenario),
     };
