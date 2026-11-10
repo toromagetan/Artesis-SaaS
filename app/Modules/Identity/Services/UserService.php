@@ -127,7 +127,19 @@ class UserService
                     'roles' => __('ui.users.cannot_change_own_roles'),
                 ]);
             }
-            $roleIds = Role::whereIn('name', $data['roles'])->pluck('id');
+            // Resolusi peran dibatasi lingkup aktor (S-03, pola yang
+            // sama dengan saringan cabang di bawah): templat global
+            // + peran milik tenant aktor; nama yang sama pada kedua
+            // lingkup dimenangkan milik tenant aktor. Tanpa aktor
+            // (alur sistem) perilaku lama dipertahankan.
+            $roleQuery = Role::whereIn('name', $data['roles']);
+            if ($actor !== null) {
+                $roleQuery->visibleTo($actor);
+            }
+            $roleIds = $roleQuery->get()
+                ->sortBy(fn (Role $role) => $actor !== null && $role->tenant_id !== null && $role->tenant_id === $actor->tenant_id ? 0 : 1)
+                ->unique('name')
+                ->pluck('id');
             $user->roles()->sync($roleIds);
         }
 
