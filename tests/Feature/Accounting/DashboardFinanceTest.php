@@ -28,6 +28,12 @@ class DashboardFinanceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Bekukan "hari ini" ke tanggal 20 bulan berjalan: jurnal contoh
+        // bertanggal 05-07 selalu berada di masa lalu dan masuk jendela
+        // 30 hari dashboard, pada tanggal berapa pun suite dijalankan.
+        // (Tanpa ini test gagal bila suite berjalan pada tanggal 1-6,
+        // karena jurnal tanggal 07 masih di masa depan.)
+        $this->travelTo(now()->setDay(20)->setTime(12, 0));
         $this->seed();
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branchA = Branch::firstOrFail();
