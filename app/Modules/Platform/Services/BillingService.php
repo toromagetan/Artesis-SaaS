@@ -48,27 +48,38 @@ class BillingService
                 'months' => __('ui.billing.months_range'),
             ]);
         }
-        $pending = $tenant->billingRequests()
-            ->where('status', TenantBillingRequest::STATUS_PENDING)->exists();
-        if ($pending) {
-            throw ValidationException::withMessages([
-                'plan_id' => __('ui.billing.pending_exists'),
+
+        // Konkurensi (B-01): pemeriksaan pending + pembuatan harus
+        // atomik. Baris tenant dikunci lebih dulu sehingga seluruh
+        // mutasi billing per tenant terserialisasi; lapisan kedua
+        // adalah constraint unik parsial di database (kolom
+        // tergenerasi pending_tenant_id) yang menolak pending kedua
+        // bahkan bila jalur aplikasi lain yang membuatnya.
+        return DB::transaction(function () use ($tenant, $plan, $months, $note) {
+            Tenant::whereKey($tenant->id)->lockForUpdate()->firstOrFail();
+
+            $pending = $tenant->billingRequests()
+                ->where('status', TenantBillingRequest::STATUS_PENDING)->exists();
+            if ($pending) {
+                throw ValidationException::withMessages([
+                    'plan_id' => __('ui.billing.pending_exists'),
+                ]);
+            }
+
+            $branchCount = max(1, $tenant->branches()->count());
+            $extra = max(0, $branchCount - 1);
+            $amount = $this->monthlyTotal($plan, $branchCount) * $months;
+
+            return TenantBillingRequest::create([
+                'tenant_id' => $tenant->id,
+                'plan_id' => $plan->id,
+                'extra_branches' => $extra,
+                'months' => $months,
+                'amount' => $amount,
+                'status' => TenantBillingRequest::STATUS_PENDING,
+                'note' => $note,
             ]);
-        }
-
-        $branchCount = max(1, $tenant->branches()->count());
-        $extra = max(0, $branchCount - 1);
-        $amount = $this->monthlyTotal($plan, $branchCount) * $months;
-
-        return TenantBillingRequest::create([
-            'tenant_id' => $tenant->id,
-            'plan_id' => $plan->id,
-            'extra_branches' => $extra,
-            'months' => $months,
-            'amount' => $amount,
-            'status' => TenantBillingRequest::STATUS_PENDING,
-            'note' => $note,
-        ]);
+        });
     }
 
     /**
@@ -83,22 +94,34 @@ class BillingService
             ]);
         }
 
+        // Konkurensi (B-01): status diperiksa ULANG di dalam
+        // transaksi sesudah baris tenant + request dikunci — dua
+        // konfirmasi bersamaan tidak lagi sama-sama lolos; yang
+        // kedua membaca status confirmed dan ditolak, sehingga
+        // paket hanya diterapkan satu kali.
         return DB::transaction(function () use ($request, $actor) {
+            $fresh = $this->lockForDecision($request);
+            if (! $fresh->isPending()) {
+                throw ValidationException::withMessages([
+                    'status' => __('ui.billing.not_pending'),
+                ]);
+            }
+
             $subscription = $this->plans->assignPlan(
-                $request->tenant,
-                $request->plan,
-                now()->addMonths($request->months),
+                $fresh->tenant,
+                $fresh->plan,
+                now()->addMonths($fresh->months),
                 $actor,
             );
 
-            $request->update([
+            $fresh->update([
                 'status' => TenantBillingRequest::STATUS_CONFIRMED,
                 'decided_by' => $actor->id,
                 'decided_at' => now(),
                 'subscription_id' => $subscription->id,
             ]);
 
-            return $request;
+            return $fresh;
         });
     }
 
@@ -111,12 +134,36 @@ class BillingService
             ]);
         }
 
-        $request->update([
-            'status' => TenantBillingRequest::STATUS_REJECTED,
-            'decided_by' => $actor->id,
-            'decided_at' => now(),
-        ]);
+        // Pola kunci yang sama dengan confirm(): keputusan tolak
+        // dan konfirmasi yang bersamaan tidak dapat sama-sama
+        // berlaku — yang kalah membaca status final dan ditolak.
+        return DB::transaction(function () use ($request, $actor) {
+            $fresh = $this->lockForDecision($request);
+            if (! $fresh->isPending()) {
+                throw ValidationException::withMessages([
+                    'status' => __('ui.billing.not_pending'),
+                ]);
+            }
 
-        return $request;
+            $fresh->update([
+                'status' => TenantBillingRequest::STATUS_REJECTED,
+                'decided_by' => $actor->id,
+                'decided_at' => now(),
+            ]);
+
+            return $fresh;
+        });
+    }
+
+    /**
+     * Kunci baris tenant lalu baris request (urutan kunci selalu
+     * sama di semua mutasi billing agar tidak buntu/deadlock) dan
+     * kembalikan salinan request yang segar dari database.
+     */
+    private function lockForDecision(TenantBillingRequest $request): TenantBillingRequest
+    {
+        Tenant::whereKey($request->tenant_id)->lockForUpdate()->firstOrFail();
+
+        return TenantBillingRequest::whereKey($request->id)->lockForUpdate()->firstOrFail();
     }
 }
