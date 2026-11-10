@@ -2,6 +2,7 @@
 
 namespace App\Modules\Catalog\Models;
 
+use App\Support\Concerns\TenantScoped;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
  */
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, TenantScoped;
 
     public const TYPES = ['frame', 'lens', 'rx', 'softlens', 'accessory'];
 

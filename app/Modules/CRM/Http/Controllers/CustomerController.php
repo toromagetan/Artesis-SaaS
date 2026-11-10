@@ -41,9 +41,12 @@ class CustomerController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        // Pelanggan global: daftar cabang untuk filter asal memuat
-        // semua cabang (master tenant), untuk semua pengguna berizin.
-        $branches = Branch::orderBy('name')->get();
+        // Daftar cabang untuk filter asal: hanya cabang milik
+        // tenant aktor (S-02); platform & instalasi mandiri melihat
+        // semua cabang instalasi.
+        $branches = Branch::orderBy('name')
+            ->when($request->user()?->tenant_id, fn ($query, $tenantId) => $query->where('tenant_id', $tenantId))
+            ->get();
 
         return view('crm.customers.index', compact('customers', 'q', 'branchId', 'branches'));
     }

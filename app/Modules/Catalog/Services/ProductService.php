@@ -45,7 +45,7 @@ class ProductService
         $attributes = $this->normalizeAttributes($data['type'], $attributes);
 
         return DB::transaction(function () use ($actor, $data, $attributes) {
-            $parent = $this->resolveParent($data);
+            $parent = $this->resolveParent($data, $actor);
 
             $product = Product::create([
                 'parent_id' => $parent->id,
@@ -108,7 +108,7 @@ class ProductService
 
             $product->update([
                 'parent_id' => array_key_exists('parent_id', $data) && $data['parent_id'] !== null
-                    ? $this->resolveParent([...$data, 'type' => $newType])->id
+                    ? $this->resolveParent([...$data, 'type' => $newType], $actor)->id
                     : $product->parent_id,
                 'sku' => $data['sku'] ?? $product->sku,
                 'barcode' => $data['barcode'] ?? null,
@@ -161,6 +161,7 @@ class ProductService
             'category_id' => $category?->id,
             'type' => $category?->type ?? $data['type'],
             'is_active' => true,
+            'tenant_id' => $actor->tenant_id,
         ]);
 
         app(AuditLogger::class)->log(
@@ -237,9 +238,10 @@ class ProductService
      *
      * @param  array<string, mixed>  $data
      */
-    private function resolveParent(array $data): ProductParent
+    private function resolveParent(array $data, User $actor): ProductParent
     {
         if (! empty($data['parent_id'])) {
+            // TenantScope membuat induk tenant lain tidak ditemukan.
             $parent = ProductParent::findOrFail((int) $data['parent_id']);
             if ($parent->type !== $data['type']) {
                 throw ValidationException::withMessages([
@@ -250,8 +252,10 @@ class ProductService
             return $parent;
         }
 
+        // Induk dicari/dibuat di dalam lingkup tenant aktor (S-02):
+        // nama yang sama pada tenant lain adalah induk yang berbeda.
         return ProductParent::firstOrCreate(
-            ['type' => $data['type'], 'brand' => $data['brand'] ?? null, 'name' => $data['name']],
+            ['type' => $data['type'], 'brand' => $data['brand'] ?? null, 'name' => $data['name'], 'tenant_id' => $actor->tenant_id],
             ['is_active' => true, 'category_id' => $this->defaultCategoryFor($data['type'])?->id],
         );
     }
