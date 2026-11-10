@@ -5,16 +5,20 @@ namespace App\Modules\Accounting\Models;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Doctor;
 use App\Modules\Sales\Models\Sale;
+use App\Support\Concerns\TenantScoped;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Commission extends Model
 {
+    use TenantScoped;
+
     protected $fillable = [
         'type', 'beneficiary_doctor_id', 'beneficiary_user_id', 'source_sale_id',
         'corrects_id', 'base_amount', 'rate', 'amount', 'period', 'status',
         'journal_id', 'paid_at',
+        'tenant_id',
     ];
 
     protected $casts = [

@@ -64,8 +64,14 @@ class PostingService
      *
      * @param  array<int, array{branch_id?: ?int}>  $lines
      */
-    private function tenantIdFor(?User $actor, array $lines): ?int
+    private function tenantIdFor(?User $actor, array $lines, ?int $tenantOverride = null): ?int
     {
+        // Penimpa eksplisit menang: dipakai penulis berkala tanpa
+        // aktor (mis. depresiasi konsol) yang mengetahui pemilik
+        // tenant dari entitas sumbernya (Modul B2).
+        if ($tenantOverride !== null) {
+            return $tenantOverride;
+        }
         if ($actor !== null) {
             $context = TenantContext::for($actor);
             if ($context->isValid()) {
@@ -146,7 +152,7 @@ class PostingService
     /**
      * @param  array<int, array{account: string, branch_id?: ?int, debit?: string, credit?: string, memo?: ?string}>  $lines
      */
-    public function post(string $sourceType, ?int $sourceId, CarbonInterface|string $date, array $lines, ?string $description = null, ?User $actor = null, ?string $idempotencyKey = null): Journal
+    public function post(string $sourceType, ?int $sourceId, CarbonInterface|string $date, array $lines, ?string $description = null, ?User $actor = null, ?string $idempotencyKey = null, ?int $tenantOverride = null): Journal
     {
         $dateString = $date instanceof CarbonInterface ? $date->format('Y-m-d') : substr((string) $date, 0, 10);
         $period = substr($dateString, 0, 7);
@@ -184,7 +190,7 @@ class PostingService
             throw ValidationException::withMessages(['lines' => __('ui.accounting.journal_unbalanced')]);
         }
 
-        $tenantId = $this->tenantIdFor($actor, $prepared);
+        $tenantId = $this->tenantIdFor($actor, $prepared, $tenantOverride);
         if ($this->isPeriodLocked($period, $tenantId)) {
             throw ValidationException::withMessages(['period' => __('ui.accounting.period_locked', ['period' => $period])]);
         }

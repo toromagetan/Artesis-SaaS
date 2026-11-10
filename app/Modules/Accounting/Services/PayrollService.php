@@ -6,6 +6,7 @@ use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Models\Payroll;
 use App\Modules\Accounting\Support\Chart;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Support\Money;
 use Carbon\Carbon;
@@ -29,7 +30,15 @@ class PayrollService
     public function upsertEntry(User $actor, int $employeeId, string $period, string $base, string $allowance, string $deduction): Payroll
     {
         $employee = User::where('id', $employeeId)->where('is_active', true)->where('is_platform', false)->first();
-        if ($employee === null) {
+        // Karyawan WAJIB satu perusahaan dengan aktor (Modul B2):
+        // entri gaji tidak dapat dibuat untuk staf tenant lain.
+        $actorTenant = TenantContext::for($actor);
+        $sameCompany = $employee !== null && match (true) {
+            $actorTenant->isValid() => (int) $employee->tenant_id === $actorTenant->tenantId(),
+            $actorTenant->isStandalone() => $employee->tenant_id === null,
+            default => false,
+        };
+        if (! $sameCompany) {
             throw ValidationException::withMessages(['employee' => __('ui.payroll.employee_invalid')]);
         }
         $net = Money::fromDecimal($base)->add(Money::fromDecimal($allowance))->sub(Money::fromDecimal($deduction));

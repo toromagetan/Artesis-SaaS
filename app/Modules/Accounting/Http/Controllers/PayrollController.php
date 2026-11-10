@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Models\Payroll;
 use App\Modules\Accounting\Services\PayrollService;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Support\Money;
 use App\Support\XlsxWriter;
 use Illuminate\Http\RedirectResponse;
@@ -28,7 +29,11 @@ class PayrollController extends Controller
             ->where('period', $period)
             ->orderBy('employee_user_id')
             ->get();
-        $employees = User::where('is_active', true)->where('is_platform', false)->orderBy('name')->get(['id', 'name', 'username']);
+        $tenant = TenantContext::for($request->user());
+        $employees = User::where('is_active', true)->where('is_platform', false)
+            ->when($tenant->isValid(), fn ($q) => $q->where('tenant_id', $tenant->tenantId()))
+            ->when($tenant->isStandalone(), fn ($q) => $q->whereNull('tenant_id'))
+            ->orderBy('name')->get(['id', 'name', 'username']);
         $totalNet = $entries->sum(fn (Payroll $p) => $p->net()->cents());
         $allPosted = $entries->isNotEmpty() && $entries->every(fn (Payroll $p) => $p->isPosted());
 

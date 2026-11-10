@@ -111,7 +111,7 @@ class CommissionService
     public function correctForVoidedSale(Sale $sale): int
     {
         $period = now()->format('Y-m');
-        if ($this->posting->isPeriodLocked($period)) {
+        if ($this->posting->isPeriodLocked($period, $sale->branch?->tenant_id !== null ? (int) $sale->branch->tenant_id : null)) {
             $period = now()->addMonth()->format('Y-m');
         }
         $created = 0;
