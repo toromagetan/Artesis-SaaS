@@ -1989,6 +1989,7 @@ return [
         'unlimited_hint' => 'Leave a limit empty = unlimited',
         'locked' => 'This feature is not included in your tenant subscription plan.',
         'limit_reached' => 'Plan limit reached (:limit). Upgrade your plan to add more.',
+        'tenant_suspended' => 'Your tenant is currently suspended by the platform. Access is limited to the My Plan page — please settle your billing or contact the platform.',
         'my_title' => 'My Plan',
         'my_current' => 'Current Plan',
         'my_price' => 'Price',

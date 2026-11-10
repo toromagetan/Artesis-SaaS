@@ -1989,6 +1989,7 @@ return [
         'unlimited_hint' => 'Kosongkan batas = tanpa batas',
         'locked' => 'Fitur ini tidak termasuk dalam paket langganan tenant Anda.',
         'limit_reached' => 'Batas paket tercapai (:limit). Naikkan paket untuk menambah lagi.',
+        'tenant_suspended' => 'Tenant Anda sedang dinonaktifkan oleh platform. Akses dibatasi ke halaman Paket Saya — silakan selesaikan tagihan atau hubungi platform.',
         'my_title' => 'Paket Saya',
         'my_current' => 'Paket Saat Ini',
         'my_price' => 'Harga',

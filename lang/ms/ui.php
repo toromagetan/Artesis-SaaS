@@ -1965,6 +1965,7 @@ return [
         'unlimited_hint' => 'Kosongkan had = tanpa had',
         'locked' => 'Ciri ini tidak termasuk dalam pakej langganan tenant anda.',
         'limit_reached' => 'Had pakej tercapai (:limit). Naikkan pakej untuk menambah lagi.',
+        'tenant_suspended' => 'Tenant anda sedang dinyahaktifkan oleh platform. Akses dihadkan ke halaman Pakej Saya — sila selesaikan bil atau hubungi platform.',
         'my_title' => 'Pakej Saya',
         'my_current' => 'Pakej Semasa',
         'my_price' => 'Harga',
