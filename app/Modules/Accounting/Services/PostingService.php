@@ -7,6 +7,7 @@ use App\Modules\Accounting\Models\Journal;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Platform\Models\Tenant;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Support\Money;
 use App\Support\Numbering;
@@ -58,38 +59,124 @@ class PostingService
     }
 
     /**
-     * Tenant pemilik sebuah posting: dari aktor bertenant; aktor
-     * mandiri -> null; aktor platform/konsol -> diturunkan dari
-     * cabang baris jurnal pertama yang bercabang.
+     * Tenant pemilik sebuah posting — GAGAL-TERTUTUP untuk semua
+     * mode (putaran koreksi audit independen, temuan 2):
+     *
+     * - Penimpa eksplisit ($tenantOverrideSet): hanya dari entitas
+     *   sumber yang tervalidasi pemanggil (mis. aset pada depresiasi
+     *   konsol, jurnal asal pada pembalikan). Tenant penimpa wajib
+     *   benar-benar ada; aktor bertenant/mandiri yang menyertai
+     *   wajib seember dengan penimpa; aktor platform/unassigned
+     *   tetap ditolak.
+     * - Aktor bertenant sah: tenantnya, dan SETIAP cabang baris
+     *   wajib milik tenant itu.
+     * - Aktor standalone: ember NULL, dan setiap cabang baris wajib
+     *   bercap tenant NULL.
+     * - Aktor platform / unassigned / tenant menggantung: DITOLAK
+     *   (AuthorizationException) — bukan pelaku bisnis, tidak boleh
+     *   memperoleh hak posting lewat penurunan cabang.
+     * - Tanpa aktor (listener domain / konsol): diturunkan dari
+     *   cabang baris — SEMUA cabang wajib ada dan seember; tanpa
+     *   baris bercabang sama sekali, posting hanya sah bila
+     *   instalasi benar-benar mandiri (belum ada tenant), selain
+     *   itu ditolak karena identitas tenant sumber tidak dapat
+     *   dibuktikan.
      *
      * @param  array<int, array{branch_id?: ?int}>  $lines
      */
-    private function tenantIdFor(?User $actor, array $lines, ?int $tenantOverride = null): ?int
+    private function tenantIdFor(?User $actor, array $lines, ?int $tenantOverride = null, bool $tenantOverrideSet = false): ?int
     {
-        // Penimpa eksplisit menang: dipakai penulis berkala tanpa
-        // aktor (mis. depresiasi konsol) yang mengetahui pemilik
-        // tenant dari entitas sumbernya (Modul B2).
-        if ($tenantOverride !== null) {
+        if ($tenantOverrideSet) {
+            if ($tenantOverride !== null && ! Tenant::query()->whereKey($tenantOverride)->exists()) {
+                throw ValidationException::withMessages(['lines' => __('ui.accounting.branch_outside_company')]);
+            }
+            if ($actor !== null) {
+                $context = TenantContext::for($actor);
+                $actorBucket = match (true) {
+                    $context->isValid() => $context->tenantId(),
+                    $context->isStandalone() => null,
+                    default => throw new AuthorizationException('Aktor platform/unassigned tidak dapat membuat jurnal bisnis.'),
+                };
+                if ($actorBucket !== $tenantOverride) {
+                    throw new AuthorizationException('Tenant sumber jurnal di luar konteks aktor.');
+                }
+            }
+            $this->assertLinesBelongToBucket($lines, $tenantOverride);
+
             return $tenantOverride;
         }
+
         if ($actor !== null) {
             $context = TenantContext::for($actor);
             if ($context->isValid()) {
-                return $context->tenantId();
+                $tenantId = $context->tenantId();
+                $this->assertLinesBelongToBucket($lines, $tenantId);
+
+                return $tenantId;
             }
             if ($context->isStandalone()) {
+                $this->assertLinesBelongToBucket($lines, null);
+
                 return null;
             }
-        }
-        foreach ($lines as $line) {
-            if (! empty($line['branch_id'])) {
-                $tenantId = Branch::whereKey((int) $line['branch_id'])->value('tenant_id');
 
-                return $tenantId !== null ? (int) $tenantId : null;
+            throw new AuthorizationException('Aktor platform/unassigned tidak dapat membuat jurnal bisnis.');
+        }
+
+        // Tanpa aktor: identitas tenant dibuktikan dari cabang baris.
+        $bucket = null;
+        $seen = false;
+        foreach ($lines as $line) {
+            if (empty($line['branch_id'])) {
+                continue;
+            }
+            $branch = Branch::whereKey((int) $line['branch_id'])->first();
+            if ($branch === null) {
+                throw ValidationException::withMessages(['lines' => __('ui.accounting.branch_outside_company')]);
+            }
+            $branchTenant = $branch->tenant_id !== null ? (int) $branch->tenant_id : null;
+            if (! $seen) {
+                $bucket = $branchTenant;
+                $seen = true;
+            } elseif ($branchTenant !== $bucket) {
+                throw ValidationException::withMessages(['lines' => __('ui.accounting.branch_outside_company')]);
             }
         }
+        if (! $seen) {
+            // Tanpa baris bercabang, ember hanya dapat dibuktikan
+            // bila instalasi BENAR-BENAR mandiri (belum ada tenant
+            // terdaftar — definisi standalone TenantContext): maka
+            // ember NULL tidak ambigu. Pada instalasi bersama,
+            // posting tanpa aktor & tanpa cabang ditolak; pemanggil
+            // wajib meneruskan tenant entitas sumbernya sebagai
+            // penimpa tervalidasi (mis. pembayaran supplier).
+            if (Tenant::query()->count() === 0) {
+                return null;
+            }
 
-        return null;
+            throw new AuthorizationException('Posting tanpa aktor memerlukan cabang baris atau tenant sumber eksplisit.');
+        }
+
+        return $bucket;
+    }
+
+    /**
+     * Setiap baris bercabang wajib menunjuk cabang yang ADA dan
+     * bertenant sama dengan ember jurnal.
+     *
+     * @param  array<int, array{branch_id?: ?int}>  $lines
+     */
+    private function assertLinesBelongToBucket(array $lines, ?int $tenantId): void
+    {
+        foreach ($lines as $line) {
+            if (empty($line['branch_id'])) {
+                continue;
+            }
+            $branch = Branch::whereKey((int) $line['branch_id'])->first();
+            if ($branch === null || ($branch->tenant_id !== null ? (int) $branch->tenant_id : null) !== $tenantId) {
+                throw ValidationException::withMessages(['lines' => __('ui.accounting.branch_outside_company')]);
+            }
+        }
     }
 
     /** Tenant ember kunci untuk aksi kunci/buka oleh seorang aktor. */
@@ -152,7 +239,7 @@ class PostingService
     /**
      * @param  array<int, array{account: string, branch_id?: ?int, debit?: string, credit?: string, memo?: ?string}>  $lines
      */
-    public function post(string $sourceType, ?int $sourceId, CarbonInterface|string $date, array $lines, ?string $description = null, ?User $actor = null, ?string $idempotencyKey = null, ?int $tenantOverride = null): Journal
+    public function post(string $sourceType, ?int $sourceId, CarbonInterface|string $date, array $lines, ?string $description = null, ?User $actor = null, ?string $idempotencyKey = null, ?int $tenantOverride = null, bool $tenantOverrideSet = false): Journal
     {
         $dateString = $date instanceof CarbonInterface ? $date->format('Y-m-d') : substr((string) $date, 0, 10);
         $period = substr($dateString, 0, 7);
@@ -190,7 +277,7 @@ class PostingService
             throw ValidationException::withMessages(['lines' => __('ui.accounting.journal_unbalanced')]);
         }
 
-        $tenantId = $this->tenantIdFor($actor, $prepared, $tenantOverride);
+        $tenantId = $this->tenantIdFor($actor, $prepared, $tenantOverride, $tenantOverrideSet);
         if ($this->isPeriodLocked($period, $tenantId)) {
             throw ValidationException::withMessages(['period' => __('ui.accounting.period_locked', ['period' => $period])]);
         }
@@ -227,21 +314,21 @@ class PostingService
     }
 
     /** Idempoten: jurnal untuk (source_type, source_id) yang sama tidak digandakan. */
-    public function postOnce(string $sourceType, ?int $sourceId, CarbonInterface|string $date, array $lines, ?string $description = null, ?User $actor = null): Journal
+    public function postOnce(string $sourceType, ?int $sourceId, CarbonInterface|string $date, array $lines, ?string $description = null, ?User $actor = null, ?int $tenantOverride = null, bool $tenantOverrideSet = false): Journal
     {
         $existing = Journal::where('source_type', $sourceType)->where('source_id', $sourceId)->first();
         if ($existing !== null) {
             return $existing;
         }
         if ($sourceId === null) {
-            return $this->post($sourceType, $sourceId, $date, $lines, $description, $actor);
+            return $this->post($sourceType, $sourceId, $date, $lines, $description, $actor, null, $tenantOverride, $tenantOverrideSet);
         }
 
         // Keunikan ditegakkan basis data lewat idempotency_key
         // (migrasi 000044): balapan dua pembuat bersamaan berakhir
         // dengan jurnal pemenang, bukan jurnal ganda.
         try {
-            return $this->post($sourceType, $sourceId, $date, $lines, $description, $actor, $sourceType.':'.$sourceId);
+            return $this->post($sourceType, $sourceId, $date, $lines, $description, $actor, $sourceType.':'.$sourceId, $tenantOverride, $tenantOverrideSet);
         } catch (QueryException $e) {
             $winner = Journal::where('source_type', $sourceType)->where('source_id', $sourceId)->first();
             if ($winner !== null) {
@@ -280,11 +367,19 @@ class PostingService
                 'memo' => $line->memo,
             ])->all();
 
+            // Jurnal balik MEWARISI tenant jurnal asal — jurnal asal
+            // adalah entitas sumber tervalidasi, jadi tenantnya
+            // diteruskan sebagai penimpa eksplisit (putaran koreksi
+            // temuan 2: pembalikan jurnal tanpa cabang pun tidak
+            // boleh kehilangan ember tenantnya).
             $reversal = $this->post(
                 'reversal', $locked->id, now(),
                 $lines,
                 __('ui.accounting.reversal_description', ['number' => $locked->number, 'reason' => $reason]),
                 $actor,
+                null,
+                $locked->tenant_id !== null ? (int) $locked->tenant_id : null,
+                true,
             );
             $reversal->update(['reversal_of_id' => $locked->id]);
 

@@ -30,10 +30,12 @@ class PayrollController extends Controller
             ->orderBy('employee_user_id')
             ->get();
         $tenant = TenantContext::for($request->user());
+        // Pagar lima mode TenantContext (putaran koreksi temuan 3):
+        // mode unassigned kini menghasilkan daftar KOSONG.
         $employees = User::where('is_active', true)->where('is_platform', false)
-            ->when($tenant->isValid(), fn ($q) => $q->where('tenant_id', $tenant->tenantId()))
-            ->when($tenant->isStandalone(), fn ($q) => $q->whereNull('tenant_id'))
-            ->orderBy('name')->get(['id', 'name', 'username']);
+            ->orderBy('name');
+        $tenant->constrainByTenant($employees);
+        $employees = $employees->get(['id', 'name', 'username']);
         $totalNet = $entries->sum(fn (Payroll $p) => $p->net()->cents());
         $allPosted = $entries->isNotEmpty() && $entries->every(fn (Payroll $p) => $p->isPosted());
 

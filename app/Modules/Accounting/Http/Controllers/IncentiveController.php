@@ -10,6 +10,7 @@ use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Support\XlsxWriter;
 use Illuminate\Http\RedirectResponse;
@@ -40,9 +41,16 @@ class IncentiveController extends Controller
             'branches' => Branch::where('is_active', true)->orderBy('name')->get(),
             'roles' => Role::orderBy('name')->pluck('name'),
             'products' => Product::where('is_active', true)->orderBy('name')->get(['id', 'sku', 'name']),
-            'recipients' => User::where('is_active', true)
-                ->whereHas('roles', fn ($q) => $q->whereIn('name', IncentiveService::ELIGIBLE_ROLES))
-                ->orderBy('name')->get(['id', 'name']),
+            // Daftar penerima terpagari tenant aktor (putaran
+            // koreksi temuan 3 — pola daftar pengguna yang sama).
+            'recipients' => (function () use ($request) {
+                $recipients = User::where('is_active', true)
+                    ->whereHas('roles', fn ($q) => $q->whereIn('name', IncentiveService::ELIGIBLE_ROLES))
+                    ->orderBy('name');
+                TenantContext::for($request->user())->constrainByTenant($recipients);
+
+                return $recipients->get(['id', 'name']);
+            })(),
         ]);
     }
 

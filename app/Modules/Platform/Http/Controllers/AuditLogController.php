@@ -82,12 +82,17 @@ class AuditLogController extends Controller
     /** Pengguna yang boleh muncul di filter log untuk aktor ini. */
     private function filterUsers(?User $actor)
     {
+        // Pagar lima mode TenantContext (putaran koreksi temuan 3):
+        // aktor unassigned/tamu memperoleh daftar KOSONG.
         $tenant = $actor !== null ? TenantContext::for($actor) : null;
         $query = User::orderBy('name');
-        if ($tenant !== null && $tenant->isValid()) {
-            $query->where('tenant_id', $tenant->tenantId());
-        } elseif ($tenant !== null && $tenant->isStandalone()) {
-            $query->whereNull('tenant_id')->where('is_platform', false);
+        if ($tenant === null) {
+            $query->whereIn('tenant_id', [0]);
+        } else {
+            $tenant->constrainByTenant($query);
+            if ($tenant->isStandalone()) {
+                $query->where('is_platform', false);
+            }
         }
 
         return $query->get(['id', 'name', 'username']);

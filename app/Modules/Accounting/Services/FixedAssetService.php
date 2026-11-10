@@ -118,11 +118,14 @@ class FixedAssetService
 
                 // Jurnal depresiasi milik tenant pemilik aset —
                 // jalur konsol berjalan tanpa aktor, jadi tenant
-                // diteruskan eksplisit (Modul B2).
+                // diteruskan eksplisit sebagai penimpa tervalidasi
+                // (Modul B2 + putaran koreksi temuan 2: penimpa kini
+                // dinyatakan eksplisit termasuk untuk aset mandiri
+                // bertenant NULL, dan divalidasi PostingService).
                 $this->posting->post('depreciation', $asset->id, $journalDate, [
                     ['account' => Chart::BEBAN_PENYUSUTAN, 'debit' => $charge->toDecimalString()],
                     ['account' => Chart::AKUMULASI_PENYUSUTAN, 'credit' => $charge->toDecimalString()],
-                ], __('ui.assets.depreciation_description', ['name' => $asset->name, 'period' => $period]), $actor, null, $asset->tenant_id !== null ? (int) $asset->tenant_id : null);
+                ], __('ui.assets.depreciation_description', ['name' => $asset->name, 'period' => $period]), $actor, null, $asset->tenant_id !== null ? (int) $asset->tenant_id : null, true);
 
                 $asset->forceFill([
                     'accumulated_amount' => $asset->accumulated()->add($charge)->toDecimalString(),

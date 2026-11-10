@@ -11,6 +11,11 @@ use Illuminate\Support\Facades\Schema;
  * karyawan — tidak boleh terbaca lintas tenant). Pola sama
  * dengan S-02/B1: tenant_id nullable; baris lama NULL hanya
  * terlihat platform & instalasi mandiri.
+ *
+ * Putaran koreksi audit independen (temuan 6): FK tenant memakai
+ * restrictOnDelete — menghapus tenant TIDAK boleh mengubah
+ * kepemilikan data bisnisnya menjadi NULL (ember instalasi
+ * mandiri); basis data menolak penghapusan selama data ada.
  */
 return new class extends Migration
 {
@@ -19,7 +24,7 @@ return new class extends Migration
         foreach (['fixed_assets', 'payrolls', 'commissions', 'incentive_rules'] as $table) {
             Schema::table($table, function (Blueprint $blueprint) {
                 $blueprint->foreignId('tenant_id')->nullable()->after('id')
-                    ->constrained('tenants')->nullOnDelete();
+                    ->constrained('tenants')->restrictOnDelete();
                 $blueprint->index('tenant_id');
             });
         }

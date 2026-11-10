@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Inventory\Services\TransferService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Supplier;
@@ -179,5 +180,62 @@ class BranchPerimeterRemainderTest extends TestCase
             ->assertOk()
             ->assertDontSee('Cabang b Satu')
             ->assertDontSee('admin-b');
+    }
+
+    /**
+     * Putaran koreksi audit independen, temuan 3: aktor UNASSIGNED
+     * (akun tanpa tenant pada instalasi BERSAMA, walau memegang
+     * peran berizin) tidak boleh memperoleh daftar pengguna mana
+     * pun — sebelumnya query daftar hanya menyaring mode tenant &
+     * standalone, sehingga mode ini menerima seluruh pengguna.
+     */
+    public function test_unassigned_actor_gets_empty_user_lists(): void
+    {
+        $this->tenantWithTwoBranches('a');
+        $this->tenantWithTwoBranches('b');
+
+        $unassigned = User::create([
+            'name' => 'Akun Yatim', 'username' => 'yatim',
+            'email' => 'yatim@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
+        ]);
+        $unassigned->roles()->attach(Role::where('name', 'Owner')->firstOrFail());
+
+        // Halaman perangkat offline: tak ada nama staf tenant mana pun.
+        $this->actingAs($unassigned)->get(route('offline-devices.index'))
+            ->assertOk()
+            ->assertDontSee('Admin a')
+            ->assertDontSee('Admin b');
+
+        // Halaman log aktivitas: daftar filter pengguna kosong.
+        $this->actingAs($unassigned)->get(route('audit-logs.index'))
+            ->assertOk()
+            ->assertDontSee('Admin a')
+            ->assertDontSee('Admin b');
+
+        // Scope pengelolaan pengguna ikut gagal-tertutup.
+        $this->assertCount(0, User::visibleInTenantManagement($unassigned)->get());
+
+        // Penjaga query bersama: mode unassigned = kosong, mode
+        // platform = pengawasan penuh, mode tenant = miliknya saja.
+        $this->assertCount(0, TenantContext::for($unassigned)
+            ->constrainByTenant(User::query())->get());
+        $this->assertGreaterThan(0, TenantContext::for($this->platform)
+            ->constrainByTenant(User::query())->count());
+    }
+
+    /** Pencabutan perangkat tenant lain lewat HTTP ditolak (403). */
+    public function test_revoke_other_tenants_device_is_forbidden(): void
+    {
+        [, $adminA] = $this->tenantWithTwoBranches('a');
+        [, $adminB, $bOne] = $this->tenantWithTwoBranches('b');
+        $device = OfflineDevice::create([
+            'name' => 'Kasir B', 'branch_id' => $bOne->id, 'user_id' => $adminB->id,
+            'token_hash' => hash('sha256', 'token-b2'), 'created_by' => $adminB->id,
+        ]);
+
+        $this->actingAs($adminA)->post(route('offline-devices.revoke', $device))
+            ->assertForbidden();
+        $this->assertNull($device->fresh()->revoked_at);
     }
 }
