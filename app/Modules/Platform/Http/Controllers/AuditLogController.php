@@ -5,6 +5,7 @@ namespace App\Modules\Platform\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Models\AuditLog;
 use Illuminate\Http\Request;
@@ -58,8 +59,10 @@ class AuditLogController extends Controller
         return view('settings.audit-logs.index', [
             'logs' => $query->paginate(25)->withQueryString(),
             'subjectTypes' => $subjectTypes,
-            'users' => User::orderBy('name')->get(['id', 'name', 'username']),
-            'branches' => Branch::orderBy('name')->get(['id', 'name']),
+            // Daftar filter ikut terpagari wilayah aktor: nama staf &
+            // cabang tenant lain tidak ditawarkan sebagai pilihan.
+            'users' => $this->filterUsers($request->user()),
+            'branches' => Branch::whereIn('id', $context->companyBranchIds())->orderBy('name')->get(['id', 'name']),
             'filters' => $request->only(['aksi', 'subjek', 'pengguna', 'cabang', 'dari', 'sampai']),
         ]);
     }
@@ -74,5 +77,19 @@ class AuditLogController extends Controller
         $log->load(['user', 'branch']);
 
         return view('settings.audit-logs.show', ['log' => $log]);
+    }
+
+    /** Pengguna yang boleh muncul di filter log untuk aktor ini. */
+    private function filterUsers(?User $actor)
+    {
+        $tenant = $actor !== null ? TenantContext::for($actor) : null;
+        $query = User::orderBy('name');
+        if ($tenant !== null && $tenant->isValid()) {
+            $query->where('tenant_id', $tenant->tenantId());
+        } elseif ($tenant !== null && $tenant->isStandalone()) {
+            $query->whereNull('tenant_id')->where('is_platform', false);
+        }
+
+        return $query->get(['id', 'name', 'username']);
     }
 }

@@ -1477,6 +1477,7 @@ return [
         'in_transit' => 'Dalam Perjalanan',
         'empty' => 'Belum ada transfer.',
         'same_branch' => 'Cawangan tujuan tidak boleh sama dengan cawangan asal.',
+        'outside_company' => 'Cawangan tujuan berada di luar syarikat Anda.',
         'exceeds_available' => 'Qty transfer :product melebihi sisa yang tersedia (:available).',
         'receive_invalid' => 'Transfer berstatus :status tidak dapat diterima.',
         'cancel_invalid' => 'Transfer berstatus :status tidak dapat dibatalkan (hanya sebelum diterima).',

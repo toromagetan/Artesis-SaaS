@@ -304,7 +304,10 @@ class PurchaseOrderController extends Controller
             ->orderByDesc('id')
             ->get();
         $distributable = app(TransferService::class)->distributableFromPo($po);
-        $branches = Branch::orderBy('name')->get();
+        $branchContext = BranchContext::current();
+        $branches = $branchContext->hasGlobalAccess()
+            ? Branch::orderBy('name')->get()
+            : Branch::whereIn('id', $branchContext->companyBranchIds())->orderBy('name')->get();
 
         return view('purchasing.orders.show', compact('po', 'transfers', 'distributable', 'branches'));
     }

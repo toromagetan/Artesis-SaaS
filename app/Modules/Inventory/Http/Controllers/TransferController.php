@@ -46,7 +46,11 @@ class TransferController extends Controller
     public function create(): View
     {
         $context = BranchContext::current();
-        $branches = Branch::orderBy('name')->get();
+        // Pilihan cabang: sumber dari cabang terkelola; tujuan dari
+        // seluruh cabang perusahaan aktor (tidak pernah tenant lain).
+        $branches = $context->hasGlobalAccess()
+            ? Branch::orderBy('name')->get()
+            : Branch::whereIn('id', $context->companyBranchIds())->orderBy('name')->get();
         $managed = $context->hasGlobalAccess()
             ? $branches
             : $branches->whereIn('id', $context->managedBranchIds())->values();
