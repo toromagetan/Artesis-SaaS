@@ -26,6 +26,28 @@ class RoleService
             PermissionRegistry::assertExists($name);
         }
 
+        // Kepemilikan S-03: aktor hanya mengubah peran yang boleh
+        // diubahnya — aktor tenant tidak lagi dapat menulis ulang
+        // definisi peran bersama (templat) atau peran tenant lain.
+        if ($actor !== null && ! $role->isEditableBy($actor)) {
+            throw ValidationException::withMessages([
+                'permissions' => __('ui.roles.foreign_role'),
+            ]);
+        }
+
+        // Aktor tenant tidak dapat menanam izin grup platform ke
+        // peran mana pun (izin platform hanya diberikan platform).
+        if ($actor !== null
+            && TenantContext::for($actor)->mode() === TenantContext::MODE_TENANT) {
+            foreach ($permissionNames as $name) {
+                if (PermissionRegistry::groupOf($name) === 'platform') {
+                    throw ValidationException::withMessages([
+                        'permissions' => __('ui.roles.platform_permission_denied'),
+                    ]);
+                }
+            }
+        }
+
         // Kasus tepi D.1: seseorang tidak dapat mengubah izin peran yang
         // ia sandang sendiri (itu mengubah izinnya sendiri).
         if ($actor && $actor->roles()->where('roles.id', $role->id)->exists()) {
