@@ -4,6 +4,7 @@ namespace App\Modules\Comms\Jobs;
 
 use App\Modules\Comms\Models\WaCampaign;
 use App\Modules\Comms\Services\CampaignService;
+use App\Modules\Identity\Services\TenantContext;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -23,9 +24,13 @@ class SendCampaign implements ShouldQueue
 
     public function handle(CampaignService $campaigns): void
     {
-        $campaign = WaCampaign::find($this->campaignId);
-        if ($campaign !== null) {
-            $campaigns->deliver($campaign);
-        }
+        // Konteks sistem eksplisit untuk job antrean (audit lanjutan
+        // temuan 8): pengiriman kampanye tidak bergantung pada sesi.
+        TenantContext::asSystem(function () use ($campaigns): void {
+            $campaign = WaCampaign::find($this->campaignId);
+            if ($campaign !== null) {
+                $campaigns->deliver($campaign);
+            }
+        });
     }
 }

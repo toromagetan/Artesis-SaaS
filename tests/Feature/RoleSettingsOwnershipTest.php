@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\RoleService;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Identity\Services\UserService;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Models\Plan;
@@ -176,7 +177,8 @@ class RoleSettingsOwnershipTest extends TestCase
         [, $adminA] = $this->tenantAdmin('a');
         [, $adminB] = $this->tenantAdmin('b');
 
-        Setting::set('store.name', 'Nama Global');
+        // Baris global ditulis sebagai proses sistem (fixture).
+        TenantContext::asSystem(fn () => Setting::set('store.name', 'Nama Global'));
         $this->assertSame('Nama Global', Setting::value('store.name'));
 
         $this->actingAs($adminA);

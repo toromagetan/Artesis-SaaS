@@ -3,6 +3,7 @@
 namespace App\Modules\Master\Models;
 
 use App\Modules\Identity\Services\TenantContext;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -15,8 +16,11 @@ use Illuminate\Database\Eloquent\Model;
  * tenant membaca penimpaannya dulu lalu jatuh ke nilai global;
  * tulisan aktor tenant menjadi baris milik tenantnya — satu
  * tenant tidak lagi mengubah pengaturan tenant lain. Aktor
- * platform, instalasi mandiri, dan konteks tanpa pengguna
- * (seeder/CLI/antrean) selalu memakai baris global.
+ * platform dan instalasi mandiri memakai baris global (milik
+ * mereka sendiri). Aktor unassigned dan request tamu ditolak
+ * menulis; tulisan tanpa pengguna hanya sah dalam konteks
+ * sistem eksplisit TenantContext::asSystem (audit lanjutan
+ * temuan 9 + koreksi audit PR #33).
  */
 class Setting extends Model
 {
@@ -35,10 +39,23 @@ class Setting extends Model
         return $context->mode() === TenantContext::MODE_TENANT ? $context->tenant()?->id : null;
     }
 
-    /** Akses baca kanonis satu nilai pengaturan. */
+    /** Akses baca kanonis satu nilai pengaturan (mengikuti aktor). */
     public static function value(string $key, ?string $default = null): ?string
     {
-        $tenantId = static::actorTenantId();
+        return static::valueForTenant($key, static::actorTenantId(), $default);
+    }
+
+    /**
+     * Akses baca untuk ember tenant yang dinyatakan EKSPLISIT —
+     * untuk jalur tanpa sesi aktor (antrean/konsol) yang mengetahui
+     * tenant sumber datanya, misalnya tarif komisi dari penjualan
+     * sumber (audit lanjutan temuan 9). Resolusi: penimpaan milik
+     * tenant itu dulu; bila belum ada, jatuh ke nilai global yang
+     * berperan sebagai default sistem (hanya dapat diubah platform
+     * atau konteks sistem — lihat set()).
+     */
+    public static function valueForTenant(string $key, ?int $tenantId, ?string $default = null): ?string
+    {
         if ($tenantId !== null) {
             $own = static::query()->where('key', $key)->where('tenant_id', $tenantId)->value('value');
             if ($own !== null) {
@@ -53,8 +70,45 @@ class Setting extends Model
     public static function set(string $key, string $value): void
     {
         static::query()->updateOrCreate(
-            ['key' => $key, 'tenant_id' => static::actorTenantId()],
+            ['key' => $key, 'tenant_id' => static::actorBucketForWrite()],
             ['value' => $value],
         );
+    }
+
+    /**
+     * Ember tujuan tulisan, ditegakkan gagal-tertutup (audit lanjutan
+     * temuan 9): aktor tenant menulis baris milik tenantnya sendiri;
+     * platform & standalone menulis baris global (milik instalasi/
+     * platform itu sendiri). Unassigned, tamu, dan tenant menggantung
+     * DITOLAK — sebelumnya mereka jatuh ke actorTenantId() NULL dan
+     * diam-diam mengubah pengaturan global lewat jalur HTTP yang
+     * sah. Tanpa aktor: tulisan global HANYA sah dalam konteks
+     * sistem eksplisit (TenantContext::asSystem — konsol terjadwal,
+     * antrean, seeder); request tamu dan pemanggilan tanpa aktor
+     * lain ditolak (koreksi audit PR #33: penanda sistem harus
+     * benar-benar menjadi gerbang, bukan sekadar tersedia). Seluruh
+     * pemanggil produksi berada di balik autentikasi atau proses
+     * sistem yang sudah dibungkus asSystem, jadi tidak ada alur
+     * sah yang terputus.
+     */
+    private static function actorBucketForWrite(): ?int
+    {
+        $user = auth()->user();
+        if ($user === null) {
+            if (TenantContext::isSystemContext() && ! TenantContext::isGuestHttp()) {
+                return null;
+            }
+
+            throw new AuthorizationException('Pengaturan global hanya dapat diubah oleh platform atau dalam konteks sistem.');
+        }
+
+        $context = TenantContext::for($user);
+
+        return match ($context->mode()) {
+            TenantContext::MODE_TENANT => $context->tenant()?->id
+                ?? throw new AuthorizationException('Tenant aktor tidak valid.'),
+            TenantContext::MODE_PLATFORM, TenantContext::MODE_STANDALONE => null,
+            default => throw new AuthorizationException('Aktor tidak berhak mengubah pengaturan.'),
+        };
     }
 }

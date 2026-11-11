@@ -5,6 +5,7 @@ namespace Tests\Feature\Reporting;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
@@ -31,7 +32,9 @@ class XlsxExportTest extends TestCase
         $this->seed([IdentitySeeder::class, AccountingSeeder::class]);
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $branch = Branch::where('name', 'Pusat')->firstOrFail();
-        Setting::set('tax.rate_default', '0');
+        // Fixture tingkat instalasi: konteks sistem dinyatakan eksplisit
+        // (penulisan global tanpa aktor wajib TenantContext::asSystem).
+        TenantContext::asSystem(fn () => Setting::set('tax.rate_default', '0'));
         $frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000', 'sale_price' => '100000']);
         app(InventoryService::class)->recordMovement($this->owner, $frame, $branch, 'initial_stock', 5, 'test', 1);
         $customer = Customer::factory()->create(['branch_id' => $branch->id]);

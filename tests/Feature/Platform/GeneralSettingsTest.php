@@ -4,6 +4,7 @@ namespace Tests\Feature\Platform;
 
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Models\AuditLog;
@@ -62,9 +63,11 @@ class GeneralSettingsTest extends TestCase
 
     public function test_store_identity_flows_into_print_header(): void
     {
-        Setting::set('store.name', 'Optik Istori');
-        Setting::set('store.address', 'Jl. Raya Menganti No. 88, Surabaya');
-        Setting::set('store.phone', '031-5551234');
+        TenantContext::asSystem(function (): void {
+            Setting::set('store.name', 'Optik Istori');
+            Setting::set('store.address', 'Jl. Raya Menganti No. 88, Surabaya');
+            Setting::set('store.phone', '031-5551234');
+        });
 
         // Cetak daftar pengguna memakai mesin cetak yang sama (tanpa
         // pemanggil yang memberi nama toko secara eksplisit).

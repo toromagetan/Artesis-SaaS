@@ -3,10 +3,12 @@
 namespace App\Modules\Lab\Services;
 
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Lab\Events\LensProcessCompleted;
 use App\Modules\Lab\Models\LensProcess;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Sales\Models\Sale;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -73,8 +75,47 @@ class LensProcessService
 
     public function assignTechnician(User $actor, LensProcess $process, int $technicianId, ?int $estimatedDays = null): LensProcess
     {
+        // Hardening (catatan audit PR #33 putaran 2): validasi
+        // bekerja atas keadaan basis data TERKINI, bukan objek yang
+        // diserahkan pemanggil — muat ulang proses berdasarkan id
+        // (tanpa global scope; ember ditentukan dari penjualan
+        // sumber di bawah, bukan dari sesi).
+        $fresh = LensProcess::withoutGlobalScopes()->find($process->id);
+        if ($fresh === null) {
+            throw ValidationException::withMessages(['process' => 'Proses lab tidak ditemukan.']);
+        }
+        $process = $fresh;
+
         if ($process->isDone()) {
             throw ValidationException::withMessages(['status' => __('ui.lab.already_done')]);
+        }
+
+        // Isolasi tenant di tingkat service (audit lanjutan temuan 7):
+        // penugasan tidak boleh menembus tenant walau dipanggil
+        // langsung, tanpa controller. Ember kepemilikan proses =
+        // tenant cabang penjualan sumber, dibaca langsung dari basis
+        // data (bukan dari sesi atau global scope).
+        $sale = $process->sale()->withoutGlobalScopes()->first();
+        if ($sale === null) {
+            throw new AuthorizationException('Proses lab tanpa penjualan sumber tidak dapat ditugaskan.');
+        }
+        $saleBucket = $sale->branch_id !== null
+            ? DB::table('branches')->where('id', $sale->branch_id)->value('tenant_id')
+            : null;
+        $saleBucket = $saleBucket !== null ? (int) $saleBucket : null;
+
+        // Aktor harus pemilik ember yang sama dengan proses: tenant
+        // yang sama, atau standalone pada ember NULL yang sama.
+        // Platform, unassigned, dan tenant menggantung ditolak.
+        $actorContext = TenantContext::for($actor);
+        $actorBucket = match ($actorContext->mode()) {
+            TenantContext::MODE_TENANT => $actorContext->tenant()?->id
+                ?? throw new AuthorizationException('Tenant aktor tidak valid.'),
+            TenantContext::MODE_STANDALONE => null,
+            default => throw new AuthorizationException('Aktor tidak berhak menugaskan teknisi.'),
+        };
+        if ($actorBucket !== $saleBucket) {
+            throw new AuthorizationException('Proses lab berada di luar tenant aktor.');
         }
 
         $technician = User::where('id', $technicianId)
@@ -82,6 +123,13 @@ class LensProcessService
             ->where('is_platform', false)
             ->first();
         if ($technician === null) {
+            throw ValidationException::withMessages(['technician_id' => __('ui.lab.technician_invalid')]);
+        }
+        // Teknisi wajib seember dengan penjualan sumber (standalone =
+        // ember NULL). Penolakan memakai pesan generik yang sama
+        // dengan teknisi tidak ditemukan, agar keberadaan pengguna
+        // tenant lain tidak terkonfirmasi lewat jalur ini.
+        if (($technician->tenant_id !== null ? (int) $technician->tenant_id : null) !== $saleBucket) {
             throw ValidationException::withMessages(['technician_id' => __('ui.lab.technician_invalid')]);
         }
 

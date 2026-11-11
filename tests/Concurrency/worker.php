@@ -23,7 +23,9 @@ use App\Modules\Purchasing\Models\PurchaseRequest;
 use App\Modules\Purchasing\Services\CollectivePaymentService;
 use App\Modules\Purchasing\Services\PurchaseRequestService;
 use App\Modules\Purchasing\Services\ReceiptService;
+use App\Modules\Sales\Models\OfflineDevice;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Services\OfflineSyncService;
 use App\Modules\Sales\Services\SalesService;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
@@ -79,6 +81,19 @@ try {
         'submit' => app(PurchaseRequestService::class)->submit(
             $owner, PurchaseRequest::withoutGlobalScopes()->findOrFail($params['pr_id']),
         ),
+        // Balapan UUID sinkronisasi offline (audit PR #33 putaran
+        // 4): dua perangkat dilepas serentak dengan UUID yang sama;
+        // indeks pekerja dipilih dari nama berkas ready (-0 / -1),
+        // hasil sinkronisasi ditulis ke berkas pendamping agar
+        // test dapat memeriksa status per perangkat.
+        'offline_sync' => (function () use ($params, $readyFile, $resultFile) {
+            $idx = str_ends_with($readyFile, '-0') ? 0 : 1;
+            $device = OfflineDevice::findOrFail($params['device_ids'][$idx]);
+            $results = app(OfflineSyncService::class)->sync($device, [$params['intents'][$idx]]);
+            file_put_contents($resultFile.'.sync.json', json_encode($results));
+
+            return $results;
+        })(),
         // Balapan LNT-002: pekerja -0 memposting, pekerja -1 mengunci
         // periode yang sama, dilepas serentak.
         'postlock' => (function () use ($params, $owner, $readyFile) {
@@ -115,6 +130,6 @@ try {
     };
     $result = ['ok' => true];
 } catch (Throwable $e) {
-    $result = ['ok' => false, 'error' => $e::class];
+    $result = ['ok' => false, 'error' => $e::class, 'error_msg' => mb_substr($e->getMessage(), 0, 300)];
 }
 file_put_contents($resultFile, json_encode($result));

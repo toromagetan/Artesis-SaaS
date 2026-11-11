@@ -58,6 +58,10 @@ class TenantContext
 
     private const CONTAINER_KEY = 'lentera.tenant-context';
 
+    private const SYSTEM_CONTAINER_KEY = 'lentera.system-context';
+
+    private const GUEST_HTTP_CONTAINER_KEY = 'lentera.guest-http';
+
     private readonly ?int $userId;
 
     private function __construct(
@@ -125,6 +129,68 @@ class TenantContext
         if (app()->bound(self::CONTAINER_KEY)) {
             app()->forgetInstance(self::CONTAINER_KEY);
         }
+    }
+
+    /**
+     * Jalankan callback dalam konteks SISTEM eksplisit: proses
+     * terpercaya tingkat instalasi (perintah konsol terjadwal, job
+     * antrean, seeder) yang memang bekerja lintas tenant. Inilah
+     * satu-satunya cara query model TenantScoped/BranchScoped tanpa
+     * aktor memperoleh akses tak terbatas — ketiadaan auth() saja
+     * TIDAK lagi cukup, supaya guest HTTP gagal-tertutup (audit
+     * lanjutan temuan 8). Penanda disimpan pada container dan
+     * dipulihkan sesudah callback, termasuk bila callback melempar.
+     */
+    public static function asSystem(callable $callback): mixed
+    {
+        $app = app();
+        $previous = $app->bound(self::SYSTEM_CONTAINER_KEY)
+            ? $app->make(self::SYSTEM_CONTAINER_KEY)
+            : null;
+        $app->instance(self::SYSTEM_CONTAINER_KEY, true);
+
+        try {
+            return $callback();
+        } finally {
+            if ($previous === null) {
+                $app->forgetInstance(self::SYSTEM_CONTAINER_KEY);
+            } else {
+                $app->instance(self::SYSTEM_CONTAINER_KEY, $previous);
+            }
+        }
+    }
+
+    /** Apakah eksekusi saat ini berada dalam konteks sistem eksplisit. */
+    public static function isSystemContext(): bool
+    {
+        return app()->bound(self::SYSTEM_CONTAINER_KEY)
+            && app()->make(self::SYSTEM_CONTAINER_KEY) === true;
+    }
+
+    /**
+     * Tandai request HTTP tamu (tanpa pengguna terautentikasi).
+     * Dipasang middleware web/api pada SETIAP request anonim —
+     * inilah pembeda "guest HTTP" dari pemanggilan in-process
+     * terpercaya (layanan aplikasi menerima aktor secara eksplisit
+     * dan tidak selalu memasang auth()). TenantScope/BranchScope
+     * gagal-tertutup selama penanda ini aktif.
+     */
+    public static function markGuestHttp(): void
+    {
+        app()->instance(self::GUEST_HTTP_CONTAINER_KEY, true);
+    }
+
+    public static function forgetGuestHttp(): void
+    {
+        if (app()->bound(self::GUEST_HTTP_CONTAINER_KEY)) {
+            app()->forgetInstance(self::GUEST_HTTP_CONTAINER_KEY);
+        }
+    }
+
+    public static function isGuestHttp(): bool
+    {
+        return app()->bound(self::GUEST_HTTP_CONTAINER_KEY)
+            && app()->make(self::GUEST_HTTP_CONTAINER_KEY) === true;
     }
 
     public function user(): ?User

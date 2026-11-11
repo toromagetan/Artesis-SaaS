@@ -7,6 +7,7 @@ use App\Modules\Comms\Models\WaMessage;
 use App\Modules\Comms\Services\GatewayFactory;
 use App\Modules\Comms\Services\MessagingService;
 use App\Modules\CRM\Models\Customer;
+use App\Modules\Identity\Services\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -50,6 +51,11 @@ class WaWebhookController extends Controller
             return response('Forbidden', 403);
         }
 
+        // Tanda tangan sah = callback berkredensial (bukan tamu):
+        // cabut penanda tamu HTTP agar resolusi pelanggan pengirim
+        // tidak gagal-tertutup oleh TenantScope (temuan 8).
+        TenantContext::forgetGuestHttp();
+
         $entries = (array) $request->input('entry', []);
         foreach ($entries as $entry) {
             foreach ((array) ($entry['changes'] ?? []) as $change) {
@@ -90,8 +96,20 @@ class WaWebhookController extends Controller
         $phone = MessagingService::normalizePhone((string) ($incoming['from'] ?? ''));
         // Nomor tersimpan pelanggan berformat bebas (spasi/strip) —
         // pencocokan harus pada bentuk ternormalisasi kedua sisi.
-        $customer = Customer::query()->select(['id', 'phone'])->get()
-            ->first(fn (Customer $c) => MessagingService::normalizePhone((string) $c->phone) === $phone);
+        //
+        // Aturan pemetaan tenant DETERMINISTIK (koreksi audit
+        // PR #33): gateway WA bersifat global untuk instalasi
+        // (satu nomor pengirim — kepemilikan per tenant adalah
+        // keputusan OD-4 yang belum diambil), dan tanda tangan HMAC
+        // hanya membuktikan asal callback, bukan tenant pemilik
+        // nomor. Karena itu pelanggan hanya dipetakan bila nomor
+        // itu UNIK di seluruh instalasi. Nomor yang tercatat pada
+        // lebih dari satu tenant TIDAK ditebak: pesan tetap
+        // tertangkap sebagai yatim (customer_id NULL) agar tidak
+        // pernah teratribusi ke tenant yang salah.
+        $matches = Customer::query()->select(['id', 'phone'])->get()
+            ->filter(fn (Customer $c) => MessagingService::normalizePhone((string) $c->phone) === $phone);
+        $customer = $matches->count() === 1 ? $matches->first() : null;
 
         WaMessage::create([
             'customer_id' => $customer?->id,
