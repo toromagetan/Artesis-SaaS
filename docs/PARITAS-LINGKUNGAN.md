@@ -2,6 +2,12 @@
 
 Gerbang paritas sesuai Blueprint A.1 + G.3: lingkungan pengembangan/uji harus setara dengan target produksi (PHP 8.3, MySQL 8.0, ekstensi daftar tertutup) agar hasil test dapat dipercaya. Diperiksa ulang setiap perubahan server dan sebelum rilis pertama.
 
+## Kelas lingkungan — jangan dicampur (penegasan D-01, 2026-11-12)
+
+- **Lingkungan pengembangan & uji** = VM pengembangan yang hasilnya tercatat di bawah (2026-10-17). Hasil pada tabel itu adalah hasil **historis VM pengembangan** — bukan hasil pemeriksaan terbaru dan bukan bukti tentang server mana pun selain VM itu pada tanggal itu.
+- **Target produksi** = server yang akan dipilih lewat keputusan topologi **OD-1 (belum diputuskan)**. Pada saat penegasan ini ditulis **tidak ada server produksi yang berjalan** (server uji coba sebelumnya mati pada 2026-11-10).
+- **Paritas produksi BELUM terverifikasi.** Lulusnya pemeriksaan di VM pengembangan **tidak** menyatakan lingkungan produksi setara. Paritas produksi wajib diperiksa ulang di server produksi yang sebenarnya, sebagai gerbang sebelum rilis pertama (Blueprint G.3), dengan perintah pemeriksaan ulang di bawah — dan hasilnya dicatat sebagai entri bertanggal baru, bukan dengan mengubah hasil historis.
+
 ## Hasil pemeriksaan — 2026-10-17 (VM pengembangan Crong)
 
 | # | Pemeriksaan | Target (Blueprint A.1) | Aktual | Status |
