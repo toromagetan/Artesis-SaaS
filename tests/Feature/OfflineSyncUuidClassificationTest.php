@@ -144,7 +144,7 @@ class OfflineSyncUuidClassificationTest extends TestCase
                 parent::__construct($sales, $audit);
             }
 
-            protected function findBucketSaleByUuid(\App\Modules\Sales\Models\OfflineDevice $device, string $uuid): ?\App\Modules\Sales\Models\Sale
+            protected function findBucketSaleByUuid(OfflineDevice $device, string $uuid): ?Sale
             {
                 $found = parent::findBucketSaleByUuid($device, $uuid);
                 if (++$this->bucketCalls === 1) {
