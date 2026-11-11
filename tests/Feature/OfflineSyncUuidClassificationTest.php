@@ -124,6 +124,79 @@ class OfflineSyncUuidClassificationTest extends TestCase
         $this->assertSame(1, OfflineException::where('reason', 'uuid_conflict')->count());
     }
 
+    /**
+     * Layanan uji dengan kail pada pemeriksaan ember PERTAMA:
+     * penjualan pemenang dicatat tepat sesudah pemeriksaan itu
+     * dan sebelum pemeriksaan global — jendela balapan putaran 5.
+     */
+    private function serviceWithWinnerAppearingMidCheck(callable $appear): OfflineSyncService
+    {
+        $sales = Mockery::mock(SalesService::class);
+        $sales->shouldReceive('createSale')
+            ->andThrow(new \LogicException('createSale tidak boleh tercapai pada skenario klasifikasi pemeriksaan awal.'));
+
+        return new class($sales, app(AuditLogger::class), $appear) extends OfflineSyncService
+        {
+            private int $bucketCalls = 0;
+
+            public function __construct(SalesService $sales, AuditLogger $audit, private \Closure $appear)
+            {
+                parent::__construct($sales, $audit);
+            }
+
+            protected function findBucketSaleByUuid(\App\Modules\Sales\Models\OfflineDevice $device, string $uuid): ?\App\Modules\Sales\Models\Sale
+            {
+                $found = parent::findBucketSaleByUuid($device, $uuid);
+                if (++$this->bucketCalls === 1) {
+                    ($this->appear)();
+                }
+
+                return $found;
+            }
+        };
+    }
+
+    public function test_global_check_window_winner_in_own_bucket_classifies_as_duplicate(): void
+    {
+        // Pemenang muncul di ember SENDIRI di antara pemeriksaan
+        // ember awal (nihil) dan pemeriksaan global: hasil yang
+        // benar adalah duplicate, BUKAN uuid_conflict (putaran 5).
+        $service = $this->serviceWithWinnerAppearingMidCheck(function () {
+            Sale::factory()->create([
+                'client_uuid' => 'jendela-sendiri', 'branch_id' => $this->branch->id,
+            ]);
+        });
+
+        $results = $service->sync($this->device, [$this->intent('jendela-sendiri')]);
+
+        $this->assertSame('duplicate', $results[0]['status']);
+        $winner = Sale::withoutGlobalScopes()->where('client_uuid', 'jendela-sendiri')->firstOrFail();
+        $this->assertSame($winner->id, $results[0]['sale_id']);
+        $this->assertSame($winner->number, $results[0]['number']);
+        $this->assertSame(0, OfflineException::count());
+    }
+
+    public function test_global_check_window_winner_in_other_tenant_stays_conflict(): void
+    {
+        // Pemenang muncul di tenant LAIN pada jendela yang sama:
+        // hasil tetap uuid_conflict tanpa identitas pemilik.
+        $tenantB = Tenant::create(['name' => 'Optik B', 'slug' => 'optik-b', 'email' => 'b@uji.id']);
+        $branchB = Branch::create(['name' => 'Cabang B', 'tenant_id' => $tenantB->id]);
+        $service = $this->serviceWithWinnerAppearingMidCheck(function () use ($branchB) {
+            Sale::factory()->create([
+                'client_uuid' => 'jendela-asing', 'branch_id' => $branchB->id,
+            ]);
+        });
+
+        $results = $service->sync($this->device, [$this->intent('jendela-asing')]);
+
+        $this->assertSame('exception', $results[0]['status']);
+        $this->assertSame('uuid_conflict', $results[0]['reason']);
+        $this->assertArrayNotHasKey('sale_id', $results[0]);
+        $this->assertArrayNotHasKey('number', $results[0]);
+        $this->assertSame(1, OfflineException::where('reason', 'uuid_conflict')->count());
+    }
+
     public function test_non_unique_database_error_is_not_masked_as_conflict(): void
     {
         $service = $this->serviceWithCreate(function () {

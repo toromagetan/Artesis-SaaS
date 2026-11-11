@@ -95,13 +95,20 @@ class OfflineSyncService
             return ['client_uuid' => $uuid, 'status' => 'exception', 'reason' => $priorException->reason, 'exception_id' => $priorException->id];
         }
 
-        // UUID yang sama sudah tercatat milik tenant LAIN (indeks
-        // unik global sales.client_uuid): barisnya tidak boleh
-        // terbaca oleh perangkat ini, dan penjualan kedua dengan
-        // UUID itu mustahil dicatat — antrekan sebagai pengecualian
-        // konflik untuk resolusi staf, tanpa membocorkan apa pun
-        // tentang penjualan pemilik UUID.
+        // UUID yang sama sudah tercatat secara global (indeks unik
+        // sales.client_uuid membuat penjualan kedua mustahil).
+        // Klasifikasi ulang dulu (koreksi audit PR #33 putaran 5):
+        // pemenangnya bisa saja milik ember ini sendiri — tercatat
+        // oleh perangkat lain di antara pemeriksaan ember di atas
+        // dan pemeriksaan global ini. Hanya bila ember sendiri
+        // tetap tidak menemukannya, UUID itu milik tenant lain:
+        // antrekan sebagai pengecualian konflik untuk resolusi
+        // staf, tanpa membocorkan apa pun tentang pemiliknya.
         if (Sale::withoutGlobalScopes()->where('client_uuid', $uuid)->exists()) {
+            $winner = $this->findBucketSaleByUuid($device, $uuid);
+            if ($winner !== null) {
+                return ['client_uuid' => $uuid, 'status' => 'duplicate', 'sale_id' => $winner->id, 'number' => $winner->number];
+            }
             $exception = $this->recordException($device, $intent, 'uuid_conflict');
 
             return ['client_uuid' => $uuid, 'status' => 'exception', 'reason' => 'uuid_conflict', 'exception_id' => $exception->id];
@@ -157,7 +164,12 @@ class OfflineSyncService
      * tenant, bukan per cabang), dibaca eksplisit tanpa bergantung
      * pada sesi pemanggil (jalur retry admin memakai sesi berbeda).
      */
-    private function findBucketSaleByUuid(OfflineDevice $device, string $uuid): ?Sale
+    /**
+     * Protected (bukan private) agar test dapat menyimulasikan
+     * jendela balapan secara deterministik: penjualan pemenang
+     * muncul tepat di antara dua pemeriksaan berturutan.
+     */
+    protected function findBucketSaleByUuid(OfflineDevice $device, string $uuid): ?Sale
     {
         $tenantId = $device->branch?->tenant_id;
         $branchIds = Branch::query()->where('tenant_id', $tenantId)->pluck('id');
