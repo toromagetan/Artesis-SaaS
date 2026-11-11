@@ -18,9 +18,9 @@ use Illuminate\Database\Eloquent\Model;
  * tenant tidak lagi mengubah pengaturan tenant lain. Aktor
  * platform dan instalasi mandiri memakai baris global (milik
  * mereka sendiri). Aktor unassigned dan request tamu ditolak
- * menulis; tulisan in-process tanpa pengguna (konsol/antrean/
- * seeder terpercaya) tetap memakai baris global (audit lanjutan
- * temuan 9).
+ * menulis; tulisan tanpa pengguna hanya sah dalam konteks
+ * sistem eksplisit TenantContext::asSystem (audit lanjutan
+ * temuan 9 + koreksi audit PR #33).
  */
 class Setting extends Model
 {
@@ -82,22 +82,24 @@ class Setting extends Model
      * platform itu sendiri). Unassigned, tamu, dan tenant menggantung
      * DITOLAK — sebelumnya mereka jatuh ke actorTenantId() NULL dan
      * diam-diam mengubah pengaturan global lewat jalur HTTP yang
-     * sah. Tanpa aktor: request HTTP tamu (penanda MarkGuestRequest)
-     * ditolak; pemanggilan in-process terpercaya (konsol, antrean,
-     * seeder — yang menyatakan konteks sistemnya lewat
-     * TenantContext::asSystem) menulis baris global seperti
-     * sebelumnya, karena seluruh jalur tulis produksi memang berada
-     * di balik autentikasi atau proses sistem.
+     * sah. Tanpa aktor: tulisan global HANYA sah dalam konteks
+     * sistem eksplisit (TenantContext::asSystem — konsol terjadwal,
+     * antrean, seeder); request tamu dan pemanggilan tanpa aktor
+     * lain ditolak (koreksi audit PR #33: penanda sistem harus
+     * benar-benar menjadi gerbang, bukan sekadar tersedia). Seluruh
+     * pemanggil produksi berada di balik autentikasi atau proses
+     * sistem yang sudah dibungkus asSystem, jadi tidak ada alur
+     * sah yang terputus.
      */
     private static function actorBucketForWrite(): ?int
     {
         $user = auth()->user();
         if ($user === null) {
-            if (TenantContext::isGuestHttp()) {
-                throw new AuthorizationException('Pengaturan global tidak dapat diubah oleh tamu.');
+            if (TenantContext::isSystemContext() && ! TenantContext::isGuestHttp()) {
+                return null;
             }
 
-            return null;
+            throw new AuthorizationException('Pengaturan global hanya dapat diubah oleh platform atau dalam konteks sistem.');
         }
 
         $context = TenantContext::for($user);
