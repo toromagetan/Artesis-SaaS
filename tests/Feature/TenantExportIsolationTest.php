@@ -13,6 +13,7 @@ use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
 use App\Modules\Platform\Models\Plan;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Platform\Policies\TenantExportPolicy;
 use App\Modules\Platform\Services\PlanService;
 use App\Modules\Platform\Services\TenantExportService;
 use App\Modules\Purchasing\Services\PurchaseOrderService;
@@ -150,8 +151,10 @@ class TenantExportIsolationTest extends TestCase
         $this->assertCount(1, $tables['tenants']);
         $this->assertSame($tenantA->id, (int) $tables['tenants'][0]['id']);
 
-        // Tabel bertenant_id: semuanya milik A.
-        foreach (['products', 'customers', 'suppliers', 'journals', 'users', 'settings', 'roles'] as $table) {
+        // Tabel bertenant_id: semuanya milik A. ('roles' diperiksa
+        // terpisah — role templat global yang dirujuk ikut serta
+        // secara sadar, lihat test representasi role.)
+        foreach (['products', 'customers', 'suppliers', 'journals', 'users', 'settings'] as $table) {
             foreach ($tables[$table] as $row) {
                 $this->assertSame($tenantA->id, (int) $row['tenant_id'], "Baris {$table} bukan milik tenant A.");
             }
@@ -250,5 +253,140 @@ class TenantExportIsolationTest extends TestCase
         ]);
         $unassigned->roles()->attach(Role::where('name', 'Owner')->firstOrFail());
         $this->actingAs($unassigned)->get(route('tenant-exports.index'))->assertForbidden();
+    }
+
+    /** Putaran audit 1 (R1): platform wajib izin backups.manage + aktif; Owner nonaktif ditolak. */
+    public function test_platform_permission_and_active_matrix(): void
+    {
+        [$tenantA, $ownerA] = $this->tenantOwner('a');
+
+        // Platform berizin (peran Platform dari SaasSeeder) — lolos.
+        $this->actingAs($this->platform)->post(route('tenant-exports.store'), ['tenant_id' => $tenantA->id])->assertRedirect();
+
+        // Platform TANPA peran/izin apa pun — ditolak meski is_platform.
+        $barePlatform = User::create([
+            'name' => 'Platform Polos', 'username' => 'platform-polos',
+            'email' => 'polos@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'is_active' => true, 'is_platform' => true, 'tenant_id' => null,
+        ]);
+        $this->actingAs($barePlatform)->post(route('tenant-exports.store'), ['tenant_id' => $tenantA->id])->assertForbidden();
+        $this->actingAs($barePlatform)->get(route('tenant-exports.index', ['tenant_id' => $tenantA->id]))->assertForbidden();
+
+        // Platform berizin tetapi NONAKTIF — ditolak. Di permukaan
+        // HTTP, middleware status aktif menghentikan lebih dulu
+        // (redirect); policy sendiri juga menolak — dibuktikan
+        // langsung agar kedua lapis teruji.
+        $inactivePlatform = User::create([
+            'name' => 'Platform Nonaktif', 'username' => 'platform-nonaktif',
+            'email' => 'nonaktif@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'is_active' => false, 'is_platform' => true, 'tenant_id' => null,
+        ]);
+        $inactivePlatform->roles()->attach(Role::where('name', 'Platform')->firstOrFail());
+        $policy = app(TenantExportPolicy::class);
+        $this->assertFalse($policy->export($inactivePlatform, $tenantA));
+        $this->actingAs($inactivePlatform)->post(route('tenant-exports.store'), ['tenant_id' => $tenantA->id])->assertRedirect();
+
+        // Owner tenant NONAKTIF — pola sama: policy menolak,
+        // HTTP dihentikan middleware status aktif.
+        $ownerA->update(['is_active' => false]);
+        $this->assertFalse($policy->export($ownerA, $tenantA));
+        $this->actingAs($ownerA)->get(route('tenant-exports.index'))->assertRedirect();
+        $this->actingAs($ownerA)->post(route('tenant-exports.store'))->assertRedirect();
+    }
+
+    /** Putaran audit 1 (R3): semua jalur penolakan tercatat tenant_export.denied. */
+    public function test_denials_are_audit_logged(): void
+    {
+        [$tenantA, $ownerA, $branchA] = $this->tenantOwner('a');
+        $kasirA = $this->userWithRole($tenantA, 'Kasir', 'a', [$branchA->id]);
+        $deniedCount = fn () => (int) DB::table('audit_logs')->where('action', 'tenant_export.denied')->count();
+        $before = $deniedCount();
+
+        // (a) Policy menolak aktor yang tenantnya teridentifikasi.
+        $this->actingAs($kasirA)->post(route('tenant-exports.store'))->assertForbidden();
+        // (b) Platform tanpa tenant sasaran.
+        $this->actingAs($this->platform)->post(route('tenant-exports.store'))->assertForbidden();
+        // (c) Platform dengan ID tenant yang tidak ditemukan —
+        // target yang diminta tercatat, tanpa ID karangan.
+        $this->actingAs($this->platform)->get(route('tenant-exports.download', ['tenant_id' => 999999, 'berkas' => 'x.zip']))->assertForbidden();
+        $ghost = DB::table('audit_logs')
+            ->where('action', 'tenant_export.denied')
+            ->orderByDesc('id')->first();
+        $this->assertNull($ghost->subject_id);
+        $this->assertStringContainsString('999999', (string) $ghost->new_values);
+        // (d) Unassigned.
+        $unassigned = User::create([
+            'name' => 'Tanpa Tenant', 'username' => 'unassigned-y',
+            'email' => 'unassigned-y@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
+        ]);
+        $unassigned->roles()->attach(Role::where('name', 'Owner')->firstOrFail());
+        $this->actingAs($unassigned)->get(route('tenant-exports.index'))->assertForbidden();
+        // (e) Tenant menggantung (tenant_id menunjuk baris tak ada).
+        $dangling = User::create([
+            'name' => 'Menggantung', 'username' => 'dangling-y',
+            'email' => 'dangling-y@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenantA->id,
+        ]);
+        $dangling->roles()->attach(Role::where('name', 'Owner')->firstOrFail());
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        try {
+            $dangling->forceFill(['tenant_id' => 999999])->saveQuietly();
+        } finally {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        }
+        $this->actingAs($dangling)->get(route('tenant-exports.index'))->assertForbidden();
+
+        $this->assertSame($before + 5, $deniedCount(), 'Lima jalur penolakan harus tercatat semua.');
+    }
+
+    /** Putaran audit 1 (R4): role global yang dirujuk ikut serta; tidak ada relasi menggantung. */
+    public function test_roles_representation_has_no_dangling_references(): void
+    {
+        [$tenantB, $ownerB] = $this->tenantOwner('b');
+        [$tenantA, $ownerA] = $this->tenantOwner('a');
+        // Role khusus masing-masing tenant.
+        $customA = Role::create(['name' => 'Auditor A', 'label' => 'Auditor A', 'tenant_id' => $tenantA->id]);
+        $customB = Role::create(['name' => 'Auditor B', 'label' => 'Auditor B', 'tenant_id' => $tenantB->id]);
+        $ownerA->roles()->attach($customA);
+
+        $payload = $this->exports->buildPayload($tenantA, $ownerA);
+        $roles = collect($payload['tables']['roles']);
+        $roleIds = $roles->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        // Role templat global Owner (tenant_id NULL) yang dirujuk
+        // pengguna A ikut serta; role khusus A ikut; role khusus B tidak.
+        $globalOwner = Role::where('name', 'Owner')->whereNull('tenant_id')->firstOrFail();
+        $this->assertContains((int) $globalOwner->id, $roleIds);
+        $this->assertContains((int) $customA->id, $roleIds);
+        $this->assertNotContains((int) $customB->id, $roleIds);
+        foreach ($roles as $role) {
+            $this->assertTrue(
+                (int) ($role['tenant_id'] ?? 0) === $tenantA->id || $role['tenant_id'] === null,
+                'Role asing tidak boleh masuk ekspor.',
+            );
+        }
+        // Tidak ada relasi menggantung: setiap user_role dan
+        // role_permission menunjuk role yang ikut terekspor.
+        foreach ($payload['tables']['user_role'] as $row) {
+            $this->assertContains((int) $row['role_id'], $roleIds, 'user_role menggantung.');
+        }
+        foreach ($payload['tables']['role_permission'] as $row) {
+            $this->assertContains((int) $row['role_id'], $roleIds, 'role_permission menggantung.');
+        }
+        $this->assertNotEmpty($payload['tables']['role_permission']);
+    }
+
+    /** Aktor tenant tidak bisa mengarahkan ekspor ke tenant lain lewat input. */
+    public function test_owner_cannot_target_other_tenant_via_input(): void
+    {
+        [$tenantB, $ownerB] = $this->tenantOwner('b');
+        [$tenantA, $ownerA] = $this->tenantOwner('a');
+        $beforeA = count($this->exports->entries($tenantA));
+
+        // Owner B mengirim tenant_id=A: yang terbuat ekspor B sendiri.
+        $this->actingAs($ownerB)->post(route('tenant-exports.store'), ['tenant_id' => $tenantA->id])->assertRedirect();
+        $this->assertNotEmpty($this->exports->entries($tenantB));
+        $this->assertSame($beforeA, count($this->exports->entries($tenantA)));
     }
 }

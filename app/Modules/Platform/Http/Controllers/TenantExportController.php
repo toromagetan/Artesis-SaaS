@@ -63,6 +63,29 @@ class TenantExportController extends Controller
         abort(403, __('ui.tenant_exports.forbidden'));
     }
 
+    /**
+     * Penolakan ketika tenant sasaran tidak dapat diidentifikasi
+     * (unassigned, tenant menggantung, platform tanpa sasaran,
+     * atau ID tenant yang tidak ditemukan). Tetap teraudit sebagai
+     * tenant_export.denied — subject kosong, target yang DIMINTA
+     * dicatat apa adanya tanpa mengarang ID tenant.
+     */
+    private function denyNoTarget(Request $request, string $operation): never
+    {
+        app(AuditLogger::class)->log(
+            action: 'tenant_export.denied',
+            subjectType: 'Tenant',
+            subjectId: null,
+            newValues: [
+                'operation' => $operation,
+                'requested_tenant_id' => $request->input('tenant_id', $request->input('tenant')),
+                'reason' => 'target_unresolved',
+            ],
+            actor: $request->user(),
+        );
+        abort(403, __('ui.tenant_exports.forbidden'));
+    }
+
     public function index(Request $request): View
     {
         $user = $request->user();
@@ -75,7 +98,9 @@ class TenantExportController extends Controller
             ]);
         }
         $tenant = $this->targetTenant($request, required: true);
-        abort_if($tenant === null, 403, __('ui.tenant_exports.forbidden'));
+        if ($tenant === null) {
+            $this->denyNoTarget($request, 'list');
+        }
         $this->authorizeExport($request, $tenant, 'list');
 
         return view('settings.tenant-exports.index', [
@@ -88,7 +113,9 @@ class TenantExportController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $tenant = $this->targetTenant($request, required: true);
-        abort_if($tenant === null, 403, __('ui.tenant_exports.forbidden'));
+        if ($tenant === null) {
+            $this->denyNoTarget($request, 'create');
+        }
         $this->authorizeExport($request, $tenant, 'create');
 
         $name = $this->exports->create($request->user(), $tenant);
@@ -100,7 +127,9 @@ class TenantExportController extends Controller
     public function download(Request $request): BinaryFileResponse
     {
         $tenant = $this->targetTenant($request, required: true);
-        abort_if($tenant === null, 403, __('ui.tenant_exports.forbidden'));
+        if ($tenant === null) {
+            $this->denyNoTarget($request, 'download');
+        }
         $file = (string) $request->query('berkas', '');
         $this->authorizeExport($request, $tenant, 'download', $file !== '' ? $file : null);
 
@@ -121,7 +150,9 @@ class TenantExportController extends Controller
     public function destroy(Request $request): RedirectResponse
     {
         $tenant = $this->targetTenant($request, required: true);
-        abort_if($tenant === null, 403, __('ui.tenant_exports.forbidden'));
+        if ($tenant === null) {
+            $this->denyNoTarget($request, 'delete');
+        }
         $validated = $request->validate(['berkas' => ['required', 'string']]);
         $this->authorizeExport($request, $tenant, 'delete', (string) $validated['berkas']);
 

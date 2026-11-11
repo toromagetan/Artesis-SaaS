@@ -12,19 +12,27 @@ use App\Modules\Platform\Models\Tenant;
  * sedangkan salinan data SATU tenant adalah hak tenant itu
  * sendiri — lewat pemiliknya — dan platform atas namanya.
  *
- * Aturan:
- * 1. Aktor PLATFORM — diizinkan untuk tenant mana pun (atas nama).
+ * Aturan (sesudah koreksi audit independen putaran 1):
+ * 0. Akun NONAKTIF selalu ditolak, aktor apa pun — konsisten
+ *    dengan User::hasPermission() yang menolak pengguna nonaktif.
+ * 1. Aktor PLATFORM — diizinkan untuk tenant mana pun HANYA bila
+ *    memegang izin platform `backups.manage` (izin yang sama
+ *    menggerbangi backup tingkat instalasi; ekspor adalah operasi
+ *    penjaga data, bukan sekadar status is_platform).
  * 2. Aktor TENANT VALID — diizinkan HANYA untuk tenantnya sendiri
- *    dan HANYA bila berperan Owner. Peran lain (Admin/Kasir/dsb),
- *    tenant lain, akun menggantung, unassigned, dan standalone
- *    selalu ditolak.
+ *    dan HANYA bila berperan Owner. Peran lain, tenant lain, akun
+ *    menggantung, unassigned, dan standalone selalu ditolak.
  */
 class TenantExportPolicy
 {
     public function export(User $user, Tenant $tenant): bool
     {
+        if (! $user->is_active) {
+            return false;
+        }
+
         if ($user->is_platform) {
-            return true;
+            return $user->hasPermission('backups.manage');
         }
 
         $context = TenantContext::for($user);

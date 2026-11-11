@@ -36,6 +36,11 @@ use ZipArchive;
  * (STRIP_COLUMNS): hash kata sandi, token perangkat, dsb tidak
  * boleh meninggalkan sistem di dalam berkas unduhan.
  *
+ * Representasi role (keputusan audit putaran 1): role khusus
+ * tenant + role templat global (tenant_id NULL) yang dirujuk
+ * pengguna tenant — agar user_role tidak menggantung; role
+ * khusus tenant lain tidak pernah ikut.
+ *
  * Ekspor ini BUKAN berkas restore: memulihkan satu tenant ke
  * instalasi berjalan tidak didukung (restore tetap whole-DB
  * tingkat platform lewat BackupService).
@@ -230,6 +235,11 @@ class TenantExportService
             }
         }
         foreach (self::TENANT_TABLES as $table) {
+            // 'roles' diekstrak pada langkah khusus sesudah rantai
+            // anak (lihat di bawah) — bukan di putaran umum ini.
+            if ($table === 'roles') {
+                continue;
+            }
             if (in_array($table, $liveTables, true)) {
                 $extract($table, DB::table($table)->where('tenant_id', $tenant->id));
             }
@@ -245,8 +255,37 @@ class TenantExportService
             }
         }
         foreach (self::CHILD_TABLES as $table => [$parent, $fk]) {
+            // 'role_permission' mengikuti langkah khusus roles.
+            if ($table === 'role_permission') {
+                continue;
+            }
             if (in_array($table, $liveTables, true)) {
                 $extract($table, DB::table($table)->whereIn($fk, $idSets[$parent] ?? []));
+            }
+        }
+
+        // Langkah khusus ROLES (keputusan desain audit putaran 1):
+        // pengguna tenant dirujuk ke role khusus tenant DAN role
+        // templat global (tenant_id NULL — misalnya Owner bawaan
+        // yang dipasangkan TenantSignupService). Agar ekspor tidak
+        // memuat relasi user_role yang menggantung, role global
+        // yang BENAR-BENAR dirujuk pengguna tenant ini ikut
+        // disertakan (templat bersama tingkat instalasi, bukan data
+        // privat tenant lain); role khusus tenant lain tidak pernah
+        // ikut. role_permission mengikuti himpunan role final ini.
+        if (in_array('roles', $liveTables, true)) {
+            $referencedRoleIds = array_map(
+                static fn (array $row) => (int) $row['role_id'],
+                $tables['user_role'] ?? [],
+            );
+            $extract('roles', DB::table('roles')->where(function ($query) use ($tenant, $referencedRoleIds) {
+                $query->where('tenant_id', $tenant->id)
+                    ->orWhere(function ($inner) use ($referencedRoleIds) {
+                        $inner->whereNull('tenant_id')->whereIn('id', $referencedRoleIds);
+                    });
+            }));
+            if (in_array('role_permission', $liveTables, true)) {
+                $extract('role_permission', DB::table('role_permission')->whereIn('role_id', $idSets['roles'] ?? []));
             }
         }
 
