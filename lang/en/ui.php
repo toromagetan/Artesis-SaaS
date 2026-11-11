@@ -1807,6 +1807,7 @@ return [
         'stock_short' => 'Warehouse stock is insufficient for a stock replacement.',
         'not_po_source' => 'The replacement is not prepared as a PO.',
         'po_exists' => 'This replacement already has a PO.',
+        'supplier_outside_partition' => 'The supplier does not belong to this warranty case\'s company.',
         'not_ready' => 'The replacement is not ready to ship.',
         'pay_exceeds' => 'Payment exceeds the remaining customer charge.',
         'charge_unpaid' => 'The customer charge is not fully paid.',

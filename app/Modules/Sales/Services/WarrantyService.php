@@ -7,6 +7,7 @@ use App\Modules\Accounting\Support\Chart;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Inventory\Services\InventoryService;
@@ -45,11 +46,61 @@ class WarrantyService
         private readonly AuditLogger $audit,
     ) {}
 
-    /** Cabang gudang utama: yang ditandai, atau cabang aktif tertua. */
-    public function warehouseBranch(): Branch
+    /**
+     * Cabang gudang utama SATU partisi kepemilikan ($tenantId;
+     * null = instalasi mandiri): yang ditandai, atau cabang aktif
+     * tertua DI PARTISI ITU. Resolusi tidak pernah menyeberang
+     * partisi — penanda gudang ditegakkan tepat satu per partisi
+     * oleh BranchController (koreksi B-02: sebelumnya fungsi ini
+     * memilih gudang secara global lintas tenant).
+     */
+    public function warehouseBranchFor(?int $tenantId): Branch
     {
-        return Branch::where('is_active', true)->where('is_main_warehouse', true)->orderBy('id')->first()
-            ?? Branch::where('is_active', true)->orderBy('id')->firstOrFail();
+        return Branch::where('is_active', true)->where('tenant_id', $tenantId)->where('is_main_warehouse', true)->orderBy('id')->first()
+            ?? Branch::where('is_active', true)->where('tenant_id', $tenantId)->orderBy('id')->firstOrFail();
+    }
+
+    /**
+     * Gudang acuan KETERLIHATAN seorang aktor (daftar/detail
+     * garansi), ditentukan oleh MODE identitas — bukan sekadar
+     * nilai tenantId(): tenant → gudang partisinya sendiri;
+     * standalone → gudang partisi NULL; platform, unassigned,
+     * dan guest → null (tanpa gudang acuan — partisi NULL bukan
+     * milik mereka, dan ketiadaan acuan berarti gabungan
+     * keterlihatan tidak ditambah apa pun). Koreksi audit B-02
+     * putaran 2: tenantId() bernilai null pada tiga mode berbeda,
+     * sehingga tidak boleh dipakai sebagai dasar pemilihan gudang.
+     */
+    public function referenceWarehouseFor(User $actor): ?Branch
+    {
+        $context = TenantContext::for($actor);
+        // isValid(), BUKAN isTenant(): akun yang tenant_id-nya
+        // menggantung (baris tenant tidak ada) terklasifikasi
+        // MODE_TENANT dengan tenantId() null — tanpa pemeriksaan
+        // validitas ia akan jatuh ke warehouseBranchFor(null) dan
+        // memperoleh gudang standalone (audit B-02 putaran 3).
+        if ($context->isValid()) {
+            return $this->warehouseBranchFor($context->tenantId());
+        }
+        if ($context->isStandalone()) {
+            return $this->warehouseBranchFor(null);
+        }
+
+        return null;
+    }
+
+    /** Partisi tenant pemilik kasus, dari cabang penjualan kasus. */
+    private function caseTenantId(WarrantyCase $case): ?int
+    {
+        $tenantId = Branch::whereKey($case->branch_id)->value('tenant_id');
+
+        return $tenantId === null ? null : (int) $tenantId;
+    }
+
+    /** Gudang utama partisi pemilik kasus ini. */
+    public function warehouseForCase(WarrantyCase $case): Branch
+    {
+        return $this->warehouseBranchFor($this->caseTenantId($case));
     }
 
     public function createCase(User $actor, Sale $sale, SaleItem $item, int $quantity, string $reason, ?string $description): WarrantyCase
@@ -106,7 +157,7 @@ class WarrantyService
         if (! $actor->hasPermission('stock.receive_transfer')) {
             abort(403);
         }
-        $warehouse = $this->warehouseBranch();
+        $warehouse = $this->warehouseForCase($case);
         BranchContext::for($actor)->assertCanAccess($warehouse->id);
 
         return DB::transaction(function () use ($actor, $case, $warehouse) {
@@ -189,7 +240,7 @@ class WarrantyService
         if (! $actor->hasPermission('stock.transfer')) {
             abort(403);
         }
-        $warehouse = $this->warehouseBranch();
+        $warehouse = $this->warehouseForCase($case);
         BranchContext::for($actor)->assertCanAccess($warehouse->id);
 
         return DB::transaction(function () use ($actor, $case, $source, $product, $customerCharge, $warehouse) {
@@ -220,7 +271,21 @@ class WarrantyService
 
     public function createReplacementPo(User $actor, WarrantyCase $case, Supplier $supplier): WarrantyCase
     {
-        $warehouse = $this->warehouseBranch();
+        // Paritas otorisasi dengan aksi gudang lain (koreksi B-02:
+        // sebelumnya aksi ini satu-satunya tanpa pemeriksaan izin
+        // dan tanpa asersi wilayah di lapisan layanan).
+        if (! $actor->hasPermission('stock.transfer')) {
+            abort(403);
+        }
+        $warehouse = $this->warehouseForCase($case);
+        BranchContext::for($actor)->assertCanAccess($warehouse->id);
+        // Supplier wajib satu partisi dengan pemilik kasus —
+        // pembuatan PO tidak boleh menautkan kasus ke rantai pasok
+        // tenant lain.
+        $supplierTenant = $supplier->tenant_id === null ? null : (int) $supplier->tenant_id;
+        if ($supplierTenant !== $this->caseTenantId($case)) {
+            throw ValidationException::withMessages(['supplier_id' => __('ui.warranty.supplier_outside_partition')]);
+        }
 
         return DB::transaction(function () use ($actor, $case, $supplier, $warehouse) {
             $locked = WarrantyCase::query()->lockForUpdate()->findOrFail($case->id);
@@ -270,7 +335,7 @@ class WarrantyService
         if (! $actor->hasPermission('stock.transfer')) {
             abort(403);
         }
-        $warehouse = $this->warehouseBranch();
+        $warehouse = $this->warehouseForCase($case);
         BranchContext::for($actor)->assertCanAccess($warehouse->id);
 
         return DB::transaction(function () use ($actor, $case, $warehouse) {

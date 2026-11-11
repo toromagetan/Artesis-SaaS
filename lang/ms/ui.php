@@ -1786,6 +1786,7 @@ return [
         'stock_short' => 'Stok gudang tidak mencukupi untuk pengganti dari stok.',
         'not_po_source' => 'Pengganti belum disiapkan sebagai PO.',
         'po_exists' => 'Pengganti ini sudah memiliki PO.',
+        'supplier_outside_partition' => 'Pembekal bukan milik syarikat kes waranti ini.',
         'pay_exceeds' => 'Pembayaran melebihi sisa biaya pelanggan.',
         'charge_unpaid' => 'Biaya pelanggan belum lunas.',
         'flow_hint' => 'Alur: buat kasus → kirim barang lama ke gudang → gudang menerima & inspeksi → siapkan pengganti (stok/PO) → kirim ke cawangan → cawangan menerima → biaya (bila ada) dibayar → selesai.',

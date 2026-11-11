@@ -56,7 +56,7 @@
             </div>
 
             <div class="overflow-hidden rounded-lg bg-white shadow-soft">
-                <h2 class="px-6 pt-5 font-semibold text-gray-800">{{ __('ui.warranty.broken_title') }} — {{ $warehouse->name }}</h2>
+                <h2 class="px-6 pt-5 font-semibold text-gray-800">{{ __('ui.warranty.broken_title') }}@if ($warehouse) — {{ $warehouse->name }}@endif</h2>
                 <table class="mt-3 min-w-full text-sm">
                     <thead>
                         <tr class="border-b border-gray-100 text-left text-gray-500">
