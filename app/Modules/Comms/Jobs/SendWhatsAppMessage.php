@@ -5,6 +5,7 @@ namespace App\Modules\Comms\Jobs;
 use App\Modules\Comms\Exceptions\GatewayException;
 use App\Modules\Comms\Models\WaMessage;
 use App\Modules\Comms\Services\GatewayFactory;
+use App\Modules\Identity\Services\TenantContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -34,6 +35,15 @@ class SendWhatsAppMessage implements ShouldQueue
     public function __construct(public readonly int $messageId) {}
 
     public function handle(GatewayFactory $factory): void
+    {
+        // Job antrean berjalan tanpa sesi aktor: nyatakan konteks
+        // sistem secara eksplisit agar query model terpagar tenant/
+        // cabang di dalamnya tidak bergantung pada ketiadaan auth()
+        // (audit lanjutan temuan 8).
+        TenantContext::asSystem(fn () => $this->handleAsSystem($factory));
+    }
+
+    private function handleAsSystem(GatewayFactory $factory): void
     {
         $message = WaMessage::find($this->messageId);
         if ($message === null || $message->direction !== 'out' || $message->status !== 'queued') {

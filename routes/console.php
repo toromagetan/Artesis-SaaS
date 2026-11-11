@@ -7,6 +7,7 @@ use App\Modules\Comms\Jobs\SendWhatsAppMessage;
 use App\Modules\Comms\Models\WaMessage;
 use App\Modules\Comms\Services\GatewayFactory;
 use App\Modules\Comms\Services\WaAutomationService;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Membership\Services\PointsService;
@@ -27,16 +28,20 @@ Artisan::command('inspire', function () {
  * aman dijalankan ulang / dijadwalkan. Periode bawaan = bulan ini.
  */
 Artisan::command('lentera:penyusutan {periode?}', function () {
-    $period = $this->argument('periode') ?? now()->format('Y-m');
-    if (preg_match('/^\d{4}-\d{2}$/', (string) $period) !== 1) {
-        $this->error('Format periode harus YYYY-MM.');
+    // Konteks sistem eksplisit (audit lanjutan temuan 8): perintah
+    // terjadwal/operator bekerja lintas tenant secara terpercaya.
+    return TenantContext::asSystem(function () {
+        $period = $this->argument('periode') ?? now()->format('Y-m');
+        if (preg_match('/^\d{4}-\d{2}$/', (string) $period) !== 1) {
+            $this->error('Format periode harus YYYY-MM.');
 
-        return 1;
-    }
-    $result = app(FixedAssetService::class)->depreciatePeriod(null, (string) $period);
-    $this->info("Penyusutan {$period}: {$result['posted']} jurnal, total ".$result['total']->format());
+            return 1;
+        }
+        $result = app(FixedAssetService::class)->depreciatePeriod(null, (string) $period);
+        $this->info("Penyusutan {$period}: {$result['posted']} jurnal, total ".$result['total']->format());
 
-    return 0;
+        return 0;
+    });
 })->purpose('Jalankan penyusutan aset tetap satu periode (YYYY-MM)');
 
 /*
@@ -45,13 +50,17 @@ Artisan::command('lentera:penyusutan {periode?}', function () {
  * dijadwalkan harian 08:00 — pengiriman sesungguhnya lewat antrean.
  */
 Artisan::command('lentera:wa-otomatis', function () {
-    $automation = app(WaAutomationService::class);
-    $afterService = $automation->runAfterService();
-    $birthdays = $automation->runBirthdays();
-    $installments = $automation->runInstallmentReminders();
-    $this->info("WA otomatis: {$afterService} purnajual, {$birthdays} ulang tahun, {$installments} pengingat cicilan.");
+    // Konteks sistem eksplisit (audit lanjutan temuan 8): perintah
+    // terjadwal/operator bekerja lintas tenant secara terpercaya.
+    return TenantContext::asSystem(function () {
+        $automation = app(WaAutomationService::class);
+        $afterService = $automation->runAfterService();
+        $birthdays = $automation->runBirthdays();
+        $installments = $automation->runInstallmentReminders();
+        $this->info("WA otomatis: {$afterService} purnajual, {$birthdays} ulang tahun, {$installments} pengingat cicilan.");
 
-    return 0;
+        return 0;
+    });
 })->purpose('Kirim WA purnajual (H+7) dan ucapan ulang tahun hari ini');
 
 Schedule::command('lentera:wa-otomatis')->dailyAt('08:00');
@@ -65,36 +74,40 @@ Schedule::command('lentera:wa-otomatis')->dailyAt('08:00');
  * log aktivitas sebagai wa.queue.health agar terlihat di UI.
  */
 Artisan::command('lentera:wa-sapu', function () {
-    $factory = app(GatewayFactory::class);
-    $stale = WaMessage::where('direction', 'out')
-        ->where('status', 'queued')
-        ->where('created_at', '<=', now()->subMinutes(15));
+    // Konteks sistem eksplisit (audit lanjutan temuan 8): perintah
+    // terjadwal/operator bekerja lintas tenant secara terpercaya.
+    return TenantContext::asSystem(function () {
+        $factory = app(GatewayFactory::class);
+        $stale = WaMessage::where('direction', 'out')
+            ->where('status', 'queued')
+            ->where('created_at', '<=', now()->subMinutes(15));
 
-    $redispatched = 0;
-    if ($factory->active() !== null) {
-        $ids = (clone $stale)->orderBy('id')->limit(500)->pluck('id');
-        foreach ($ids as $id) {
-            SendWhatsAppMessage::dispatch($id);
-            $redispatched++;
+        $redispatched = 0;
+        if ($factory->active() !== null) {
+            $ids = (clone $stale)->orderBy('id')->limit(500)->pluck('id');
+            foreach ($ids as $id) {
+                SendWhatsAppMessage::dispatch($id);
+                $redispatched++;
+            }
         }
-    }
 
-    $stuck24h = WaMessage::where('direction', 'out')
-        ->where('status', 'queued')
-        ->where('created_at', '<=', now()->subDay())
-        ->count();
-    $failedJobs = DB::table('failed_jobs')->count();
-    if ($stuck24h > 0 || $failedJobs > 0) {
-        app(AuditLogger::class)->log(
-            action: 'wa.queue.health',
-            subjectType: 'wa_queue',
-            subjectId: null,
-            newValues: ['stuck_over_24h' => $stuck24h, 'failed_jobs' => $failedJobs, 'redispatched' => $redispatched],
-        );
-    }
-    $this->info("Sapu WA: {$redispatched} didispatch ulang; menggantung >24 jam: {$stuck24h}; job gagal: {$failedJobs}.");
+        $stuck24h = WaMessage::where('direction', 'out')
+            ->where('status', 'queued')
+            ->where('created_at', '<=', now()->subDay())
+            ->count();
+        $failedJobs = DB::table('failed_jobs')->count();
+        if ($stuck24h > 0 || $failedJobs > 0) {
+            app(AuditLogger::class)->log(
+                action: 'wa.queue.health',
+                subjectType: 'wa_queue',
+                subjectId: null,
+                newValues: ['stuck_over_24h' => $stuck24h, 'failed_jobs' => $failedJobs, 'redispatched' => $redispatched],
+            );
+        }
+        $this->info("Sapu WA: {$redispatched} didispatch ulang; menggantung >24 jam: {$stuck24h}; job gagal: {$failedJobs}.");
 
-    return 0;
+        return 0;
+    });
 })->purpose('Dispatch ulang pesan WA queued yang menggantung + catat kesehatan antrean');
 
 Schedule::command('lentera:wa-sapu')->hourly();
@@ -108,21 +121,25 @@ Schedule::command('lentera:wa-sapu')->hourly();
  * peringatan audit, bukan diam-diam diabaikan.
  */
 Artisan::command('lentera:backup-otomatis', function () {
-    $service = app(BackupService::class);
-    $name = $service->createSystem();
-    $pruned = $service->pruneAuto(14);
-    if (filter_var(Setting::value('backup.offsite_enabled', '0'), FILTER_VALIDATE_BOOLEAN)) {
-        app(AuditLogger::class)->log(
-            action: 'backup.offsite_unconfigured',
-            subjectType: 'Backup',
-            subjectId: null,
-            newValues: ['file' => $name],
-        );
-        $this->warn('Offsite diminta tetapi kredensial Drive belum terpasang — backup hanya tersimpan lokal.');
-    }
-    $this->info("Backup otomatis: {$name}; retensi menghapus {$pruned} berkas.");
+    // Konteks sistem eksplisit (audit lanjutan temuan 8): perintah
+    // terjadwal/operator bekerja lintas tenant secara terpercaya.
+    return TenantContext::asSystem(function () {
+        $service = app(BackupService::class);
+        $name = $service->createSystem();
+        $pruned = $service->pruneAuto(14);
+        if (filter_var(Setting::value('backup.offsite_enabled', '0'), FILTER_VALIDATE_BOOLEAN)) {
+            app(AuditLogger::class)->log(
+                action: 'backup.offsite_unconfigured',
+                subjectType: 'Backup',
+                subjectId: null,
+                newValues: ['file' => $name],
+            );
+            $this->warn('Offsite diminta tetapi kredensial Drive belum terpasang — backup hanya tersimpan lokal.');
+        }
+        $this->info("Backup otomatis: {$name}; retensi menghapus {$pruned} berkas.");
 
-    return 0;
+        return 0;
+    });
 })->purpose('Backup otomatis harian + retensi (offsite bila kredensial Drive terpasang)');
 
 Schedule::command('lentera:backup-otomatis')->dailyAt('02:00');
@@ -142,10 +159,14 @@ Schedule::call(function () {
  * Idempoten — lot yang sudah kedaluwarsa sisanya nol.
  */
 Artisan::command('lentera:poin-kedaluwarsa', function () {
-    $created = app(PointsService::class)->expireRun();
-    $this->info("Poin kedaluwarsa: {$created} baris expire.");
+    // Konteks sistem eksplisit (audit lanjutan temuan 8): perintah
+    // terjadwal/operator bekerja lintas tenant secara terpercaya.
+    return TenantContext::asSystem(function () {
+        $created = app(PointsService::class)->expireRun();
+        $this->info("Poin kedaluwarsa: {$created} baris expire.");
 
-    return 0;
+        return 0;
+    });
 })->purpose('Kedaluwarsakan poin membership yang masa berlakunya lewat');
 
 Schedule::command('lentera:poin-kedaluwarsa')->dailyAt('00:30');
@@ -159,41 +180,45 @@ Schedule::command('lentera:poin-kedaluwarsa')->dailyAt('00:30');
  * per cabang — aman dijalankan ulang).
  */
 Artisan::command('lentera:fifo-migrasi', function () {
-    $fifo = app(FifoService::class);
-    $posting = app(PostingService::class);
-    $adjusted = DB::transaction(function () use ($fifo, $posting) {
-        $values = $fifo->rebuildFromHistory();
-        $count = 0;
-        foreach ($values as $branchId => $layerValue) {
-            $gl = Money::fromDecimal((string) DB::table('journal_lines as jl')
-                ->join('accounts as a', 'a.id', '=', 'jl.account_id')
-                ->where('a.code', Chart::PERSEDIAAN)
-                ->where('jl.branch_id', $branchId)
-                ->selectRaw('COALESCE(SUM(jl.debit - jl.credit), 0) as balance')
-                ->value('balance'));
-            $diff = $layerValue->sub($gl);
-            if ($diff->isZero()) {
-                continue;
+    // Konteks sistem eksplisit (audit lanjutan temuan 8): perintah
+    // terjadwal/operator bekerja lintas tenant secara terpercaya.
+    return TenantContext::asSystem(function () {
+        $fifo = app(FifoService::class);
+        $posting = app(PostingService::class);
+        $adjusted = DB::transaction(function () use ($fifo, $posting) {
+            $values = $fifo->rebuildFromHistory();
+            $count = 0;
+            foreach ($values as $branchId => $layerValue) {
+                $gl = Money::fromDecimal((string) DB::table('journal_lines as jl')
+                    ->join('accounts as a', 'a.id', '=', 'jl.account_id')
+                    ->where('a.code', Chart::PERSEDIAAN)
+                    ->where('jl.branch_id', $branchId)
+                    ->selectRaw('COALESCE(SUM(jl.debit - jl.credit), 0) as balance')
+                    ->value('balance'));
+                $diff = $layerValue->sub($gl);
+                if ($diff->isZero()) {
+                    continue;
+                }
+                $amount = $diff->abs()->toDecimalString();
+                $lines = $diff->isPositive()
+                    ? [
+                        ['account' => Chart::PERSEDIAAN, 'branch_id' => $branchId, 'debit' => $amount, 'memo' => 'Penyesuaian pembuka FIFO'],
+                        ['account' => Chart::HPP, 'branch_id' => $branchId, 'credit' => $amount, 'memo' => 'Penyesuaian pembuka FIFO'],
+                    ]
+                    : [
+                        ['account' => Chart::HPP, 'branch_id' => $branchId, 'debit' => $amount, 'memo' => 'Penyesuaian pembuka FIFO'],
+                        ['account' => Chart::PERSEDIAAN, 'branch_id' => $branchId, 'credit' => $amount, 'memo' => 'Penyesuaian pembuka FIFO'],
+                    ];
+                $posting->postOnce('fifo_opening', $branchId, now(), $lines, 'Penyesuaian pembuka FIFO');
+                $count++;
             }
-            $amount = $diff->abs()->toDecimalString();
-            $lines = $diff->isPositive()
-                ? [
-                    ['account' => Chart::PERSEDIAAN, 'branch_id' => $branchId, 'debit' => $amount, 'memo' => 'Penyesuaian pembuka FIFO'],
-                    ['account' => Chart::HPP, 'branch_id' => $branchId, 'credit' => $amount, 'memo' => 'Penyesuaian pembuka FIFO'],
-                ]
-                : [
-                    ['account' => Chart::HPP, 'branch_id' => $branchId, 'debit' => $amount, 'memo' => 'Penyesuaian pembuka FIFO'],
-                    ['account' => Chart::PERSEDIAAN, 'branch_id' => $branchId, 'credit' => $amount, 'memo' => 'Penyesuaian pembuka FIFO'],
-                ];
-            $posting->postOnce('fifo_opening', $branchId, now(), $lines, 'Penyesuaian pembuka FIFO');
-            $count++;
-        }
 
-        return $count;
+            return $count;
+        });
+        $this->info("Migrasi FIFO selesai: {$adjusted} cabang dengan jurnal penyesuaian pembuka.");
+
+        return 0;
     });
-    $this->info("Migrasi FIFO selesai: {$adjusted} cabang dengan jurnal penyesuaian pembuka.");
-
-    return 0;
 })->purpose('Bangun lapisan FIFO dari riwayat gerakan + jurnal penyesuaian pembuka');
 
 /*

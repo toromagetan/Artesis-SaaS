@@ -7,6 +7,7 @@ use App\Modules\Comms\Models\WaMessage;
 use App\Modules\Comms\Services\GatewayFactory;
 use App\Modules\Comms\Services\MessagingService;
 use App\Modules\CRM\Models\Customer;
+use App\Modules\Identity\Services\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -49,6 +50,11 @@ class WaWebhookController extends Controller
         if ($expected === '' || ! hash_equals($expected, $signature)) {
             return response('Forbidden', 403);
         }
+
+        // Tanda tangan sah = callback berkredensial (bukan tamu):
+        // cabut penanda tamu HTTP agar resolusi pelanggan pengirim
+        // tidak gagal-tertutup oleh TenantScope (temuan 8).
+        TenantContext::forgetGuestHttp();
 
         $entries = (array) $request->input('entry', []);
         foreach ($entries as $entry) {

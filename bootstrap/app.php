@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsurePlanFeature;
 use App\Http\Middleware\EnsurePlatformUser;
 use App\Http\Middleware\EnsureTenantIsActive;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\MarkGuestRequest;
 use App\Http\Middleware\SetLocale;
 use App\Modules\Sales\Http\Middleware\AuthenticateOfflineDevice;
 use Illuminate\Foundation\Application;
@@ -32,6 +33,10 @@ return Application::configure(basePath: dirname(__DIR__))
             SetLocale::class,
             EnsureUserIsActive::class,
             EnsureTenantIsActive::class,
+            MarkGuestRequest::class,
+        ]);
+        $middleware->api(append: [
+            MarkGuestRequest::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

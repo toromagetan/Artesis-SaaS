@@ -2,6 +2,7 @@
 
 namespace App\Modules\Sales\Http\Middleware;
 
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Sales\Services\OfflineDeviceService;
 use Closure;
 use Illuminate\Http\Request;
@@ -23,6 +24,10 @@ class AuthenticateOfflineDevice
         if ($device === null) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
+        // Token perangkat sah = request berkredensial (bukan tamu):
+        // cabut penanda tamu HTTP; pagar data mengikuti perangkat &
+        // cabangnya di lapisan layanan (audit lanjutan temuan 8).
+        TenantContext::forgetGuestHttp();
         $request->attributes->set('offline_device', $device);
 
         return $next($request);

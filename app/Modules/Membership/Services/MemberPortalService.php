@@ -3,6 +3,7 @@
 namespace App\Modules\Membership\Services;
 
 use App\Modules\CRM\Models\Customer;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Lab\Services\ProcurementStatusService;
 use App\Modules\Membership\Models\MemberPortalToken;
 use App\Modules\Membership\Models\PointsLedger;
@@ -58,6 +59,13 @@ class MemberPortalService
         if ($row === null) {
             return null;
         }
+
+        // Token sah = request berkredensial (bukan tamu): cabut
+        // penanda tamu HTTP agar pembacaan data pemilik token tidak
+        // gagal-tertutup oleh TenantScope (audit lanjutan temuan 8).
+        // Pagar portal adalah token ini sendiri — dataFor() hanya
+        // membaca baris milik pelanggan hasil resolusi.
+        TenantContext::forgetGuestHttp();
         $row->forceFill(['last_used_at' => now()])->save();
 
         return $row->customer;

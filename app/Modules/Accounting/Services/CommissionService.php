@@ -68,7 +68,11 @@ class CommissionService
         if ($sale->doctor_id === null || $sale->status !== 'active') {
             return null;
         }
-        $doctor = $sale->doctor;
+        // Dibaca tanpa global scope: layanan ini memang dirancang
+        // berjalan tanpa sesi (antrean/konsol) dan memvalidasi ember
+        // tenant secara manual di bawah — relasi terpagar scope akan
+        // kosong pada konteks gagal-tertutup (temuan 8).
+        $doctor = $sale->doctor()->withoutGlobalScopes()->first();
         if ($doctor === null || ! $doctor->is_active) {
             return null;
         }
@@ -116,7 +120,8 @@ class CommissionService
         if ($process->technician_id === null) {
             return null;
         }
-        $sale = $process->sale;
+        // Tanpa global scope — lihat catatan pada accrueForDoctor.
+        $sale = $process->sale()->withoutGlobalScopes()->first();
         if ($sale === null || $sale->status !== 'active') {
             return null;
         }
@@ -129,7 +134,11 @@ class CommissionService
             || ($technician->tenant_id !== null ? (int) $technician->tenant_id : null) !== $bucket) {
             return null;
         }
-        $rate = (string) Setting::value('lab.technician_commission_rate', '0');
+        // Tarif mengikuti tenant PENJUALAN SUMBER, bukan sesi aktor:
+        // jalur antrean/konsol tanpa auth tetap memakai tarif tenant
+        // pemilik penjualan (audit lanjutan temuan 9). Tenant tanpa
+        // penimpaan memakai default global milik platform.
+        $rate = (string) Setting::valueForTenant('lab.technician_commission_rate', $bucket, '0');
         if (Money::fromDecimal($rate)->isZero()) {
             return null;
         }
