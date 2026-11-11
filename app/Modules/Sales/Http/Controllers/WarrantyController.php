@@ -5,7 +5,6 @@ namespace App\Modules\Sales\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Services\BranchContext;
-use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Supplier;
 use App\Modules\Sales\Models\BrokenStock;
 use App\Modules\Sales\Models\Sale;
@@ -33,13 +32,14 @@ class WarrantyController extends Controller
             abort(403);
         }
         $context = BranchContext::for($actor);
-        // Gudang acuan keterlihatan = gudang partisi tenant AKTOR
-        // sendiri (koreksi B-02: bukan lagi pilihan global instalasi).
-        $warehouse = $this->warranty->warehouseBranchFor(TenantContext::for($actor)->tenantId());
+        // Gudang acuan keterlihatan ditentukan MODE identitas aktor
+        // (layanan): tenant/standalone memperoleh gudang partisinya;
+        // platform/unassigned/guest tanpa acuan (null).
+        $warehouse = $this->warranty->referenceWarehouseFor($actor);
         $query = WarrantyCase::with(['sale.customer', 'saleItem', 'branch'])
             ->orderByDesc('id');
         if (! $context->hasGlobalAccess()) {
-            $query->whereIn('branch_id', [...$context->managedBranchIds(), $warehouse->id]);
+            $query->whereIn('branch_id', [...$context->managedBranchIds(), ...($warehouse ? [$warehouse->id] : [])]);
         }
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
@@ -53,7 +53,7 @@ class WarrantyController extends Controller
         if (! $context->hasGlobalAccess()) {
             $brokenQuery->whereIn('branch_id', [
                 ...$context->managedBranchIds(),
-                $warehouse->id,
+                ...($warehouse ? [$warehouse->id] : []),
             ]);
         }
 
@@ -109,11 +109,11 @@ class WarrantyController extends Controller
         // sama seperti daftar; aksi-aksi tahap tetap ditegakkan ulang
         // di WarrantyService.
         $context = BranchContext::for($actor);
-        $warehouse = $this->warranty->warehouseBranchFor(TenantContext::for($actor)->tenantId());
+        $warehouse = $this->warranty->referenceWarehouseFor($actor);
         if (! $context->hasGlobalAccess()
             && ! in_array($warranty->branch_id, [
                 ...$context->managedBranchIds(),
-                $warehouse->id,
+                ...($warehouse ? [$warehouse->id] : []),
             ], true)) {
             abort(404);
         }

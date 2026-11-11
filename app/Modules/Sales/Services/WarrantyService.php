@@ -7,6 +7,7 @@ use App\Modules\Accounting\Support\Chart;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Inventory\Services\InventoryService;
@@ -57,6 +58,30 @@ class WarrantyService
     {
         return Branch::where('is_active', true)->where('tenant_id', $tenantId)->where('is_main_warehouse', true)->orderBy('id')->first()
             ?? Branch::where('is_active', true)->where('tenant_id', $tenantId)->orderBy('id')->firstOrFail();
+    }
+
+    /**
+     * Gudang acuan KETERLIHATAN seorang aktor (daftar/detail
+     * garansi), ditentukan oleh MODE identitas — bukan sekadar
+     * nilai tenantId(): tenant → gudang partisinya sendiri;
+     * standalone → gudang partisi NULL; platform, unassigned,
+     * dan guest → null (tanpa gudang acuan — partisi NULL bukan
+     * milik mereka, dan ketiadaan acuan berarti gabungan
+     * keterlihatan tidak ditambah apa pun). Koreksi audit B-02
+     * putaran 2: tenantId() bernilai null pada tiga mode berbeda,
+     * sehingga tidak boleh dipakai sebagai dasar pemilihan gudang.
+     */
+    public function referenceWarehouseFor(User $actor): ?Branch
+    {
+        $context = TenantContext::for($actor);
+        if ($context->isTenant()) {
+            return $this->warehouseBranchFor($context->tenantId());
+        }
+        if ($context->isStandalone()) {
+            return $this->warehouseBranchFor(null);
+        }
+
+        return null;
     }
 
     /** Partisi tenant pemilik kasus, dari cabang penjualan kasus. */

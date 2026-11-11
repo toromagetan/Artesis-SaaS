@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Accounting\Models\Journal;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\TenantContext;
+use App\Modules\Inventory\Models\StockMovement;
+use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
@@ -253,5 +256,161 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
         $response->assertOk();
         $response->assertSee($caseA->number);
         $response->assertDontSee($caseB->number);
+    }
+
+    /**
+     * Kasus + stok rusak pada partisi standalone (tenant NULL).
+     * WAJIB dipanggil sebelum tenant mana pun dibuat: mode
+     * standalone hanya ada selagi instalasi belum melayani tenant.
+     *
+     * @return array{User, Branch, WarrantyCase, BrokenStock}
+     */
+    private function standaloneCase(): array
+    {
+        $owner = User::where('username', 'owner')->firstOrFail();
+        $pusat = Branch::where('name', 'Pusat')->firstOrFail();
+        $warehouse = Branch::factory()->create(['name' => 'Gudang Standalone', 'is_main_warehouse' => true]);
+        $product = Product::factory()->ofType('frame')->create([
+            'sku' => 'WR-SA', 'name' => 'Frame Standalone', 'cost_price' => '40000', 'sale_price' => '100000',
+        ]);
+        $supplier = Supplier::create(['name' => 'Supplier Standalone', 'is_active' => true]);
+        $orders = app(PurchaseOrderService::class);
+        foreach ([$pusat, $warehouse] as $branch) {
+            $po = $orders->create($owner, $supplier->id, $branch->id, [
+                ['product_id' => $product->id, 'qty' => 5, 'unit_cost' => '40000'],
+            ]);
+            $orders->markSent($owner, $po);
+            app(ReceiptService::class)->store($owner, $po, [
+                ['purchase_order_item_id' => $po->items->first()->id, 'qty' => 5, 'unit_cost_actual' => '40000'],
+            ]);
+        }
+        $customer = Customer::factory()->create(['branch_id' => $pusat->id]);
+        $sale = app(SalesService::class)->createSale($owner, [
+            'customer_id' => $customer->id, 'sale_date' => now()->toDateString(),
+            'tax_mode' => 'exclusive', 'branch_id' => $pusat->id,
+        ], [['product_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
+        $case = $this->makeCase($owner, $sale);
+        $this->warranty->sendOldItem($owner, $case);
+        $broken = $this->warranty->receiveOldItem($owner, $case);
+
+        return [$owner, $warehouse, $case, $broken];
+    }
+
+    public function test_standalone_owner_uses_standalone_partition(): void
+    {
+        [$owner, $warehouse, $case] = $this->standaloneCase();
+
+        $this->assertSame($warehouse->id, $this->warranty->referenceWarehouseFor($owner)?->id);
+        $response = $this->actingAs($owner)->get(route('warranties.index'));
+        $response->assertOk();
+        $response->assertSee($case->number);
+        $this->assertSame($warehouse->id, $response->viewData('warehouse')?->id);
+    }
+
+    public function test_platform_and_unassigned_get_no_standalone_reference(): void
+    {
+        [, $warehouse, $case] = $this->standaloneCase();
+        $this->tenantAdmin('a'); // instalasi kini melayani tenant
+
+        // Platform: resolver tidak memberinya gudang acuan mana pun,
+        // dan gerbang izin halaman garansi menolak aktor platform
+        // (izin bisnis bukan grup platform).
+        $this->assertNull($this->warranty->referenceWarehouseFor($this->platform));
+        $this->actingAs($this->platform)->get(route('warranties.index'))->assertForbidden();
+
+        // Unassigned: akun tanpa tenant_id pada instalasi bertenant.
+        // Partisi NULL bukan miliknya — kasus dan antrean stok rusak
+        // standalone tidak boleh terlihat.
+        $unassigned = User::create([
+            'name' => 'Tanpa Tenant', 'username' => 'unassigned',
+            'email' => 'unassigned@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
+        ]);
+        $unassigned->roles()->attach(Role::where('name', 'Kasir')->firstOrFail());
+        $this->assertNull($this->warranty->referenceWarehouseFor($unassigned));
+
+        $response = $this->actingAs($unassigned)->get(route('warranties.index'));
+        $response->assertOk();
+        $response->assertDontSee($case->number);
+        $this->assertNull($response->viewData('warehouse'));
+        $queueBranches = collect($response->viewData('brokenPending'))->pluck('branch_id');
+        $this->assertFalse($queueBranches->contains($warehouse->id));
+    }
+
+    public function test_broken_stock_queue_is_partitioned(): void
+    {
+        [$tenantB, $adminB, $branchB, $warehouseB] = $this->tenantAdmin('b');
+        [$tenantA, $adminA, $branchA, $warehouseA] = $this->tenantAdmin('a');
+        [, , $saleA] = $this->stockedSale($adminA, $tenantA, $branchA, $warehouseA, 'A');
+        $caseA = $this->makeCase($adminA, $saleA);
+        $this->warranty->sendOldItem($adminA, $caseA);
+        $brokenA = $this->warranty->receiveOldItem($adminA, $caseA);
+        [, , $saleB] = $this->stockedSale($adminB, $tenantB, $branchB, $warehouseB, 'B');
+        $caseB = $this->makeCase($adminB, $saleB);
+        $this->warranty->sendOldItem($adminB, $caseB);
+        $brokenB = $this->warranty->receiveOldItem($adminB, $caseB);
+
+        $kasirA = $this->userWithRole($tenantA, 'Kasir', 'a', [$branchA->id]);
+        $pendingA = collect($this->actingAs($kasirA)->get(route('warranties.index'))->assertOk()->viewData('brokenPending'))->pluck('id');
+        $this->assertTrue($pendingA->contains($brokenA->id));
+        $this->assertFalse($pendingA->contains($brokenB->id));
+
+        $kasirB = $this->userWithRole($tenantB, 'Kasir', 'b', [$branchB->id]);
+        $pendingB = collect($this->actingAs($kasirB)->get(route('warranties.index'))->assertOk()->viewData('brokenPending'))->pluck('id');
+        $this->assertTrue($pendingB->contains($brokenB->id));
+        $this->assertFalse($pendingB->contains($brokenA->id));
+    }
+
+    public function test_show_page_respects_partition(): void
+    {
+        [$tenantB, $adminB, $branchB, $warehouseB] = $this->tenantAdmin('b');
+        [$tenantA, $adminA, $branchA, $warehouseA] = $this->tenantAdmin('a');
+        [, , $saleA] = $this->stockedSale($adminA, $tenantA, $branchA, $warehouseA, 'A');
+        $caseA = $this->makeCase($adminA, $saleA);
+        [, , $saleB] = $this->stockedSale($adminB, $tenantB, $branchB, $warehouseB, 'B');
+        $caseB = $this->makeCase($adminB, $saleB);
+
+        $kasirA = $this->userWithRole($tenantA, 'Kasir', 'a', [$branchA->id]);
+        $this->actingAs($kasirA)->get(route('warranties.show', $caseB))->assertNotFound();
+        $this->actingAs($kasirA)->get(route('warranties.show', $caseA))->assertOk();
+        $this->actingAs($adminB)->get(route('warranties.show', $caseA))->assertNotFound();
+    }
+
+    public function test_ship_replacement_uses_case_partition_warehouse(): void
+    {
+        [$tenantB, $adminB, $branchB, $warehouseB] = $this->tenantAdmin('b');
+        [$tenantA, $adminA, $branchA, $warehouseA] = $this->tenantAdmin('a');
+        [$productA, , $saleA] = $this->stockedSale($adminA, $tenantA, $branchA, $warehouseA, 'A');
+        $case = $this->makeCase($adminA, $saleA);
+        $this->warranty->sendOldItem($adminA, $case);
+        $broken = $this->warranty->receiveOldItem($adminA, $case);
+        $this->warranty->inspectBroken($adminA, $broken, 'broken', 'Retak', null);
+        $this->warranty->prepareReplacement($adminA, $case->fresh(), 'stock', $productA, '0');
+
+        // Aktor tenant asing ditolak mengirim pengganti kasus A.
+        try {
+            $this->warranty->shipReplacement($adminB, $case->fresh());
+            $this->fail('Admin tenant B tidak boleh mengirim pengganti kasus tenant A.');
+        } catch (AuthorizationException) {
+            $this->assertSame('replacement_preparing', $case->fresh()->status);
+        }
+
+        $this->warranty->shipReplacement($adminA, $case->fresh());
+        $this->assertSame('replacement_shipped', $case->fresh()->status);
+
+        // Gerakan keluar tercatat di gudang A, stoknya berkurang.
+        $movement = StockMovement::withoutGlobalScopes()
+            ->where('branch_id', $warehouseA->id)->where('reason', 'warranty_out')
+            ->where('reference_type', 'warranty_case')->where('reference_id', $case->id)
+            ->first();
+        $this->assertNotNull($movement);
+        $this->assertSame(-1, (int) $movement->qty);
+        $this->assertSame(4, app(InventoryService::class)->currentStock($productA->id, $warehouseA->id));
+
+        // Jurnal beban garansi memakai cabang gudang A di semua baris.
+        $journal = Journal::where('source_type', 'warranty_shipment')->where('source_id', $case->id)->first();
+        $this->assertNotNull($journal);
+        $lineBranches = $journal->lines()->pluck('branch_id')->unique()->map(fn ($id) => (int) $id)->values()->all();
+        $this->assertSame([$warehouseA->id], $lineBranches);
     }
 }
