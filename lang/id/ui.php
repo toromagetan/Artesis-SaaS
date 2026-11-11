@@ -1807,6 +1807,7 @@ return [
         'stock_short' => 'Stok gudang tidak mencukupi untuk pengganti dari stok.',
         'not_po_source' => 'Pengganti belum disiapkan sebagai PO.',
         'po_exists' => 'Pengganti ini sudah memiliki PO.',
+        'supplier_outside_partition' => 'Supplier bukan milik perusahaan kasus garansi ini.',
         'not_ready' => 'Pengganti belum siap dikirim.',
         'pay_exceeds' => 'Pembayaran melebihi sisa biaya pelanggan.',
         'charge_unpaid' => 'Biaya pelanggan belum lunas.',

@@ -5,6 +5,7 @@ namespace App\Modules\Sales\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Supplier;
 use App\Modules\Sales\Models\BrokenStock;
 use App\Modules\Sales\Models\Sale;
@@ -32,11 +33,13 @@ class WarrantyController extends Controller
             abort(403);
         }
         $context = BranchContext::for($actor);
+        // Gudang acuan keterlihatan = gudang partisi tenant AKTOR
+        // sendiri (koreksi B-02: bukan lagi pilihan global instalasi).
+        $warehouse = $this->warranty->warehouseBranchFor(TenantContext::for($actor)->tenantId());
         $query = WarrantyCase::with(['sale.customer', 'saleItem', 'branch'])
             ->orderByDesc('id');
         if (! $context->hasGlobalAccess()) {
-            $warehouseId = $this->warranty->warehouseBranch()->id;
-            $query->whereIn('branch_id', [...$context->managedBranchIds(), $warehouseId]);
+            $query->whereIn('branch_id', [...$context->managedBranchIds(), $warehouse->id]);
         }
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
@@ -50,14 +53,14 @@ class WarrantyController extends Controller
         if (! $context->hasGlobalAccess()) {
             $brokenQuery->whereIn('branch_id', [
                 ...$context->managedBranchIds(),
-                $this->warranty->warehouseBranch()->id,
+                $warehouse->id,
             ]);
         }
 
         return view('sales.warranty.index', [
             'cases' => $query->paginate(20)->withQueryString(),
             'brokenPending' => $brokenQuery->orderBy('id')->limit(20)->get(),
-            'warehouse' => $this->warranty->warehouseBranch(),
+            'warehouse' => $warehouse,
         ]);
     }
 
@@ -106,10 +109,11 @@ class WarrantyController extends Controller
         // sama seperti daftar; aksi-aksi tahap tetap ditegakkan ulang
         // di WarrantyService.
         $context = BranchContext::for($actor);
+        $warehouse = $this->warranty->warehouseBranchFor(TenantContext::for($actor)->tenantId());
         if (! $context->hasGlobalAccess()
             && ! in_array($warranty->branch_id, [
                 ...$context->managedBranchIds(),
-                $this->warranty->warehouseBranch()->id,
+                $warehouse->id,
             ], true)) {
             abort(404);
         }
@@ -121,7 +125,9 @@ class WarrantyController extends Controller
             'ready' => $this->warranty->replacementReady($warranty),
             'products' => Product::where('is_active', true)->orderBy('name')->limit(300)->get(),
             'suppliers' => Supplier::where('is_active', true)->orderBy('name')->get(),
-            'warehouse' => $this->warranty->warehouseBranch(),
+            // Yang ditampilkan pada halaman kasus = gudang partisi
+            // pemilik KASUS (bukan partisi aktor yang membuka).
+            'warehouse' => $this->warranty->warehouseForCase($warranty),
         ]);
     }
 
