@@ -400,6 +400,9 @@
                             @if ($can('backups.manage') && auth()->user()->tenant_id === null)
                                 <a href="{{ route('backups.index') }}" class="{{ $sub }} {{ request()->routeIs('backups.*') ? $subActive : '' }}">@if (request()->routeIs('backups.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.backups') }}</a>
                             @endif
+                            @if (auth()->user()->tenant_id !== null && auth()->user()->hasRole('Owner'))
+                                <a href="{{ route('tenant-exports.index') }}" class="{{ $sub }} {{ request()->routeIs('tenant-exports.*') ? $subActive : '' }}">@if (request()->routeIs('tenant-exports.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.tenant_exports') }}</a>
+                            @endif
                         @endif
                         @if ($can('api_tokens.manage'))
                             <a href="{{ route('api-tokens.index') }}" class="{{ $sub }} {{ request()->routeIs('api-tokens.*') ? $subActive : '' }}">@if (request()->routeIs('api-tokens.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.api_tokens') }}</a>
@@ -430,6 +433,11 @@
                     @if (request()->routeIs('platform.billing.*')) {!! $goldBar !!} @endif
                     <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>
                     {{ __('ui.nav.billing') }}
+                </a>
+                <a href="{{ route('tenant-exports.index') }}" class="{{ $item }} {{ request()->routeIs('tenant-exports.*') ? $itemActive : '' }}">
+                    @if (request()->routeIs('tenant-exports.*')) {!! $goldBar !!} @endif
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>
+                    {{ __('ui.nav.tenant_exports') }}
                 </a>
         @endif
     </nav>

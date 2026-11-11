@@ -117,6 +117,7 @@ return [
         'ai_settings' => 'AI Assistant',
         'audit_logs' => 'Activity Log',
         'backups' => 'Backup & Restore',
+        'tenant_exports' => 'Data Export',
         'assistant' => 'AI Assistant',
         'warranties' => 'Warranties',
         'insurances' => 'Insurances',
@@ -851,6 +852,18 @@ return [
         'write_failed' => 'Failed to write the backup file.',
     ],
 
+    'tenant_exports' => [
+        'title' => 'Data Export',
+        'help' => 'The export contains a copy of your company\'s data only (one ZIP file containing backup.json). Password hashes, API tokens, and device tokens are NOT included. This file is not a restore file — restores are performed by the platform operator from a full-installation backup.',
+        'create' => 'Create Export',
+        'created' => 'Export created: :name.',
+        'empty' => 'No export files yet.',
+        'forbidden' => 'Data export is only for this company\'s Owner or the platform operator on its behalf.',
+        'deleted' => 'Export file deleted.',
+        'delete_confirm' => 'Delete this export file?',
+        'pick_tenant' => 'Choose the company whose data will be exported:',
+        'for_tenant' => 'Company: :name',
+    ],
     'recovery' => [
         'title' => 'Owner Account Recovery',
         'help' => 'A dedicated recovery path for the business owner. Enter the email registered to an active Owner account — if it matches, a password reset link will be sent to that email. For security, this page always shows the same message regardless of the outcome.',

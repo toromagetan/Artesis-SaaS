@@ -52,6 +52,7 @@ use App\Modules\Platform\Http\Controllers\PlanController;
 use App\Modules\Platform\Http\Controllers\PlatformBillingController;
 use App\Modules\Platform\Http\Controllers\SignupController;
 use App\Modules\Platform\Http\Controllers\TenantController;
+use App\Modules\Platform\Http\Controllers\TenantExportController;
 use App\Modules\Purchasing\Http\Controllers\CollectivePaymentController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseRequestController;
@@ -369,6 +370,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/pengaturan/backup/hapus', [BackupController::class, 'destroy'])->middleware('permission:backups.manage')->name('backups.destroy');
     Route::post('/pengaturan/backup/pulihkan', [BackupController::class, 'restore'])->middleware('permission:backups.manage')->name('backups.restore');
     Route::post('/pengaturan/backup/offsite', [BackupController::class, 'offsite'])->middleware('permission:backups.manage')->name('backups.offsite');
+    // Ekspor data per tenant (B-03): gerbangnya TenantExportPolicy
+    // (Owner tenant sendiri / platform atas nama), bukan izin rute.
+    Route::get('/pengaturan/ekspor-data', [TenantExportController::class, 'index'])->name('tenant-exports.index');
+    Route::post('/pengaturan/ekspor-data', [TenantExportController::class, 'store'])->name('tenant-exports.store');
+    Route::get('/pengaturan/ekspor-data/unduh', [TenantExportController::class, 'download'])->name('tenant-exports.download');
+    Route::post('/pengaturan/ekspor-data/hapus', [TenantExportController::class, 'destroy'])->name('tenant-exports.destroy');
     Route::get('/pengaturan/log-aktivitas', [AuditLogController::class, 'index'])->middleware('permission:settings.manage')->name('audit-logs.index');
     Route::get('/pengaturan/log-aktivitas/{log}', [AuditLogController::class, 'show'])->middleware('permission:settings.manage')->name('audit-logs.show');
     Route::get('/pengaturan/ai', [AiSettingController::class, 'edit'])->middleware('permission:settings.manage')->name('ai-setting.edit');
