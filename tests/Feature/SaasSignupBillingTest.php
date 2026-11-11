@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Models\Plan;
@@ -172,9 +173,11 @@ class SaasSignupBillingTest extends TestCase
     public function test_tenant_admin_submits_upgrade_and_sees_bank_instructions(): void
     {
         [$tenant, $admin] = $this->tenantAdmin();
-        Setting::set('billing_bank_name', 'BCA');
-        Setting::set('billing_bank_account', '1234567890');
-        Setting::set('billing_account_name', 'Artesis Platform');
+        TenantContext::asSystem(function (): void {
+            Setting::set('billing_bank_name', 'BCA');
+            Setting::set('billing_bank_account', '1234567890');
+            Setting::set('billing_account_name', 'Artesis Platform');
+        });
         $solo = Plan::where('key', 'solo')->firstOrFail();
 
         $this->actingAs($admin)->get('/paket-saya')

@@ -139,6 +139,28 @@ class GuestScopeAndSettingsIsolationTest extends TestCase
         $this->assertFalse(TenantContext::isSystemContext());
     }
 
+    public function test_system_context_marker_is_restored_including_on_exception(): void
+    {
+        $this->assertFalse(TenantContext::isSystemContext());
+
+        TenantContext::asSystem(function (): void {
+            $this->assertTrue(TenantContext::isSystemContext());
+            // Bersarang: penanda tetap aktif sesudah callback dalam.
+            TenantContext::asSystem(fn () => null);
+            $this->assertTrue(TenantContext::isSystemContext());
+        });
+        $this->assertFalse(TenantContext::isSystemContext());
+
+        try {
+            TenantContext::asSystem(function (): void {
+                throw new \RuntimeException('ledakan uji');
+            });
+            $this->fail('Exception seharusnya diteruskan.');
+        } catch (\RuntimeException) {
+            $this->assertFalse(TenantContext::isSystemContext());
+        }
+    }
+
     public function test_seeder_runs_as_explicit_system_context(): void
     {
         // DatabaseSeeder dibungkus konteks sistem: menjalankan ulang
@@ -259,8 +281,18 @@ class GuestScopeAndSettingsIsolationTest extends TestCase
             $this->assertSame('5', Setting::valueForTenant('lab.technician_commission_rate', null));
         }
 
-        // Request HTTP tamu (penanda middleware): ditolak juga.
+        // Tanpa aktor dan TANPA konteks sistem: ditolak — penanda
+        // sistem adalah gerbangnya, bukan sekadar tersedia
+        // (koreksi audit PR #33).
         auth()->logout();
+        try {
+            Setting::set('lab.technician_commission_rate', '99');
+            $this->fail('Pemanggilan tanpa aktor di luar konteks sistem seharusnya ditolak.');
+        } catch (AuthorizationException) {
+            $this->assertSame('5', Setting::valueForTenant('lab.technician_commission_rate', null));
+        }
+
+        // Request HTTP tamu (penanda middleware): ditolak juga.
         TenantContext::markGuestHttp();
         try {
             Setting::set('lab.technician_commission_rate', '99');
@@ -271,9 +303,8 @@ class GuestScopeAndSettingsIsolationTest extends TestCase
             TenantContext::forgetGuestHttp();
         }
 
-        // Pemanggilan in-process terpercaya (konsol/antrean/seeder)
-        // menulis baris global — seluruh jalur tulis produksi berada
-        // di balik autentikasi atau proses sistem.
+        // Proses sistem resmi (konsol/antrean/seeder yang dibungkus
+        // asSystem) tetap dapat menulis baris global.
         TenantContext::asSystem(fn () => Setting::set('lab.technician_commission_rate', '6'));
         $this->assertSame('6', Setting::valueForTenant('lab.technician_commission_rate', null));
     }

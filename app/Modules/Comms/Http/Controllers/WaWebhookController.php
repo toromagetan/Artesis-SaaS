@@ -96,8 +96,20 @@ class WaWebhookController extends Controller
         $phone = MessagingService::normalizePhone((string) ($incoming['from'] ?? ''));
         // Nomor tersimpan pelanggan berformat bebas (spasi/strip) —
         // pencocokan harus pada bentuk ternormalisasi kedua sisi.
-        $customer = Customer::query()->select(['id', 'phone'])->get()
-            ->first(fn (Customer $c) => MessagingService::normalizePhone((string) $c->phone) === $phone);
+        //
+        // Aturan pemetaan tenant DETERMINISTIK (koreksi audit
+        // PR #33): gateway WA bersifat global untuk instalasi
+        // (satu nomor pengirim — kepemilikan per tenant adalah
+        // keputusan OD-4 yang belum diambil), dan tanda tangan HMAC
+        // hanya membuktikan asal callback, bukan tenant pemilik
+        // nomor. Karena itu pelanggan hanya dipetakan bila nomor
+        // itu UNIK di seluruh instalasi. Nomor yang tercatat pada
+        // lebih dari satu tenant TIDAK ditebak: pesan tetap
+        // tertangkap sebagai yatim (customer_id NULL) agar tidak
+        // pernah teratribusi ke tenant yang salah.
+        $matches = Customer::query()->select(['id', 'phone'])->get()
+            ->filter(fn (Customer $c) => MessagingService::normalizePhone((string) $c->phone) === $phone);
+        $customer = $matches->count() === 1 ? $matches->first() : null;
 
         WaMessage::create([
             'customer_id' => $customer?->id,

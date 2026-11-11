@@ -5,6 +5,7 @@ namespace Tests\Feature\Platform;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Models\AuditLog;
 use App\Modules\Platform\Services\BackupService;
@@ -32,7 +33,7 @@ class BackupRestoreTest extends TestCase
         $this->seed(IdentitySeeder::class);
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->service = app(BackupService::class);
-        Setting::set('backup.probe', 'sebelum');
+        TenantContext::asSystem(fn () => Setting::set('backup.probe', 'sebelum'));
     }
 
     protected function tearDown(): void
@@ -48,7 +49,7 @@ class BackupRestoreTest extends TestCase
         $name = $this->service->create($this->owner);
         $this->assertFileExists($this->service->directory().'/'.$name);
 
-        Setting::set('backup.probe', 'sesudah');
+        TenantContext::asSystem(fn () => Setting::set('backup.probe', 'sesudah'));
         $this->assertSame('sesudah', Setting::value('backup.probe'));
 
         $result = $this->service->restore($this->owner, $name);

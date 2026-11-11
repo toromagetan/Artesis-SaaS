@@ -9,17 +9,24 @@ use Illuminate\Database\Eloquent\Scope;
 
 /**
  * Pagar tenant di level query (S-02, pasangan BranchScope).
- * Klasifikasi aktor memakai TenantContext:
+ * Klasifikasi memakai TenantContext — tiga jenis jalur tanpa
+ * aktor dibedakan secara eksplisit (audit lanjutan temuan 8 +
+ * koreksi audit PR #33):
  * - request HTTP tamu (penanda TenantContext::isGuestHttp dari
  *   middleware MarkGuestRequest): hasil kosong — gagal-tutup.
  *   Guest HTTP tidak boleh membaca data tenant hanya karena tidak
- *   ada yang login (audit lanjutan temuan 8);
- * - tanpa aktor di luar request HTTP: tidak membatasi — layanan
- *   aplikasi menerima aktor secara eksplisit sebagai parameter dan
- *   memvalidasi embernya sendiri, dan proses tingkat instalasi
- *   (perintah konsol terjadwal, job antrean, seeder) menyatakan
- *   konteks sistemnya secara eksplisit lewat
- *   TenantContext::asSystem;
+ *   ada yang login;
+ * - proses sistem tingkat instalasi (perintah konsol terjadwal,
+ *   job antrean, seeder): wajib menyatakan konteksnya lewat
+ *   TenantContext::asSystem — penanda itulah yang membuka akses
+ *   lintas tenant untuk operasi sistem, dan operasi TANPA aktor
+ *   yang berdampak lintas tenant (mis. penulisan pengaturan
+ *   global di Setting) menolak jalur yang tidak berpenanda;
+ * - pemanggilan in-process dari layanan aplikasi yang menerima
+ *   aktor secara eksplisit sebagai parameter: tidak dibatasi di
+ *   scope ini — validasi ember adalah tanggung jawab layanan itu
+ *   sendiri (kontrak yang dipertahankan atas instruksi audit;
+ *   layanan TIDAK dipaksa bergantung pada sesi auth());
  * - platform: tidak dibatasi (aktor pengelola platform);
  * - standalone (instalasi tanpa tenant): hanya baris bertenant
  *   NULL, yaitu data milik instalasi itu sendiri;
@@ -35,9 +42,14 @@ class TenantScope implements Scope
 
         if (! auth()->check()) {
             if (TenantContext::isGuestHttp()) {
+                // Jalur 1 — tamu HTTP: gagal-tertutup.
                 $builder->whereIn($table.'.tenant_id', [0]);
             }
 
+            // Jalur 2 — konteks sistem eksplisit (asSystem): terbuka
+            // lintas tenant secara terpercaya.
+            // Jalur 3 — in-process berparameter aktor: terbuka di
+            // scope; layanan memvalidasi embernya sendiri.
             return;
         }
 

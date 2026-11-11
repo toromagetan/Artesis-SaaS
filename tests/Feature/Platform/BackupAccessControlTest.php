@@ -5,6 +5,7 @@ namespace Tests\Feature\Platform;
 use App\Modules\Identity\Models\Permission;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Models\AuditLog;
 use App\Modules\Platform\Models\Tenant;
@@ -111,7 +112,7 @@ class BackupAccessControlTest extends TestCase
         ['platform' => $platform] = $this->seedSharedMode();
 
         $name = $this->service->create($platform);
-        Setting::set('penanda.r1', 'sesudah-backup');
+        TenantContext::asSystem(fn () => Setting::set('penanda.r1', 'sesudah-backup'));
 
         // Tanpa jumlah tenant: validasi gagal, data tidak berubah.
         $this->actingAs($platform)->post(route('backups.restore'), [
@@ -137,7 +138,7 @@ class BackupAccessControlTest extends TestCase
         ['platform' => $platform, 'ownerA' => $ownerA, 'ownerB' => $ownerB] = $this->seedSharedMode();
 
         $name = $this->service->create($platform);
-        Setting::set('penanda.r1', 'milik-platform');
+        TenantContext::asSystem(fn () => Setting::set('penanda.r1', 'milik-platform'));
 
         foreach (['A' => $ownerA, 'B' => $ownerB] as $label => $tenantOwner) {
             // Prasyarat bukti: Owner tenant MEMEGANG kedua izin —
@@ -227,7 +228,7 @@ class BackupAccessControlTest extends TestCase
         $this->assertCount(1, $entries);
         $name = $entries[0]['name'];
 
-        Setting::set('penanda.r1', 'sesudah-backup');
+        TenantContext::asSystem(fn () => Setting::set('penanda.r1', 'sesudah-backup'));
 
         $this->actingAs($owner)->get(route('backups.download', ['berkas' => $name]))->assertOk();
         $this->assertTrue(AuditLog::where('action', 'backup.downloaded')->exists());

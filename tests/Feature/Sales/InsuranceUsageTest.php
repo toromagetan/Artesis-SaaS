@@ -8,6 +8,7 @@ use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Insurance;
@@ -47,7 +48,9 @@ class InsuranceUsageTest extends TestCase
         $this->seed([IdentitySeeder::class, AccountingSeeder::class]);
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
-        Setting::set('tax.rate_default', '0');
+        // Fixture tingkat instalasi: konteks sistem dinyatakan eksplisit
+        // (penulisan global tanpa aktor wajib TenantContext::asSystem).
+        TenantContext::asSystem(fn () => Setting::set('tax.rate_default', '0'));
         $this->frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000', 'sale_price' => '200000']);
         app(InventoryService::class)->recordMovement($this->owner, $this->frame, $this->branch, 'initial_stock', 10, 'test', 1);
         $this->insurance = Insurance::create(['name' => 'Sehat Bersama', 'claim_value' => '100000', 'is_active' => true]);

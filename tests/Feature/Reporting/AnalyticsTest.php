@@ -5,6 +5,7 @@ namespace Tests\Feature\Reporting;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
@@ -42,7 +43,9 @@ class AnalyticsTest extends TestCase
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         // Tarif pajak dibaca dari Setting (bukan data penjualan) —
         // nolkan agar aritmetika analitik bersih.
-        Setting::set('tax.rate_default', '0');
+        // Fixture tingkat instalasi: konteks sistem dinyatakan eksplisit
+        // (penulisan global tanpa aktor wajib TenantContext::asSystem).
+        TenantContext::asSystem(fn () => Setting::set('tax.rate_default', '0'));
     }
 
     public function test_supplier_and_sales_analytics_reconcile_with_sources(): void

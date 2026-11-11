@@ -7,6 +7,7 @@ use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Doctor;
 use App\Modules\Master\Models\Setting;
@@ -41,7 +42,9 @@ class DoctorMasterTest extends TestCase
     {
         parent::setUp();
         $this->seed([IdentitySeeder::class, AccountingSeeder::class]);
-        Setting::set('tax.rate_default', '0');
+        // Fixture tingkat instalasi: konteks sistem dinyatakan eksplisit
+        // (penulisan global tanpa aktor wajib TenantContext::asSystem).
+        TenantContext::asSystem(fn () => Setting::set('tax.rate_default', '0'));
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->admin = $this->userWithRole('Admin');
