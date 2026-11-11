@@ -25,6 +25,17 @@ use App\Modules\Platform\Models\Tenant;
  */
 class TenantExportPolicy
 {
+    /**
+     * Halaman pemilih tenant untuk aktor platform (belum ada
+     * tenant sasaran, jadi export() tidak dapat dipakai): hanya
+     * platform aktif berizin backups.manage yang boleh melihat
+     * daftar seluruh tenant.
+     */
+    public function listTenants(User $user): bool
+    {
+        return $user->is_active && $user->is_platform && $user->hasPermission('backups.manage');
+    }
+
     public function export(User $user, Tenant $tenant): bool
     {
         if (! $user->is_active) {

@@ -377,6 +377,34 @@ class TenantExportIsolationTest extends TestCase
         $this->assertNotEmpty($payload['tables']['role_permission']);
     }
 
+    /** Putaran audit 2: halaman pemilih tenant ikut digerbangi backups.manage. */
+    public function test_picker_requires_platform_permission(): void
+    {
+        [$tenantA, $ownerA] = $this->tenantOwner('a');
+        $deniedCount = fn () => (int) DB::table('audit_logs')->where('action', 'tenant_export.denied')->count();
+
+        // Platform berizin: pemilih terbuka dan memuat daftar tenant.
+        $this->actingAs($this->platform)->get(route('tenant-exports.index'))
+            ->assertOk()->assertSee('Optik a');
+
+        // Platform aktif TANPA backups.manage: ditolak, respons
+        // tidak memuat daftar tenant, penolakan teraudit.
+        $barePlatform = User::create([
+            'name' => 'Platform Polos', 'username' => 'platform-polos-2',
+            'email' => 'polos2@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'is_active' => true, 'is_platform' => true, 'tenant_id' => null,
+        ]);
+        $before = $deniedCount();
+        $response = $this->actingAs($barePlatform)->get(route('tenant-exports.index'));
+        $response->assertForbidden();
+        $response->assertDontSee('Optik a');
+        $this->assertSame($before + 1, $deniedCount());
+        $log = DB::table('audit_logs')
+            ->where('action', 'tenant_export.denied')->orderByDesc('id')->first();
+        $this->assertNull($log->subject_id);
+        $this->assertSame($barePlatform->id, (int) $log->user_id);
+    }
+
     /** Aktor tenant tidak bisa mengarahkan ekspor ke tenant lain lewat input. */
     public function test_owner_cannot_target_other_tenant_via_input(): void
     {

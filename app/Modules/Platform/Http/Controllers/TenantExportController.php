@@ -89,8 +89,22 @@ class TenantExportController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        // Platform tanpa tenant terpilih: pemilih tenant.
+        // Platform tanpa tenant terpilih: pemilih tenant. Halaman
+        // ini memuat daftar SELURUH tenant, jadi digerbangi
+        // listTenants (platform aktif + backups.manage) — penolakan
+        // teraudit sama seperti jalur lain (audit putaran 2).
         if ($user->is_platform && ! $request->filled('tenant_id') && ! $request->filled('tenant')) {
+            if (! $this->policy->listTenants($user)) {
+                app(AuditLogger::class)->log(
+                    action: 'tenant_export.denied',
+                    subjectType: 'Tenant',
+                    subjectId: null,
+                    newValues: ['operation' => 'list', 'reason' => 'picker_forbidden'],
+                    actor: $user,
+                );
+                abort(403, __('ui.tenant_exports.forbidden'));
+            }
+
             return view('settings.tenant-exports.index', [
                 'tenants' => Tenant::orderBy('name')->get(),
                 'tenant' => null,
