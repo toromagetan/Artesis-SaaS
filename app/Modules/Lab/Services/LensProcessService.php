@@ -75,6 +75,17 @@ class LensProcessService
 
     public function assignTechnician(User $actor, LensProcess $process, int $technicianId, ?int $estimatedDays = null): LensProcess
     {
+        // Hardening (catatan audit PR #33 putaran 2): validasi
+        // bekerja atas keadaan basis data TERKINI, bukan objek yang
+        // diserahkan pemanggil — muat ulang proses berdasarkan id
+        // (tanpa global scope; ember ditentukan dari penjualan
+        // sumber di bawah, bukan dari sesi).
+        $fresh = LensProcess::withoutGlobalScopes()->find($process->id);
+        if ($fresh === null) {
+            throw ValidationException::withMessages(['process' => 'Proses lab tidak ditemukan.']);
+        }
+        $process = $fresh;
+
         if ($process->isDone()) {
             throw ValidationException::withMessages(['status' => __('ui.lab.already_done')]);
         }

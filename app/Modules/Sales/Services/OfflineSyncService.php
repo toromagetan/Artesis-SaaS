@@ -3,10 +3,12 @@
 namespace App\Modules\Sales\Services;
 
 use App\Modules\Identity\Models\User;
+use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Sales\Models\OfflineDevice;
 use App\Modules\Sales\Models\OfflineException;
 use App\Modules\Sales\Models\Sale;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -52,7 +54,7 @@ class OfflineSyncService
             return ['client_uuid' => null, 'status' => 'exception', 'reason' => 'missing_uuid'];
         }
 
-        $existing = Sale::where('client_uuid', $uuid)->first();
+        $existing = $this->findBucketSaleByUuid($device, $uuid);
         if ($existing !== null) {
             return ['client_uuid' => $uuid, 'status' => 'duplicate', 'sale_id' => $existing->id, 'number' => $existing->number];
         }
@@ -60,6 +62,18 @@ class OfflineSyncService
             ->where('client_uuid', $uuid)->where('status', 'pending')->first();
         if ($priorException !== null) {
             return ['client_uuid' => $uuid, 'status' => 'exception', 'reason' => $priorException->reason, 'exception_id' => $priorException->id];
+        }
+
+        // UUID yang sama sudah tercatat milik tenant LAIN (indeks
+        // unik global sales.client_uuid): barisnya tidak boleh
+        // terbaca oleh perangkat ini, dan penjualan kedua dengan
+        // UUID itu mustahil dicatat — antrekan sebagai pengecualian
+        // konflik untuk resolusi staf, tanpa membocorkan apa pun
+        // tentang penjualan pemilik UUID.
+        if (Sale::withoutGlobalScopes()->where('client_uuid', $uuid)->exists()) {
+            $exception = $this->recordException($device, $intent, 'uuid_conflict');
+
+            return ['client_uuid' => $uuid, 'status' => 'exception', 'reason' => 'uuid_conflict', 'exception_id' => $exception->id];
         }
 
         $payments = $intent['payments'] ?? [];
@@ -78,7 +92,38 @@ class OfflineSyncService
             $exception = $this->recordException($device, $intent, 'rejected', $e->errors());
 
             return ['client_uuid' => $uuid, 'status' => 'exception', 'reason' => 'rejected', 'exception_id' => $exception->id];
+        } catch (QueryException $e) {
+            // Balapan dua perangkat mensinkronkan UUID yang sama:
+            // indeks unik global adalah pagar terakhir — perlakukan
+            // sama sebagai konflik, bukan galat 500.
+            if (! str_contains($e->getMessage(), 'sales_client_uuid_unique')) {
+                throw $e;
+            }
+            $exception = $this->recordException($device, $intent, 'uuid_conflict');
+
+            return ['client_uuid' => $uuid, 'status' => 'exception', 'reason' => 'uuid_conflict', 'exception_id' => $exception->id];
         }
+    }
+
+    /**
+     * Pencarian duplikat idempoten TERPAGAR ember perangkat
+     * (koreksi audit PR #33 putaran 3): UUID yang sama milik tenant
+     * LAIN tidak boleh terbaca oleh perangkat ini — nomor dan id
+     * penjualan tenant lain bukan informasinya — dan tidak boleh
+     * menghalangi niat sahnya sebagai "duplikat" palsu. Ember =
+     * seluruh cabang setenant dengan cabang perangkat (dedupe per
+     * tenant, bukan per cabang), dibaca eksplisit tanpa bergantung
+     * pada sesi pemanggil (jalur retry admin memakai sesi berbeda).
+     */
+    private function findBucketSaleByUuid(OfflineDevice $device, string $uuid): ?Sale
+    {
+        $tenantId = $device->branch?->tenant_id;
+        $branchIds = Branch::query()->where('tenant_id', $tenantId)->pluck('id');
+
+        return Sale::withoutGlobalScopes()
+            ->where('client_uuid', $uuid)
+            ->whereIn('branch_id', $branchIds)
+            ->first();
     }
 
     /** @param array<string, mixed> $intent */
