@@ -117,6 +117,7 @@ return [
         'ai_settings' => 'Asisten AI',
         'audit_logs' => 'Log Aktivitas',
         'backups' => 'Backup & Restore',
+        'tenant_exports' => 'Ekspor Data',
         'assistant' => 'Asisten AI',
         'warranties' => 'Garansi',
         'insurances' => 'Asuransi',
@@ -851,6 +852,18 @@ return [
         'write_failed' => 'Gagal menulis berkas backup.',
     ],
 
+    'tenant_exports' => [
+        'title' => 'Ekspor Data',
+        'help' => 'Ekspor berisi salinan data perusahaan Anda saja (satu berkas ZIP berisi backup.json). Hash kata sandi, token API, dan token perangkat TIDAK disertakan. Berkas ini bukan berkas restore — pemulihan tetap dilakukan operator platform dari backup seluruh instalasi.',
+        'create' => 'Buat Ekspor',
+        'created' => 'Ekspor dibuat: :name.',
+        'empty' => 'Belum ada berkas ekspor.',
+        'forbidden' => 'Ekspor data hanya untuk Owner perusahaan ini atau operator platform atas namanya.',
+        'deleted' => 'Berkas ekspor dihapus.',
+        'delete_confirm' => 'Hapus berkas ekspor ini?',
+        'pick_tenant' => 'Pilih perusahaan yang akan diekspor datanya:',
+        'for_tenant' => 'Perusahaan: :name',
+    ],
     'recovery' => [
         'title' => 'Pemulihan Akun Owner',
         'help' => 'Jalur pemulihan khusus pemilik usaha. Masukkan email yang terdaftar sebagai Owner aktif — bila cocok, tautan atur ulang kata sandi akan dikirim ke email tersebut. Demi keamanan, halaman ini selalu menampilkan pesan yang sama apa pun hasilnya.',
