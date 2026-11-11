@@ -49,6 +49,37 @@ class OfflineSyncService
     /** @param array<string, mixed> $intent */
     private function syncOne(OfflineDevice $device, array $intent): array
     {
+        // Satu niat dapat kalah oleh deadlock / lock-timeout basis
+        // data saat perangkat lain mensinkronkan bersamaan (korban
+        // deadlock digulung balik PENUH oleh transaksi createSale,
+        // jadi tidak ada data parsial). Coba ulang terbatas dengan
+        // klasifikasi dihitung dari awal pada setiap percobaan —
+        // pemenang balapan yang sudah tercatat akan terbaca oleh
+        // pemeriksaan duplikat/konflik di percobaan berikutnya.
+        // Galat lain tidak ditelan: dilempar apa adanya.
+        $attempt = 0;
+        while (true) {
+            try {
+                return $this->syncOneAttempt($device, $intent);
+            } catch (QueryException $e) {
+                if (! $this->isLockConflict($e) || ++$attempt > 2) {
+                    throw $e;
+                }
+                usleep(50_000 * $attempt);
+            }
+        }
+    }
+
+    /** Deadlock (1213) atau lock wait timeout (1205) — galat transien konkurensi, aman dicoba ulang. */
+    private function isLockConflict(QueryException $e): bool
+    {
+        return str_contains($e->getMessage(), 'Deadlock found')
+            || str_contains($e->getMessage(), 'Lock wait timeout exceeded');
+    }
+
+    /** @param array<string, mixed> $intent */
+    private function syncOneAttempt(OfflineDevice $device, array $intent): array
+    {
         $uuid = (string) ($intent['client_uuid'] ?? '');
         if ($uuid === '') {
             return ['client_uuid' => null, 'status' => 'exception', 'reason' => 'missing_uuid'];
@@ -94,10 +125,21 @@ class OfflineSyncService
             return ['client_uuid' => $uuid, 'status' => 'exception', 'reason' => 'rejected', 'exception_id' => $exception->id];
         } catch (QueryException $e) {
             // Balapan dua perangkat mensinkronkan UUID yang sama:
-            // indeks unik global adalah pagar terakhir — perlakukan
-            // sama sebagai konflik, bukan galat 500.
+            // indeks unik global adalah pagar terakhir. Galat yang
+            // BUKAN pelanggaran unik itu tidak boleh disamarkan —
+            // lempar kembali apa adanya.
             if (! str_contains($e->getMessage(), 'sales_client_uuid_unique')) {
                 throw $e;
+            }
+            // Klasifikasi ulang dari keadaan terkini (koreksi audit
+            // PR #33 putaran 4): transaksi pemenang balapan mungkin
+            // milik ember perangkat ini sendiri — maka hasilnya
+            // DUPLIKAT transaksi sendiri, bukan konflik. Hanya bila
+            // pemenangnya tenant lain hasilnya konflik, dan identitas
+            // pemiliknya tetap tidak pernah dikembalikan.
+            $winner = $this->findBucketSaleByUuid($device, $uuid);
+            if ($winner !== null) {
+                return ['client_uuid' => $uuid, 'status' => 'duplicate', 'sale_id' => $winner->id, 'number' => $winner->number];
             }
             $exception = $this->recordException($device, $intent, 'uuid_conflict');
 
@@ -167,6 +209,15 @@ class OfflineSyncService
      */
     public function retry(User $actor, OfflineException $exception): ?Sale
     {
+        // Konflik UUID tidak dapat diselesaikan dengan mencoba
+        // ulang (koreksi audit PR #33 putaran 4): UUID sudah milik
+        // transaksi lain secara global, jadi pembuatan ulang pasti
+        // melanggar indeks unik — staf harus memeriksa manual dan
+        // membuang pengecualiannya bila transaksi ganda. Tombol
+        // Coba Lagi juga tidak ditampilkan untuk alasan ini.
+        if ($exception->reason === 'uuid_conflict') {
+            return null;
+        }
         $device = OfflineDevice::findOrFail($exception->offline_device_id);
         try {
             $sale = DB::transaction(function () use ($device, $exception) {
@@ -182,6 +233,24 @@ class OfflineSyncService
             return $sale;
         } catch (ValidationException) {
             return null;
+        } catch (QueryException $e) {
+            // UUID pengecualian ini ternyata sudah tercatat selama
+            // menunggu antrean. Hanya pelanggaran indeks unik yang
+            // ditangani di sini; galat basis data lain dilempar apa
+            // adanya, tidak disamarkan.
+            if (! str_contains($e->getMessage(), 'sales_client_uuid_unique')) {
+                throw $e;
+            }
+            $winner = $this->findBucketSaleByUuid($device, (string) $exception->client_uuid);
+            if ($winner === null) {
+                return null; // Milik tenant lain — tetap pending.
+            }
+            $exception->update([
+                'status' => 'resolved', 'resolution_note' => 'retry: '.$winner->number,
+                'resolved_by' => $actor->id, 'resolved_at' => now(),
+            ]);
+
+            return $winner;
         }
     }
 

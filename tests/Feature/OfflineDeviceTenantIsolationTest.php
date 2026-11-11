@@ -10,11 +10,13 @@ use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
+use App\Modules\Platform\Models\AuditLog;
 use App\Modules\Platform\Models\Plan;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Platform\Services\PlanService;
 use App\Modules\Purchasing\Services\PurchaseOrderService;
 use App\Modules\Purchasing\Services\ReceiptService;
+use App\Modules\Sales\Models\OfflineException;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\OfflineDeviceService;
 use Database\Seeders\AccountingSeeder;
@@ -227,5 +229,48 @@ class OfflineDeviceTenantIsolationTest extends TestCase
             ->assertOk();
         $this->assertSame('duplicate', $resA2->json('results.0.status'));
         $this->assertSame($saleA->id, $resA2->json('results.0.sale_id'));
+    }
+
+    public function test_uuid_conflict_exception_cannot_be_retried_but_can_be_discarded(): void
+    {
+        [$tenantA, $adminA, $branchA] = $this->tenantAdmin('a');
+        [$tenantB, $adminB, $branchB] = $this->tenantAdmin('b');
+        $productA = $this->stockedProduct($adminA, $tenantA, $branchA, 'A');
+        $productB = $this->stockedProduct($adminB, $tenantB, $branchB, 'B');
+        $customerA = $this->customerOf($tenantA, $branchA, 'A');
+        $customerB = $this->customerOf($tenantB, $branchB, 'B');
+        $tokenA = $this->deviceToken($adminA, $branchA, $this->cashier($tenantA, $branchA, 'a'), 'KSR-A');
+        $tokenB = $this->deviceToken($adminB, $branchB, $this->cashier($tenantB, $branchB, 'b'), 'KSR-B');
+
+        $this->withHeader('Authorization', 'Bearer '.$tokenB)
+            ->postJson('/api/v1/offline/sync', ['intents' => [$this->intent('uuid-bersama', $customerB, $productB)]])
+            ->assertOk();
+        $this->withHeader('Authorization', 'Bearer '.$tokenA)
+            ->postJson('/api/v1/offline/sync', ['intents' => [$this->intent('uuid-bersama', $customerA, $productA)]])
+            ->assertOk();
+        $conflict = OfflineException::where('client_uuid', 'uuid-bersama')
+            ->where('reason', 'uuid_conflict')->firstOrFail();
+
+        // Halaman antrean: TIDAK ada tombol Coba Lagi untuk konflik
+        // ini; yang tampil adalah penjelasan pemeriksaan manual.
+        $index = $this->actingAs($adminA)->get(route('offline-exceptions.index'))->assertOk();
+        $index->assertDontSee(route('offline-exceptions.retry', $conflict));
+        $index->assertSee('tidak dapat dicoba ulang');
+
+        // POST Coba Lagi langsung pun aman: dialihkan (bukan 500),
+        // pengecualian tetap pending, tidak ada penjualan baru.
+        $salesBefore = Sale::withoutGlobalScopes()->count();
+        $this->actingAs($adminA)->post(route('offline-exceptions.retry', $conflict))
+            ->assertRedirect(route('offline-exceptions.index'));
+        $this->assertSame('pending', $conflict->fresh()->status);
+        $this->assertSame($salesBefore, Sale::withoutGlobalScopes()->count());
+
+        // Buang tetap bisa oleh Owner, dengan jejak audit.
+        $this->actingAs($adminA)->post(route('offline-exceptions.discard', $conflict), [
+            'note' => 'Transaksi ganda dari perangkat klon — dibuang.',
+        ])->assertRedirect(route('offline-exceptions.index'));
+        $this->assertSame('discarded', $conflict->fresh()->status);
+        $this->assertTrue(AuditLog::where('action', 'offline.exception.discard')
+            ->where('subject_id', $conflict->id)->exists());
     }
 }
