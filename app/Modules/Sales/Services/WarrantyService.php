@@ -74,7 +74,12 @@ class WarrantyService
     public function referenceWarehouseFor(User $actor): ?Branch
     {
         $context = TenantContext::for($actor);
-        if ($context->isTenant()) {
+        // isValid(), BUKAN isTenant(): akun yang tenant_id-nya
+        // menggantung (baris tenant tidak ada) terklasifikasi
+        // MODE_TENANT dengan tenantId() null — tanpa pemeriksaan
+        // validitas ia akan jatuh ke warehouseBranchFor(null) dan
+        // memperoleh gudang standalone (audit B-02 putaran 3).
+        if ($context->isValid()) {
             return $this->warehouseBranchFor($context->tenantId());
         }
         if ($context->isStandalone()) {

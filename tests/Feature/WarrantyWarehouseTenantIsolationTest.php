@@ -29,6 +29,7 @@ use Database\Seeders\IdentitySeeder;
 use Database\Seeders\SaasSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
@@ -412,5 +413,41 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
         $this->assertNotNull($journal);
         $lineBranches = $journal->lines()->pluck('branch_id')->unique()->map(fn ($id) => (int) $id)->values()->all();
         $this->assertSame([$warehouseA->id], $lineBranches);
+    }
+
+    public function test_dangling_tenant_account_gets_no_standalone_reference(): void
+    {
+        [, $warehouse, $case] = $this->standaloneCase();
+        $this->tenantAdmin('a'); // instalasi kini melayani tenant
+
+        // Akun tenant MENGGANTUNG: tenant_id menunjuk baris tenant
+        // yang tidak ada. FK database melarang pembuatan biasa, jadi
+        // fixture dibuat dengan pemeriksaan FK dimatikan sesaat —
+        // persis keadaan rusak yang harus gagal tertutup.
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        try {
+            $dangling = User::create([
+                'name' => 'Tenant Menggantung', 'username' => 'dangling',
+                'email' => 'dangling@uji.id', 'password' => bcrypt('rahasia-uji'),
+                'is_active' => true, 'is_platform' => false, 'tenant_id' => 999999,
+            ]);
+            $dangling->roles()->attach(Role::where('name', 'Kasir')->firstOrFail());
+        } finally {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        }
+
+        $context = TenantContext::for($dangling);
+        $this->assertTrue($context->isTenant());
+        $this->assertFalse($context->isValid());
+        $this->assertNull($context->tenantId());
+        $this->assertNull($this->warranty->referenceWarehouseFor($dangling));
+
+        $response = $this->actingAs($dangling)->get(route('warranties.index'));
+        $response->assertOk();
+        $response->assertDontSee($case->number);
+        $this->assertNull($response->viewData('warehouse'));
+        $queueBranches = collect($response->viewData('brokenPending'))->pluck('branch_id');
+        $this->assertFalse($queueBranches->contains($warehouse->id));
+        $this->actingAs($dangling)->get(route('warranties.show', $case))->assertNotFound();
     }
 }
