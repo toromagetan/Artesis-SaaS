@@ -42,7 +42,7 @@ kelas test yang **benar-benar ada dan menguji perilaku tersebut**
 
 | Permukaan | Bukti |
 |---|---|
-| Cetak (15 rute) | `Security/CrossTenantPrintMatrixTest` (D-02) dengan tiga mekanisme yang dibedakan secara eksplisit: **(a) penolakan akses objek (HTTP 403/404)** untuk 12 rute dokumen — struk, orderan, invoice, cetak resep penjualan, retur, PO, PR, penerimaan, transfer, jurnal, resep klinik, profil pengguna; **(b) penyaringan hasil daftar** untuk `users.print` (respons 200, daftar hanya memuat pengguna tenant aktor); **(c) penyaringan isi** untuk `labels.print` (produk tenant lain tidak muncul dalam keluaran label). **Satu temuan terbuka: `payments.print`** (lihat di bawah) |
+| Cetak (15 rute) | `Security/CrossTenantPrintMatrixTest` (D-02) dengan tiga mekanisme yang dibedakan secara eksplisit: **(a) penolakan akses objek (HTTP 403/404)** untuk 13 rute dokumen — struk, orderan, invoice, cetak resep penjualan, retur, PO, PR, penerimaan, transfer, jurnal, resep klinik, profil pengguna, dan pembayaran kolektif (`payments.print`, ditutup modul perbaikan payments — lihat catatan penutupan di bawah; cakupan lengkap termasuk `payments.collective.result` di `Security/PaymentAccessTenantIsolationTest`); **(b) penyaringan hasil daftar** untuk `users.print` (respons 200, daftar hanya memuat pengguna tenant aktor); **(c) penyaringan isi** untuk `labels.print` (produk tenant lain tidak muncul dalam keluaran label) |
 | Pencarian global `/cari` | `Security/GlobalSearchTenantIsolationTest` (D-02) |
 | API v1 baca | `Security/ApiTenantIsolationTest` (D-02) + `MasterTenantIsolationTest::test_api_reads_are_tenant_fenced` |
 | Gerbang paket & konteks | `PlanGateTenantContextTest` (aktor unassigned/dangling/platform ditolak fitur bisnis), `SaasEnforcementTest`, `TenantLifecycleEnforcementTest` |
@@ -52,7 +52,7 @@ kelas test yang **benar-benar ada dan menguji perilaku tersebut**
 | Portal member | `Membership/MemberPortalTest` (token dicabut/tidak dikenal 404; penerbitan berpagar izin) |
 | Matriks aktor umum | `Security/IdentitySecurityMatrixTest` (A aktor berizin lolos; B tanpa izin 403; C IDOR cabang; D platform ditolak aksi bisnis; E pengguna nonaktif ditolak; F izin dicabut berlaku permintaan berikutnya), `Security/PermissionTighteningTest` |
 
-## Temuan terbuka
+## Temuan D-02 yang sudah ditutup
 
 **`payments.print` — cetak pembayaran kolektif belum berpagar tenant**
 (D-02, 2026-11-12). Aktor tenant lain yang membuka
@@ -60,9 +60,21 @@ kelas test yang **benar-benar ada dan menguji perilaku tersebut**
 penolakan: model `PurchasePayment` tidak memakai scope sehingga
 route-model binding meloloskan pembayaran tenant asing, controller
 tidak memeriksa otorisasi, dan view cetak crash pada relasi berpagar
-yang bernilai null. Test pembuktinya dipertahankan di
-`Security/CrossTenantPrintMatrixTest::test_payments_print_denied_for_other_tenant`
-dan ditandai *incomplete* secara eksplisit sampai modul perbaikan
-payments selesai; aksi sibling `payments.result` berbentuk sama dan
-wajib diperiksa pada modul yang sama. Perbaikan adalah pekerjaan
-modul terpisah di luar D-02.
+yang bernilai null. Aksi sibling `payments.collective.result`
+berbentuk sama (audit modul perbaikan mengonfirmasi keduanya tanpa
+pagar; jalur form/process sudah aman lewat supplier ber-TenantScope
+dan pemeriksaan aktor di service).
+
+**DITUTUP oleh modul perbaikan payments (2026-11-12):**
+`CollectivePaymentController` kini memeriksa kepemilikan secara
+eksplisit (`assertPaymentAccessible`) sebelum memuat relasi pada
+kedua aksi — pemilik pembayaran adalah tenant dari supplier-nya
+(relasi dibaca tanpa scope ambient): aktor tenant hanya untuk
+pembayarannya sendiri, aktor standalone hanya untuk data instalasi,
+platform/unassigned/tamu ditolak 404. Bukti:
+`Security/PaymentAccessTenantIsolationTest` (pemilik lolos pada
+print + result; tenant lain 404 dua arah; platform dan unassigned
+ditolak; proses kolektif via HTTP tidak regresi dan pembayaran baru
+langsung berpagar) dan test matriks cetak
+`test_payments_print_denied_for_other_tenant` yang kini aktif penuh
+(tidak lagi *incomplete*).

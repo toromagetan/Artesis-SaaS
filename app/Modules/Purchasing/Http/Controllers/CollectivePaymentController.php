@@ -3,6 +3,7 @@
 namespace App\Modules\Purchasing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
 use App\Modules\Purchasing\Models\PurchasePayment;
@@ -76,9 +77,38 @@ class CollectivePaymentController extends Controller
             ->with('status', __('ui.saved'));
     }
 
+    /**
+     * Pagar sumber daya untuk dokumen pembayaran (temuan D-02):
+     * PurchasePayment tidak memakai scope, jadi binding rute
+     * meloloskan pembayaran tenant mana pun — kepemilikan harus
+     * diperiksa eksplisit SEBELUM relasi dimuat ke view. Pemilik
+     * pembayaran adalah tenant dari supplier-nya (relasi dibaca
+     * tanpa scope ambient agar identitas aslinya yang dinilai):
+     * aktor tenant hanya untuk pembayaran tenantnya sendiri, aktor
+     * standalone hanya untuk data instalasi (tenant NULL); platform,
+     * unassigned, dan tamu ditolak — platform bukan pelaku bisnis
+     * tenant. Penolakan 404, selaras dokumen berpagar scope lain.
+     */
+    private function assertPaymentAccessible(PurchasePayment $payment): void
+    {
+        $user = auth()->user();
+        $supplier = $payment->supplier()->withoutGlobalScopes()->first();
+        $context = TenantContext::for($user);
+
+        $allowed = $supplier !== null && match (true) {
+            $context->isTenant() => $supplier->tenant_id === $user->tenant_id,
+            $context->isStandalone() => $supplier->tenant_id === null,
+            default => false,
+        };
+
+        abort_unless($allowed, 404);
+    }
+
     /** Kuitansi pembayaran supplier (audit 23 Okt 2026 B4). */
     public function printPayment(PurchasePayment $payment): View
     {
+        $this->assertPaymentAccessible($payment);
+
         $payment->load(['supplier', 'allocations.receipt.purchaseOrder', 'payer']);
 
         return view('purchasing.payments.print', [
@@ -90,6 +120,8 @@ class CollectivePaymentController extends Controller
 
     public function result(PurchasePayment $payment): View
     {
+        $this->assertPaymentAccessible($payment);
+
         $payment->load(['supplier', 'payer', 'allocations.receipt.purchaseOrder']);
 
         return view('purchasing.collective.result', compact('payment'));
