@@ -28,9 +28,9 @@ kelas test yang **benar-benar ada dan menguji perilaku tersebut**
 | Supplier & master data | `MasterTenantIsolationTest::test_suppliers_and_insurances_do_not_cross_tenants`, `MasterRemainderIsolationTest` (dokter, level membership, baris master warisan NULL tidak terlihat tenant) |
 | User & role | `Identity/UserTenantIsolationTest`, `RoleSettingsOwnershipTest` (peran templat tidak dapat diubah tenant; assignment tidak menyeberang) |
 | Settings | `RoleSettingsOwnershipTest::test_settings_are_scoped_per_tenant`, `GuestScopeAndSettingsIsolationTest` (tulis setting menghormati ember; aktor tanpa tenant tidak dapat menulis setting global) |
-| WhatsApp gateway & inbox | `WaWebhookTenantMappingTest` (nomor unik memetakan ke pelanggan pemilik; nomor bersama tidak diatribusikan; inbox terisolasi), `Security/CommsTenantIsolationTest` (D-02). Catatan PRD tetap berlaku: gateway masih satu per instalasi (OD-4 terbuka) |
+| WhatsApp gateway & inbox | `WaWebhookTenantMappingTest` (nomor unik memetakan ke pelanggan pemilik; nomor bersama tidak diatribusikan; inbox terisolasi), `Security/CommsTenantIsolationTest` (D-02: inbox, audiens & pengiriman kampanye, otomasi ulang tahun). Catatan PRD tetap berlaku: gateway masih satu per instalasi (OD-4 terbuka) |
 | Audit log | **Parsial** sesuai PRD (log membawa `branch_id`; kolom `tenant_id` khusus belum ada). Bukti yang ada: `TenantExportIsolationTest::test_denials_are_audit_logged`, `Platform/AuditCoverageTest`, `Platform/AuditLogViewerTest` |
-| Report & export | `Security/ReportExportTenantIsolationTest` (D-02, isi ekspor CSV), `AccountingTenantIsolationTest::test_financial_reports_only_aggregate_own_tenant`, `TenantExportIsolationTest` |
+| Report & export | `Security/ReportExportTenantIsolationTest` (D-02, isi ekspor CSV dan XLSX dari jalur data yang sama), `AccountingTenantIsolationTest::test_financial_reports_only_aggregate_own_tenant`, `TenantExportIsolationTest` |
 | Backup & restore | `Platform/BackupAccessControlTest` (tenant ditolak semua operasi backup; platform penuh; manipulasi path 404), `Platform/BackupHttpTest`, `TenantExportIsolationTest` (arsip terverifikasi terisolasi di disk). Restore per tenant diputuskan tidak dibangun (PRD) |
 | File storage | **Parsial** sesuai PRD: arsip ekspor per direktori tenant terbukti di `TenantExportIsolationTest::test_created_archive_is_verified_and_isolated_on_disk`; berkas unggahan lain masih disk bersama per instalasi dan belum memiliki test negatif khusus |
 | Cache | **Belum** sesuai PRD (tanpa awalan tenant; pengerasan Fase 6) — belum ada test; baris ini dinyatakan terbuka secara eksplisit |
@@ -42,7 +42,7 @@ kelas test yang **benar-benar ada dan menguji perilaku tersebut**
 
 | Permukaan | Bukti |
 |---|---|
-| Cetak (15 rute) | `Security/CrossTenantPrintMatrixTest` (D-02): 14 rute menolak aktor tenant lain dengan bersih — struk, orderan, invoice, cetak resep penjualan, retur, PO, PR, penerimaan, transfer, jurnal, resep klinik, profil & daftar pengguna, label. **Satu temuan terbuka: `payments.print`** (lihat di bawah) |
+| Cetak (15 rute) | `Security/CrossTenantPrintMatrixTest` (D-02) dengan tiga mekanisme yang dibedakan secara eksplisit: **(a) penolakan akses objek (HTTP 403/404)** untuk 12 rute dokumen — struk, orderan, invoice, cetak resep penjualan, retur, PO, PR, penerimaan, transfer, jurnal, resep klinik, profil pengguna; **(b) penyaringan hasil daftar** untuk `users.print` (respons 200, daftar hanya memuat pengguna tenant aktor); **(c) penyaringan isi** untuk `labels.print` (produk tenant lain tidak muncul dalam keluaran label). **Satu temuan terbuka: `payments.print`** (lihat di bawah) |
 | Pencarian global `/cari` | `Security/GlobalSearchTenantIsolationTest` (D-02) |
 | API v1 baca | `Security/ApiTenantIsolationTest` (D-02) + `MasterTenantIsolationTest::test_api_reads_are_tenant_fenced` |
 | Gerbang paket & konteks | `PlanGateTenantContextTest` (aktor unassigned/dangling/platform ditolak fitur bisnis), `SaasEnforcementTest`, `TenantLifecycleEnforcementTest` |

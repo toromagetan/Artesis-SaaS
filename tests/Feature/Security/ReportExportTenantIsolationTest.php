@@ -134,4 +134,52 @@ class ReportExportTenantIsolationTest extends TestCase
         $this->assertStringNotContainsString('Cabang a', $csvB);
         $this->assertStringNotContainsString('277500.00', $csvB);
     }
+
+    public function test_sales_report_xlsx_export_contains_only_own_tenant_rows(): void
+    {
+        // XLSX memakai jalur data yang sama dengan CSV (ReportService);
+        // isi workbook dibaca dari shared strings + sel lembar kerja.
+        $xlsxA = $this->extractXlsxText(
+            $this->actingAs($this->adminA)
+                ->get('/laporan/penjualan?dari=2026-10-01&sampai=2026-10-31&format=xlsx')
+                ->assertOk()
+                ->streamedContent(),
+        );
+
+        $this->assertStringContainsString('Cabang a', $xlsxA);
+        $this->assertStringContainsString('277500', $xlsxA);
+        $this->assertStringNotContainsString('Cabang b', $xlsxA);
+        $this->assertStringNotContainsString('555000', $xlsxA);
+
+        $xlsxB = $this->extractXlsxText(
+            $this->actingAs($this->adminB)
+                ->get('/laporan/penjualan?dari=2026-10-01&sampai=2026-10-31&format=xlsx')
+                ->assertOk()
+                ->streamedContent(),
+        );
+
+        $this->assertStringContainsString('Cabang b', $xlsxB);
+        $this->assertStringNotContainsString('Cabang a', $xlsxB);
+        $this->assertStringNotContainsString('277500', $xlsxB);
+    }
+
+    private function extractXlsxText(string $binary): string
+    {
+        $path = tempnam(sys_get_temp_dir(), 'xlsx-uji-');
+        file_put_contents($path, $binary);
+
+        $text = '';
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open($path) === true, 'Ekspor XLSX harus berupa arsip zip yang valid');
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if ($name === 'xl/sharedStrings.xml' || str_starts_with((string) $name, 'xl/worksheets/')) {
+                $text .= (string) $zip->getFromIndex($i);
+            }
+        }
+        $zip->close();
+        unlink($path);
+
+        return $text;
+    }
 }

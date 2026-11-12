@@ -7,9 +7,16 @@ use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Master\Models\Supplier;
 use App\Modules\Platform\Models\Plan;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Platform\Services\PlanService;
+use App\Modules\Purchasing\Models\PurchaseOrder;
+use App\Modules\Purchasing\Services\PurchaseOrderService;
+use App\Modules\Purchasing\Services\ReceiptService;
+use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Services\SalesService;
+use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\SaasSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,10 +24,14 @@ use Tests\TestCase;
 
 /**
  * D-02 GAP-2 — Pencarian global (/cari) lintas tenant. Endpoint
- * pencarian menggabungkan produk, pelanggan, pengguna, dan transaksi
- * dalam satu layar; hasil untuk aktor tenant B tidak boleh memuat
- * satu pun penanda milik tenant A, dan sebaliknya — sementara
- * pencarian atas data sendiri tetap bekerja (kontrol positif).
+ * pencarian mengembalikan tujuh kelompok: pengguna, cabang, produk,
+ * pelanggan, penjualan, PR, dan PO. Test ini membuktikan kelompok
+ * produk, pelanggan, pengguna, penjualan, dan PO tidak menyeberang
+ * antar-tenant (kelompok cabang terikat daftar cabang terkelola
+ * aktor dan tercakup pola yang sama); hasil untuk aktor tenant B
+ * tidak boleh memuat satu pun penanda milik tenant A, dan
+ * sebaliknya — sementara pencarian atas data sendiri tetap bekerja
+ * (kontrol positif).
  */
 class GlobalSearchTenantIsolationTest extends TestCase
 {
@@ -32,10 +43,14 @@ class GlobalSearchTenantIsolationTest extends TestCase
 
     private User $adminB;
 
+    private Sale $saleA;
+
+    private PurchaseOrder $poA;
+
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed([IdentitySeeder::class, SaasSeeder::class]);
+        $this->seed([IdentitySeeder::class, SaasSeeder::class, AccountingSeeder::class]);
         $this->platform = User::where('username', 'platform')->firstOrFail();
 
         [$tenantA, $this->adminA, $branchA] = $this->tenantAdmin('a');
@@ -59,6 +74,9 @@ class GlobalSearchTenantIsolationTest extends TestCase
             'name' => 'Pelanggan Beta Unik', 'phone' => '0812222', 'branch_id' => $branchB->id,
             'tenant_id' => $tenantB->id,
         ]);
+
+        [$this->saleA, $this->poA] = $this->seedTransactions($tenantA, $this->adminA, $branchA, 'A');
+        $this->seedTransactions($tenantB, $this->adminB, $branchB, 'B');
     }
 
     /** @return array{Tenant, User, Branch} */
@@ -111,5 +129,71 @@ class GlobalSearchTenantIsolationTest extends TestCase
             ->assertOk()
             ->assertSee('Lensa Progresif Beta')
             ->assertSee('Pelanggan Beta Unik');
+    }
+
+    public function test_search_users_and_transactions_do_not_cross_tenants(): void
+    {
+        // Kelompok pengguna: aktor hanya menemukan pengguna yang
+        // berbagi cabang terkelola dengannya — pengguna tenant lain
+        // tidak pernah muncul.
+        $this->actingAs($this->adminB)->get('/cari?q=Admin Cari')
+            ->assertOk()
+            ->assertSee('Admin Cari b')
+            ->assertDontSee('Admin Cari a');
+
+        // Kelompok transaksi: nomor dokumen adalah urutan global
+        // instalasi (unik per dokumen), tetapi halaman hasil
+        // menggemakan teks kueri ke kotak pencarian sehingga asersi
+        // atas nomor mentah tidak berarti. Penanda yang dipakai di
+        // sini adalah pemilik dokumen pada baris hasil (nama
+        // pelanggan/supplier) dan tautan ke halaman detailnya.
+        $saleShow = '/penjualan/'.$this->saleA->id;
+        $poShow = '/pembelian/po/'.$this->poA->id;
+
+        $this->actingAs($this->adminB)->get('/cari?q='.urlencode($this->saleA->number))
+            ->assertOk()
+            ->assertDontSee('Pelanggan Alpha Unik')
+            ->assertDontSee($saleShow);
+        $this->actingAs($this->adminB)->get('/cari?q='.urlencode($this->poA->number))
+            ->assertOk()
+            ->assertDontSee('PT Cari A')
+            ->assertDontSee($poShow);
+
+        $this->actingAs($this->adminA)->get('/cari?q='.urlencode($this->saleA->number))
+            ->assertOk()
+            ->assertSee('Pelanggan Alpha Unik')
+            ->assertSee($saleShow);
+        $this->actingAs($this->adminA)->get('/cari?q='.urlencode($this->poA->number))
+            ->assertOk()
+            ->assertSee('PT Cari A')
+            ->assertSee($poShow);
+    }
+
+    /** @return array{Sale, PurchaseOrder} */
+    private function seedTransactions(Tenant $tenant, User $admin, Branch $branch, string $tag): array
+    {
+        $supplier = Supplier::create(['name' => 'PT Cari '.$tag, 'is_active' => true, 'tenant_id' => $tenant->id]);
+        $product = Product::create([
+            'type' => 'frame', 'name' => 'Frame Cari '.$tag, 'brand' => 'Uji',
+            'sku' => 'SKU-CARITRX-'.$tag, 'cost_price' => 100000, 'sale_price' => 250000,
+            'is_active' => true, 'tenant_id' => $tenant->id,
+        ]);
+        $customer = Customer::where('tenant_id', $tenant->id)->firstOrFail();
+
+        $orders = app(PurchaseOrderService::class);
+        $po = $orders->create($admin, $supplier->id, $branch->id, [
+            ['product_id' => $product->id, 'qty' => 5, 'unit_cost' => '100000'],
+        ]);
+        $orders->markSent($admin, $po);
+        app(ReceiptService::class)->store($admin, $po, [
+            ['purchase_order_item_id' => $po->items->first()->id, 'qty' => 5, 'unit_cost_actual' => '100000'],
+        ]);
+
+        $sale = app(SalesService::class)->createSale($admin, [
+            'customer_id' => $customer->id, 'sale_date' => '2026-10-02',
+            'tax_mode' => 'exclusive', 'branch_id' => $branch->id,
+        ], [['product_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
+
+        return [$sale, $po];
     }
 }
