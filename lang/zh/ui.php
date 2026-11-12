@@ -2029,6 +2029,7 @@ return [
         'password_confirmation' => '重复密码',
         'submit' => '创建免费账户',
         'success' => '欢迎使用 Artesis！您的企业账户已创建，使用免费套餐。',
+        'bot_check_failed' => '安全验证失败。请完成反机器人验证后重试。',
         'have_account' => '已有账户？',
         'login' => '登录',
     ],

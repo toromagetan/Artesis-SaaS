@@ -35,4 +35,21 @@ return [
         ],
     ],
 
+    /*
+    | Cloudflare Turnstile (S-05): anti-bot pendaftaran publik.
+    | Fitur aktif hanya bila KEDUA kunci terisi; kosong = nonaktif
+    | anggun (lokal/dev), produksi wajib mengisinya (gagal-tertutup
+    | di sisi verifikasi begitu kunci ada).
+    */
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY'),
+        'secret' => env('TURNSTILE_SECRET_KEY'),
+        // Hostname tepercaya untuk pemeriksaan respons Siteverify
+        // (pisahkan koma). Kosong = memakai host dari APP_URL.
+        'hostnames' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('TURNSTILE_HOSTNAMES', '')),
+        ))),
+    ],
+
 ];

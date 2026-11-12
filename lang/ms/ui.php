@@ -2029,6 +2029,7 @@ return [
         'password_confirmation' => 'Ulang Kata Laluan',
         'submit' => 'Cipta Akaun Percuma',
         'success' => 'Selamat datang ke Artesis! Akaun perniagaan anda dicipta dengan pakej Percuma.',
+        'bot_check_failed' => 'Pengesahan keselamatan gagal. Sila lengkapkan semakan anti-bot dan cuba lagi.',
         'have_account' => 'Sudah ada akaun?',
         'login' => 'Log Masuk',
     ],
