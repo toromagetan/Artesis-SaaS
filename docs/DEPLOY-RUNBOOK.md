@@ -25,7 +25,7 @@ smoke test di bagian 9 sebelum dinyatakan tayang.
 | Komponen | Kebutuhan |
 | --- | --- |
 | OS | Ubuntu 24.04 LTS (atau setara) |
-| PHP | **8.3+ dengan tambalan keamanan terbaru** (gerbang CVE PHP2Shell: runtime PHP wajib versi tertambal; periksa `php -v` dan catatan rilis PHP) — ekstensi: `mysql, mbstring, xml, curl, gd, intl, zip` (daftar tertutup sesuai `composer.json`; `bcmath` secara eksplisit **tidak** dipakai aplikasi ini) |
+| PHP | **8.3+ dengan tambalan keamanan terbaru** (gerbang CVE PHP2Shell: runtime PHP wajib versi tertambal; periksa `php -v` dan catatan rilis PHP) — ekstensi (sepuluh, daftar tertutup sesuai `composer.json`): `curl, fileinfo, gd, intl, json, mbstring, openssl, pdo_mysql, xml, zip`; `bcmath` secara eksplisit **tidak** dipakai aplikasi ini |
 | MySQL | 8.0, **hanya listen localhost** (`bind-address = 127.0.0.1`) |
 | Web server | nginx (contoh vhost di `docs/server/nginx-artesis.conf`) |
 | Node.js | 20+ hanya di mesin build (aset dapat dibangun di CI/lokal lalu diunggah; server produksi tidak wajib punya Node) |

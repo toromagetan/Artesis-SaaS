@@ -22,7 +22,7 @@ Platform (dikelola Platform Superadmin)
 
 - **Platform Superadmin** mengelola platform: tenant, Plan, Subscription, Billing, dan operasional SaaS — dan **tidak** otomatis memperoleh akses ke data bisnis tenant.
 - **Tenant Owner** mengelola bisnisnya sendiri: cabang, pengguna, peran, dan seluruh operasional tokonya.
-- Penegakan Plan (fitur & batas angka) berlaku **di server** (`PlanGate` + middleware `plan.feature`), bukan sekadar menyembunyikan UI. Pada instalasi individual (aktor tanpa tenant), semua fitur menyala dan semua batas tidak berlaku.
+- Penegakan Plan (fitur & batas angka) berlaku **di server** (`PlanGate` + middleware `plan.feature`), bukan sekadar menyembunyikan UI. Pada instalasi individual (aktor mode standalone — instansi tanpa tenant), semua fitur menyala dan semua batas tidak berlaku.
 - Bahasa antarmuka: **Indonesia, Inggris, Melayu, Mandarin** (`lang/id|en|ms|zh`).
 
 ## Fitur utama
@@ -57,7 +57,7 @@ php artisan migrate --seed
 php artisan serve   # pengembangan lokal
 ```
 
-Seeder bawaan menanam peran & izin, bagan akun, titik QC, **dan lapisan SaaS** (Plan + peran Platform) — instalasi segar langsung utuh. **WAJIB sesudah instalasi:** ganti kata sandi bawaan akun `owner` dan `platform` (keduanya `password` dari seeder) sebelum instalasi dibuka ke siapa pun, dan set `APP_DEBUG=false` di produksi. Prosedur pemasangan produksi lengkap — dua topologi, nginx, cron, queue worker, backup, dan smoke test 12 poin — ada di [docs/DEPLOY-RUNBOOK.md](docs/DEPLOY-RUNBOOK.md).
+Seeder bawaan menanam peran & izin, bagan akun, titik QC, **dan lapisan SaaS** (Plan + peran Platform) — instalasi segar langsung utuh. **WAJIB sesudah instalasi:** ganti kata sandi bawaan akun `owner` dan `platform` (keduanya `password` dari seeder) sebelum instalasi dibuka ke siapa pun, dan set `APP_DEBUG=false` di produksi. Prosedur pemasangan produksi — dengan asumsi teknis server bersama (topologi produksi final menunggu keputusan OD-1), nginx, cron, queue worker, backup, dan smoke test 12 poin — ada di [docs/DEPLOY-RUNBOOK.md](docs/DEPLOY-RUNBOOK.md).
 
 Gambaran konfigurasi `.env` (nama kunci saja; nilai rahasia tidak pernah masuk repositori): aplikasi (`APP_NAME, APP_ENV, APP_KEY, APP_DEBUG, APP_URL`), database (`DB_*`), sesi (`SESSION_*`), antrean & cache (`QUEUE_CONNECTION, CACHE_STORE`), surat (`MAIL_*`). Kredensial gateway WhatsApp dan AI **tidak** diatur dari `.env` — keduanya diatur dari UI Pengaturan dan tersimpan terenkripsi.
 

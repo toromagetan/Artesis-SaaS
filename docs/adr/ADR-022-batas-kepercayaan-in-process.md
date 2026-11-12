@@ -70,8 +70,12 @@ Hanya kode yang berjalan di dalam proses server:
    controller terautentikasi atau oleh ketiga jalur di atas.
 5. Perkakas operator lokal (tinker) — mensyaratkan akses shell server.
 
-Tidak ada aktor jaringan (browser, API client, webhook) yang berwenang;
-semuanya melewati pagar HTTP pada butir 6.
+Tidak ada aktor jaringan **anonim** yang berwenang memanggil jalur ini.
+Endpoint HTTP berkredensial memang ada dan sah (token API, perangkat
+offline, webhook, portal member), tetapi endpoint tersebut **bukan**
+pemanggil jalur in-process ini — masing-masing memiliki mekanisme
+otorisasinya sendiri yang diuraikan pada butir 6, dan keputusan ini
+(Opsi A) tidak menjadi dasar kepercayaan bagi satu pun di antaranya.
 
 ## 6. Relasi dengan TenantContext, BranchContext, konteks sistem, dan penanda tamu
 
@@ -80,10 +84,20 @@ semuanya melewati pagar HTTP pada butir 6.
   awal, dan `TenantScope`/`BranchScope` gagal-tertutup (hasil kosong) selama
   penanda aktif.
 - Penanda hanya dicabut oleh jalur berkredensial non-sesi **sesudah**
-  kredensialnya terbukti sah — webhook WA (tanda tangan HMAC), token API,
-  token perangkat offline, token portal member — dan jalur itu kemudian
-  memasang satu prinsipal teridentifikasi sebagai aktor (dengan pemetaan
-  webhook deterministik: unik-atau-yatim).
+  kredensialnya terbukti sah — dan keempat jalurnya bekerja dengan **dua
+  mekanisme yang berbeda**, yang tidak boleh disamaratakan:
+  - **Memasang aktor:** token API (`AuthenticateApiToken`) dan token
+    perangkat offline (`AuthenticateOfflineDevice`) memasang pengguna
+    pemilik kredensial sebagai aktor (`auth()->setUser(...)`) — sesudah
+    itu pagar aktor biasa berlaku penuh pada request tersebut.
+  - **Tanpa aktor, terikat filter eksplisit:** webhook WA memvalidasi
+    tanda tangan HMAC lalu mencabut penanda tamu **tanpa** memasang aktor;
+    pembacaan sesudahnya dibatasi pencocokan nomor pelanggan yang wajib
+    **unik secara global** (pemetaan deterministik: unik-atau-yatim —
+    nomor yang cocok ke lebih dari satu pelanggan tidak dipetakan ke
+    siapa pun). Portal member memvalidasi token lalu mencabut penanda
+    tamu **tanpa** memasang aktor; pembacaannya dibatasi pada pelanggan
+    yang ditunjuk token itu.
 - Rute publik yang benar-benar anonim (landing, pendaftaran, ganti bahasa)
   tidak membaca model `TenantScoped`.
 - **Asimetri tulis vs baca:** tulis global mengubah keadaan bersama secara

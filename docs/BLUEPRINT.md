@@ -48,7 +48,7 @@ Modul (14, sama seperti Blueprint v1): Identity, Master, Catalog, CRM, Clinical,
 4. Reporting hanya SELECT.
 5. `branch_id` pada query bisnis WAJIB berasal dari konteks aktor (service `BranchContext`), tidak pernah dari input request mentah.
 6. Tidak ada logika bisnis di Blade; Blade hanya menampilkan.
-7. **Konteks tenant (mode SaaS):** identitas tenant aktor WAJIB diturunkan dari `users.tenant_id` di sisi server — tidak pernah dari input request. Aktor tanpa tenant adalah instalasi individual: gerbang paket tidak berlaku (Bagian J.1). Penulisan entitas milik tenant (cabang, pengguna, produk) WAJIB menstempel `tenant_id` aktor.
+7. **Konteks tenant (mode SaaS):** identitas tenant aktor WAJIB diturunkan dari `users.tenant_id` di sisi server — tidak pernah dari input request. Aktor tanpa tenant **bukan** otomatis instalasi individual — semantiknya mengikuti mode `TenantContext`: hanya `MODE_STANDALONE` (akun tanpa tenant pada instansi yang belum memiliki tenant sama sekali, `Tenant::count() === 0`) yang diperlakukan sebagai instalasi individual dan bebas gerbang paket (Bagian J.1); `MODE_UNASSIGNED` (akun tanpa tenant pada instansi yang sudah bertenant) **gagal-tertutup**; aktor platform (`MODE_PLATFORM`) adalah pengelola platform, bukan pelaku bisnis. Penulisan entitas milik tenant (cabang, pengguna, produk) WAJIB menstempel `tenant_id` aktor.
 
 ## A.4 Konvensi Penamaan (kontrak)
 

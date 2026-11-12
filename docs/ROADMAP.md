@@ -46,7 +46,7 @@ Fase 1 ──► Fase 5 (Backup/Ekspor/Recovery) ──► Fase 6 (Kesiapan Prod
 - **Test requirements:** tidak ada perubahan kode — verifikasi = `git diff` hanya 4 berkas + pemeriksaan tautan/istilah.
 - **Risks:** dokumen menyelaraskan diri ke arah yang belum diputuskan (topologi) → mitigasi: arah yang belum diputuskan ditulis sebagai OPEN DECISION, bukan ketetapan.
 - **Exit criteria:** 4 dokumen di-review & disetujui pemilik proyek dan ter-commit.
-- **Status: Selesai (D-01, 2026-11-12)** — paket penyelarasan 30 Okt diadopsi atas persetujuan pemilik proyek, disapu kemutakhirannya terhadap hasil Fase 0, dan diperluas: PRD-DETAIL (framing), POLA-POLICY (kontrak tenant + cabang), DEPLOY-RUNBOOK (URL repo + penanda OD-1), PARITAS-LINGKUNGAN, anotasi arsip, serta ADR-022 sebagai dokumen mandiri di `docs/adr/`. Exit formal = merge PR D-01 oleh pemilik proyek sesudah audit independen.
+- **Status: Implementasi dokumentasi selesai (D-01, 2026-11-12) — menunggu audit independen dan persetujuan merge pemilik proyek; status Selesai formal berlaku sesudah merge PR D-01.** Isi implementasi: paket penyelarasan 30 Okt diadopsi atas persetujuan pemilik proyek, disapu kemutakhirannya terhadap hasil Fase 0, dan diperluas: PRD-DETAIL (framing), POLA-POLICY (kontrak tenant + cabang), DEPLOY-RUNBOOK (URL repo + penanda OD-1), PARITAS-LINGKUNGAN, anotasi arsip, serta ADR-022 sebagai dokumen mandiri di `docs/adr/`.
 
 ## Fase 1 — Tenant Isolation Foundation
 

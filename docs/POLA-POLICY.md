@@ -15,11 +15,11 @@ header. Lima mode (nama & semantik persis dari konstanta implementasi):
 
 | Mode (konstanta) | Arti | Kapan terjadi |
 |---|---|---|
-| `MODE_TENANT` (`'tenant'`) | Aktor adalah pengguna sebuah tenant; `tenantId()` mengembalikan tenant itu | Pengguna dengan `tenant_id` terisi dan tenant-nya ditemukan |
+| `MODE_TENANT` (`'tenant'`) | Aktor adalah pengguna sebuah tenant; `tenantId()` mengembalikan tenant itu | Pengguna dengan `tenant_id` terisi. **Catatan:** mode tenant dihasilkan dari `tenant_id` yang terisi — bila baris tenantnya tidak ditemukan, modenya tetap tenant tetapi konteksnya tidak sah; `isValid()`-lah yang membedakan kedua keadaan itu |
 | `MODE_PLATFORM` (`'platform'`) | Aktor platform (`is_platform`) — pengelola SaaS, **bukan** pelaku bisnis tenant | Pengguna dengan `is_platform = true` |
 | `MODE_STANDALONE` (`'standalone'`) | Instalasi individual sejati: instansi tanpa satu pun tenant | Pengguna tanpa `tenant_id` pada instansi dengan `Tenant::count() === 0` |
 | `MODE_UNASSIGNED` (`'unassigned'`) | Akun tanpa tenant pada instansi yang SUDAH bertenant — keadaan tidak sah untuk bisnis | Pengguna tanpa `tenant_id` pada instansi bertenant |
-| `MODE_GUEST` (`'guest'`) | Tidak ada aktor terautentikasi | Request anonim / jalur tanpa sesi |
+| `MODE_GUEST` (`'guest'`) | Tidak ada aktor terautentikasi | `TenantContext::for(null)` — terjadi pada request HTTP anonim **dan** pada proses tanpa pengguna (konsol/job tanpa konteks yang dipasang). Pembeda khusus HTTP adalah penanda `isGuestHttp()` (lihat penanda tamu di bawah), bukan mode ini |
 
 Aturan turunan yang mengikat:
 
@@ -34,11 +34,15 @@ Aturan turunan yang mengikat:
   wajib berjalan di dalam konteks sistem**; tanpa penanda itu, penulisan
   pengaturan global ditolak.
 - **Penanda tamu HTTP** — `markGuestHttp()` / `isGuestHttp()` (dipasang
-  middleware `MarkGuestRequest` pada grup web & api): selama penanda aktif,
-  `TenantScope`/`BranchScope` **gagal-tertutup** (hasil kosong). Penanda
-  hanya dicabut jalur berkredensial non-sesi sesudah kredensial terbukti
-  (webhook HMAC, token API, token perangkat offline, token portal member) —
-  dan jalur itu kemudian memasang prinsipalnya sebagai aktor. Lihat ADR-022.
+  middleware `MarkGuestRequest` di awal request pada grup web & api):
+  selama penanda aktif, `TenantScope`/`BranchScope` **gagal-tertutup**
+  (hasil kosong). Penanda hanya dicabut jalur berkredensial non-sesi
+  sesudah kredensial terbukti — dengan dua mekanisme berbeda: token API
+  dan token perangkat offline **memasang pemilik kredensial sebagai
+  aktor**; webhook WA (HMAC) dan portal member (token) **tidak memasang
+  aktor**, melainkan membatasi pembacaan lewat filter eksplisit
+  (pencocokan nomor unik-atau-yatim untuk webhook; pelanggan yang
+  ditunjuk token untuk portal). Lihat ADR-022 butir 6 & 9.
 
 ## Konteks cabang: `BranchContext`
 
@@ -58,27 +62,37 @@ Aturan turunan yang mengikat:
 
 ## Urutan batas otorisasi (berurutan, semua di server)
 
-1. **Autentikasi** — rute di belakang middleware `auth`; jalur berkredensial
+Urutan berikut adalah urutan **waktu** pada satu request: penanda tamu
+dipasang paling awal, sebelum pemeriksaan rute dan query bisnis apa pun.
+
+1. **Penanda tamu (awal request)** — `MarkGuestRequest` menandai setiap
+   request web/api sebagai tamu sejak awal; selama penanda aktif, scope
+   gagal-tertutup. Penanda dicabut hanya oleh autentikasi sesi atau jalur
+   berkredensial non-sesi yang sah (dua mekanisme pada bagian konteks
+   aktor). Request anonim yang tidak pernah terautentikasi tetap bertanda
+   tamu sampai akhir; rute publik yang sah (landing, pendaftaran, bahasa)
+   tidak membaca model `TenantScoped`.
+2. **Autentikasi** — rute di belakang middleware `auth`; jalur berkredensial
    non-sesi memakai middleware tokennya masing-masing.
-2. **Status akun & tenant aktif** — `EnsureUserIsActive` mengeluarkan
+3. **Status akun & tenant aktif** — `EnsureUserIsActive` mengeluarkan
    pengguna nonaktif; `EnsureTenantIsActive` menolak pengguna yang
    tenant-nya dinonaktifkan platform (S-01).
-3. **Identitas aktor** — `TenantContext` menetapkan mode aktor
+4. **Identitas aktor** — `TenantContext` menetapkan mode aktor
    (tenant/platform/standalone/unassigned/guest). Aktor platform berhenti
    di gerbang platform: grup rute platform memakai middleware `platform`
    (`EnsurePlatformUser`) + izin platform.
-4. **Konteks tenant** — model milik tenant memakai trait
+5. **Konteks tenant** — model milik tenant memakai trait
    `App\Support\Concerns\TenantScoped` (global scope
    `App\Support\Scopes\TenantScope`); model bercabang juga memakai
    `BranchScoped`/`BranchScope`. Scope adalah pagar query, **bukan**
    pengganti otorisasi layanan (ADR-022).
-5. **Izin (registry)** — rute/aksi diperiksa terhadap string izin kanonis
+6. **Izin (registry)** — rute/aksi diperiksa terhadap string izin kanonis
    (`EnsurePermission` / `$user->hasPermission()`). String di luar
    `config/permissions.php` = bug; `PermissionRegistry::assertExists`
    membuatnya gagal keras. `hasPermission()` berbasis peran untuk semua
    aktor dan menolak pengguna nonaktif; aktor platform hanya dapat menerima
    izin kelompok `platform`.
-6. **Policy per sumber daya** — satu Policy per model bisnis di
+7. **Policy per sumber daya** — satu Policy per model bisnis di
    `app/Modules/<Modul>/Policies/`, didaftarkan eksplisit di
    `AppServiceProvider` (`Gate::policy(...)`, karena namespace modul tidak
    ditebak Laravel). Policy menjawab pertanyaan sumber daya yang tidak bisa
@@ -87,15 +101,12 @@ Aturan turunan yang mengikat:
    bersama; Owner hanya pada standalone) dan `TenantExportPolicy` (Owner
    untuk tenantnya sendiri; platform wajib `backups.manage`; akun nonaktif
    selalu ditolak).
-7. **Konteks cabang & akses cabang** — `BranchContext` memvalidasi cabang
+8. **Konteks cabang & akses cabang** — `BranchContext` memvalidasi cabang
    operasi & cabang objek terhadap ember aktor (`assertCanAccess`).
-8. **Konteks sistem** — hanya untuk operasi tingkat instalasi yang memang
+9. **Konteks sistem** — hanya untuk operasi tingkat instalasi yang memang
    sah (scheduler, job, seeder, perkakas operator): tulis global wajib
    `asSystem()`; baca in-process tanpa aktor mengikuti ADR-022 (layanan
    berparameter aktor memvalidasi embernya sendiri).
-9. **Penanganan guest** — request anonim tetap bertanda tamu dan
-   gagal-tertutup pada model terpagar; rute publik yang sah (landing,
-   pendaftaran, bahasa) tidak membaca model `TenantScoped`.
 
 ## Prinsip yang selalu berlaku
 
