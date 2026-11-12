@@ -12,6 +12,7 @@ use App\Modules\Platform\Models\Plan;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Platform\Services\PlanService;
 use App\Modules\Purchasing\Models\PurchaseOrder;
+use App\Modules\Purchasing\Models\PurchaseRequest;
 use App\Modules\Purchasing\Services\PurchaseOrderService;
 use App\Modules\Purchasing\Services\ReceiptService;
 use App\Modules\Sales\Models\Sale;
@@ -25,13 +26,11 @@ use Tests\TestCase;
 /**
  * D-02 GAP-2 — Pencarian global (/cari) lintas tenant. Endpoint
  * pencarian mengembalikan tujuh kelompok: pengguna, cabang, produk,
- * pelanggan, penjualan, PR, dan PO. Test ini membuktikan kelompok
- * produk, pelanggan, pengguna, penjualan, dan PO tidak menyeberang
- * antar-tenant (kelompok cabang terikat daftar cabang terkelola
- * aktor dan tercakup pola yang sama); hasil untuk aktor tenant B
- * tidak boleh memuat satu pun penanda milik tenant A, dan
- * sebaliknya — sementara pencarian atas data sendiri tetap bekerja
- * (kontrol positif).
+ * pelanggan, penjualan, PR, dan PO — dan test ini membuktikan
+ * ketujuh kelompok itu tidak menyeberang antar-tenant: hasil untuk
+ * aktor tenant B tidak boleh memuat satu pun penanda milik tenant
+ * A, dan sebaliknya — sementara pencarian atas data sendiri tetap
+ * bekerja (kontrol positif).
  */
 class GlobalSearchTenantIsolationTest extends TestCase
 {
@@ -46,6 +45,8 @@ class GlobalSearchTenantIsolationTest extends TestCase
     private Sale $saleA;
 
     private PurchaseOrder $poA;
+
+    private PurchaseRequest $prA;
 
     protected function setUp(): void
     {
@@ -77,6 +78,15 @@ class GlobalSearchTenantIsolationTest extends TestCase
 
         [$this->saleA, $this->poA] = $this->seedTransactions($tenantA, $this->adminA, $branchA, 'A');
         $this->seedTransactions($tenantB, $this->adminB, $branchB, 'B');
+
+        $this->prA = PurchaseRequest::create([
+            'number' => 'PR-CARI-A', 'branch_id' => $branchA->id,
+            'requester_id' => $this->adminA->id, 'status' => 'draft',
+        ]);
+        PurchaseRequest::create([
+            'number' => 'PR-CARI-B', 'branch_id' => $branchB->id,
+            'requester_id' => $this->adminB->id, 'status' => 'draft',
+        ]);
     }
 
     /** @return array{Tenant, User, Branch} */
@@ -167,6 +177,32 @@ class GlobalSearchTenantIsolationTest extends TestCase
             ->assertOk()
             ->assertSee('PT Cari A')
             ->assertSee($poShow);
+    }
+
+    public function test_search_branches_and_purchase_requests_do_not_cross_tenants(): void
+    {
+        // Kelompok cabang: aktor hanya menemukan cabang terkelolanya
+        // sendiri.
+        $this->actingAs($this->adminB)->get('/cari?q=Cabang')
+            ->assertOk()
+            ->assertSee('Cabang b')
+            ->assertDontSee('Cabang a');
+        $this->actingAs($this->adminA)->get('/cari?q=Cabang')
+            ->assertOk()
+            ->assertSee('Cabang a')
+            ->assertDontSee('Cabang b');
+
+        // Kelompok PR: halaman hasil menggemakan teks kueri, jadi
+        // penanda yang dipakai adalah tautan detail PR dan nama
+        // cabang pemiliknya pada baris hasil.
+        $prShow = '/pembelian/pr/'.$this->prA->id;
+        $this->actingAs($this->adminB)->get('/cari?q=PR-CARI-A')
+            ->assertOk()
+            ->assertDontSee($prShow)
+            ->assertDontSee('Cabang a');
+        $this->actingAs($this->adminA)->get('/cari?q=PR-CARI-A')
+            ->assertOk()
+            ->assertSee($prShow);
     }
 
     /** @return array{Sale, PurchaseOrder} */
