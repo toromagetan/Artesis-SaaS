@@ -27,7 +27,9 @@ class SignupController extends Controller
     public function create(): View
     {
         return view('platform.signup', [
-            'turnstileEnabled' => $this->turnstile->enabled(),
+            // Widget dirender begitu site key ada (termasuk keadaan
+            // salah konfigurasi, agar kegagalan terlihat kasat mata).
+            'turnstileEnabled' => $this->turnstile->siteKey() !== null,
             'turnstileSiteKey' => $this->turnstile->siteKey(),
         ]);
     }
@@ -43,10 +45,13 @@ class SignupController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        // Anti-bot (S-05): begitu Turnstile terkonfigurasi, token
-        // wajib terverifikasi SEBELUM tenant apa pun dibuat;
-        // kegagalan = kesalahan validasi biasa, tanpa data tercipta.
-        if ($this->turnstile->enabled()
+        // Anti-bot (S-05): begitu Turnstile terkonfigurasi (atau
+        // salah terkonfigurasi — satu kunci terisi), token wajib
+        // terverifikasi SEBELUM tenant apa pun dibuat; kegagalan =
+        // kesalahan validasi biasa, tanpa data tercipta. Input
+        // diteruskan apa adanya (mixed) agar bentuk token yang
+        // tidak sah ditolak verifier, bukan menjadi error 500.
+        if ($this->turnstile->requiresVerification()
             && ! $this->turnstile->verify($request->input('cf-turnstile-response'), $request->ip())) {
             throw ValidationException::withMessages([
                 'cf-turnstile-response' => __('ui.signup.bot_check_failed'),

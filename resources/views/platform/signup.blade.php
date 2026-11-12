@@ -50,7 +50,7 @@
         @if ($turnstileEnabled ?? false)
             <div>
                 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-                <div class="cf-turnstile" data-sitekey="{{ $turnstileSiteKey }}"></div>
+                <div class="cf-turnstile" data-sitekey="{{ $turnstileSiteKey }}" data-action="signup"></div>
                 <x-input-error :messages="$errors->get('cf-turnstile-response')" class="mt-2" />
             </div>
         @endif

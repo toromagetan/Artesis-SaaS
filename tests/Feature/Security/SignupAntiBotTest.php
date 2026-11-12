@@ -123,7 +123,9 @@ class SignupAntiBotTest extends TestCase
     {
         $this->enableTurnstile();
         Http::fake([
-            'challenges.cloudflare.com/*' => Http::response(['success' => true], 200),
+            'challenges.cloudflare.com/*' => Http::response([
+                'success' => true, 'action' => 'signup', 'hostname' => 'localhost',
+            ], 200),
         ]);
 
         $tenantsBefore = Tenant::count();
@@ -135,5 +137,103 @@ class SignupAntiBotTest extends TestCase
         Http::assertSent(fn ($request) => str_contains($request->url(), 'siteverify')
             && $request['response'] === 'token-sah'
             && $request['secret'] === 'secret-uji');
+    }
+
+    public function test_partial_configuration_site_key_only_denies_signup(): void
+    {
+        config(['services.turnstile.site_key' => 'site-key-uji', 'services.turnstile.secret' => null]);
+        Http::fake([
+            'challenges.cloudflare.com/*' => Http::response(['success' => true, 'action' => 'signup', 'hostname' => 'localhost'], 200),
+        ]);
+
+        $tenantsBefore = Tenant::count();
+        $this->post(route('signup.store'), $this->payload(['cf-turnstile-response' => 'token-apa-pun']))
+            ->assertSessionHasErrors('cf-turnstile-response');
+
+        $this->assertSame($tenantsBefore, Tenant::count());
+        $this->assertGuest();
+    }
+
+    public function test_partial_configuration_secret_only_denies_signup(): void
+    {
+        config(['services.turnstile.site_key' => null, 'services.turnstile.secret' => 'secret-uji']);
+
+        $tenantsBefore = Tenant::count();
+        $this->post(route('signup.store'), $this->payload(['cf-turnstile-response' => 'token-apa-pun']))
+            ->assertSessionHasErrors('cf-turnstile-response');
+
+        $this->assertSame($tenantsBefore, Tenant::count());
+        $this->assertGuest();
+    }
+
+    public function test_signup_rejected_when_action_mismatches(): void
+    {
+        $this->enableTurnstile();
+        Http::fake([
+            'challenges.cloudflare.com/*' => Http::response([
+                'success' => true, 'action' => 'login', 'hostname' => 'localhost',
+            ], 200),
+        ]);
+
+        $tenantsBefore = Tenant::count();
+        $this->post(route('signup.store'), $this->payload(['cf-turnstile-response' => 'token-sah']))
+            ->assertSessionHasErrors('cf-turnstile-response');
+
+        $this->assertSame($tenantsBefore, Tenant::count());
+    }
+
+    public function test_signup_rejected_when_hostname_not_trusted(): void
+    {
+        $this->enableTurnstile();
+        Http::fake([
+            'challenges.cloudflare.com/*' => Http::response([
+                'success' => true, 'action' => 'signup', 'hostname' => 'situs-lain.example',
+            ], 200),
+        ]);
+
+        $tenantsBefore = Tenant::count();
+        $this->post(route('signup.store'), $this->payload(['cf-turnstile-response' => 'token-sah']))
+            ->assertSessionHasErrors('cf-turnstile-response');
+
+        $this->assertSame($tenantsBefore, Tenant::count());
+    }
+
+    public function test_signup_accepts_hostname_from_configured_allowlist(): void
+    {
+        $this->enableTurnstile();
+        config(['services.turnstile.hostnames' => ['app.example.id']]);
+        Http::fake([
+            'challenges.cloudflare.com/*' => Http::response([
+                'success' => true, 'action' => 'signup', 'hostname' => 'app.example.id',
+            ], 200),
+        ]);
+
+        $tenantsBefore = Tenant::count();
+        $this->post(route('signup.store'), $this->payload(['cf-turnstile-response' => 'token-sah']))
+            ->assertRedirect(route('dashboard'));
+
+        $this->assertSame($tenantsBefore + 1, Tenant::count());
+    }
+
+    public function test_array_shaped_token_is_a_validation_error_not_a_500(): void
+    {
+        $this->enableTurnstile();
+
+        $response = $this->post(route('signup.store'), $this->payload(['cf-turnstile-response' => ['bentuk-salah']]));
+        $response->assertSessionHasErrors('cf-turnstile-response');
+        $this->assertNotSame(500, $response->status());
+        $this->assertGuest();
+    }
+
+    public function test_oversized_token_rejected_before_any_network_call(): void
+    {
+        $this->enableTurnstile();
+        Http::fake();
+
+        $this->post(route('signup.store'), $this->payload(['cf-turnstile-response' => str_repeat('a', 2049)]))
+            ->assertSessionHasErrors('cf-turnstile-response');
+
+        Http::assertNothingSent();
+        $this->assertGuest();
     }
 }
