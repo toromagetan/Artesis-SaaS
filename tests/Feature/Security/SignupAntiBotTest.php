@@ -225,6 +225,41 @@ class SignupAntiBotTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_signup_rejected_when_no_trusted_hostname_can_be_determined(): void
+    {
+        $this->enableTurnstile();
+        // APP_URL tanpa hostname valid + daftar eksplisit kosong:
+        // tidak ada hostname tepercaya → verifikasi wajib gagal.
+        config(['app.url' => 'tanpa-host', 'services.turnstile.hostnames' => []]);
+        Http::fake([
+            'challenges.cloudflare.com/*' => Http::response([
+                'success' => true, 'action' => 'signup', 'hostname' => 'localhost',
+            ], 200),
+        ]);
+
+        $tenantsBefore = Tenant::count();
+        $this->post(route('signup.store'), $this->payload(['cf-turnstile-response' => 'token-sah']))
+            ->assertSessionHasErrors('cf-turnstile-response');
+
+        $this->assertSame($tenantsBefore, Tenant::count());
+    }
+
+    public function test_signup_rejected_when_response_omits_hostname(): void
+    {
+        $this->enableTurnstile();
+        Http::fake([
+            'challenges.cloudflare.com/*' => Http::response([
+                'success' => true, 'action' => 'signup',
+            ], 200),
+        ]);
+
+        $tenantsBefore = Tenant::count();
+        $this->post(route('signup.store'), $this->payload(['cf-turnstile-response' => 'token-sah']))
+            ->assertSessionHasErrors('cf-turnstile-response');
+
+        $this->assertSame($tenantsBefore, Tenant::count());
+    }
+
     public function test_oversized_token_rejected_before_any_network_call(): void
     {
         $this->enableTurnstile();

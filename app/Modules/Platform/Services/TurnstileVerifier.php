@@ -26,7 +26,9 @@ use Illuminate\Support\Facades\Log;
  *   data-action) dan hostname respons harus termasuk daftar
  *   hostname tepercaya yang dikonfigurasi eksplisit
  *   (services.turnstile.hostnames; bawaan: host dari APP_URL) —
- *   tidak pernah dari input pengguna (S-05-02).
+ *   tidak pernah dari input pengguna (S-05-02). Pemeriksaan
+ *   hostname TIDAK PERNAH dilewati: daftar tepercaya kosong atau
+ *   respons tanpa hostname sama-sama ditolak (S-05-04).
  * - Kegagalan jaringan/timeout → ditolak. Token dan secret tidak
  *   pernah dicatat ke log.
  */
@@ -112,12 +114,15 @@ class TurnstileVerifier
                 return false;
             }
 
+            // Hostname selalu diperiksa (S-05-04): tanpa daftar
+            // tepercaya yang valid, tidak ada respons yang boleh
+            // lolos — daftar kosong bukan alasan melewati gerbang.
             $allowed = $this->allowedHostnames();
-            if ($allowed !== []) {
-                $hostname = $response->json('hostname');
-                if (! is_string($hostname) || ! in_array(strtolower($hostname), $allowed, true)) {
-                    return false;
-                }
+            $hostname = $response->json('hostname');
+            if ($allowed === []
+                || ! is_string($hostname)
+                || ! in_array(strtolower($hostname), $allowed, true)) {
+                return false;
             }
 
             return true;
