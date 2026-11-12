@@ -58,6 +58,8 @@ Fase 1 ──► Fase 5 (Backup/Ekspor/Recovery) ──► Fase 6 (Kesiapan Prod
   4. **Gerbang darurat backup:** rute backup tingkat instalasi hanya untuk aktor platform / konteks instalasi individual (menutup risiko kritis J.3 sebelum Fase 5).
   5. Konteks tenant pada job antrean & scheduler (J.2.6); awalan tenant pada cache & storage (J.2.4–5).
   6. Penanganan akun warisan tanpa tenant (tenantless): inventaris + aturan eksplisit (aktor tanpa tenant = instalasi individual; pada instansi SaaS bersama, akun tenantless non-platform tidak boleh ada — migrasi/penolakan terdokumentasi).
+  
+  *Catatan penyelarasan (2026-11-12): rumusan awal butir 4 & 6 menyederhanakan aktor tanpa tenant sebagai "instalasi individual". Implementasi final mengikuti lima mode `TenantContext` yang kini berlaku: pengecualian instalasi individual hanya untuk `MODE_STANDALONE`; akun tanpa tenant pada instansi bertenant diakui keberadaannya sebagai `MODE_UNASSIGNED` yang gagal-tertutup (bukan "tidak boleh ada", melainkan tidak memperoleh hak apa pun). Rumusan lama dipertahankan di atas sebagai sejarah rancangan.*
 - **Dependencies:** Fase 0 lulus. Keputusan OD-1/OD-2 memengaruhi urgensi, bukan bentuk fondasi.
 - **Deliverables:** service + scope + migrasi + test fondasi; Blueprint J.1 diperbarui ke keadaan baru.
 - **Acceptance criteria:** AC-ISO-03 lulus (backup tertutup untuk tenant di mode bersama); request tanpa konteks tenant pada mode SaaS gagal tertutup pada jalur uji; bypass platform tercatat di audit log; tidak ada regresi suite penuh.
