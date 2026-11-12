@@ -48,6 +48,8 @@ class GlobalSearchTenantIsolationTest extends TestCase
 
     private PurchaseRequest $prA;
 
+    private PurchaseRequest $prB;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -83,7 +85,7 @@ class GlobalSearchTenantIsolationTest extends TestCase
             'number' => 'PR-CARI-A', 'branch_id' => $branchA->id,
             'requester_id' => $this->adminA->id, 'status' => 'draft',
         ]);
-        PurchaseRequest::create([
+        $this->prB = PurchaseRequest::create([
             'number' => 'PR-CARI-B', 'branch_id' => $branchB->id,
             'requester_id' => $this->adminB->id, 'status' => 'draft',
         ]);
@@ -203,6 +205,17 @@ class GlobalSearchTenantIsolationTest extends TestCase
         $this->actingAs($this->adminA)->get('/cari?q=PR-CARI-A')
             ->assertOk()
             ->assertSee($prShow);
+
+        // Arah sebaliknya: A tidak melihat PR milik B, dan B tetap
+        // menemukan PR miliknya sendiri (kontrol positif).
+        $prShowB = '/pembelian/pr/'.$this->prB->id;
+        $this->actingAs($this->adminA)->get('/cari?q=PR-CARI-B')
+            ->assertOk()
+            ->assertDontSee($prShowB)
+            ->assertDontSee('Cabang b');
+        $this->actingAs($this->adminB)->get('/cari?q=PR-CARI-B')
+            ->assertOk()
+            ->assertSee($prShowB);
     }
 
     /** @return array{Sale, PurchaseOrder} */
