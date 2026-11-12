@@ -41,7 +41,7 @@ Fase 1 ──► Fase 5 (Backup/Ekspor/Recovery) ──► Fase 6 (Kesiapan Prod
 - **Objective:** seluruh dokumen kendali menggambarkan produk yang sama (SaaS multi-tenant) dan sesuai bukti kode, agar agen/manusia tidak salah arah.
 - **Scope:** README, PRD, Blueprint, Roadmap (dokumen ini); konsistensi ADR (status ADR-002/007/011/012 + ADR-020/021 baru); inventaris dokumen yang belum selaras (PRD-DETAIL, POLA-POLICY, AGENTS/CLAUDE) sebagai temuan — pembaruannya pekerjaan terpisah berpersetujuan.
 - **Dependencies:** tidak ada (baseline kode `a96f757`).
-- **Deliverables:** 4 dokumen terselaraskan; daftar keputusan terbuka (PRD Bagian 9); klasifikasi data 90 tabel (Blueprint J.3).
+- **Deliverables:** 4 dokumen terselaraskan; daftar keputusan terbuka (PRD Bagian 9); klasifikasi data seluruh tabel (Blueprint J.3 — **89 tabel pada baseline `43db5b54`**; angka 90 pada rancangan awal berasal dari baseline `a96f757`).
 - **Acceptance criteria:** tidak ada pernyataan non-goal SaaS yang tersisa di 4 dokumen; setiap klaim status fitur menunjuk bukti kode/test; istilah konsisten (Platform, Tenant, Tenant Owner, Platform Superadmin, Branch, Tenant Isolation, Subscription, Plan, Billing); tautan internal valid.
 - **Test requirements:** tidak ada perubahan kode — verifikasi = `git diff` hanya 4 berkas + pemeriksaan tautan/istilah.
 - **Risks:** dokumen menyelaraskan diri ke arah yang belum diputuskan (topologi) → mitigasi: arah yang belum diputuskan ditulis sebagai OPEN DECISION, bukan ketetapan.
