@@ -1,9 +1,16 @@
 # Runbook Deploy Artesis (SaaS POS Optik)
 
+> **⚠ OD-1 — TOPOLOGI DEPLOYMENT BELUM DIPUTUSKAN OWNER.**
+> Dokumen ini adalah runbook teknis generik dengan asumsi acuan
+> **server bersama** (satu server melayani banyak optik/tenant,
+> dikelola operator platform). Asumsi itu **belum** menjadi keputusan:
+> provider/hosting, jumlah server, kapasitas, topologi database,
+> domain produksi, dan strategi backup eksternal semuanya menunggu
+> keputusan OD-1 pemilik proyek. Jangan memperlakukan runbook ini
+> sebagai panduan deployment produksi final sebelum OD-1 ditutup.
+
 Satu dokumen rujukan untuk memasang dan memperbarui Artesis
-(basis Lentera) di server produksi. Ditulis untuk model **server
-bersama**: satu server melayani banyak optik (tenant), dikelola
-operator platform. Setiap pemasangan WAJIB melewati daftar periksa
+di server produksi. Setiap pemasangan WAJIB melewati daftar periksa
 smoke test di bagian 9 sebelum dinyatakan tayang.
 
 > Aturan emas: **catat commit yang sedang berjalan SEBELUM deploy**
@@ -18,17 +25,19 @@ smoke test di bagian 9 sebelum dinyatakan tayang.
 | Komponen | Kebutuhan |
 | --- | --- |
 | OS | Ubuntu 24.04 LTS (atau setara) |
-| PHP | **8.3+ dengan tambalan keamanan terbaru** (gerbang CVE PHP2Shell: runtime PHP wajib versi tertambal; periksa `php -v` dan catatan rilis PHP) — ekstensi: `mysql, mbstring, xml, curl, gd, intl, zip, bcmath` |
+| PHP | **8.3+ dengan tambalan keamanan terbaru** (gerbang CVE PHP2Shell: runtime PHP wajib versi tertambal; periksa `php -v` dan catatan rilis PHP) — ekstensi (sepuluh, daftar tertutup sesuai `composer.json`): `curl, fileinfo, gd, intl, json, mbstring, openssl, pdo_mysql, xml, zip`; `bcmath` secara eksplisit **tidak** dipakai aplikasi ini |
 | MySQL | 8.0, **hanya listen localhost** (`bind-address = 127.0.0.1`) |
 | Web server | nginx (contoh vhost di `docs/server/nginx-artesis.conf`) |
 | Node.js | 20+ hanya di mesin build (aset dapat dibangun di CI/lokal lalu diunggah; server produksi tidak wajib punya Node) |
 | Proses latar | cron (penjadwal Laravel) + satu queue worker (systemd, contoh di `docs/server/artesis-queue.service`) |
 | TLS | Sertifikat domain (certbot/Let's Encrypt) — aplikasi WAJIB HTTPS |
 
-Kapasitas acuan server bersama 2 vCPU / 4 GB RAM / 60 GB:
-nyaman ±8–12 optik (±15–25 cabang). Pengikat utama = RAM, lalu
-storage. Batasi ±10 optik per server pada awalnya; pecah ke server
-kedua bila RAM jam sibuk > 75% atau disk > 70%.
+Kapasitas acuan (**asumsi perencanaan, belum diputuskan** — lihat
+penanda OD-1 di kepala dokumen): server bersama 2 vCPU / 4 GB RAM /
+60 GB diperkirakan nyaman untuk ±8–12 optik (±15–25 cabang);
+pengikat utama = RAM, lalu storage. Angka kapasitas terukur belum
+ada — wajib diukur pada Fase kesiapan produksi sebelum dijadikan
+janji kapasitas.
 
 ## 2. Persiapan database
 
@@ -46,7 +55,7 @@ di server Ubuntu memakai auth_socket (bawaan) — jangan diubah.
 
 ```bash
 cd /var/www
-git clone https://github.com/toromagetan/Lentera.git artesis
+git clone https://github.com/toromagetan/Artesis-SaaS.git artesis
 cd artesis
 git checkout main            # catat: git rev-parse HEAD
 composer install --no-dev --optimize-autoloader
@@ -79,7 +88,7 @@ php artisan migrate --force
 php artisan db:seed --force
 php artisan storage:link
 npm ci && npm run build      # atau unggah public/build dari mesin build
-php artisan optimize
+php artisan view:clear       # JANGAN optimize/config:cache/route:cache di server produksi proyek ini
 ```
 
 Kepemilikan berkas: direktori `storage/` dan `bootstrap/cache/`
@@ -148,9 +157,12 @@ Sesudah setiap deploy kode: `sudo systemctl restart artesis-queue`
 - Backup aplikasi berjalan otomatis tiap hari 02:00 ke
   `storage/app/backups` (menu Pengaturan → Backup untuk unduh/
   restore manual).
-- **Backup di server yang sama BUKAN perlindungan.** Salin keluar
-  server setiap malam (di luar jam sibuk, bergiliran bila banyak
-  instalasi) — contoh rclone ke penyimpanan objek/Drive:
+- **Backup di server yang sama BUKAN perlindungan.** Fitur offsite
+  **di dalam aplikasi belum terimplementasi** (baru sakelar + peringatan
+  audit; menunggu kredensial penyimpanan eksternal). Selama itu,
+  penyalinan keluar server adalah prosedur operator — contoh rclone
+  ke penyimpanan objek/Drive (strategi resminya bagian dari keputusan
+  OD-1):
 
 ```bash
 # crontab, contoh 03:15 — sesuaikan remote & kredensial Anda
@@ -170,8 +182,7 @@ git rev-parse HEAD            # (1) catat jangkar rollback
 git fetch origin && git checkout main && git pull
 composer install --no-dev --optimize-autoloader
 php artisan migrate --force   # (2) migrasi selalu sesudah kode
-php artisan view:clear
-php artisan optimize
+php artisan view:clear        # tanpa optimize/cache konfigurasi (aturan deploy proyek ini)
 sudo systemctl restart artesis-queue
 ```
 

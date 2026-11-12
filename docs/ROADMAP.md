@@ -1,217 +1,138 @@
-# ROADMAP — LENTERA: Rencana Pembangunan Berfase & Bergerbang
+# ROADMAP — ARTESIS SaaS: Rencana Berbasis Dependensi & Risiko
 
 | | |
 |---|---|
-| Dokumen | Roadmap pembangunan (dokumen kendali urutan) |
-| Produk | **Lentera** — Sistem Manajemen & POS Toko Optik, kepemilikan penuh |
-| Tanggal | 17 Oktober 2026 |
-| Status | Disetujui owner & terbangun penuh — Fase 0–5 selesai 2026-10-18; gerbang tersisa hanya smoke test owner (butir 103) |
-| Relasi | PRD (`docs/PRD.md`) menentukan *apa* · PRD Detail (`docs/PRD-DETAIL.md`) menentukan *perilaku per menu* · Blueprint (`docs/BLUEPRINT.md`) menentukan *bagaimana dibangun* · **Roadmap ini menentukan *urutan, dependensi, dan gerbang* — tidak ada pekerjaan yang sah di luar urutan ini tanpa revisi roadmap ber-commit yang disetujui owner.** |
+| Dokumen | Roadmap SaaS (dokumen kendali urutan) — menggantikan Roadmap pembangunan pra-SaaS (kini arsip di Blueprint Bagian H) |
+| Produk | **Artesis** — SaaS POS Optik & Operational Management (multi-tenant) |
+| Baseline | `main` @ `43db5b54` (2026-11-12, penyelarasan D-01), repositori `toromagetan/Artesis-SaaS` |
+| Relasi | PRD (`docs/PRD.md`) menentukan *apa & statusnya* · Blueprint (`docs/BLUEPRINT.md`, terutama Bagian J) menentukan *arsitektur aktual & target* · **Roadmap ini menentukan *urutan, dependensi, dan gerbang keluar*** |
+| Aturan status | Status hanya berubah dengan bukti (test/CI/commit yang dikutip). **Tidak ada fase yang dinyatakan Completed tanpa bukti.** |
+
+## 0. Keadaan awal (yang sudah terbangun sebelum roadmap ini)
+
+- **Fitur bisnis optik lengkap** (Fase 0–5 pembangunan pra-SaaS, selesai 2026-10-18 + penutupan celah s.d. 2026-10-23) — arsip & buktinya di Blueprint Bagian H.
+- **Lapisan platform SaaS** (Fase 1 SaaS, 2026-10-29): rebrand Artesis, 4 bahasa, model Plan/Subscription/override, penegakan server `PlanGate`, pendaftaran mandiri + penagihan transfer manual, paket go-live (runbook) — ter-merge s.d. `855a0c16`, suite 475 test hijau, CI 5/5.
+- **Isolasi pengelolaan pengguna per tenant** + provisioning tenant dari panel (2026-10-30, s.d. `a96f757`).
+- **Pembaruan 2026-11-12 (Fase 0 master-roadmap):** isolasi data bisnis antar-tenant dalam satu instansi **sudah terbangun** (PR #23–#33, merge s.d. `c4af9c87`), penegakan suspensi **sudah ada** (S-01), partisi gudang garansi per tenant (B-02, PR #34), dan ekspor data per tenant **sudah ada** (B-03, PR #35, merge `43db5b54`). Restore per tenant diputuskan tidak dibangun. Status tiap fase di bawah diperbarui pada D-01 sesuai bukti merge tersebut.
+
+**Keputusan yang menggerbang roadmap ini:** OD-1 (topologi produksi) masih terbuka; **OD-2 (nasib ADR-012) DIPUTUSKAN 10 Nov 2026: isolasi per tenant penuh** (ADR-012 berlaku di dalam tenant). Fase 0–1 berjalan pada kedua topologi; Fase 2–3 wajib hanya untuk topologi satu instansi bersama, dan tetap bernilai sebagai pertahanan berlapis pada topologi instalasi-per-tenant.
+
+## 1. Prinsip (mengikat, diwarisi + diperluas)
+
+1. **Urutan berbasis dependensi** — fase dimulai bila dependensinya lulus gerbang keluar; tidak ada lompatan diam-diam.
+2. **Per modul, bukan per berkas** — satu modul selesai (skema + service + UI + test) sebelum modul berikutnya; commit terpisah per modul lewat PR + CI hijau (branch protection `main`).
+3. **Definisi selesai global** — untuk pekerjaan uang/stok: regresi penuh + konkurensi 6 skenario di MySQL nyata; untuk pekerjaan isolasi: test negatif antar-tenant pada area yang disentuh; untuk semua: standar bukti mentah Blueprint G.4.
+4. **Dokumentasi mengikuti kode** — setiap fase yang mengubah perilaku memperbarui PRD/Blueprint pada PR yang sama atau PR dokumen yang menyertainya.
+5. **Berhenti itu sah** — menabrak keputusan pemilik proyek (OD) = status Blocked + menyebut keputusannya.
+
+## 2. Peta dependensi
+
+```
+Fase 0 (Dokumen) ──► Fase 1 (Fondasi Isolasi) ──► Fase 2 (Data Bisnis) ──► Fase 3 (Identitas & Konfigurasi)
+                                                              │
+Fase 4 (Siklus Hidup SaaS) ── (fondasi sudah ada; berjalan sejajar sesudah Fase 1 untuk suspensi)
+Fase 1 ──► Fase 5 (Backup/Ekspor/Recovery) ──► Fase 6 (Kesiapan Produksi: menggerbang SEMUA fase)
+```
 
 ---
 
-## 1. Prinsip Roadmap (mengikat)
+## Fase 0 — Documentation & Architecture Alignment
 
-1. **Urutan tidak dilompati.** Fase N+1 tidak dimulai sebelum gerbang keluar Fase N lulus dan owner memberi kata mulai. Di dalam fase, tugas dikerjakan mengikuti dependensinya.
-2. **Per modul, bukan per berkas.** Satu modul diselesaikan sekaligus (skema + service + UI + test) sebelum modul berikutnya dimulai; jangan mencampur dua modul dalam satu pekerjaan/commit.
-3. **Selesai = terverifikasi.** Definisi selesai global (Bagian 2) berlaku untuk setiap tugas; "kode jalan" bukan selesai.
-4. **Setiap gerbang menghasilkan bukti.** Laporan gerbang mengikuti standar bukti mentah (Blueprint G.4): identitas commit, ID run CI + angka test/assertion, dan hasil verifikasi — bukan narasi.
-5. **Berhenti itu sah.** Tugas yang menabrak keputusan yang belum diambil owner berhenti dengan status BLOCKED + menyebut keputusan yang dibutuhkan; tidak ditebak, tidak dilompati diam-diam.
-6. **Perubahan roadmap = revisi dokumen.** Cakupan hanya berubah lewat revisi file ini ber-commit, disetujui owner. Tidak ada fitur selundupan.
+- **Objective:** seluruh dokumen kendali menggambarkan produk yang sama (SaaS multi-tenant) dan sesuai bukti kode, agar agen/manusia tidak salah arah.
+- **Scope:** README, PRD, Blueprint, Roadmap (dokumen ini); konsistensi ADR (status ADR-002/007/011/012 + ADR-020/021 baru); inventaris dokumen yang belum selaras (PRD-DETAIL, POLA-POLICY, AGENTS/CLAUDE) sebagai temuan — pembaruannya pekerjaan terpisah berpersetujuan.
+- **Dependencies:** tidak ada (baseline kode `a96f757`).
+- **Deliverables:** 4 dokumen terselaraskan; daftar keputusan terbuka (PRD Bagian 9); klasifikasi data seluruh tabel (Blueprint J.3 — **89 tabel pada baseline `43db5b54`**; angka 90 pada rancangan awal berasal dari baseline `a96f757`).
+- **Acceptance criteria:** tidak ada pernyataan non-goal SaaS yang tersisa di 4 dokumen; setiap klaim status fitur menunjuk bukti kode/test; istilah konsisten (Platform, Tenant, Tenant Owner, Platform Superadmin, Branch, Tenant Isolation, Subscription, Plan, Billing); tautan internal valid.
+- **Test requirements:** tidak ada perubahan kode — verifikasi = `git diff` hanya 4 berkas + pemeriksaan tautan/istilah.
+- **Risks:** dokumen menyelaraskan diri ke arah yang belum diputuskan (topologi) → mitigasi: arah yang belum diputuskan ditulis sebagai OPEN DECISION, bukan ketetapan.
+- **Exit criteria:** 4 dokumen di-review & disetujui pemilik proyek dan ter-commit.
+- **Status: Implementasi dokumentasi selesai (D-01, 2026-11-12) — menunggu audit independen dan persetujuan merge pemilik proyek; status Selesai formal berlaku sesudah merge PR D-01.** Isi implementasi: paket penyelarasan 30 Okt diadopsi atas persetujuan pemilik proyek, disapu kemutakhirannya terhadap hasil Fase 0, dan diperluas: PRD-DETAIL (framing), POLA-POLICY (kontrak tenant + cabang), DEPLOY-RUNBOOK (URL repo + penanda OD-1), PARITAS-LINGKUNGAN, anotasi arsip, serta ADR-022 sebagai dokumen mandiri di `docs/adr/`.
 
-## 2. Definisi Selesai (Definition of Done — berlaku global)
+## Fase 1 — Tenant Isolation Foundation
 
-Sebuah tugas/modul dinyatakan selesai hanya bila SEMUA terpenuhi:
-- [ ] Skema & migrasi sesuai kamus data Blueprint (atau deviasi tercatat sebagai revisi Blueprint).
-- [ ] Service + validasi + policy terimplementasi sesuai spesifikasi perilaku modul (Blueprint Bagian D).
-- [ ] UI sesuai PRD Detail untuk menu terkait + konvensi UI bersama (Blueprint F.2) — termasuk bahasa desain clean/modern/elegan (F.2.0), aturan detail halaman penuh (bukan model preview), dan model tombol sejajar (seluruh perintah sebagai tombol terlihat dalam satu kelompok per layar — ADR-018). Judul halaman tampil tepat satu kali (tidak ganda di header dan body) dan pencarian global selalu tersedia di bagian atas.
-- [ ] Test perilaku untuk operasi tulis utama lulus.
-- [ ] Semua teks UI lewat kunci lokalisasi dengan berkas `id` + `en` lengkap (ADR-011); tidak ada string tampilan keras.
-- [ ] Matriks keamanan 6 kasus (Blueprint G.1.2) lulus untuk modul itu.
-- [ ] Test rekonsiliasi lulus bila modul menyentuh uang/stok.
-- [ ] **Uji regresi penuh + uji konkurensi lulus** (Blueprint G.1 butir 7) — wajib untuk setiap tugas yang menyentuh hitungan uang/stok dan di setiap gerbang fase; kegagalan satu skenario konkurensi = tugas belum selesai.
-- [ ] CI penuh hijau pada run yang dikutip ID-nya.
-- [ ] Commit bersih: hanya berkas modul itu; pesan commit menyebut nomor tugas roadmap.
-- [ ] Laporan tugas disampaikan (hasil, cakupan, test, git, sisa risiko).
+- **Objective:** konteks tenant yang tervalidasi menjadi fondasi semua query bisnis, dan risiko kritis yang tidak menunggu fase lain ditutup.
+- **Scope:**
+  1. `TenantContext` (resolusi tenant dari aktor di server; fail-closed tanpa konteks pada mode SaaS) — desain Blueprint J.2.1.
+  2. Audit kepemilikan tenant seluruh model/tabel (memakai klasifikasi J.3) + migrasi `tenant_id` pada tabel milik tenant yang belum punya.
+  3. `TenantScope` + pola bypass platform teraudit (J.2.2); validasi cabang ∈ tenant aktor (J.2.3).
+  4. **Gerbang darurat backup:** rute backup tingkat instalasi hanya untuk aktor platform / konteks instalasi individual (menutup risiko kritis J.3 sebelum Fase 5).
+  5. Konteks tenant pada job antrean & scheduler (J.2.6); awalan tenant pada cache & storage (J.2.4–5).
+  6. Penanganan akun warisan tanpa tenant (tenantless): inventaris + aturan eksplisit (aktor tanpa tenant = instalasi individual; pada instansi SaaS bersama, akun tenantless non-platform tidak boleh ada — migrasi/penolakan terdokumentasi).
+  
+  *Catatan penyelarasan (2026-11-12): rumusan awal butir 4 & 6 menyederhanakan aktor tanpa tenant sebagai "instalasi individual". Implementasi final mengikuti lima mode `TenantContext` yang kini berlaku: pengecualian instalasi individual hanya untuk `MODE_STANDALONE`; akun tanpa tenant pada instansi bertenant diakui keberadaannya sebagai `MODE_UNASSIGNED` yang gagal-tertutup (bukan "tidak boleh ada", melainkan tidak memperoleh hak apa pun). Rumusan lama dipertahankan di atas sebagai sejarah rancangan.*
+- **Dependencies:** Fase 0 lulus. Keputusan OD-1/OD-2 memengaruhi urgensi, bukan bentuk fondasi.
+- **Deliverables:** service + scope + migrasi + test fondasi; Blueprint J.1 diperbarui ke keadaan baru.
+- **Acceptance criteria:** AC-ISO-03 lulus (backup tertutup untuk tenant di mode bersama); request tanpa konteks tenant pada mode SaaS gagal tertutup pada jalur uji; bypass platform tercatat di audit log; tidak ada regresi suite penuh.
+- **Test requirements:** regresi penuh + konkurensi; test unit TenantContext (resolusi, fail-closed, bypass); test HTTP gerbang backup (tenant ditolak, platform lolos, individual lolos).
+- **Risks:** scope global yang keliru mengunci pengguna sah (lockout massal) → mitigasi: mode peringatan (log-only) satu rilis sebelum penegakan penuh; migrasi `tenant_id` pada tabel besar → jendela pemeliharaan + indeks lebih dulu.
+- **Exit criteria:** semua acceptance lulus dengan bukti CI; mode penegakan penuh aktif; laporan gerbang standar G.4.
+- **Status: Selesai (Fase 0 master-roadmap, PR #23–#33, merge s.d. `c4af9c87`)** — keenam butir scope terpenuhi: `TenantContext` lima mode + `TenantScope`; audit kepemilikan & stempel tenant tabel bisnis; validasi cabang ∈ tenant; gerbang backup platform (butir 4); konteks sistem eksplisit pada perintah terjadwal & pagar ember pada job; aturan akun tanpa tenant (mode standalone/unassigned/guest) terdokumentasi di POLA-POLICY + ADR-022. Bukti: suite 629 test hijau di head PR #33, CI 5/5 per PR.
 
-## 3. Peta Fase (ringkasan)
+## Fase 2 — Business Data Isolation
 
-| Fase | Nama | Isi inti | Gerbang keluar (inti) | Milestone |
-|---|---|---|---|---|
-| 0 | Fondasi | Scaffold, CI, Identity, pagar cabang, audit, pola UI | Matriks keamanan Identity lulus; CI wajib hijau | **MS-0 Fondasi Terkunci** |
-| MVP | Inti Operasional | Katalog → Resep → Penjualan → Lab dasar → Pembelian → Stok → Jurnal dasar → Laporan → Dashboard | Siklus toko penuh tanpa selisih; smoke test owner | **MS-1 Toko Berjalan** |
-| 1 | Akuntansi Penuh | CoA Coretax, buku besar, laporan keuangan, aset, tutup buku, (payroll*) | Periode contoh rekonsiliasi 100%; periode terkunci menolak posting | **MS-2 Keuangan Utuh** |
-| 2 | QC & Lab | QC 13 titik, PR otomatis dari penjualan, status proses turunan | Complete mustahil tanpa QC lulus; edging mustahil sebelum lensa diterima (test negatif) | **MS-3 Lab Terlacak** |
-| 3 | Penjualan+, WA, Member | DP/split/cicilan, komisi dokter, gateway WA, membership & poin, portal | Skenario cicilan rekonsiliasi; log WA 100%; poin seimbang | **MS-4 Pelanggan Terhubung** |
-| 4 | Inventaris+, Analitik, API | Opname, gerbang costing/FIFO, expiry, label, analitik, API | Opname terekonsiliasi; keputusan costing ter-ADR | **MS-5 Gudang Cerdas** |
-| 5 | Riset | Spike AI asisten, fitting AI, offline kasir | Laporan kelayakan per butir | **MS-6 Peta Masa Depan** |
+- **Objective:** data bisnis satu tenant tidak dapat dibaca/diubah/diekspor tenant lain dalam satu instansi.
+- **Scope (per kelompok, masing-masing satu modul):** Customer · Prescription · Product & ProductParent · Supplier, Insurance, Doctor & master lain · Sales & invoice · Inventory (gerakan, lapisan FIFO, transfer, opname) · Purchasing (PR/PO/receipt/pembayaran) · Reports & exports. Termasuk penyesuaian ADR-012 sesuai keputusan OD-2 (master menjadi per tenant pada mode SaaS) dan `document_counters` per tenant.
+- **Dependencies:** Fase 1 lulus (TenantContext + TenantScope + pola bypass). OD-2 diputuskan.
+- **Deliverables:** pagar tenant per kelompok + migrasi pengisian `tenant_id` dari kepemilikan cabang + test negatif antar-tenant per kelompok.
+- **Acceptance criteria:** AC-ISO-01 lulus untuk **setiap** kelompok pada scope (URL langsung 403/404; daftar bersih; ekspor bersih; cetakan bersih); transaksi sah intra-tenant tidak berubah perilaku (regresi penuh hijau); penempelan transaksi ke master tenant lain ditolak di service.
+- **Test requirements:** per kelompok: test positif intra-tenant + negatif antar-tenant (baca, tulis, ekspor); regresi penuh + konkurensi di gerbang fase.
+- **Risks:** master yang selama ini global dipakai bersama oleh data historis campuran (instalasi individual lama) → migrasi pengisian harus memetakan kepemilikan dari cabang asal & menyediakan laporan pengecualian; risiko performa scope pada laporan berat → indeks `(tenant_id, …)` per tabel panas.
+- **Exit criteria:** seluruh kelompok lulus AC-ISO-01 dengan ID run CI dikutip; ADR-012 direvisi statusnya sesuai hasil.
+- **Status: Selesai (Fase 0 master-roadmap)** — pagar tenant per kelompok ter-merge: master (S-02, PR #28), pagar cabang/tenant transaksi (PR #29), dokter & membership (PR #30), akuntansi inti (PR #31) & satelitnya (PR #32), penutupan temuan lintas modul (PR #33), partisi gudang garansi (B-02, PR #34). ADR-012 disesuaikan OD-2 (global di dalam tenant). **Satu pengecualian yang dicatat jujur:** `document_counters` tetap per instalasi (nomor dokumen global; kandidat modul tersendiri, bukan penahan fase ini).
 
-\* Payroll: keputusan owner — Fase 1 atau Fase 4 (lihat Bagian 10).
+## Fase 3 — Identity & Configuration Isolation
 
-## 4. Dependensi Antar Fase (gambaran)
+- **Objective:** identitas & konfigurasi menjadi milik tenant: peran, pengaturan, gateway komunikasi, dan jejak audit.
+- **Scope:** role & permission per tenant (klon templat saat provisioning; matriks bawaan tidak lagi dibagi) · settings per tenant · WhatsApp gateway/template/inbox/kampanye per tenant (mengikuti OD-4) · kolom `tenant_id` audit log + pembacaan terpagar · token API & perangkat offline terikat tenant secara eksplisit.
+- **Dependencies:** Fase 1 lulus; Fase 2 dianjurkan selesai lebih dulu (pola pagar yang sama). OD-4 diputuskan untuk butir WhatsApp.
+- **Deliverables:** migrasi + kloning templat peran pada provisioning (termasuk tenant yang sudah ada) + pagar konfigurasi + test negatif.
+- **Acceptance criteria:** Tenant Owner A yang mengubah peran/pengaturan/gateway tidak mengubah apa pun yang terlihat/berlaku di tenant B (diuji); audit log tenant hanya memuat baris tenant itu; provisioning tenant baru menghasilkan peran & pengaturan bawaan yang identik dengan templat.
+- **Test requirements:** test negatif konfigurasi antar-tenant; test provisioning; regresi penuh.
+- **Risks:** tenant lama yang terlanjur berbagi baris peran — perubahan perilaku sesudah kloning → mitigasi: kloning menyalin keadaan efektif saat migrasi, bukan templat bawaan.
+- **Exit criteria:** acceptance lulus; tidak ada lagi baris konfigurasi bersama yang dapat diubah tenant pada instansi bersama.
+- **Status: Selesai sebagian besar (Fase 0 master-roadmap)** — isolasi pengelolaan pengguna (2026-10-30); role kustom per tenant + role bawaan templat + settings per tenant (S-03, PR #27); token API & perangkat offline terikat ember tenant (PR #33); pembacaan audit log terpagar cabang/konteks (kolom `tenant_id` khusus belum ada). **Sisa:** gateway/template/inbox/kampanye WhatsApp per tenant — menunggu keputusan **OD-4**.
 
-```
-Fase 0 ──► MVP ──► Fase 1 ──┬─► Fase 2
-                            ├─► Fase 3 (jurnal piutang/komisi/poin butuh F1)
-                            └─► Fase 4 (analitik butuh laporan keuangan F1)
-Fase 2, 3, 4 ──► Fase 5 (riset di atas sistem yang utuh)
-```
-Fase 2 dapat berjalan sejajar sesudah Fase 1 bila sumber daya memungkinkan, tetapi rilisnya tetap berurutan dan masing-masing bergerbang sendiri.
+## Fase 4 — SaaS Lifecycle & Operations
 
-## 5. FASE 0 — FONDASI
+- **Objective:** siklus hidup tenant lengkap & aman dioperasikan: aktivasi, suspensi, langganan, kuota, onboarding, offboarding.
+- **Scope:** penegakan `tenants.is_active` (tolak login + putus sesi; J.2.9) · Subscription & PlanGate (sudah ada — pengerasan: penumpukan sisa masa saat konfirmasi, penagihan akun tambahan Team) · kuota & batas (sudah ada — audit kelengkapan seluruh jalur pembuatan entitas) · onboarding (verifikasi email + CAPTCHA/anti-penyalahgunaan pendaftaran) · offboarding (aliran status: aktif → nonaktif → masa tenggang → arsip/hapus, bersama Fase 5 untuk ekspor).
+- **Dependencies:** fondasi langganan sudah terbangun (Fase 1 SaaS 2026-10-29); butir suspensi membutuhkan Fase 1 (konteks) untuk instansi bersama; offboarding membutuhkan Fase 5.
+- **Deliverables:** penegakan suspensi + test; pengerasan billing; gerbang anti-penyalahgunaan pendaftaran; prosedur offboarding terdokumentasi.
+- **Acceptance criteria:** AC-ISO-02 lulus (tenant tersuspensi tertolak total, termasuk sesi berjalan); pendaftaran bot tertahan CAPTCHA/verifikasi tanpa mengubah alur sah (test); konfirmasi billing dengan sisa masa aktif menghasilkan `expires_at` sesuai aturan yang diputuskan (dicatat sebagai revisi PRD bila berubah).
+- **Test requirements:** test suspensi (login, request berjalan, penjadwalan); test billing lanjutan; regresi penuh.
+- **Risks:** suspensi yang keliru mengunci tenant membayar → mitigasi: suspensi selalu reversible dari panel + teraudit + pemberitahuan tercatat.
+- **Exit criteria:** acceptance lulus; runbook operasi diperbarui (DEPLOY-RUNBOOK) untuk prosedur suspensi/offboarding.
+- **Status: In Progress** — fondasi siklus hidup (Plan, Subscription, Billing, kuota, panel, pendaftaran) **sudah terbangun & teruji** pada Fase 1 SaaS 2026-10-29; **suspensi tenant sudah ditegakkan** (S-01: login & akses ditolak). Yang tersisa: anti-penyalahgunaan pendaftaran (menunggu pilihan anti-bot pemilik proyek), pengerasan billing lanjutan, dan offboarding (menunggu OD-5).
 
-**Tujuan:** kerangka yang membuat semua modul berikutnya aman dibangun: identitas, pagar cabang, pola uji, dan pipeline.
+## Fase 5 — Backup, Export & Recovery
 
-| Tugas | Hasil yang diserahkan | Dependensi |
-|---|---|---|
-| F0.1 Scaffold & CI | Repo berisi aplikasi Laravel 13 terstruktur `app/Modules/*`; workflow CI 5 job (Blueprint G.2) berjalan dan hijau pada commit kerangka; aturan branch: PR ke `main`, tanpa push langsung | — |
-| F0.2 Identity & Master dasar | Migrasi + seeder Bagian B.1 & registry izin Bagian C; UI: login, daftar pengguna, peran & matriks izin, cabang; aktor `is_platform` terpisah dari pelaku bisnis | F0.1 |
-| F0.3 Pagar cabang | `BranchContext`, global scope cabang, pola Policy per sumber daya, helper `managedBranchIds()` | F0.2 |
-| F0.4 Perkakas lintas | Helper `Money` (integer-sen), `AuditLogger`, pemindai pola terlarang (bc*, float-uang, izin di luar registry) sebagai job CI + `ArchitectureTest` | F0.1 |
-| F0.5 Pola UI & dokumen | Token desain + komponen bersama bahasa **clean/modern/elegan** (Blueprint F.2.0) terimplementasi; layout bersama (header, filter bar, tabel sort, paginasi); pola **halaman detail penuh** (bukan preview/modal/drawer) dibuktikan pada satu modul contoh ujung-ke-ujung; mesin cetak dasar + satu dokumen contoh (A5) | F0.2 |
-| F0.6 Lingkungan uji | Instalasi uji (staging lokal/server uji) dengan checklist paritas lingkungan (Blueprint G.3) terdokumentasi | F0.1 |
+- **Objective:** pemulihan bencana tingkat platform dan kedaulatan data per tenant berjalan berdampingan tanpa saling membocorkan.
+- **Scope:** platform-wide DR backup (mekanisme ada — formalisasi jadwal, offsite, uji restore berkala) · **tenant data export** (semua tabel milik tenant, terfilter kepemilikan, format terdokumentasi) · **tenant restore** dari ekspor sendiri dengan validasi kepemilikan & integritas · operational backup (otomatis 02:00 — sudah ada) · otorisasi & audit unduhan sesuai Blueprint J.5.
+- **Dependencies:** Fase 1 (konteks & klasifikasi kepemilikan final) dan Fase 2 (kepemilikan data bisnis sudah eksplisit per tabel — ekspor yang benar mustahil sebelum ini).
+- **Deliverables:** layanan ekspor per tenant + restore per tenant + test integritas (hitung baris per tabel, checksum) + prosedur DR tertulis.
+- **Acceptance criteria:** ekspor tenant A yang diperiksa baris-per-tabel tidak memuat satu pun baris tenant B; restore ekspor A ke instansi uji menghasilkan tenant yang berfungsi (login Owner, saldo stok & jurnal cocok) tanpa mengubah tenant lain di instansi tujuan; Tenant Owner tetap tidak dapat menyentuh snapshot global (AC-ISO-03 tetap lulus).
+- **Test requirements:** test ekspor/restore ujung-ke-ujung dua tenant; uji restore DR tahunan dinyatakan sebagai prosedur (bukan hanya test otomatis).
+- **Risks:** ekspor yang tidak lengkap (tabel terlewat) memberi rasa aman palsu → mitigasi: daftar tabel ekspor diturunkan dari klasifikasi J.3 secara mekanis + test yang gagal bila tabel baru belum terklasifikasi.
+- **Exit criteria:** acceptance lulus; prosedur DR + ekspor menjadi bagian runbook.
+- **Status: Selesai untuk ekspor; restore per tenant diputuskan tidak dibangun** — backup tingkat instalasi berjalan dan tergerbang platform (`backups.manage` + BackupPolicy); **ekspor data per tenant Implemented (B-03, PR #35)** dengan registry klasifikasi tabel mekanis (89 tabel) + test kelengkapan + test negatif dua tenant. Restore per tenant: keputusan pemilik proyek 11 Nov 2026 untuk tidak membangunnya (restore tetap whole-DB platform). **Sisa:** formalisasi offsite & uji restore DR berkala (menunggu kredensial penyimpanan eksternal).
 
-**Gerbang keluar Fase 0 (semua wajib):**
-- [x] CI hijau penuh pada run yang dikutip. *(Run dikutip per modul pada laporan tugas; tip terakhir terverifikasi pada laporan konsolidasi 2026-10-23.)*
-- [x] Matriks keamanan 6 kasus lulus pada modul Identity (termasuk aktor platform ditolak dari aksi bisnis & IDOR antar cabang).
-- [x] Pemindai pola terlarang terbukti bekerja — bukti 2026-10-23: berkas uji lokal berisi `bcadd(` membuat `tools/scan-forbidden.sh` (langkah yang sama dengan job CI "Pindai statis") keluar DITOLAK (exit 1); pohon bersih exit 0. Berkas uji dihapus, tidak pernah di-commit.
-- [x] Owner menyetujui pola UI pada modul contoh — termasuk tampilan clean/modern/elegan dan pola halaman detail penuh (bukan model preview). *(Catatan 2026-10-23: persetujuan awal 2026-10-17 memakai **Varian A (header ramping)**; tata letak kemudian DIGANTI owner menjadi SIDEBAR — ADR-013, 2026-10-18 — dan pola tombol diganti sejajar — ADR-018.)*
-- [x] Laporan gerbang memenuhi standar bukti Blueprint G.4.
-**Risiko & mitigasi:** godaan memulai fitur sebelum fondasi selesai → gerbang ini eksplisit; tidak ada pengecualian "sekalian".
+## Fase 6 — Security & Production Readiness
 
-## 6. MVP — INTI OPERASIONAL
-
-**Tujuan:** Lentera dapat menjalankan satu toko optik sungguhan dari ujung ke ujung (milestone **MS-1 Toko Berjalan**).
-
-| Tugas | Hasil yang diserahkan | Dependensi |
-|---|---|---|
-| M.1 Catalog | Skema B.2 + service + UI lima tipe produk (frame/lensa/RX/softlens/aksesori) + atribut per tipe | F0 |
-| M.2 CRM & Clinical | Pelanggan + resep grid OD/OS terkunci-sesudah-terpakai + precal 11 parameter (MANUAL per item sejak ADR-019; `PrecalService` otomatis dicabut) + test pemindaian PDR/PDL pada output & cetakan | F0 |
-| M.3 Sales inti | Buat transaksi (snapshot resep & harga), pembayaran append-only (multi-metode, tanpa split/DP dulu), dokumen Orderan/Resep/Invoice dengan satu tombol cetak per konteks, void ber-alasan dengan pembalikan penuh | M.1, M.2 |
-| M.4 Inventory inti | `stock_movements` + `InventoryService` single-writer + stok per cabang + integrasi stok keluar di penjualan (frame/aksesori anti-negatif; lensa boleh backorder berbendera) | M.1; integrasi → M.3 |
-| M.5 Lab dasar | `lens_processes`, antrean dengan hari berjalan & sorotan lewat estimasi, assign teknisi, `complete()` (durasi membeku; penyelesaian kedua ditolak) | M.3 |
-| M.6 Purchasing ujung ke ujung | PR (submit/approve/convert + gabung se-supplier) → PO → penerimaan bertahap → pembayaran tunggal → **pembayaran kolektif FIFO** dengan kontrak anti-tercatat-sebagian + test injeksi kegagalan + retur pembelian | M.1, M.4 |
-| M.7 Transfer distribusi | Kirim per item dari detail PO (sisa terhitung), dokumen transfer, penerimaan di cabang tujuan, stok dalam perjalanan terlihat di laporan | M.6 |
-| M.8 Impor stok awal | Template 2 sheet (ID/Nama cabang), preview validasi penuh (nol impor sebagian senyap), commit satu transaksi, policy eksplisit peran tertinggi | M.4 |
-| M.9 Jurnal otomatis dasar | Listener posting untuk Sale/Receipt/Payment/Returns (template Blueprint E.1) + jurnal balik untuk void + daftar jurnal baca-saja | M.3, M.6 |
-| M.10 Laporan inti | Penjualan, Pembelian (bruto + kolom Retur + neto), Stok, Ringkasan Utang Supplier — ekspor Excel setara angka layar (diuji) | M.9 |
-| M.11 Dashboard operasional | Kartu & daftar per peran sesuai PRD Detail Bagian 1 dengan pagar cabang | M.3, M.5, M.6 |
-
-**Gerbang keluar MVP (semua wajib):**
-- [x] Seluruh test Blueprint G.1 hijau, termasuk injeksi kegagalan pembayaran kolektif (nol sisa baris) dan pemindaian PDR/PDL.
-- [x] Siklus penuh di instalasi uji: (1) jual frame+lensa dengan resep → proses → Complete; (2) PR→PO→terima bertahap→bayar kolektif 3 receipt FIFO; (3) transfer dari PO→terima di cabang lain; (4) impor stok awal satu cabang — semua tanpa selisih stok/jurnal (dibuktikan test rekonsiliasi & konkurensi pada suite).
-- [ ] Smoke test owner di instalasi uji untuk 4 siklus di atas.
-- [x] Angka CI dikutip dengan ID run; laporan gerbang standar G.4.
-**Risiko & mitigasi:** pembayaran kolektif adalah titik paling rawan (riwayat bug produksi di proyek pendahulu) → kontrak D.7 + injeksi kegagalan adalah gerbang, bukan saran. Resep/combobox: pilihan pelanggan di formulir resep wajib ter-registrasi sebelum simpan (kasus tepi D.5 diuji eksplisit).
-
-## 7. FASE 1 — AKUNTANSI PENUH
-
-**Tujuan:** dari jurnal transaksi menjadi keuangan yang dapat ditutup per periode (milestone **MS-2 Keuangan Utuh**).
-
-| Tugas | Hasil | Dependensi |
-|---|---|---|
-| F1.1 CoA & bagan akun | `accounts` + seeder bagan selaras Coretax + UI kelola akun (nonaktif, bukan hapus) | MVP |
-| F1.2 Buku besar | Ledger per akun/periode dengan penelusuran ke jurnal sumber | F1.1 |
-| F1.3 Laporan keuangan | Neraca; Laba Rugi total & per cabang (dimensi `branch_id` di baris jurnal); Arus Kas sederhana; ekspor | F1.2 |
-| F1.4 Aset tetap | Master aset + job penyusutan bulanan terjurnal | F1.1 |
-| F1.5 Tutup buku | `period_locks` ditegakkan di PostingService untuk SEMUA modul; UI lock/unlock (unlock: Owner + alasan + audit) | F1.3 |
-| F1.6 Dashboard keuangan | Piutang, utang, LR ringkas per cabang di Dashboard Owner | F1.3 |
-| F1.7 Payroll & komisi* | Payroll per periode terjurnal; komisi dokter & teknisi dari data final (void mengoreksi) | F1.1 |
-
-**Gerbang keluar Fase 1:**
-- [x] Periode contoh (data uji sebulan penuh) rekonsiliasi 100%: total laporan = total jurnal; neraca seimbang.
-- [x] Posting bertanggal periode terkunci ditolak dari minimal tiga modul berbeda (Penjualan, Pembelian, Jurnal Manual) — dibuktikan test. *(Bukti terverifikasi 2026-10-23: `PeriodCloseTest::test_locked_period_rejects_postings_from_three_modules` — penjualan, penerimaan pembelian, dan jurnal manual HTTP masing-masing gagal total tanpa sisa baris/stok.)*
-- [x] Uji paralel: laporan manual (spreadsheet dari data yang sama) cocok dengan laporan sistem untuk periode contoh. *(Bukti 2026-10-23: `ParallelReportComparisonTest` — seluruh baris jurnal periode contoh dijumlahkan ulang baris demi baris di luar FinancialReportService; laba rugi + neraca cocok persis, termasuk isolasi periode.)*
-**Risiko:** kesalahan template posting bersifat sistemik → setiap template E.1 memiliki test debit/kredit sendiri sebelum F1.3 dimulai.
-
-## 8. FASE 2 — QC FASET & PROSES LAB
-
-**Tujuan:** proses lensa terlacak titik-demi-titik dengan akuntabilitas teknisi (milestone **MS-3 Lab Terlacak**).
-
-| Tugas | Hasil | Dependensi |
-|---|---|---|
-| F2.1 Template QC | Seeder 13 titik bawaan + UI kelola titik (wajib/tidak, urutan, aktif) | MVP |
-| F2.2 Perekaman QC | `qc_checks` per percobaan (riwayat tidak ditimpa), catatan wajib saat gagal, syarat Complete menegakkan semua titik wajib lulus | F2.1 |
-| F2.3 Koreksi paritas Artesis (keputusan owner 2026-10-18) | Order lab sebagai dokumen DICABUT; pengganti: PR otomatis dari penjualan (`purchase_requests.sale_id`; RX selalu, stok hanya kekurangan) + status proses turunan PR→PO→terima + edging tergerbang penerimaan lensa | F2.2, M.6 |
-
-**Gerbang keluar Fase 2:**
-- [x] Test negatif: Complete ditolak selama ada titik QC wajib yang belum lulus/gagal — untuk semua jalur (UI & service).
-- [x] Orderan uji ujung-ke-ujung mengikuti rantai Artesis (jual RX → PR otomatis → PO → terima → edging → QC gagal 1 titik → perbaiki → lulus → Complete) tercatat lengkap dengan teknisi & waktu; edging sebelum terima terbukti ditolak.
-
-## 9. FASE 3 — PENJUALAN DIPERLUAS, WHATSAPP, MEMBERSHIP
-
-**Tujuan:** penjualan fleksibel seperti praktik toko nyata, pelanggan terhubung lewat WA, dan loyalitas tercatat akuntansi (milestone **MS-4 Pelanggan Terhubung**).
-
-| Tugas | Hasil | Dependensi |
-|---|---|---|
-| F3.1 DP, split, PPN per transaksi | DP menjadi piutang terjadwal; split multi-metode dalam satu transaksi; mode PPN inklusif/eksklusif per transaksi | MVP |
-| F3.2 Cicilan & piutang | `sale_installments`, daftar umur piutang (lancar/>30/>60/>90), penerimaan cicilan terjurnal | F3.1, F1 |
-| F3.3 Dokter perujuk & komisi | Dokter di transaksi; komisi terakru per periode; koreksi otomatis saat void | F3.1, F1.7 |
-| F3.4 Gateway WA | Antarmuka `MessagingGateway`, implementasi **Meta Cloud API langsung** (keputusan owner 2026-10-18, sementara — dapat diganti lewat antarmuka), kredensial & konfigurasi diatur via UI Pengaturan, antrean + coba-lagi 3×, log kirim lengkap | F3.1 |
-| F3.5 Otomasi pesan | Invoice via WA dari transaksi; reminder pengambilan & after-service terjadwal; ucapan ulang tahun; kegagalan gateway tidak menggagalkan transaksi | F3.4 |
-| F3.6 Membership & poin | Level member; poin earn/redeem/expire dengan jurnal liabilitas; daftar follow-up after-service | F3.1, F1 |
-| F3.7 Portal member | Halaman publik ber-token (hash disimpan, dapat dicabut): poin, riwayat beli, status orderan | F3.6, F3.4 |
-| F3.8 Inbox & kampanye | Inbox dua arah tertempel ke pelanggan; kampanye bersegmen dengan persetujuan Owner wajib + opt-out dihormati | F3.4 |
-
-**Gerbang keluar Fase 3:**
-- [x] Skenario gabungan (DP + split 2 metode + 3 cicilan sampai lunas) rekonsiliasi penuh: transaksi = pembayaran = piutang = jurnal = laporan.
-- [x] 100% pesan keluar tercatat di log dengan status; uji kegagalan gateway: transaksi tetap tersimpan, pesan masuk antrean ulang.
-- [x] Saldo liabilitas poin di jurnal = Σ poin aktif di `points_ledger`.
-
-## 10. FASE 4 — INVENTARIS LANJUT, ANALITIK, API
-
-**Tujuan:** gudang disiplin dan keputusan berbasis data (milestone **MS-5 Gudang Cerdas**).
-
-| Tugas | Hasil | Dependensi |
-|---|---|---|
-| F4.1 Opname terjadwal | Jadwal → lembar hitung (snapshot) → review → approval menerbitkan gerakan selisih; kunci mutasi cabang selama counting | MVP |
-| F4.2 **Gerbang costing** | Laporan audit metode berjalan vs FIFO (dampak ke nilai persediaan & HPP) → **keputusan owner tertulis** → ADR baru → implementasi metode terpilih + migrasi nilai. **DIPUTUSKAN 2026-10-18: FIFO per cabang (ADR-014 di Blueprint)** — implementasi **SELESAI di Fase 4** (ADR-014) | F1 |
-| F4.3 Expiry softlens | Peringatan < 90 hari di daftar & dashboard; penjualan softlens kedaluwarsa diblokir | MVP |
-| F4.4 Label barcode | Cetak massal EAN-13/Code 128 per produk/batch penerimaan | MVP |
-| F4.5 Analitik | Supplier Analytics (lead time, retur) & Sales Analytics (terlaris, margin, tren cabang) | F1 |
-| F4.6 API read-only | Token bercakupan baca, pencatatan pemakaian, pencabutan seketika | F0 |
-| F4.7 Payroll* | *(bila owner menunda dari Fase 1)* payroll + laporan gaji | F1 |
-
-**Gerbang keluar Fase 4:**
-- [x] Satu siklus opname penuh terekonsiliasi ke jurnal persediaan.
-- [x] Keputusan costing terdokumentasi sebagai ADR dan angka persediaan pasca-migrasi cocok dengan laporan auditnya.
-- [x] Angka analitik = angka laporan sumber pada dua periode uji.
-
-## 11. FASE 5 — RISET → DIPUTUSKAN BANGUN (ketiganya selesai dibangun 2026-10-18)
-
-Setiap butir berjalan sebagai **spike terbatas**: pertanyaan jelas → prototipe/uji terbatas → laporan kelayakan (nilai bisnis, biaya, risiko privasi, kompleksitas) → keputusan owner terpisah (bangun / tunda / coret). Ketiga butir akhirnya DIPUTUSKAN BANGUN oleh owner 2026-10-18 dan selesai dibangun — lihat Keputusan owner di bawah bab ini.
-
-| Spike | Pertanyaan yang dijawab |
-|---|---|
-| F5.1 Asisten AI bisnis | Apakah tanya-jawab read-only atas data toko (owner-only, dasar data selalu ditampilkan, kredensial AI milik pemilik) cukup akurat & aman pagar cabangnya untuk dibangun? |
-| F5.2 Fitting AI | Apakah pengukuran PD/dimensi wajah dari kamera toko cukup andal (toleransi terukur vs alat ukur manual) tanpa menyimpan foto? |
-| F5.3 Offline kasir | Apakah antrean transaksi lokal + sinkronisasi (konflik stok, nomor struk per perangkat, pembayaran) dapat dibuat aman untuk internet mati berjam-jam? |
-
-**Gerbang keluar Fase 5:** tiga laporan kelayakan diterima owner; keputusan per butir tercatat sebagai revisi roadmap/ADR.
-
-**Keputusan owner 2026-10-18 (laporan di `docs/spikes/`):**
-- F5.1 Asisten AI bisnis — **BANGUN** (keputusan owner 2026-10-18 17:04): kredensial model AI (endpoint + API key + nama model) diatur owner lewat UI Pengaturan, terenkripsi, pola Gateway WA. **SELESAI DIBANGUN 2026-10-18** (Pengaturan AI + halaman /asisten owner-only; penerjemah intent daftar putih; angka hanya dari service internal + dasar data ditampilkan; gerbang gabungan 308 test/1837 asersi, CI 39120292820 SUCCESS).
-- F5.2 Fitting AI — awalnya **TUNDA + validasi fisik**, lalu **diubah owner 2026-10-18 17:04 menjadi BANGUN sekarang**. Pagar keamanan laporan tetap berlaku di dalam produk: angka kamera bersifat pendamping (rujukan pupilometer tetap ditampilkan), foto tidak pernah disimpan, hanya angka yang disimpan. Protokol validasi (`docs/spikes/F5.2-protokol-validasi.md`) tetap tersedia untuk dijalankan kapan pun. **SELESAI DIBANGUN 2026-10-18** (halaman ukur kamera di perangkat dari detail pelanggan; simpan angka fitting + PD rujukan; rekomendasi ukuran frame S/M/L; gerbang gabungan yang sama).
-- F5.3 Offline kasir — **BANGUN.** Cakupan v1 sesuai laporan: fondasi server (client_uuid idempoten, registri perangkat bertoken, endpoint sinkronisasi, antrean pengecualian + UI resolusi) lalu klien kasir PWA offline-first (snapshot katalog, antrean lokal, tunai-saja offline, satu perangkat per cabang). **SELESAI 2026-10-18** (fondasi + klien; gerbang 302 test/1799 asersi).
-
-## 11.5 Penutupan Celah Paritas Artesis (2026-10-18)
-
-Audit paritas kode Artesis vs Lentera (atas permintaan owner) menemukan inti operasional sudah setara; celah terbesar — **Garansi/After-Sales** — ditutup sebagai modul tambahan mengikuti alur Artesis: kasus per item → barang lama ke gudang utama (`branches.is_main_warehouse`) → inspeksi (baik kembali ke stok / rusak menjadi stok rusak) → write-off ber-alasan → pengganti dari stok atau PO khusus → kirim & terima → pembayaran biaya pelanggan → selesai, dengan jurnal Beban Garansi (5-1700) & Pendapatan Garansi (4-1300) dan tiga alasan gerakan stok baru (`warranty_return/out/in`; matriks Blueprint kini 13 alasan). Menu: Penjualan → Garansi (terlihat sales.view atau stock.view). Celah lain hasil audit (matriks stok lensa, penampil log aktivitas, pemakaian asuransi, insentif berkala, backup dalam aplikasi, ekspor xlsx) belum dikerjakan — menunggu keputusan owner berikutnya. **Keputusan owner lanjutan 2026-10-18:** model menu produk disamakan dengan Artesis dan ditambah gambar — dikerjakan sebagai **modul fondasi katalog dua tingkat (ADR-015)**: induk produk (`product_parents`) → varian berkekuatan sendiri (SPH/CYL/ADD lensa, power softlens), `products` tetap unit stok tunggal, gambar per varian. Modul ini membuka jalan bagi matriks stok lensa (modul tampilan terpisah sesudahnya). **Matriks stok lensa DIBANGUN 2026-10-19 sebagai alat bantu PO & opname (bukan menu, keputusan owner), lalu MODELNYA DISELARASKAN dengan Artesis pada hari yang sama atas penilaian owner:** rentang lengkap langkah 0,25 (SV SPH×CYL; Progresif SPH×ADD per sisi mata R/L; Bifokal SPH×ADD), saringan index/coating, dan sel kosong di PO melahirkan varian baru — lihat ADR-015 pada Blueprint. **Dashboard dinamis + grafik laporan DIBANGUN 2026-10-19** (perintah owner): dashboard seluruh kartu + grafik mengikuti periode (hari ini/7 hari/30 hari/bulan ini) via endpoint JSON fragmen server-rendered + auto-refresh; grafik SVG server-side (line tren penjualan + doughnut komposisi di dashboard; tren cabang + doughnut kategori di Analitik) — catatan di ADR-015 Blueprint.
-
-**Penutupan celah paritas LANJUTAN — perintah owner 2026-10-19 "Kerjakan semua" (SELESAI 2026-10-19 malam):** ketujuh celah tersisa ditutup sebagai modul M1–M7, masing-masing dengan gerbang regresi penuh + konkurensi dan CI hijau: **M1 Penampil Log Aktivitas** (Pengaturan → Log Aktivitas; sepagar `settings.manage`; pagar cabang BranchContext; detail halaman penuh nilai lama/baru). **M2 Limit Kredit Formal** (`customers.credit_limit`, NULL = tanpa limit; penjualan baru yang menembus limit ditolak SalesService; piutang beredar tampil di detail pelanggan). **M3 Pemakaian Asuransi** (klaim menjadi kaki pembayaran metode `insurance` — bukan diskon, bukan pilihan manual kasir — Dr Piutang Asuransi 1-1700; snapshot `insurance_usages`; penerimaan klaim bertahap di Penjualan → Klaim Asuransi). **M4 Insentif Berkala** (aturan persen/flat per peran ± produk; generate periode per penerima per cabang; penyesuaian saat draf; setujui Owner/Admin Dr Beban Insentif 5-1800 / Cr Utang Insentif 2-1600; bayar melunasi). **M5 Ekspor XLSX Asli** (`App\Support\XlsxWriter` OOXML murni PHP; `?format=xlsx` pada laporan inti, laporan keuangan, piutang, analitik; ekspor grid matriks PO). **M6 Backup & Restore Dalam Aplikasi** (Pengaturan → Backup & Restore; snapshot ZIP-JSON seluruh tabel; restore Owner-only + ketik RESTORE + backup keselamatan `pra-restore`). **M7 Privileged Recovery** (jalur publik `/pemulihan-akun` khusus Owner aktif; respons generik anti-enumerasi; token broker standar; semua percobaan teraudit `recovery.requested`). Keadaan akhir rangkaian: **350 test / 2121 asersi hijau**, GitHub main `fd891f3` (M7) — dengan ini seluruh celah paritas hasil audit 2026-10-18 dinyatakan TERTUTUP.
-
-**Penyelarasan ulang M2/M3/M4 — perintah owner 2026-10-20 (SELESAI 2026-10-20; ADR-017):** audit ulang membuktikan tiga modul menyimpang dari Artesis dan diperbaiki: **M2** limit kredit dicabut, diganti **Kredit Pelanggan** (voucher CR dari refund kredit toko + penerapan terkontrol; GitHub `a824a2f`, regresi 353/2144). **M3** master asuransi ber-`claim_value` + isian klaim otomatis; penerimaan klaim dicabut; histori menjadi **Laporan Pemakaian Asuransi** (GitHub `a05a3c2`, regresi 354/2148). **M4** mesin insentif ditulis ulang persis Artesis — hanya Lunas, per item, penjual + kepala optik fail-closed, pro-rata retur, clawback ke periode berikutnya, **tanpa jurnal** (akun insentif dicabut), ekspor Excel per periode (GitHub `3fd0e00`, regresi **360 test / 2177 asersi hijau**). M1/M5/M6/M7 tidak berubah.
-
-**Tombol sejajar — perintah owner 2026-10-22 (SELESAI 2026-10-22; ADR-018):** dropdown Aksi/Cetak/aksi-baris dicabut di seluruh aplikasi (54 berkas view) dan diganti tombol-tombol perintah yang selalu terlihat (`AksiBar`/`AksiBaris`/`AksiDialog`); alasan owner: lebih mudah dipahami pemula. GitHub `5405356`, regresi **369 test / 2779 asersi hijau**, CI SUCCESS.
-
-**POS terminal + precal manual — keputusan owner 2026-10-22 (SELESAI 2026-10-22; ADR-019):** layar buat penjualan menjadi terminal kasir satu halaman model Artesis (pencarian async, keranjang, footer ringkasan tetap, status DP/Lunas turunan) dengan fitur khas Lentera dipertahankan (split, cicilan, pajak, diskon transaksi, dokter); precal otomatis terikat resep dicabut dan diganti **precal manual 11 kunci per item RX** terikat frame (tersimpan di item, tersalin ke PR, dilengkapi dari detail penjualan); item RX mewajibkan resep. Regresi **377 test / 2831 asersi hijau** + konkurensi 6/6.
-
-## 12. Kendali Perubahan & Keputusan Eksternal
-
-- **Perubahan cakupan** hanya lewat revisi dokumen ini (atau PRD/Blueprint bila menyangkut perilaku/skema) yang di-commit dan disetujui owner; nomor tugas baru ditambahkan, tidak menyelundup ke tugas berjalan.
-- **Keputusan owner yang menjadi dependensi:** (1) persetujuan roadmap ini + kata "mulai Fase 0"; (2) payroll di Fase 1 atau Fase 4 (memengaruhi urutan F1.7/F4.7); (3) ~~penyedia gateway WhatsApp resmi (gerbang F3.4)~~ DIPUTUSKAN 2026-10-18: Meta Cloud API langsung (sementara); (4) ~~metode costing (gerbang F4.2)~~ DIPUTUSKAN 2026-10-18: FIFO per cabang (ADR-014); (5) penyediaan instalasi uji & — kelak — server produksi per instalasi bisnis (checklist paritas Blueprint G.3).
-- **Pelaporan berjalan:** setiap tugas selesai dilaporkan dengan format tetap (hasil, cakupan berkas, test + ID run CI, commit, sisa risiko); setiap gerbang fase dilaporkan sebagai satu laporan gerbang tersendiri.
-- **Yang tidak dijanjikan roadmap ini:** tanggal kalender. Urutan dan gerbang bersifat mengikat; kecepatan mengikuti lulusnya gerbang, bukan tenggat buatan.
+- **Objective:** pembuktian menyeluruh bahwa instansi bersama aman & layak produksi — atau pernyataan tertulis bahwa belum.
+- **Scope:** cross-tenant negative test suite menyeluruh (semua baris PRD Bagian 6 sebagai test) · IDOR testing per rute detail/aksi · isolasi queue & scheduler di bawah beban campuran tenant · isolasi cache & storage · uji kinerja & kapasitas (berapa tenant kecil–menengah per instansi pada perangkat keras acuan — angka terukur, bukan perkiraan) · security review menyeluruh (termasuk rute backup, token, webhook) · verifikasi independen (penguji selain penulis kode fase) · production readiness assessment tertulis.
+- **Dependencies:** Fase 1–5 lulus (atau subset yang dinyatakan cukup untuk topologi yang dipilih OD-1 — penilaian itu sendiri adalah deliverable fase ini).
+- **Deliverables:** suite negatif antar-tenant permanen di CI; laporan kapasitas terukur; laporan penilaian kesiapan produksi dengan status PASS / PASS DENGAN SYARAT / BELUM LAYAK per topologi.
+- **Acceptance criteria:** seluruh baris PRD Bagian 6 memiliki test yang dikutip; tidak ada temuan keamanan kritis/tinggi yang terbuka; angka kapasitas menyebut perangkat keras, profil beban, dan ambang yang diuji.
+- **Test requirements:** seluruh suite (regresi + konkurensi + negatif antar-tenant) hijau pada run yang sama; uji beban terdokumentasi dapat diulang.
+- **Risks:** tekanan jadwal mengubah penilaian menjadi formalitas → mitigasi: penilai independen + status tertulis yang ditandatangani pemilik proyek.
+- **Exit criteria:** laporan kesiapan diterima pemilik proyek; keputusan produksi per topologi tercatat.
+- **Status: Not Started.**
 
 ---
-*Akhir Roadmap v1.0 — dokumen kendali urutan pembangunan Lentera. Revisi hanya ber-commit dengan persetujuan owner.*
+
+## 3. Yang tidak dijanjikan roadmap ini
+
+- Tanggal kalender. Urutan & gerbang mengikat; kecepatan mengikuti lulusnya gerbang dan keputusan pemilik proyek (OD-1 s.d. OD-6 di PRD).
+- Mode satu instansi bersama di produksi sebelum Fase 6 menyatakan layak untuk topologi itu.
+
+*Akhir Roadmap SaaS v1.0 — revisi hanya ber-commit dengan persetujuan pemilik proyek.*

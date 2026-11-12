@@ -1,29 +1,31 @@
-# PRD DETAIL — LENTERA: Spesifikasi Menu per Menu
+# PRD DETAIL — ARTESIS SaaS: Spesifikasi Menu per Menu
 
 | | |
 |---|---|
-| Dokumen | PRD Detail (pendamping PRD utama v1.0 di `docs/PRD.md`) |
-| Produk | **Lentera** — Sistem Manajemen & POS Toko Optik, model kepemilikan penuh |
-| Versi | 1.0 — 17 Oktober 2026 |
+| Dokumen | PRD Detail (pendamping PRD utama v2.0 di `docs/PRD.md`) |
+| Produk | **Artesis** — SaaS POS Optik & Operational Management (multi-tenant); dokumen ini ditulis pada era nama lama produk (Lentera, model kepemilikan penuh) dan **framing-nya diselaraskan pada D-01 (2026-11-12)** — spesifikasi perilaku per menu di dalamnya tidak diubah |
+| Versi | 1.0 — 17 Oktober 2026 (framing diselaraskan 2026-11-12) |
 | Status | Disetujui owner & terbangun penuh (2026-10-18; diperbarui s.d. 2026-10-23) |
+
+**Konteks tenant (baca sebelum memakai dokumen ini).** Spesifikasi per menu di bawah ditulis untuk satu bisnis optik. Pada produk saat ini, setiap menu beroperasi **di dalam tenant aktor**: seluruh peran yang disebut (Owner, Admin, Kasir, Gudang, Cabang, Refraksionis, Teknisi) adalah peran **di dalam satu tenant**; "seluruh cabang" berarti seluruh cabang **tenant itu**; master pelanggan/resep/produk bersifat global **di dalam tenant** (ADR-012 sebagaimana dikualifikasi OD-2), tidak pernah lintas tenant; aktor platform bukan pelaku bisnis pada menu mana pun. Kontrak otorisasi lengkapnya ada di `docs/POLA-POLICY.md`; persyaratan produknya di `docs/PRD.md`.
 
 **Cara membaca.** Setiap menu dispesifikasikan dengan pola yang sama: **Tujuan** · **Akses** (peran yang boleh) · **Daftar** (kolom tabel, pencarian, filter, urutan bawaan) · **Formulir** (field penting + validasi) · **Aksi** (tombol & akibatnya) · **Aturan kunci** (yang tidak boleh dilanggar sistem). Fase rilis mengikuti PRD utama: **MVP** = rilis pertama; **F1–F5** = fase lanjutan.
 
 **Peran:** Owner (pemilik, seluruh cabang) · Admin (pengelola, izin eksplisit) · Kasir · Gudang · Cabang (staf cabang) · Refraksionis · Teknisi Lab. Prinsip tetap: akses diberikan per peran + pagar cabang di server; platform/pemilik teknis tidak otomatis menjadi pelaku bisnis.
 
 **Peta navigasi (sidebar):**
-Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & Resep (Pelanggan, Resep) · Katalog (Frame, Lensa, Lensa RX, Softlens, Aksesori) · Lab (Antrean Proses, QC Faset) · Pembelian (Purchase Request, Purchase Order, Penerimaan, Pembayaran, Pembayaran Kolektif, Retur, Supplier) · Stok (Stok Cabang, Pergerakan, Transfer Distribusi, Opname, Impor Stok Awal, Label Barcode) · Akuntansi (Chart of Accounts, Jurnal, Buku Besar, Utang & Piutang, Laporan Keuangan, Aset Tetap, Tutup Buku, Payroll & Komisi) · Membership (Member, Poin, Follow-up, Portal Member) · Laporan (Penjualan, Pembelian, Stok, Supplier Analytics, Sales Analytics) · Komunikasi (Template, Inbox, Kampanye, Log Kirim) · Pengaturan (Cabang, Pengguna & Peran, Asuransi, Dokter Perujuk, Umum & Pajak, Gateway WA, Asisten AI, Backup & Restore, Log Aktivitas, Token API, Perangkat Offline).
+Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & Resep (Pelanggan, Resep) · Katalog (Frame, Lensa, Lensa RX, Softlens, Aksesori) · Lab (Antrean Proses, QC Faset) · Pembelian (Purchase Request, Purchase Order, Penerimaan, Pembayaran, Pembayaran Kolektif, Retur, Supplier) · Stok (Stok Cabang, Pergerakan, Transfer Distribusi, Opname, Impor Stok Awal, Label Barcode) · Akuntansi (Chart of Accounts, Jurnal, Buku Besar, Utang & Piutang, Laporan Keuangan, Aset Tetap, Tutup Buku, Payroll & Komisi) · Membership (Member, Poin, Follow-up, Portal Member) · Laporan (Penjualan, Pembelian, Stok, Supplier Analytics, Sales Analytics) · Komunikasi (Template, Inbox, Kampanye, Log Kirim) · Pengaturan (Cabang, Pengguna & Peran, Asuransi, Dokter Perujuk, Umum & Pajak, Gateway WA, Asisten AI, Backup & Restore, Ekspor Data, Log Aktivitas, Token API, Perangkat Offline).
 
 ---
 
 ## Prinsip Tampilan — Clean, Modern, Elegan (keputusan owner 2026-10-17, mengikat semua menu)
 
-- **Bahasa visual:** bersih (banyak ruang lega, sedikit garis, tanpa ornamen berlebihan), modern (tipografi sans masa kini — Plus Jakarta Sans; sudut membulat halus; bayangan sangat tipis; ikon garis yang konsisten), elegan (palet Lentera: emerald pekat sebagai warna utama, emas hanya sebagai aksen terbatas pada tombol utama & penanda aktif, latar netral terang dominan). Angka uang memakai angka tabular agar rapi sejajar.
+- **Bahasa visual:** bersih (banyak ruang lega, sedikit garis, tanpa ornamen berlebihan), modern (tipografi sans masa kini — Plus Jakarta Sans; sudut membulat halus; bayangan sangat tipis; ikon garis yang konsisten), elegan (palet Artesis: emerald pekat sebagai warna utama, emas hanya sebagai aksen terbatas pada tombol utama & penanda aktif, latar netral terang dominan). Angka uang memakai angka tabular agar rapi sejajar.
 - **Detail BUKAN model preview:** setiap layar "Detail" (transaksi, pelanggan, PO, PR, produk, jurnal, transfer, opname, member) adalah **halaman penuh tersendiri dengan rutenya sendiri**, memuat seluruh isi dan aksinya. **Dilarang** menyajikan detail sebagai modal, drawer/slide-over, quick-view, kartu melayang, atau pratinjau ringkas — mengklik baris/nomor di daftar selalu menavigasi ke halaman detail penuh. Satu-satunya pengecualian: dialog konfirmasi singkat untuk aksi berbahaya (itu dialog keputusan, bukan detail).
 - **Dokumen cetak** dibuka sebagai dokumen penuh di tab baru (bukan thumbnail/pratinjau mini).
 - **Tombol sejajar — seluruh perintah selalu terlihat (keputusan owner 2026-10-22, ADR-018; menggantikan model dropdown 2026-10-17):** dalam satu layar, seluruh perintah dirender sebagai **tombol tersendiri yang terlihat sejajar dalam satu kelompok** (bukan disembunyikan di dropdown "Aksi"/"Cetak"), dan seluruh pilihan dokumen sebagai tombol dokumen berikon printer di kelompok yang sama. Yang boleh berdiri di luar kelompok hanya navigasi murni (Kembali, paginasi, tautan ke halaman detail). Di daftar, aksi per baris berupa deretan tombol kecil sejajar per baris. Tombol "Baru/Buat" pada daftar menjadi tombol primer pertama kelompok itu. Item berbahaya (void, nonaktif, hapus) ditaruh di urutan terakhir kelompok dengan warna merah + tetap wajib konfirmasi dan alasan. Karena itu, semua "Aksi" yang tercantum per menu dalam dokumen ini **dibaca sebagai tombol yang terlihat**, bukan item menu tersembunyi.
 - **Judul tidak ganda (keputusan owner 2026-10-17):** judul halaman tampil **tepat satu kali** — tidak boleh muncul bersamaan di topbar dan di body. Tata letak resmi adalah **SIDEBAR** (keputusan owner 2026-10-18, ADR-013 di Blueprint, menggantikan Varian A header ramping pilihan 2026-10-17): navigasi di sidebar kiri dengan menu terklasifikasi 6 kelompok + submenu; judul tinggal di topbar, body langsung berisi konten tanpa mengulang judul; pencarian global selalu di topbar. Pratinjau yang disetujui: `docs/preview/pratinjau-sidebar.html`.
-- **Pencarian global selalu di atas (keputusan owner 2026-10-17):** **global search wajib selalu tersedia di header** pada setiap halaman. Cakupannya lintas modul: pelanggan, produk, nomor transaksi, nomor PR/PO — selalu menghormati izin peran dan, untuk data transaksional, pagar cabang (pelanggan & produk adalah master global, ADR-012 — cukup digerbang izin); hasil dikelompokkan per jenis dengan tautan ke halaman detail penuh.
+- **Pencarian global selalu di atas (keputusan owner 2026-10-17):** **global search wajib selalu tersedia di header** pada setiap halaman. Cakupannya lintas modul: pelanggan, produk, nomor transaksi, nomor PR/PO — selalu menghormati izin peran, pagar tenant, dan — untuk data transaksional — pagar cabang (pelanggan & produk adalah master global di dalam tenant, ADR-012/OD-2 — digerbang izin + pagar tenant); hasil dikelompokkan per jenis dengan tautan ke halaman detail penuh.
 - Kepadatan informasi seimbang — tidak sesak; mode terang adalah bawaan; tampilan tetap rapi di tablet kasir maupun desktop.
 
 ## 1. DASHBOARD — MVP
@@ -301,4 +303,4 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 - **Insentif (selaras Artesis, ADR-017):** basis per item atas penjualan Lunas, penerima staf cabang + kepala optik, persetujuan periode, clawback otomatis periode berikutnya, ekspor Excel; tanpa jurnal akuntansi.
 
 ---
-*Akhir PRD Detail v1.0. Perubahan atas dokumen ini mengikuti gerbang yang sama: keputusan owner → revisi dokumen → commit baru di repositori Lentera.*
+*Akhir PRD Detail v1.0. Perubahan atas dokumen ini mengikuti gerbang yang sama: keputusan owner → revisi dokumen → commit baru di repositori ini (`toromagetan/Artesis-SaaS`).*
