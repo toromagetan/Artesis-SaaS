@@ -84,10 +84,15 @@ class CollectivePaymentController extends Controller
      * diperiksa eksplisit SEBELUM relasi dimuat ke view. Pemilik
      * pembayaran adalah tenant dari supplier-nya (relasi dibaca
      * tanpa scope ambient agar identitas aslinya yang dinilai):
-     * aktor tenant hanya untuk pembayaran tenantnya sendiri, aktor
-     * standalone hanya untuk data instalasi (tenant NULL); platform,
-     * unassigned, dan tamu ditolak — platform bukan pelaku bisnis
-     * tenant. Penolakan 404, selaras dokumen berpagar scope lain.
+     * aktor tenant yang SAH (konteks valid, bukan sekadar mode
+     * tenant dari tenant_id menggantung) hanya untuk pembayaran
+     * tenantnya sendiri, aktor standalone hanya untuk data
+     * instalasi (tenant NULL); mode lain tidak lolos pagar ini.
+     * Pagar ini sendiri menolak dengan 404, selaras dokumen
+     * berpagar scope lain — di jalur HTTP, middleware dapat
+     * menghentikan lebih dulu (gerbang paket 403 untuk
+     * platform/unassigned/tenant menggantung, autentikasi untuk
+     * tamu, lifecycle untuk tenant tersuspensi).
      */
     private function assertPaymentAccessible(PurchasePayment $payment): void
     {
@@ -96,7 +101,7 @@ class CollectivePaymentController extends Controller
         $context = TenantContext::for($user);
 
         $allowed = $supplier !== null && match (true) {
-            $context->isTenant() => $supplier->tenant_id === $user->tenant_id,
+            $context->isValid() => $supplier->tenant_id === $user->tenant_id,
             $context->isStandalone() => $supplier->tenant_id === null,
             default => false,
         };

@@ -69,12 +69,22 @@ dan pemeriksaan aktor di service).
 `CollectivePaymentController` kini memeriksa kepemilikan secara
 eksplisit (`assertPaymentAccessible`) sebelum memuat relasi pada
 kedua aksi — pemilik pembayaran adalah tenant dari supplier-nya
-(relasi dibaca tanpa scope ambient): aktor tenant hanya untuk
-pembayarannya sendiri, aktor standalone hanya untuk data instalasi,
-platform/unassigned/tamu ditolak 404. Bukti:
+(relasi dibaca tanpa scope ambient): aktor tenant yang sah
+(konteks valid) hanya untuk pembayarannya sendiri, aktor
+standalone hanya untuk data instalasi, mode lain tidak lolos
+pagar ini. **Pagar controller menolak dengan 404** — itulah yang
+terjadi pada aktor tenant lain yang lolos middleware. Status HTTP
+yang terlihat dari luar dapat berbeda karena penolakan berlapis
+lebih dulu bekerja: platform dan unassigned (juga tenant dengan
+tenant_id menggantung) dihentikan gerbang fitur paket (403),
+tamu dihentikan autentikasi sebelum controller, dan tenant
+tersuspensi dihentikan middleware lifecycle. Bukti:
 `Security/PaymentAccessTenantIsolationTest` (pemilik lolos pada
-print + result; tenant lain 404 dua arah; platform dan unassigned
-ditolak; proses kolektif via HTTP tidak regresi dan pembayaran baru
-langsung berpagar) dan test matriks cetak
+print + result; tenant lain 404 dua arah dari pagar; platform dan
+unassigned ditolak; proses kolektif via HTTP tidak regresi dan
+pembayaran baru langsung berpagar),
+`Security/PaymentStandaloneAccessTest` (standalone membuka print +
+result milik instalasinya sendiri; pembayaran yang supplier-nya
+mengaku milik tenant ditolak 404), dan test matriks cetak
 `test_payments_print_denied_for_other_tenant` yang kini aktif penuh
 (tidak lagi *incomplete*).
