@@ -215,16 +215,12 @@ class CrossTenantPrintMatrixTest extends TestCase
 
     public function test_payments_print_denied_for_other_tenant(): void
     {
-        // TEMUAN TERBUKA D-02 (dicatat di docs/MATRIKS-TEST-KEAMANAN.md):
-        // payments.print saat ini membalas 500 untuk aktor tenant lain —
-        // PurchasePayment tanpa scope sehingga binding meloloskan
-        // pembayaran tenant asing, dan controller tidak memeriksa
-        // otorisasi. Asersi di bawah SENGAJA dipertahankan utuh dan
-        // akan aktif penuh begitu modul perbaikan payments selesai;
-        // selama perbaikan belum ada, test ditandai belum selesai
-        // secara eksplisit — bukan dihapus dan bukan dilemahkan.
-        $this->markTestIncomplete('Temuan terbuka D-02: payments.print belum berpagar tenant — menunggu modul perbaikan payments.');
-
+        // Temuan D-02 (payments.print tanpa pagar) DITUTUP oleh modul
+        // perbaikan payments: CollectivePaymentController kini
+        // memeriksa kepemilikan pembayaran secara eksplisit sebelum
+        // memuat relasi ke view. Cakupan lengkap (result, platform,
+        // unassigned, regresi proses kolektif) ada di
+        // PaymentAccessTenantIsolationTest.
         $this->assertDenied($this->actingAs($this->adminB)->get(route('payments.print', $this->paymentA)), 'PAY-CETAK-A');
     }
 
