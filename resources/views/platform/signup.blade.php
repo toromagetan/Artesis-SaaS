@@ -47,6 +47,14 @@
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 
+        @if ($turnstileEnabled ?? false)
+            <div>
+                <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+                <div class="cf-turnstile" data-sitekey="{{ $turnstileSiteKey }}"></div>
+                <x-input-error :messages="$errors->get('cf-turnstile-response')" class="mt-2" />
+            </div>
+        @endif
+
         <x-primary-button class="auth-submit w-full justify-center">
             {{ __('ui.signup.submit') }}
         </x-primary-button>

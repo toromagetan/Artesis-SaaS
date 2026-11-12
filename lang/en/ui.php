@@ -2053,6 +2053,7 @@ return [
         'password_confirmation' => 'Repeat Password',
         'submit' => 'Create Free Account',
         'success' => 'Welcome to Artesis! Your business account was created on the Free plan.',
+        'bot_check_failed' => 'Security verification failed. Please complete the anti-bot check and try again.',
         'have_account' => 'Already have an account?',
         'login' => 'Log in',
     ],

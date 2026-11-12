@@ -4,10 +4,12 @@ namespace App\Modules\Platform\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Platform\Services\TenantSignupService;
+use App\Modules\Platform\Services\TurnstileVerifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
@@ -17,11 +19,17 @@ use Illuminate\View\View;
  */
 class SignupController extends Controller
 {
-    public function __construct(private readonly TenantSignupService $signup) {}
+    public function __construct(
+        private readonly TenantSignupService $signup,
+        private readonly TurnstileVerifier $turnstile,
+    ) {}
 
     public function create(): View
     {
-        return view('platform.signup');
+        return view('platform.signup', [
+            'turnstileEnabled' => $this->turnstile->enabled(),
+            'turnstileSiteKey' => $this->turnstile->siteKey(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -34,6 +42,16 @@ class SignupController extends Controller
             'branch_name' => ['required', 'string', 'max:100'],
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
+
+        // Anti-bot (S-05): begitu Turnstile terkonfigurasi, token
+        // wajib terverifikasi SEBELUM tenant apa pun dibuat;
+        // kegagalan = kesalahan validasi biasa, tanpa data tercipta.
+        if ($this->turnstile->enabled()
+            && ! $this->turnstile->verify($request->input('cf-turnstile-response'), $request->ip())) {
+            throw ValidationException::withMessages([
+                'cf-turnstile-response' => __('ui.signup.bot_check_failed'),
+            ]);
+        }
 
         $user = $this->signup->register($data);
 

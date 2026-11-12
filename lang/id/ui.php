@@ -2053,6 +2053,7 @@ return [
         'password_confirmation' => 'Ulangi Kata Sandi',
         'submit' => 'Buat Akun Gratis',
         'success' => 'Selamat datang di Artesis! Akun bisnis Anda dibuat dengan paket Free.',
+        'bot_check_failed' => 'Verifikasi keamanan gagal. Silakan selesaikan verifikasi anti-bot lalu coba lagi.',
         'have_account' => 'Sudah punya akun?',
         'login' => 'Masuk',
     ],

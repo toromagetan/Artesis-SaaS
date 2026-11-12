@@ -102,7 +102,7 @@ Fase 1 ──► Fase 5 (Backup/Ekspor/Recovery) ──► Fase 6 (Kesiapan Prod
 - **Test requirements:** test suspensi (login, request berjalan, penjadwalan); test billing lanjutan; regresi penuh.
 - **Risks:** suspensi yang keliru mengunci tenant membayar → mitigasi: suspensi selalu reversible dari panel + teraudit + pemberitahuan tercatat.
 - **Exit criteria:** acceptance lulus; runbook operasi diperbarui (DEPLOY-RUNBOOK) untuk prosedur suspensi/offboarding.
-- **Status: In Progress** — fondasi siklus hidup (Plan, Subscription, Billing, kuota, panel, pendaftaran) **sudah terbangun & teruji** pada Fase 1 SaaS 2026-10-29; **suspensi tenant sudah ditegakkan** (S-01: login & akses ditolak). Yang tersisa: anti-penyalahgunaan pendaftaran (menunggu pilihan anti-bot pemilik proyek), pengerasan billing lanjutan, dan offboarding (menunggu OD-5).
+- **Status: In Progress** — fondasi siklus hidup (Plan, Subscription, Billing, kuota, panel, pendaftaran) **sudah terbangun & teruji** pada Fase 1 SaaS 2026-10-29; **suspensi tenant sudah ditegakkan** (S-01: login & akses ditolak); **anti-penyalahgunaan pendaftaran selesai** (S-05: Cloudflare Turnstile — pilihan pemilik proyek 2026-11-12; aktif begitu `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` terisi, verifikasi gagal-tertutup sebelum tenant dibuat). Yang tersisa: pengerasan billing lanjutan, dan offboarding (menunggu OD-5).
 
 ## Fase 5 — Backup, Export & Recovery
 
