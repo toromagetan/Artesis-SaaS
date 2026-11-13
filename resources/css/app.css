@@ -379,4 +379,10 @@ main span[class*="rounded-full"] {
     main span[class*="rounded-full"] {
         transition: none;
     }
+
+    /* Rel ikon sidebar: pelebaran/penciutan tanpa animasi lebar
+       bagi pengguna yang meminta gerak dikurangi (PR #44). */
+    .sidebar-rail {
+        transition: none;
+    }
 }
