@@ -85,6 +85,7 @@ class ProductController extends Controller
 
         return view('catalog.products.create', [
             'type' => $type,
+            'product' => null,
             'parent' => $parent,
             'parents' => ProductParent::where('type', $type)->orderBy('name')->get(),
             'attributeKeys' => ProductService::ATTRIBUTE_KEYS[$type],
