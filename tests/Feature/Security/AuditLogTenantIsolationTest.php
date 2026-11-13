@@ -5,6 +5,7 @@ namespace Tests\Feature\Security;
 use App\Modules\Identity\Models\Permission;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Models\AuditLog;
 use App\Modules\Platform\Models\Plan;
@@ -72,14 +73,54 @@ class AuditLogTenantIsolationTest extends TestCase
         $logger->log(action: 'audit-a04.ambient', subjectType: 'product', actor: $adminA);
         $this->assertSame($tenantA->id, AuditLog::where('action', 'audit-a04.ambient')->firstOrFail()->tenant_id);
 
-        // Aktor platform & standalone: cap NULL.
+        // Aktor platform: cap NULL.
         $platform = User::where('username', 'platform')->firstOrFail();
         $logger->log(action: 'audit-a04.platform', subjectType: 'tenant', actor: $platform);
         $this->assertNull(AuditLog::where('action', 'audit-a04.platform')->firstOrFail()->tenant_id);
 
+        // Pengguna bawaan tanpa tenant_id DI SINI berstatus
+        // UNASSIGNED (tenant A/B sudah terdaftar di test ini) —
+        // bukan standalone; cap tetap NULL. Bukti mode standalone
+        // murni ada di test terpisah tanpa satu pun tenant
+        // (koreksi audit R5).
         $owner = User::where('username', 'owner')->firstOrFail();
-        $logger->log(action: 'audit-a04.mandiri', subjectType: 'product', actor: $owner);
+        $this->assertTrue(TenantContext::for($owner)->isUnassigned());
+        $logger->log(action: 'audit-a04.unassigned', subjectType: 'product', actor: $owner);
+        $this->assertNull(AuditLog::where('action', 'audit-a04.unassigned')->firstOrFail()->tenant_id);
+    }
+
+    public function test_standalone_actor_stamps_null_when_no_tenant_exists(): void
+    {
+        // Prasyarat mode standalone MURNI: belum ada tenant sama
+        // sekali (koreksi audit R5 — test utama tidak dapat
+        // membuktikannya karena tenant A/B dibuat lebih dulu).
+        $this->assertSame(0, Tenant::count());
+        $owner = User::where('username', 'owner')->firstOrFail();
+        $this->assertTrue(TenantContext::for($owner)->isStandalone());
+
+        app(AuditLogger::class)->log(action: 'audit-a04.mandiri', subjectType: 'product', actor: $owner);
+
         $this->assertNull(AuditLog::where('action', 'audit-a04.mandiri')->firstOrFail()->tenant_id);
+    }
+
+    public function test_guest_write_stamps_null(): void
+    {
+        // Tanpa aktor dan tanpa sesi autentikasi apa pun.
+        app(AuditLogger::class)->log(action: 'audit-a04.tamu', subjectType: 'system');
+
+        $log = AuditLog::where('action', 'audit-a04.tamu')->firstOrFail();
+        $this->assertNull($log->user_id);
+        $this->assertNull($log->tenant_id);
+    }
+
+    public function test_system_context_write_stamps_null(): void
+    {
+        TenantContext::asSystem(
+            fn () => app(AuditLogger::class)->log(action: 'audit-a04.sistem', subjectType: 'system'),
+        );
+
+        $log = AuditLog::where('action', 'audit-a04.sistem')->firstOrFail();
+        $this->assertNull($log->tenant_id);
     }
 
     public function test_real_product_creation_log_is_stamped_and_visible_to_its_tenant(): void
