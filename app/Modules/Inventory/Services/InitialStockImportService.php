@@ -82,9 +82,33 @@ class InitialStockImportService
         }
         array_shift($rows);
 
-        $products = Product::where('is_active', true)->get()->keyBy('sku');
-        $branchesById = Branch::all()->keyBy('id');
-        $branchesByName = Branch::all()->keyBy(fn (Branch $b) => mb_strtolower(trim($b->name)));
+        // Pembacaan mengikuti konteks AKTOR yang sama dengan yang
+        // menentukan ember cache (koreksi audit C-01-R2): bila aktor
+        // eksplisit diberikan, produk & cabang dibaca sebagai milik
+        // tenant aktor — diambil tanpa scope ambient lalu disaring
+        // tenant_id tervalidasi konteksnya. Tanpa aktor eksplisit,
+        // pembacaan mengikuti konteks ambient seperti sebelumnya
+        // (jalur in-process/sistem).
+        if ($actor !== null) {
+            $context = TenantContext::for($actor);
+            if ($context->isTenant() && $context->isValid()) {
+                $products = Product::withoutGlobalScopes()
+                    ->where('tenant_id', $actor->tenant_id)->where('is_active', true)->get()->keyBy('sku');
+                $branches = Branch::where('tenant_id', $actor->tenant_id)->get();
+            } elseif ($context->isStandalone()) {
+                $products = Product::withoutGlobalScopes()
+                    ->whereNull('tenant_id')->where('is_active', true)->get()->keyBy('sku');
+                $branches = Branch::whereNull('tenant_id')->get();
+            } else {
+                throw new AuthorizationException('Aktor tidak berhak membuat pratinjau impor stok awal.');
+            }
+            $branchesById = $branches->keyBy('id');
+            $branchesByName = $branches->keyBy(fn (Branch $b) => mb_strtolower(trim($b->name)));
+        } else {
+            $products = Product::where('is_active', true)->get()->keyBy('sku');
+            $branchesById = Branch::all()->keyBy('id');
+            $branchesByName = Branch::all()->keyBy(fn (Branch $b) => mb_strtolower(trim($b->name)));
+        }
 
         $valid = [];
         $errors = [];

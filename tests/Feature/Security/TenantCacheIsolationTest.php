@@ -179,6 +179,53 @@ class TenantCacheIsolationTest extends TestCase
         $this->assertSame(0, StockMovement::where('branch_id', $branchA->id)->count());
     }
 
+    public function test_preview_with_explicit_actor_reads_actor_tenant_without_ambient_session(): void
+    {
+        // Koreksi audit C-01-R2: tanpa sesi ambient sama sekali,
+        // pembacaan produk & cabang preview mengikuti aktor
+        // eksplisit — bukan konteks tamu.
+        [$tenantA, $branchA, $ownerA] = $this->tenantOwner('A');
+        [$tenantB, $branchB, $ownerB] = $this->tenantOwner('B');
+        $service = app(InitialStockImportService::class);
+
+        $this->actingAs($ownerA);
+        $productA = Product::factory()->ofType('frame')->create([
+            'tenant_id' => $tenantA->id, 'sku' => 'FR-R2-A', 'cost_price' => '100000',
+        ]);
+        $this->actingAs($ownerB);
+        Product::factory()->ofType('frame')->create([
+            'tenant_id' => $tenantB->id, 'sku' => 'FR-R2-B', 'cost_price' => '100000',
+        ]);
+        auth()->logout();
+
+        // Produk & cabang A terbaca penuh atas nama aktor A.
+        $preview = $service->preview("sku,cabang,qty\nFR-R2-A,{$branchA->id},9\n", $ownerA);
+        $this->assertSame([], $preview['errors']);
+        $this->assertSame($productA->id, $preview['valid'][0]['product_id']);
+        $this->assertSame($branchA->id, $preview['valid'][0]['branch_id']);
+
+        // SKU & cabang B TIDAK termuat dalam pembacaan aktor A:
+        // keduanya menjadi baris kesalahan, nol baris valid.
+        $foreign = $service->preview("sku,cabang,qty\nFR-R2-B,{$branchA->id},1\nFR-R2-A,{$branchB->id},1\n", $ownerA);
+        $this->assertSame([], $foreign['valid']);
+        $this->assertSame(2, count($foreign['errors']));
+    }
+
+    public function test_preview_with_mismatched_ambient_is_rejected_before_reading(): void
+    {
+        [$tenantA, $branchA, $ownerA] = $this->tenantOwner('A');
+        [, , $ownerB] = $this->tenantOwner('B');
+        $service = app(InitialStockImportService::class);
+
+        $this->actingAs($ownerB);
+        try {
+            $service->preview("sku,cabang,qty\nFR-R2-A,{$branchA->id},1\n", $ownerA);
+            $this->fail('Pratinjau aktor A atas sesi B harus ditolak');
+        } catch (AuthorizationException) {
+            $this->assertTrue(true);
+        }
+    }
+
     public function test_system_bucket_preview_cannot_be_committed_by_a_tenant_actor(): void
     {
         // Pratinjau yang dibuat proses tanpa aktor hidup di ember
