@@ -6,6 +6,7 @@ use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Models\Plan;
@@ -293,6 +294,84 @@ class TenantFileStorageTest extends TestCase
         $fresh = $product->fresh();
         $this->assertSame($oldPath, $fresh->image_path);
         $this->assertSame('Frame FR-DISK2', $fresh->name);
+    }
+
+    /** Logo global (baris tenant_id NULL) + berkasnya di disk. */
+    private function seedGlobalLogo(string $path = 'branding/store-logo-global.png'): string
+    {
+        Storage::disk('public')->put($path, 'logo-global');
+        TenantContext::asSystem(
+            fn () => Setting::set('store.logo_path', $path),
+        );
+
+        return $path;
+    }
+
+    public function test_tenant_uploading_first_logo_keeps_the_inherited_global_logo(): void
+    {
+        $global = $this->seedGlobalLogo();
+        [$tenantA, , $adminA] = $this->tenantAdmin('A');
+        [, , $adminB] = $this->tenantAdmin('B');
+
+        // Prasyarat skenario R4: A belum punya logo sendiri dan
+        // mewarisi logo global sebagai nilai efektif.
+        $this->actingAs($adminA);
+        $this->assertSame($global, Setting::value('store.logo_path'));
+        $this->assertNull(Setting::ownValue('store.logo_path'));
+
+        $this->actingAs($adminA)->put(route('settings.general.update'), $this->settingsPayload([
+            'store_logo' => UploadedFile::fake()->image('logo.png', 120, 40),
+        ]))->assertRedirect(route('settings.general.edit'));
+
+        // Berkas global TIDAK terhapus oleh unggahan A, dan B
+        // tetap mewarisi logo global yang sama.
+        Storage::disk('public')->assertExists($global);
+        $ownA = (string) Setting::ownValue('store.logo_path');
+        $this->assertMatchesRegularExpression('#^tenants/'.$tenantA->id.'/settings/store-logo-.+\.png$#', $ownA);
+        Storage::disk('public')->assertExists($ownA);
+        $this->actingAs($adminB);
+        $this->assertSame($global, Setting::value('store.logo_path'));
+    }
+
+    public function test_tenant_removing_inherited_logo_keeps_the_global_file(): void
+    {
+        $global = $this->seedGlobalLogo();
+        [, , $adminA] = $this->tenantAdmin('A');
+        [, , $adminB] = $this->tenantAdmin('B');
+
+        $this->actingAs($adminA)->put(route('settings.general.update'), $this->settingsPayload([
+            'remove_logo' => '1',
+        ]))->assertRedirect(route('settings.general.edit'));
+
+        // Penghapusan oleh tenant yang mewarisi TIDAK menyentuh
+        // berkas global; B tetap mewarisinya.
+        Storage::disk('public')->assertExists($global);
+        $this->actingAs($adminB);
+        $this->assertSame($global, Setting::value('store.logo_path'));
+    }
+
+    public function test_tenant_removing_own_logo_keeps_the_global_file(): void
+    {
+        $global = $this->seedGlobalLogo();
+        [, , $adminA] = $this->tenantAdmin('A');
+        [, , $adminB] = $this->tenantAdmin('B');
+
+        $this->actingAs($adminA)->put(route('settings.general.update'), $this->settingsPayload([
+            'store_logo' => UploadedFile::fake()->image('logo.png', 120, 40),
+        ]))->assertRedirect(route('settings.general.edit'));
+        $ownA = (string) Setting::ownValue('store.logo_path');
+        Storage::disk('public')->assertExists($ownA);
+
+        $this->actingAs($adminA)->put(route('settings.general.update'), $this->settingsPayload([
+            'remove_logo' => '1',
+        ]))->assertRedirect(route('settings.general.edit'));
+
+        // Berkas milik A sendiri terhapus; berkas global utuh dan
+        // tetap menjadi warisan efektif bagi B.
+        Storage::disk('public')->assertMissing($ownA);
+        Storage::disk('public')->assertExists($global);
+        $this->actingAs($adminB);
+        $this->assertSame($global, Setting::value('store.logo_path'));
     }
 
     public function test_tenant_storage_buckets_follow_the_validated_context(): void

@@ -75,7 +75,12 @@ class GeneralSettingsController extends Controller
         // tenant tidak lagi menimpa logo tenant lain seperti saat
         // berkas tunggal di akar web. Berkas lama dihapus SETELAH
         // nilai baru tersimpan; centang hapus = tanpa logo.
-        $previousLogo = (string) Setting::value('store.logo_path', '');
+        // F-01-R4: nilai sebelumnya untuk keperluan PENGHAPUSAN
+        // berkas harus nilai MILIK aktor (ownValue), BUKAN nilai
+        // efektif Setting::value() — yang terakhir jatuh ke logo
+        // global bila tenant belum mempunyai logo sendiri, dan
+        // menghapusnya akan merusak logo warisan tenant lain.
+        $previousLogo = (string) (Setting::ownValue('store.logo_path') ?? '');
         if ($request->boolean('remove_logo')) {
             Setting::set('store.logo_path', '');
             $map['store.logo_path'] = '';
