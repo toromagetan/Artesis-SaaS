@@ -260,6 +260,8 @@ return [
         'parent_edit' => 'Ubah Induk',
         'parent_auto' => 'Otomatis dari nama & merek varian',
         'parent_type_mismatch' => 'Induk harus bertipe sama dengan varian.',
+        'image_store_failed' => 'Gambar gagal disimpan ke penyimpanan. Produk tetap tersimpan; silakan unggah gambar lewat halaman ubah produk.',
+        'image_store_failed_update' => 'Gambar gagal disimpan ke penyimpanan. Tidak ada perubahan yang diterapkan.',
         'add_variant' => 'Tambah Varian',
         'variants' => 'Varian',
         'variant_count' => ':count varian',

@@ -46,6 +46,27 @@ class Setting extends Model
     }
 
     /**
+     * Nilai MILIK aktor sendiri, TANPA fallback global (F-01-R4):
+     * aktor tenant membaca HANYA baris penimpaan tenantnya (belum
+     * punya = null, bukan logo/nilai global warisan); aktor
+     * platform & standalone membaca baris global — memang ember
+     * mereka sendiri. Wajib dipakai untuk keputusan yang menyentuh
+     * sumber daya fisik milik satu ember (mis. penghapusan berkas
+     * logo): nilai efektif hasil fallback tidak boleh menjadi
+     * dasar menghapus berkas milik ember lain.
+     */
+    public static function ownValue(string $key, ?string $default = null): ?string
+    {
+        $tenantId = static::actorTenantId();
+
+        $own = $tenantId !== null
+            ? static::query()->where('key', $key)->where('tenant_id', $tenantId)->value('value')
+            : static::query()->where('key', $key)->whereNull('tenant_id')->value('value');
+
+        return $own ?? $default;
+    }
+
+    /**
      * Akses baca untuk ember tenant yang dinyatakan EKSPLISIT —
      * untuk jalur tanpa sesi aktor (antrean/konsol) yang mengetahui
      * tenant sumber datanya, misalnya tarif komisi dari penjualan

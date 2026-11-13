@@ -19,7 +19,7 @@
                         <div>
                             @if (!empty($values['store.logo_path']))
                                 <div class="mb-3">
-                                    <img src="{{ asset($values['store.logo_path']) }}" alt="" class="max-h-16 rounded border border-gray-200 bg-white p-1">
+                                    <img src="{{ \App\Support\TenantStorage::url($values['store.logo_path']) }}" alt="" class="max-h-16 rounded border border-gray-200 bg-white p-1">
                                 </div>
                             @endif
                             <x-input-label for="store_logo" :value="__('ui.settings_general.store_logo')" />

@@ -253,6 +253,8 @@ return [
         'parent_edit' => '编辑主产品',
         'parent_auto' => '根据变体名称和品牌自动生成',
         'parent_type_mismatch' => '主产品必须与变体类型相同。',
+        'image_store_failed' => '图片无法保存到存储。产品已保存;请通过产品编辑页面上传图片。',
+        'image_store_failed_update' => '图片无法保存到存储。未应用任何更改。',
         'add_variant' => '添加变体',
         'variants' => '变体',
         'variant_count' => ':count 个变体',
