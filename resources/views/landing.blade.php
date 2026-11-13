@@ -39,24 +39,24 @@
         </header>
 
         <main class="flex flex-1 flex-col items-center justify-center py-10 text-center">
-            <h1 class="max-w-2xl text-4xl font-bold leading-tight text-lentera-950 sm:text-5xl">{{ __('ui.nav.tagline') }}</h1>
-            <p class="mt-5 max-w-xl text-base leading-relaxed text-gray-600">{{ __('ui.landing.description') }}</p>
-            <div class="mt-8 flex flex-col items-center gap-3">
+            <h1 class="rise-in max-w-2xl text-4xl font-bold leading-tight text-lentera-950 sm:text-5xl">{{ __('ui.nav.tagline') }}</h1>
+            <p class="rise-in mt-5 max-w-xl text-base leading-relaxed text-gray-600" style="--d:60ms">{{ __('ui.landing.description') }}</p>
+            <div class="rise-in mt-8 flex flex-col items-center gap-3" style="--d:120ms">
                 <a href="{{ route('login') }}" class="inline-flex items-center justify-center rounded-lg bg-lentera-800 px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-lentera-700 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.landing.login') }}</a>
                 <a href="{{ route('signup.create') }}" class="inline-flex items-center justify-center rounded-lg border border-lentera-700 px-6 py-3 text-sm font-semibold text-lentera-800 transition hover:bg-lentera-100 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.landing.register') }}</a>
                 <p class="text-xs text-gray-500">{{ __('ui.landing.internal_note') }}</p>
             </div>
 
             <div class="mt-14 grid w-full gap-4 text-left sm:grid-cols-3">
-                <div class="rounded-2xl bg-white p-5 shadow-soft ring-1 ring-lentera-100">
+                <div class="rise-in rounded-2xl bg-white p-5 shadow-soft ring-1 ring-lentera-100" style="--d:180ms">
                     <h2 class="text-sm font-semibold text-lentera-900">{{ __('ui.landing.f1_title') }}</h2>
                     <p class="mt-1.5 text-sm leading-relaxed text-gray-600">{{ __('ui.landing.f1_body') }}</p>
                 </div>
-                <div class="rounded-2xl bg-white p-5 shadow-soft ring-1 ring-lentera-100">
+                <div class="rise-in rounded-2xl bg-white p-5 shadow-soft ring-1 ring-lentera-100" style="--d:240ms">
                     <h2 class="text-sm font-semibold text-lentera-900">{{ __('ui.landing.f2_title') }}</h2>
                     <p class="mt-1.5 text-sm leading-relaxed text-gray-600">{{ __('ui.landing.f2_body') }}</p>
                 </div>
-                <div class="rounded-2xl bg-white p-5 shadow-soft ring-1 ring-lentera-100">
+                <div class="rise-in rounded-2xl bg-white p-5 shadow-soft ring-1 ring-lentera-100" style="--d:300ms">
                     <h2 class="text-sm font-semibold text-lentera-900">{{ __('ui.landing.f3_title') }}</h2>
                     <p class="mt-1.5 text-sm leading-relaxed text-gray-600">{{ __('ui.landing.f3_body') }}</p>
                 </div>
