@@ -152,6 +152,15 @@ return [
         'password' => 'Password',
         'remember' => 'Remember me',
         'forgot' => 'Forgot your password?',
+        'verification' => [
+            'title' => 'Verify Your Email Address',
+            'body' => 'We have sent a verification link to :email. Click the link in that email to unlock full access. If it does not appear, please check your spam folder too.',
+            'waiting' => 'Until your email is verified, your account can only open this page, request a resend, and log out — business features are not accessible yet.',
+            'resend' => 'Resend Verification Email',
+            'link_sent' => 'A new verification link has been sent to your email address.',
+            'verified' => 'Your email has been verified. Welcome!',
+        ],
+        'logout' => 'Log Out',
     ],
 
     'users' => [

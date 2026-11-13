@@ -106,7 +106,7 @@ class CrossTenantPrintMatrixTest extends TestCase
         );
         $branch = Branch::create(['name' => 'Cabang '.$tag, 'tenant_id' => $tenant->id]);
         $admin = User::create([
-            'name' => 'Admin Cetak '.$tag, 'username' => 'admin-cetak-'.$tag,
+            'email_verified_at' => now(),            'name' => 'Admin Cetak '.$tag, 'username' => 'admin-cetak-'.$tag,
             'email' => 'admin-cetak-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);

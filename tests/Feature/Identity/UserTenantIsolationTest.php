@@ -51,7 +51,7 @@ class UserTenantIsolationTest extends TestCase
         );
         $branch = Branch::create(['name' => 'Cabang '.$key, 'tenant_id' => $tenant->id]);
         $admin = User::create([
-            'name' => 'Admin '.$key, 'username' => 'admin-'.strtolower($key),
+            'email_verified_at' => now(),            'name' => 'Admin '.$key, 'username' => 'admin-'.strtolower($key),
             'email' => 'admin-'.strtolower($key).'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);

@@ -60,7 +60,7 @@ class BranchPerimeterRemainderTest extends TestCase
         $one = Branch::create(['name' => 'Cabang '.$tag.' Satu', 'tenant_id' => $tenant->id]);
         $two = Branch::create(['name' => 'Cabang '.$tag.' Dua', 'tenant_id' => $tenant->id]);
         $admin = User::create([
-            'name' => 'Admin '.$tag, 'username' => 'admin-'.$tag,
+            'email_verified_at' => now(),            'name' => 'Admin '.$tag, 'username' => 'admin-'.$tag,
             'email' => 'admin-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);
@@ -113,7 +113,7 @@ class BranchPerimeterRemainderTest extends TestCase
         $product = $this->stockAt($adminA, $tenantA, $aOne, 5);
 
         $staff = User::create([
-            'name' => 'Staf A', 'username' => 'staf-a',
+            'email_verified_at' => now(),            'name' => 'Staf A', 'username' => 'staf-a',
             'email' => 'staf-a@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenantA->id,
         ]);
@@ -195,7 +195,7 @@ class BranchPerimeterRemainderTest extends TestCase
         $this->tenantWithTwoBranches('b');
 
         $unassigned = User::create([
-            'name' => 'Akun Yatim', 'username' => 'yatim',
+            'email_verified_at' => now(),            'name' => 'Akun Yatim', 'username' => 'yatim',
             'email' => 'yatim@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
         ]);

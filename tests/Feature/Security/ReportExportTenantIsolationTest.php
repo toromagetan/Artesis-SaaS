@@ -69,7 +69,7 @@ class ReportExportTenantIsolationTest extends TestCase
         );
         $branch = Branch::create(['name' => 'Cabang '.$tag, 'tenant_id' => $tenant->id]);
         $admin = User::create([
-            'name' => 'Admin Ekspor '.$tag, 'username' => 'admin-ekspor-'.$tag,
+            'email_verified_at' => now(),            'name' => 'Admin Ekspor '.$tag, 'username' => 'admin-ekspor-'.$tag,
             'email' => 'admin-ekspor-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);

@@ -51,7 +51,7 @@ class TenantLifecycleEnforcementTest extends TestCase
         );
         $branch = Branch::create(['name' => 'Cabang Siklus', 'tenant_id' => $this->tenant->id]);
         $this->admin = User::create([
-            'name' => 'Admin Siklus', 'username' => 'admin-siklus',
+            'email_verified_at' => now(),            'name' => 'Admin Siklus', 'username' => 'admin-siklus',
             'email' => 'admin-siklus@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $this->tenant->id,
         ]);
@@ -124,7 +124,7 @@ class TenantLifecycleEnforcementTest extends TestCase
             'name' => 'Optik Lain', 'slug' => 'optik-lain', 'email' => 'lain@uji.id',
         ]);
         $otherAdmin = User::create([
-            'name' => 'Admin Lain', 'username' => 'admin-lain',
+            'email_verified_at' => now(),            'name' => 'Admin Lain', 'username' => 'admin-lain',
             'email' => 'admin-lain@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $other->id,
         ]);

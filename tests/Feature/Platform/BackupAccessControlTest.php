@@ -77,6 +77,11 @@ class BackupAccessControlTest extends TestCase
             'password_confirmation' => 'rahasia-uji-123',
         ], $platform);
 
+        // Fixture meniru tenant yang sudah berjalan (B-01):
+        // pemiliknya dianggap sudah memverifikasi email.
+        $ownerA->markEmailAsVerified();
+        $ownerB->markEmailAsVerified();
+
         $this->assertSame(2, Tenant::count());
 
         return compact('platform', 'legacy', 'ownerA', 'ownerB');

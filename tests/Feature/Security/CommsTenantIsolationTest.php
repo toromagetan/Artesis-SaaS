@@ -89,7 +89,7 @@ class CommsTenantIsolationTest extends TestCase
         );
         $branch = Branch::create(['name' => 'Cabang '.$tag, 'tenant_id' => $tenant->id]);
         $admin = User::create([
-            'name' => 'Admin WA '.$tag, 'username' => 'admin-wa-'.$tag,
+            'email_verified_at' => now(),            'name' => 'Admin WA '.$tag, 'username' => 'admin-wa-'.$tag,
             'email' => 'admin-wa-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);

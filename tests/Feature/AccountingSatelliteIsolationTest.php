@@ -64,7 +64,7 @@ class AccountingSatelliteIsolationTest extends TestCase
         );
         $branch = Branch::create(['name' => 'Cabang '.$tag, 'tenant_id' => $tenant->id]);
         $admin = User::create([
-            'name' => 'Admin '.$tag, 'username' => 'admin-'.$tag,
+            'email_verified_at' => now(),            'name' => 'Admin '.$tag, 'username' => 'admin-'.$tag,
             'email' => 'admin-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);
@@ -177,7 +177,7 @@ class AccountingSatelliteIsolationTest extends TestCase
     private function staffOf(Tenant $tenant, Branch $branch, string $username): User
     {
         $user = User::create([
-            'name' => 'Staf '.$username, 'username' => $username,
+            'email_verified_at' => now(),            'name' => 'Staf '.$username, 'username' => $username,
             'email' => $username.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);
@@ -357,7 +357,7 @@ class AccountingSatelliteIsolationTest extends TestCase
     {
         $this->tenantAdmin('a');
         $unassigned = User::create([
-            'name' => 'Yatim Payroll', 'username' => 'yatim-payroll',
+            'email_verified_at' => now(),            'name' => 'Yatim Payroll', 'username' => 'yatim-payroll',
             'email' => 'yatim-payroll@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
         ]);

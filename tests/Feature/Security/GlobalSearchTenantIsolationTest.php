@@ -105,7 +105,7 @@ class GlobalSearchTenantIsolationTest extends TestCase
         );
         $branch = Branch::create(['name' => 'Cabang '.$tag, 'tenant_id' => $tenant->id]);
         $admin = User::create([
-            'name' => 'Admin Cari '.$tag, 'username' => 'admin-cari-'.$tag,
+            'email_verified_at' => now(),            'name' => 'Admin Cari '.$tag, 'username' => 'admin-cari-'.$tag,
             'email' => 'admin-cari-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);

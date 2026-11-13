@@ -95,7 +95,7 @@ Format per kelompok: deskripsi · aktor · aturan bisnis kunci · status + bukti
 ### 4.1 Tenant Registration & Onboarding
 - Publik mendaftar di `/daftar` (tamu; `throttle:6,1`): satu transaksi membuat Tenant (slug unik berurutan), cabang pertama, Tenant Owner (peran Owner, terikat tenant + cabang), dan Subscription Free. Kata sandi mengikuti `Password::defaults()` + konfirmasi; email unik di `users`. Sesudah daftar, pengguna langsung login ke dashboard.
 - Platform Superadmin juga dapat menyediakan tenant dari panel (memakai layanan yang sama); kata sandi awal Owner ditampilkan **satu kali** untuk diserahkan ke pemilik tenant.
-- **Status: Implemented** (`TenantSignupService`, `SignupController`, `TenantController::store`; test `SaasSignupBillingTest`, `TenantProvisioningTest`). **Partial:** belum ada verifikasi email & CAPTCHA — pendaftaran massal otomatis belum tertahan selain throttle (Roadmap Fase 4).
+- **Status: Implemented** (`TenantSignupService`, `SignupController`, `TenantController::store`; test `SaasSignupBillingTest`, `TenantProvisioningTest`). **Kelanjutan:** verifikasi email diterapkan di B-01 (pemilik baru menerima email verifikasi; sampai terverifikasi aksesnya terbatas per pengguna — hanya halaman verifikasi, kirim ulang ber-throttle, dan keluar — sedangkan CAPTCHA Turnstile diterapkan di S-05.
 
 ### 4.2 Tenant Provisioning
 - Provisioning = pembuatan tenant utuh (tenant + cabang + owner + langganan Free) lewat satu layanan yang dipakai pendaftaran mandiri maupun panel platform — tidak ada jalur provisioning kedua yang menyimpang.

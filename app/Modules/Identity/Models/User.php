@@ -8,6 +8,8 @@ use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Models\Tenant;
 use App\Support\PermissionRegistry;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,15 +22,16 @@ use Illuminate\Notifications\Notifiable;
  * is_platform = aktor teknis platform; BUKAN pelaku bisnis — izin bisnis
  * selalu ditolak untuknya di hasPermission() (matriks keamanan G.1.2 kasus d).
  */
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, MustVerifyEmail, Notifiable;
 
     protected $fillable = [
         'name',
         'username',
         'email',
+        'email_verified_at',
         'password',
         'phone',
         'locale',
@@ -49,6 +52,7 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'is_platform' => 'boolean',
             'last_login_at' => 'datetime',
+            'email_verified_at' => 'datetime',
         ];
     }
 
