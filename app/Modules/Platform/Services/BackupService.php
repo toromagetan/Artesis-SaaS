@@ -49,9 +49,15 @@ class BackupService
     }
 
     /**
-     * Verifikasi keterbacaan backup (PRD-Detail 12.6): arsip zip
-     * harus terbuka dan backup.json di dalamnya harus terbaca,
-     * bertanda aplikasi ini, dan memuat tabel. Backup dianggap
+     * Verifikasi backup (PRD-Detail 12.6): arsip zip harus terbuka
+     * dan backup.json di dalamnya harus terbaca, bertanda aplikasi
+     * ini, dan memuat tabel. Backup yang dibuat sejak M5 (audit
+     * 13 Nov 2026) membawa 'manifest' — jumlah baris per tabel +
+     * sha256 atas JSON tabel kanonis — dan manifest itu WAJIB
+     * cocok dengan isi, sehingga kerusakan/pengubahan senyap pada
+     * berkas terdeteksi. Backup warisan tanpa manifest diverifikasi
+     * pada tingkat keterbacaan lama (dinyatakan eksplisit di sini:
+     * integritas isinya tidak dibuktikan). Backup dianggap
      * berhasil hanya bila lolos verifikasi ini.
      */
     public function verify(string $name): bool
@@ -70,12 +76,34 @@ class BackupService
             return false;
         }
         $data = json_decode($raw, true);
+        if (! is_array($data)
+            || ($data['app'] ?? null) !== 'lentera'
+            || ! isset($data['tables'])
+            || ! is_array($data['tables'])
+            || $data['tables'] === []) {
+            return false;
+        }
+        if (! isset($data['manifest'])) {
+            return true; // Backup warisan: tingkat keterbacaan.
+        }
+        $manifest = $data['manifest'];
+        if (! is_array($manifest)
+            || ! isset($manifest['rows'], $manifest['sha256'])
+            || ! is_array($manifest['rows'])
+            || ! is_string($manifest['sha256'])) {
+            return false;
+        }
+        foreach ($manifest['rows'] as $table => $count) {
+            if (! isset($data['tables'][$table])
+                || ! is_array($data['tables'][$table])
+                || count($data['tables'][$table]) !== (int) $count) {
+                return false;
+            }
+        }
+        $canonical = json_encode($data['tables'], JSON_UNESCAPED_UNICODE);
 
-        return is_array($data)
-            && ($data['app'] ?? null) === 'lentera'
-            && isset($data['tables'])
-            && is_array($data['tables'])
-            && $data['tables'] !== [];
+        return $canonical !== false
+            && hash_equals($manifest['sha256'], hash('sha256', $canonical));
     }
 
     /**
@@ -158,11 +186,21 @@ class BackupService
                 ->map(fn ($row) => (array) $row)
                 ->all();
         }
+        $tablesJson = json_encode($tables, JSON_UNESCAPED_UNICODE);
+        if ($tablesJson === false) {
+            throw ValidationException::withMessages(['backup' => __('ui.backups.encode_failed')]);
+        }
         $payload = json_encode([
             'app' => 'lentera',
             'created_at' => now()->toIso8601String(),
             'created_by' => $actor?->username ?? 'system',
             'tables' => $tables,
+            // Manifest integritas (M5): verify() membuktikan jumlah
+            // baris per tabel + sha256 muatan tabel kanonis.
+            'manifest' => [
+                'rows' => array_map(static fn (array $rows) => count($rows), $tables),
+                'sha256' => hash('sha256', $tablesJson),
+            ],
         ], JSON_UNESCAPED_UNICODE);
         if ($payload === false) {
             throw ValidationException::withMessages(['backup' => __('ui.backups.encode_failed')]);
