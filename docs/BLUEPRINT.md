@@ -500,7 +500,7 @@ Kelas: **P** = Platform-owned · **T** = Tenant-owned · **B** = Branch-owned (d
 | B | `suppliers, insurances, doctors, insurance_usages, customer_credits, customer_credit_applications` | Tenant (lewat konteks aktor) | **Selesai S-02 + PR #30:** master per tenant; `CustomerCredit` terpagar cabang + tenant |
 | B | `membership_levels, points_ledger, member_portal_tokens, fitting_measurements, warranty_cases, warranty_replacements, broken_stocks, warranty_payments, incentive_rules, incentive_periods, incentive_items, incentive_adjustments` | Tenant + cabang terkait | `membership_levels` & `incentive_rules` terpagar tenant **langsung** (`TenantScoped`); sisanya mengikuti pemiliknya: poin/portal/fitting lewat pelanggan (milik tenant), garansi lewat partisi kasus yang divalidasi layanan (B-02), insentif lewat periode & cabang aktor |
 | B/P | `wa_messages, wa_campaigns` | Tenant + cabang pengirim | Pesan terikat pelanggan tenant (pagar ember layanan; pemetaan webhook unik-atau-yatim); gateway-nya sendiri masih per instalasi (OD-4) |
-| P/B | `audit_logs` | Wajib `tenant_id` (target); baca terpagar tenant | Membawa `branch_id` — cabang selalu milik satu tenant dan pembacaan terpagar cabang dalam konteks aktor, sehingga tenant hanya melihat log cabangnya; kolom `tenant_id` khusus belum ada |
+| P/B | `audit_logs` | Wajib `tenant_id`; baca terpagar tenant | Membawa `tenant_id` (L-01, migrasi 000058 — dicap dari konteks aktor tervalidasi) dan `branch_id`; pembacaan terpagar tenant: Owner melihat semua log tenantnya, admin terpagar cabang melihat cabang terkelolanya + log tanpa cabang |
 | P | `backups` | Hanya platform/instalasi (J.5) | **Selesai:** rute digerbang `backups.manage` + `BackupPolicy` berbasis mode — tenant selalu ditolak pada instansi bersama |
 | G | `product_categories` | Referensi tetap (5 kategori, tanpa UI kelola — ADR-015) | Aman sebagai referensi global: tidak memuat data tenant |
 | G (bawaan) | `qc_point_templates` | Templat bawaan; target: dapat disalin per tenant | Saat ini per instalasi |
@@ -513,7 +513,7 @@ Kelas: **P** = Platform-owned · **T** = Tenant-owned · **B** = Branch-owned (d
 
 | Area | Keadaan terbukti (baseline) | Target / gap (Roadmap) |
 |---|---|---|
-| Authentication | Sesi Laravel, hash bawaan, `Password::defaults()`; pemulihan istimewa Owner-only generik + throttle + audit (ADR-016 M7) | Verifikasi email pendaftaran & CAPTCHA (Fase 4) |
+| Authentication | Sesi Laravel, hash bawaan, `Password::defaults()`; pemulihan istimewa Owner-only generik + throttle + audit (ADR-016 M7); verifikasi email wajib bagi pengguna tenant (B-01) dan CAPTCHA Turnstile pada pendaftaran publik (S-05) | Selesai — target verifikasi email & CAPTCHA tercapai (B-01, S-05) |
 | Authorization | Registry izin + policy + middleware izin; matriks keamanan 6 kasus per modul di CI | Urutan pemeriksaan tenant-aware J.2 butir 3 (Fase 1) |
 | Tenant isolation | **Terbukti (Fase 0, PR #23–#35):** platform, pengguna, dan data bisnis terisolasi per tenant; matriks test keamanan per modul di CI | Pengerasan lanjutan & pembuktian menyeluruh (Fase 6) |
 | Branch isolation | `BranchScope` + `BranchContext`; `branch_id` request tidak dipercaya | Tetap; validasi cabang ∈ tenant aktor sudah ditegakkan Fase 0 |
@@ -522,9 +522,9 @@ Kelas: **P** = Platform-owned · **T** = Tenant-owned · **B** = Branch-owned (d
 | Session handling | Driver sesi Laravel; pengguna nonaktif ditolak | Penolakan tenant tersuspensi **sudah ditegakkan** (S-01) |
 | Tenant suspension | Flag `tenants.is_active` + alih panel | **Penegakan Implemented (S-01)** — login & akses ditolak |
 | Backup security | Snapshot terverifikasi; restore platform/instalasi individual + `pra-restore`; ekspor per tenant teraudit | Offsite backup (belum terimplementasi — menunggu kredensial penyimpanan eksternal) |
-| File security | Disk lokal terstruktur; dokumen lewat rute berotorisasi; arsip ekspor per direktori tenant | Awalan per tenant untuk seluruh berkas unggahan (Fase 6) |
+| File security | Disk lokal terstruktur; dokumen lewat rute berotorisasi; arsip ekspor per direktori tenant; unggahan aplikasi ber-namespace per tenant (F-01) | Selesai untuk unggahan aplikasi (F-01); dokumen sensitif tidak memakai pola disk publik |
 | Queue security | Job async; kegagalan tercatat `failed_jobs` | Konteks sistem eksplisit pada perintah terjadwal; pagar ember layanan pada job (ADR-022) |
-| Audit trail | `audit_logs` hanya-INSERT dari aplikasi; nilai rahasia disaring | Kolom `tenant_id` + pembacaan terpagar (Fase 3) |
+| Audit trail | `audit_logs` hanya-INSERT dari aplikasi; nilai rahasia disaring; kolom `tenant_id` terisi dari konteks aktor (L-01) | Selesai (L-01) — kolom `tenant_id` + pembacaan terpagar tenant/cabang |
 | Rate limiting | Throttle pendaftaran `6,1`; throttle pemulihan `3/10mnt` | Tinjau ulang throttle per tenant untuk API/kampanye (Fase 6) |
 | Security monitoring | Dashboard memperingatkan `failed_jobs` & backup basi/rusak untuk pemegang `settings.manage` | Peringatan per tenant + panel kesehatan platform (Fase 6) |
 

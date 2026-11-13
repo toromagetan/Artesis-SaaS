@@ -46,7 +46,7 @@ Fase 1 ──► Fase 5 (Backup/Ekspor/Recovery) ──► Fase 6 (Kesiapan Prod
 - **Test requirements:** tidak ada perubahan kode — verifikasi = `git diff` hanya 4 berkas + pemeriksaan tautan/istilah.
 - **Risks:** dokumen menyelaraskan diri ke arah yang belum diputuskan (topologi) → mitigasi: arah yang belum diputuskan ditulis sebagai OPEN DECISION, bukan ketetapan.
 - **Exit criteria:** 4 dokumen di-review & disetujui pemilik proyek dan ter-commit.
-- **Status: Implementasi dokumentasi selesai (D-01, 2026-11-12) — menunggu audit independen dan persetujuan merge pemilik proyek; status Selesai formal berlaku sesudah merge PR D-01.** Isi implementasi: paket penyelarasan 30 Okt diadopsi atas persetujuan pemilik proyek, disapu kemutakhirannya terhadap hasil Fase 0, dan diperluas: PRD-DETAIL (framing), POLA-POLICY (kontrak tenant + cabang), DEPLOY-RUNBOOK (URL repo + penanda OD-1), PARITAS-LINGKUNGAN, anotasi arsip, serta ADR-022 sebagai dokumen mandiri di `docs/adr/`.
+- **Status: Selesai (D-01, 2026-11-12) — PR #36 di-merge ke main `43db5b54` atas persetujuan pemilik proyek.** Isi implementasi: paket penyelarasan 30 Okt diadopsi atas persetujuan pemilik proyek, disapu kemutakhirannya terhadap hasil Fase 0, dan diperluas: PRD-DETAIL (framing), POLA-POLICY (kontrak tenant + cabang), DEPLOY-RUNBOOK (URL repo + penanda OD-1), PARITAS-LINGKUNGAN, anotasi arsip, serta ADR-022 sebagai dokumen mandiri di `docs/adr/`.
 
 ## Fase 1 — Tenant Isolation Foundation
 
@@ -90,7 +90,7 @@ Fase 1 ──► Fase 5 (Backup/Ekspor/Recovery) ──► Fase 6 (Kesiapan Prod
 - **Test requirements:** test negatif konfigurasi antar-tenant; test provisioning; regresi penuh.
 - **Risks:** tenant lama yang terlanjur berbagi baris peran — perubahan perilaku sesudah kloning → mitigasi: kloning menyalin keadaan efektif saat migrasi, bukan templat bawaan.
 - **Exit criteria:** acceptance lulus; tidak ada lagi baris konfigurasi bersama yang dapat diubah tenant pada instansi bersama.
-- **Status: Selesai sebagian besar (Fase 0 master-roadmap)** — isolasi pengelolaan pengguna (2026-10-30); role kustom per tenant + role bawaan templat + settings per tenant (S-03, PR #27); token API & perangkat offline terikat ember tenant (PR #33); pembacaan audit log terpagar cabang/konteks (kolom `tenant_id` khusus belum ada). **Sisa:** gateway/template/inbox/kampanye WhatsApp per tenant — menunggu keputusan **OD-4**.
+- **Status: Selesai sebagian besar (Fase 0 master-roadmap)** — isolasi pengelolaan pengguna (2026-10-30); role kustom per tenant + role bawaan templat + settings per tenant (S-03, PR #27); token API & perangkat offline terikat ember tenant (PR #33); pembacaan audit log terpagar tenant (L-01: kolom `tenant_id` terisi dari konteks aktor tervalidasi, migrasi 000058). **Sisa:** gateway/template/inbox/kampanye WhatsApp per tenant — menunggu keputusan **OD-4**.
 
 ## Fase 4 — SaaS Lifecycle & Operations
 
