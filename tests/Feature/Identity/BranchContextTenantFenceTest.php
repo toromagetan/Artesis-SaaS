@@ -53,7 +53,7 @@ class BranchContextTenantFenceTest extends TestCase
         $branch = Branch::create(['name' => 'Cabang '.$key, 'tenant_id' => $tenant->id]);
         $owner = User::create([
             'name' => 'Owner '.$key, 'username' => 'owner-'.strtolower($key),
-            'email' => 'owner-'.strtolower($key).'@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'email' => 'owner-'.strtolower($key).'@uji.id', 'email_verified_at' => now(), 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);
         $owner->roles()->attach(Role::where('name', 'Owner')->firstOrFail());
@@ -152,7 +152,7 @@ class BranchContextTenantFenceTest extends TestCase
         [, $branchB] = $this->tenantOwner('Beta');
         $staff = User::create([
             'name' => 'Staf Alpha', 'username' => 'staf-alpha',
-            'email' => 'staf-alpha@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'email' => 'staf-alpha@uji.id', 'email_verified_at' => now(), 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $ownerA->tenant_id,
         ]);
         $staff->roles()->attach(Role::where('name', 'Kasir')->firstOrFail());

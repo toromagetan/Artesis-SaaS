@@ -55,6 +55,10 @@ class TenantContextTest extends TestCase
         ];
         $this->ownerA = $signup->register($payload('Optik Alpha', 'alpha@uji.id'), $this->platform);
         $this->ownerB = $signup->register($payload('Optik Beta', 'beta@uji.id'), $this->platform);
+        // Fixture meniru tenant yang sudah berjalan (B-01):
+        // pemiliknya dianggap sudah memverifikasi email.
+        $this->ownerA->markEmailAsVerified();
+        $this->ownerB->markEmailAsVerified();
         $this->tenantA = $this->ownerA->tenant()->firstOrFail();
         $this->tenantB = $this->ownerB->tenant()->firstOrFail();
     }

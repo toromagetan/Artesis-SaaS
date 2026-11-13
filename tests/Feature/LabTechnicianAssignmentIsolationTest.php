@@ -55,7 +55,7 @@ class LabTechnicianAssignmentIsolationTest extends TestCase
         );
         $branch = Branch::create(['name' => 'Cabang '.$tag, 'tenant_id' => $tenant->id]);
         $admin = User::create([
-            'name' => 'Admin '.$tag, 'username' => 'admin-'.$tag,
+            'email_verified_at' => now(),            'name' => 'Admin '.$tag, 'username' => 'admin-'.$tag,
             'email' => 'admin-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);
@@ -68,7 +68,7 @@ class LabTechnicianAssignmentIsolationTest extends TestCase
     private function staffOf(Tenant $tenant, Branch $branch, string $username): User
     {
         $user = User::create([
-            'name' => 'Staf '.$username, 'username' => $username,
+            'email_verified_at' => now(),            'name' => 'Staf '.$username, 'username' => $username,
             'email' => $username.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);
@@ -154,7 +154,7 @@ class LabTechnicianAssignmentIsolationTest extends TestCase
         }
 
         $unassigned = User::create([
-            'name' => 'Yatim Lab', 'username' => 'yatim-lab',
+            'email_verified_at' => now(),            'name' => 'Yatim Lab', 'username' => 'yatim-lab',
             'email' => 'yatim-lab@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
         ]);
@@ -172,14 +172,14 @@ class LabTechnicianAssignmentIsolationTest extends TestCase
         // Tanpa tenant sama sekali: instalasi mandiri, ember NULL.
         $branch = Branch::create(['name' => 'Cabang Mandiri', 'tenant_id' => null]);
         $owner = User::create([
-            'name' => 'Pemilik Mandiri', 'username' => 'pemilik-mandiri',
+            'email_verified_at' => now(),            'name' => 'Pemilik Mandiri', 'username' => 'pemilik-mandiri',
             'email' => 'mandiri@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
         ]);
         $owner->roles()->attach(Role::where('name', 'Owner')->firstOrFail());
         $owner->branches()->attach($branch);
         $technician = User::create([
-            'name' => 'Teknisi Mandiri', 'username' => 'teknisi-mandiri',
+            'email_verified_at' => now(),            'name' => 'Teknisi Mandiri', 'username' => 'teknisi-mandiri',
             'email' => 'teknisi-mandiri@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
         ]);

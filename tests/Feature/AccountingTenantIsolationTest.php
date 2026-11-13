@@ -56,7 +56,7 @@ class AccountingTenantIsolationTest extends TestCase
         );
         $branch = Branch::create(['name' => 'Cabang '.$tag, 'tenant_id' => $tenant->id]);
         $admin = User::create([
-            'name' => 'Admin '.$tag, 'username' => 'admin-'.$tag,
+            'email_verified_at' => now(),            'name' => 'Admin '.$tag, 'username' => 'admin-'.$tag,
             'email' => 'admin-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);
@@ -218,7 +218,7 @@ class AccountingTenantIsolationTest extends TestCase
 
         // Aktor unassigned (tanpa tenant pada instalasi bersama).
         $unassigned = User::create([
-            'name' => 'Yatim', 'username' => 'yatim-akuntansi',
+            'email_verified_at' => now(),            'name' => 'Yatim', 'username' => 'yatim-akuntansi',
             'email' => 'yatim-akuntansi@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
         ]);

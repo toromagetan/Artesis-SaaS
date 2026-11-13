@@ -70,7 +70,7 @@ class OfflineDeviceTenantIsolationTest extends TestCase
         );
         $branch = Branch::create(['name' => 'Cabang '.$tag, 'tenant_id' => $tenant->id]);
         $admin = User::create([
-            'name' => 'Admin '.$tag, 'username' => 'admin-'.$tag,
+            'email_verified_at' => now(),            'name' => 'Admin '.$tag, 'username' => 'admin-'.$tag,
             'email' => 'admin-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);
@@ -83,7 +83,7 @@ class OfflineDeviceTenantIsolationTest extends TestCase
     private function cashier(Tenant $tenant, Branch $branch, string $tag): User
     {
         $kasir = User::create([
-            'name' => 'Kasir '.$tag, 'username' => 'kasir-'.$tag,
+            'email_verified_at' => now(),            'name' => 'Kasir '.$tag, 'username' => 'kasir-'.$tag,
             'email' => 'kasir-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);

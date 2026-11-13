@@ -26,6 +26,7 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'phone' => fake()->phoneNumber(),
             'locale' => 'id',
@@ -33,6 +34,12 @@ class UserFactory extends Factory
             'is_platform' => false,
             'remember_token' => Str::random(10),
         ];
+    }
+
+    /** Pengguna yang belum memverifikasi emailnya (B-01). */
+    public function unverified(): static
+    {
+        return $this->state(fn (array $attributes) => ['email_verified_at' => null]);
     }
 
     public function inactive(): static

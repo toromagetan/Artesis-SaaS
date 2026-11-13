@@ -28,7 +28,20 @@ class ProfileController extends Controller
     {
         $request->user()->fill($request->validated());
 
+        // Koreksi audit B-01-R1: status verifikasi melekat pada
+        // ALAMAT yang tercatat — alamat baru berarti belum
+        // terverifikasi, dan tautan verifikasi dikirim ke alamat
+        // baru. Tanpa perubahan email, status tidak disentuh.
+        $emailChanged = $request->user()->isDirty('email');
+        if ($emailChanged) {
+            $request->user()->email_verified_at = null;
+        }
+
         $request->user()->save();
+
+        if ($emailChanged && $request->user()->email !== null) {
+            $request->user()->sendEmailVerificationNotification();
+        }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }

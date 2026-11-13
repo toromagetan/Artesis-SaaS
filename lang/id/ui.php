@@ -152,6 +152,15 @@ return [
         'password' => 'Kata Sandi',
         'remember' => 'Ingat saya',
         'forgot' => 'Lupa kata sandi?',
+        'verification' => [
+            'title' => 'Verifikasi Email Anda',
+            'body' => 'Kami telah mengirim tautan verifikasi ke :email. Klik tautan di email tersebut untuk membuka akses penuh. Bila belum terlihat, periksa juga folder spam.',
+            'waiting' => 'Sampai email terverifikasi, akun Anda hanya dapat membuka halaman ini, meminta pengiriman ulang, dan keluar — fitur bisnis belum dapat diakses.',
+            'resend' => 'Kirim Ulang Email Verifikasi',
+            'link_sent' => 'Tautan verifikasi baru telah dikirim ke alamat email Anda.',
+            'verified' => 'Email Anda berhasil diverifikasi. Selamat datang!',
+        ],
+        'logout' => 'Keluar',
     ],
 
     'users' => [

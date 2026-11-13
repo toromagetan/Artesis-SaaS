@@ -69,7 +69,7 @@ class TenantExportIsolationTest extends TestCase
         $branch = Branch::create(['name' => 'Cabang '.$tag, 'tenant_id' => $tenant->id]);
         $warehouse = Branch::create(['name' => 'Gudang '.$tag, 'tenant_id' => $tenant->id, 'is_main_warehouse' => true]);
         $owner = User::create([
-            'name' => 'Owner '.$tag, 'username' => 'owner-'.$tag,
+            'email_verified_at' => now(),            'name' => 'Owner '.$tag, 'username' => 'owner-'.$tag,
             'email' => 'owner-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);
@@ -82,7 +82,7 @@ class TenantExportIsolationTest extends TestCase
     private function userWithRole(Tenant $tenant, string $role, string $tag, array $branchIds): User
     {
         $user = User::create([
-            'name' => $role.' '.$tag, 'username' => strtolower($role).'-'.$tag,
+            'email_verified_at' => now(),            'name' => $role.' '.$tag, 'username' => strtolower($role).'-'.$tag,
             'email' => strtolower($role).'-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);
@@ -247,7 +247,7 @@ class TenantExportIsolationTest extends TestCase
 
         // Akun tanpa tenant (unassigned — instalasi sudah bertenant).
         $unassigned = User::create([
-            'name' => 'Tanpa Tenant', 'username' => 'unassigned-x',
+            'email_verified_at' => now(),            'name' => 'Tanpa Tenant', 'username' => 'unassigned-x',
             'email' => 'unassigned-x@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
         ]);
@@ -265,7 +265,7 @@ class TenantExportIsolationTest extends TestCase
 
         // Platform TANPA peran/izin apa pun — ditolak meski is_platform.
         $barePlatform = User::create([
-            'name' => 'Platform Polos', 'username' => 'platform-polos',
+            'email_verified_at' => now(),            'name' => 'Platform Polos', 'username' => 'platform-polos',
             'email' => 'polos@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => true, 'tenant_id' => null,
         ]);
@@ -277,7 +277,7 @@ class TenantExportIsolationTest extends TestCase
         // (redirect); policy sendiri juga menolak — dibuktikan
         // langsung agar kedua lapis teruji.
         $inactivePlatform = User::create([
-            'name' => 'Platform Nonaktif', 'username' => 'platform-nonaktif',
+            'email_verified_at' => now(),            'name' => 'Platform Nonaktif', 'username' => 'platform-nonaktif',
             'email' => 'nonaktif@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => false, 'is_platform' => true, 'tenant_id' => null,
         ]);
@@ -316,7 +316,7 @@ class TenantExportIsolationTest extends TestCase
         $this->assertStringContainsString('999999', (string) $ghost->new_values);
         // (d) Unassigned.
         $unassigned = User::create([
-            'name' => 'Tanpa Tenant', 'username' => 'unassigned-y',
+            'email_verified_at' => now(),            'name' => 'Tanpa Tenant', 'username' => 'unassigned-y',
             'email' => 'unassigned-y@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
         ]);
@@ -324,7 +324,7 @@ class TenantExportIsolationTest extends TestCase
         $this->actingAs($unassigned)->get(route('tenant-exports.index'))->assertForbidden();
         // (e) Tenant menggantung (tenant_id menunjuk baris tak ada).
         $dangling = User::create([
-            'name' => 'Menggantung', 'username' => 'dangling-y',
+            'email_verified_at' => now(),            'name' => 'Menggantung', 'username' => 'dangling-y',
             'email' => 'dangling-y@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenantA->id,
         ]);
@@ -390,7 +390,7 @@ class TenantExportIsolationTest extends TestCase
         // Platform aktif TANPA backups.manage: ditolak, respons
         // tidak memuat daftar tenant, penolakan teraudit.
         $barePlatform = User::create([
-            'name' => 'Platform Polos', 'username' => 'platform-polos-2',
+            'email_verified_at' => now(),            'name' => 'Platform Polos', 'username' => 'platform-polos-2',
             'email' => 'polos2@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => true, 'tenant_id' => null,
         ]);

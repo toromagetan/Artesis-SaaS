@@ -81,7 +81,7 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
             'name' => 'Gudang '.$tag, 'tenant_id' => $tenant->id, 'is_main_warehouse' => true,
         ]);
         $admin = User::create([
-            'name' => 'Admin '.$tag, 'username' => 'admin-'.$tag,
+            'email_verified_at' => now(),            'name' => 'Admin '.$tag, 'username' => 'admin-'.$tag,
             'email' => 'admin-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);
@@ -94,7 +94,7 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
     private function userWithRole(Tenant $tenant, string $role, string $tag, array $branchIds): User
     {
         $user = User::create([
-            'name' => $role.' '.$tag, 'username' => strtolower($role).'-'.$tag,
+            'email_verified_at' => now(),            'name' => $role.' '.$tag, 'username' => strtolower($role).'-'.$tag,
             'email' => strtolower($role).'-'.$tag.'@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
         ]);
@@ -323,7 +323,7 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
         // Partisi NULL bukan miliknya — kasus dan antrean stok rusak
         // standalone tidak boleh terlihat.
         $unassigned = User::create([
-            'name' => 'Tanpa Tenant', 'username' => 'unassigned',
+            'email_verified_at' => now(),            'name' => 'Tanpa Tenant', 'username' => 'unassigned',
             'email' => 'unassigned@uji.id', 'password' => bcrypt('rahasia-uji'),
             'is_active' => true, 'is_platform' => false, 'tenant_id' => null,
         ]);
@@ -427,7 +427,7 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         try {
             $dangling = User::create([
-                'name' => 'Tenant Menggantung', 'username' => 'dangling',
+                'email_verified_at' => now(),                'name' => 'Tenant Menggantung', 'username' => 'dangling',
                 'email' => 'dangling@uji.id', 'password' => bcrypt('rahasia-uji'),
                 'is_active' => true, 'is_platform' => false, 'tenant_id' => 999999,
             ]);

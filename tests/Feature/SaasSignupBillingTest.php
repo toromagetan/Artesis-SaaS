@@ -63,7 +63,7 @@ class SaasSignupBillingTest extends TestCase
         $tenant = Tenant::create(['name' => 'Optik Uji', 'slug' => $slug, 'email' => $slug.'@uji.id']);
         $this->plans->assignPlan($tenant, Plan::where('key', 'free')->firstOrFail(), null, $this->platform);
         $admin = User::create([
-            'name' => 'Admin Uji', 'username' => 'admin-'.$slug, 'email' => 'admin@'.$slug.'.id',
+            'name' => 'Admin Uji', 'username' => 'admin-'.$slug, 'email' => 'admin@'.$slug.'.id', 'email_verified_at' => now(),
             'password' => bcrypt('rahasia-uji'), 'is_active' => true, 'tenant_id' => $tenant->id,
         ]);
         $admin->roles()->attach(Role::where('name', 'Owner')->firstOrFail());

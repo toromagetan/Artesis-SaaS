@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\EnsureEmailVerified;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsurePlanFeature;
 use App\Http\Middleware\EnsurePlatformUser;
@@ -33,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             SetLocale::class,
             EnsureUserIsActive::class,
             EnsureTenantIsActive::class,
+            EnsureEmailVerified::class,
             MarkGuestRequest::class,
         ]);
         $middleware->api(append: [

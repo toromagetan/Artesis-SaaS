@@ -57,7 +57,9 @@ class UserService
      */
     public function updateUser(User $user, array $data, ?User $actor = null): User
     {
-        return DB::transaction(function () use ($user, $data, $actor) {
+        $emailChanged = false;
+
+        $updated = DB::transaction(function () use ($user, $data, $actor, &$emailChanged) {
             $old = [
                 'name' => $user->name,
                 'email' => $user->email,
@@ -69,6 +71,14 @@ class UserService
                 'email' => $data['email'] ?? null,
                 'phone' => $data['phone'] ?? null,
             ], fn ($v) => $v !== null));
+
+            // Koreksi audit B-01-R1: alamat baru = belum
+            // terverifikasi; status lama tidak boleh menempel
+            // pada alamat yang belum dibuktikan kepemilikannya.
+            $emailChanged = $user->isDirty('email');
+            if ($emailChanged) {
+                $user->email_verified_at = null;
+            }
 
             if (! empty($data['password'])) {
                 $user->password = Hash::make($data['password']);
@@ -86,6 +96,14 @@ class UserService
 
             return $user;
         });
+
+        // Notifikasi verifikasi dikirim SESUDAH transaksi berhasil
+        // (alamat baru sudah tersimpan & tidak akan di-rollback).
+        if ($emailChanged && $updated->email !== null) {
+            $updated->sendEmailVerificationNotification();
+        }
+
+        return $updated;
     }
 
     public function deactivateUser(User $user, ?User $actor = null): User

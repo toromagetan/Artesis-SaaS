@@ -60,6 +60,11 @@ class SignupController extends Controller
 
         $user = $this->signup->register($data);
 
+        // B-01: pemilik baru wajib memverifikasi emailnya; selama
+        // belum, gerbang EnsureEmailVerified membatasi aksesnya
+        // ke halaman verifikasi + kirim ulang + keluar.
+        $user->sendEmailVerificationNotification();
+
         Auth::login($user);
         $request->session()->regenerate();
 

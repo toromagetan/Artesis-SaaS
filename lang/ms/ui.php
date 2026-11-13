@@ -150,6 +150,15 @@ return [
         'password' => 'Kata Laluan',
         'remember' => 'Ingat saya',
         'forgot' => 'Lupa kata laluan?',
+        'verification' => [
+            'title' => 'Sahkan E-mel Anda',
+            'body' => 'Kami telah menghantar pautan pengesahan ke :email. Klik pautan dalam e-mel tersebut untuk membuka akses penuh. Jika belum kelihatan, sila semak folder spam juga.',
+            'waiting' => 'Sehingga e-mel disahkan, akaun anda hanya boleh membuka halaman ini, meminta penghantaran semula dan log keluar — ciri perniagaan belum dapat diakses.',
+            'resend' => 'Hantar Semula E-mel Pengesahan',
+            'link_sent' => 'Pautan pengesahan baharu telah dihantar ke alamat e-mel anda.',
+            'verified' => 'E-mel anda berjaya disahkan. Selamat datang!',
+        ],
+        'logout' => 'Log Keluar',
     ],
     'users' => [
         'title' => 'Pengguna',
