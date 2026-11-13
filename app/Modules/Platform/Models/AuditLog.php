@@ -10,12 +10,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Jejak audit (Blueprint B. Platform). Hanya INSERT dari aplikasi;
  * tidak ada updated_at. Penulisan kanonis lewat AuditLogger (F0.4).
+ * tenant_id (L-01) dicap penulis dari konteks tervalidasi aktor;
+ * NULL = aktivitas platform/sistem/instalasi mandiri atau baris
+ * warisan pra-L-01.
  */
 class AuditLog extends Model
 {
     public const UPDATED_AT = null;
 
     protected $fillable = [
+        'tenant_id',
         'user_id',
         'action',
         'subject_type',
@@ -43,5 +47,10 @@ class AuditLog extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Modules\Platform\Services;
 
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Platform\Models\AuditLog;
 
 /**
@@ -12,6 +13,12 @@ use App\Modules\Platform\Models\AuditLog;
  *
  * Nilai yang tampak rahasia (kunci mengandung password/token/secret)
  * disamarkan sebelum disimpan.
+ *
+ * tenant_id (L-01; audit A-04) dicap dari konteks tenant
+ * TERVALIDASI milik aktor efektif (parameter aktor mengalahkan
+ * sesi ambient): aktor tenant valid → tenantnya; platform,
+ * standalone, sistem, dan tamu → NULL. Tidak pernah dari input
+ * pemanggil — parameter log() memang tidak menerimanya.
  */
 class AuditLogger
 {
@@ -26,8 +33,12 @@ class AuditLogger
         ?int $branchId = null,
         ?User $actor = null,
     ): AuditLog {
+        $effectiveActor = $actor ?? auth()->user();
+        $context = $effectiveActor !== null ? TenantContext::for($effectiveActor) : null;
+
         return AuditLog::create([
-            'user_id' => ($actor ?? auth()->user())?->id,
+            'tenant_id' => $context !== null && $context->isValid() ? $context->tenantId() : null,
+            'user_id' => $effectiveActor?->id,
             'action' => $action,
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,
