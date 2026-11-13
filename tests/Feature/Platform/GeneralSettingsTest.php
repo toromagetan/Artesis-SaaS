@@ -11,6 +11,7 @@ use App\Modules\Platform\Models\AuditLog;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -90,10 +91,13 @@ class GeneralSettingsTest extends TestCase
             'store_logo' => $logo,
         ])->assertRedirect(route('settings.general.edit'));
 
-        $this->assertSame('store-logo.png', Setting::value('store.logo_path'));
-        $this->assertFileExists(public_path('store-logo.png'));
+        // F-01: logo kini berkas namespace pemilik di disk publik
+        // (instalasi mandiri = ember standalone), bukan berkas
+        // tunggal di akar web.
+        $this->assertSame('standalone/settings/store-logo.png', Setting::value('store.logo_path'));
+        Storage::disk('public')->assertExists('standalone/settings/store-logo.png');
         $this->actingAs($this->owner)->get(route('users.print'))
-            ->assertOk()->assertSee('store-logo.png');
+            ->assertOk()->assertSee('standalone/settings/store-logo.png');
 
         // Hapus logo: pengaturan kosong dan kepala cetak kembali teks.
         $this->actingAs($this->owner)->put(route('settings.general.update'), [
@@ -105,6 +109,6 @@ class GeneralSettingsTest extends TestCase
             'remove_logo' => '1',
         ])->assertRedirect(route('settings.general.edit'));
         $this->assertSame('', Setting::value('store.logo_path'));
-        $this->assertFileDoesNotExist(public_path('store-logo.png'));
+        Storage::disk('public')->assertMissing('standalone/settings/store-logo.png');
     }
 }

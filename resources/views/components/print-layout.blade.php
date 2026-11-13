@@ -33,7 +33,7 @@
     @endphp
     <div class="store">
         @if ($storeLogo)
-            <img src="{{ asset($storeLogo) }}" alt="" style="max-height: 14mm; max-width: 60mm; margin-bottom: 4px;">
+            <img src="{{ \App\Support\TenantStorage::url($storeLogo) }}" alt="" style="max-height: 14mm; max-width: 60mm; margin-bottom: 4px;">
         @endif
         <div class="name">{{ $storeName }}</div>
         @if ($storeAddress)

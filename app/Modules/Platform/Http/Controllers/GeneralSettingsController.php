@@ -5,8 +5,10 @@ namespace App\Modules\Platform\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Services\AuditLogger;
+use App\Support\TenantStorage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -66,20 +68,30 @@ class GeneralSettingsController extends Controller
             Setting::set($key, $value);
         }
 
-        // Logo dokumen (PRD-Detail 12.5): berkas tunggal di public/,
-        // dirujuk relatif dari aset web. Ganti = hapus berkas lama;
-        // centang hapus = kembali tanpa logo (kepala cetak teks saja).
+        // Logo dokumen (PRD-Detail 12.5) kini berkas per pemilik di
+        // namespace disk publik (F-01): nilai pengaturan per tenant
+        // menunjuk berkas ember tenant itu sendiri — logo satu
+        // tenant tidak lagi menimpa logo tenant lain seperti saat
+        // berkas tunggal di akar web. Berkas lama dihapus SETELAH
+        // nilai baru tersimpan; centang hapus = tanpa logo.
+        $previousLogo = (string) Setting::value('store.logo_path', '');
         if ($request->boolean('remove_logo')) {
-            $this->deleteLogoFiles();
             Setting::set('store.logo_path', '');
             $map['store.logo_path'] = '';
+            $this->deleteLogoFile($previousLogo);
         } elseif ($request->hasFile('store_logo')) {
             $file = $request->file('store_logo');
             $ext = strtolower($file->getClientOriginalExtension() ?: 'png');
-            $this->deleteLogoFiles();
-            $file->move(public_path(), 'store-logo.'.$ext);
-            Setting::set('store.logo_path', 'store-logo.'.$ext);
-            $map['store.logo_path'] = 'store-logo.'.$ext;
+            $path = $file->storeAs(
+                TenantStorage::directory($request->user(), 'settings'),
+                'store-logo.'.$ext,
+                'public',
+            );
+            Setting::set('store.logo_path', $path);
+            $map['store.logo_path'] = $path;
+            if ($previousLogo !== '' && $previousLogo !== $path) {
+                $this->deleteLogoFile($previousLogo);
+            }
         }
 
         // Nilai pajak/identitas finansial sensitif — catat kunci yang
@@ -95,10 +107,17 @@ class GeneralSettingsController extends Controller
             ->with('status', __('ui.settings_general.saved'));
     }
 
-    private function deleteLogoFiles(): void
+    /** Hapus tepat berkas logo yang dirujuk nilai sebelumnya. */
+    private function deleteLogoFile(string $path): void
     {
-        foreach (glob(public_path('store-logo.*')) ?: [] as $old) {
-            @unlink($old);
+        if ($path === '') {
+            return;
+        }
+        if (str_contains($path, '/')) {
+            Storage::disk('public')->delete($path);
+        } else {
+            // Warisan pra-F-01: nama berkas polos di akar web.
+            @unlink(public_path($path));
         }
     }
 }

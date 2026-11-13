@@ -9,6 +9,7 @@ use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Master\Models\Branch;
+use App\Support\TenantStorage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -117,25 +118,18 @@ class ProductController extends Controller
         ];
     }
 
-    /** Simpan/hapus berkas gambar varian; kembalikan path final. */
-    private function handleImage(Request $request, ?Product $existing = null): ?string
+    /**
+     * Simpan berkas gambar ke namespace pemilik aktor (F-01).
+     * Penghapusan berkas lama selalu terjadi SETELAH perubahan
+     * data berhasil — kegagalan layanan tidak pernah menghapus
+     * gambar yang masih dirujuk produk (audit A-02).
+     */
+    private function storeImageFile(Request $request): string
     {
-        if ($request->boolean('image_remove')) {
-            if ($existing?->image_path) {
-                Storage::disk('public')->delete($existing->image_path);
-            }
-
-            return null;
-        }
-        if ($request->hasFile('image')) {
-            if ($existing?->image_path) {
-                Storage::disk('public')->delete($existing->image_path);
-            }
-
-            return $request->file('image')->store('products', 'public');
-        }
-
-        return $existing?->image_path;
+        return $request->file('image')->store(
+            TenantStorage::directory($request->user(), 'products'),
+            'public',
+        );
     }
 
     public function store(Request $request, string $type): RedirectResponse
@@ -143,16 +137,28 @@ class ProductController extends Controller
         $this->assertType($type);
 
         $validated = $request->validate($this->variantRules());
-        $validated['image_path'] = $this->handleImage($request);
         // Checkbox tak tercentang tidak terkirim — normalkan eksplisit.
         $validated['is_process_item'] = $request->boolean('is_process_item');
         unset($validated['image'], $validated['image_remove']);
 
+        // Data DULU, berkas kemudian (A-02): penolakan layanan —
+        // termasuk batas produk paket — tidak meninggalkan berkas
+        // yatim, karena belum ada berkas yang ditulis sama sekali.
         $product = $this->service->create(
             $request->user(),
-            [...$validated, 'type' => $type],
+            [...$validated, 'type' => $type, 'image_path' => null],
             $validated['attributes'] ?? [],
         );
+
+        if ($request->hasFile('image')) {
+            $path = $this->storeImageFile($request);
+            try {
+                $product->forceFill(['image_path' => $path])->save();
+            } catch (\Throwable $e) {
+                Storage::disk('public')->delete($path);
+                throw $e;
+            }
+        }
 
         return redirect()->route('products.show', $product)->with('status', __('ui.products.created'));
     }
@@ -175,17 +181,43 @@ class ProductController extends Controller
             ...$this->variantRules($product),
             'type' => ['required', Rule::in(Product::TYPES)],
         ]);
-        $validated['image_path'] = $this->handleImage($request, $product);
         // Checkbox tak tercentang tidak terkirim — normalkan eksplisit.
         $validated['is_process_item'] = $request->boolean('is_process_item');
         unset($validated['image'], $validated['image_remove']);
 
-        $this->service->update(
-            $request->user(),
-            $product,
-            $validated,
-            $validated['attributes'] ?? [],
-        );
+        $oldPath = $product->image_path;
+        $removeImage = $request->boolean('image_remove');
+        $newPath = null;
+
+        if ($removeImage) {
+            $validated['image_path'] = null;
+        } elseif ($request->hasFile('image')) {
+            // Berkas baru ditulis ke namespace pemilik TANPA
+            // menyentuh berkas lama; berkas lama baru dihapus
+            // setelah pembaruan berhasil (A-02).
+            $newPath = $this->storeImageFile($request);
+            $validated['image_path'] = $newPath;
+        }
+
+        try {
+            $this->service->update(
+                $request->user(),
+                $product,
+                $validated,
+                $validated['attributes'] ?? [],
+            );
+        } catch (\Throwable $e) {
+            // Pembaruan gagal: berkas baru dibersihkan, berkas lama
+            // dan data produk tetap utuh seperti sebelum permintaan.
+            if ($newPath !== null) {
+                Storage::disk('public')->delete($newPath);
+            }
+            throw $e;
+        }
+
+        if (($newPath !== null || $removeImage) && $oldPath) {
+            Storage::disk('public')->delete($oldPath);
+        }
 
         return redirect()->route('products.show', $product)->with('status', __('ui.products.updated'));
     }
