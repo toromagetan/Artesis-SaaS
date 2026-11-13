@@ -8,6 +8,7 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Services\InitialStockImportService;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Platform\Models\AuditLog;
 use App\Modules\Platform\Models\Plan;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Platform\Services\PlanService;
@@ -145,5 +146,64 @@ class TenantCacheIsolationTest extends TestCase
         $this->assertSame(1, StockMovement::where('branch_id', $branchA->id)->count());
         $this->assertSame(0, StockMovement::where('branch_id', $branchB->id)->count());
         $this->assertSame($productA->id, StockMovement::firstOrFail()->product_id);
+    }
+
+    public function test_commit_with_explicit_actor_mismatching_ambient_session_is_rejected(): void
+    {
+        // Koreksi audit C-01-R1: sesi ambient tenant B, aktor
+        // eksplisit tenant A — komitmen atas pratinjau B oleh A
+        // ditolak gagal-tertutup SEBELUM cache dibaca dari ember
+        // yang salah; tidak ada gerakan stok maupun audit impor.
+        [$tenantA, $branchA, $ownerA] = $this->tenantOwner('A');
+        [$tenantB, $branchB, $ownerB] = $this->tenantOwner('B');
+        $service = app(InitialStockImportService::class);
+
+        $this->actingAs($ownerB);
+        Product::factory()->ofType('frame')->create([
+            'tenant_id' => $tenantB->id, 'sku' => 'FR-C01-B', 'cost_price' => '100000',
+        ]);
+        $previewB = $service->preview("sku,cabang,qty\nFR-C01-B,{$branchB->id},5\n", $ownerB);
+        $this->assertSame([], $previewB['errors']);
+
+        try {
+            $service->commit($ownerA, $previewB['token']);
+            $this->fail('Komitmen aktor A atas sesi B harus ditolak');
+        } catch (AuthorizationException) {
+            $this->assertSame(0, StockMovement::count());
+            $this->assertSame(0, AuditLog::where('action', 'stock.import_initial')->count());
+        }
+
+        // Pratinjau B tetap utuh & hanya dapat dikomit pemiliknya.
+        $service->commit($ownerB, $previewB['token']);
+        $this->assertSame(1, StockMovement::where('branch_id', $branchB->id)->count());
+        $this->assertSame(0, StockMovement::where('branch_id', $branchA->id)->count());
+    }
+
+    public function test_system_bucket_preview_cannot_be_committed_by_a_tenant_actor(): void
+    {
+        // Pratinjau yang dibuat proses tanpa aktor hidup di ember
+        // system: — aktor tenant tidak dapat mengomitnya sebagai
+        // operasi bisnis (koreksi audit C-01-R1 butir C.3).
+        [$tenantA, $branchA, $ownerA] = $this->tenantOwner('A');
+        $service = app(InitialStockImportService::class);
+
+        $this->actingAs($ownerA);
+        Product::factory()->ofType('frame')->create([
+            'tenant_id' => $tenantA->id, 'sku' => 'FR-C01-S', 'cost_price' => '100000',
+        ]);
+        auth()->logout();
+        // Tanpa aktor & tanpa sesi, resolusi baris berjalan dalam
+        // konteks tamu (gagal-tertutup) — yang dibuktikan di sini
+        // adalah penempatan embernya, bukan isi validasinya.
+        $preview = $service->preview("sku,cabang,qty\nFR-C01-S,{$branchA->id},3\n");
+        $this->assertNotNull(Cache::get('system:initial-stock-preview:'.$preview['token']));
+        $this->assertNull(Cache::get('t'.$tenantA->id.':initial-stock-preview:'.$preview['token']));
+
+        try {
+            $service->commit($ownerA, $preview['token']);
+            $this->fail('Pratinjau ember system tidak boleh dikomit aktor tenant');
+        } catch (ValidationException) {
+            $this->assertSame(0, StockMovement::count());
+        }
     }
 }

@@ -62,7 +62,7 @@ class InitialStockImportTest extends TestCase
             'LN-IMP-1,'.$this->branch->id.',-3',           // qty negatif
         ]);
 
-        $preview = $this->service()->preview($csv);
+        $preview = $this->service()->preview($csv, $this->owner);
         $this->assertSame(2, count($preview['valid']));
         $this->assertSame(3, count($preview['errors']));
 
@@ -75,7 +75,7 @@ class InitialStockImportTest extends TestCase
         }
 
         // Pratinjau bersih → komitmen satu transaksi.
-        $clean = $this->service()->preview("sku,cabang,qty\nFR-IMP-1,{$this->branch->id},10\nLN-IMP-1,{$branchB->id},4\n");
+        $clean = $this->service()->preview("sku,cabang,qty\nFR-IMP-1,{$this->branch->id},10\nLN-IMP-1,{$branchB->id},4\n", $this->owner);
         $this->assertSame([], $clean['errors']);
         $totals = $this->service()->commit($this->owner, $clean['token']);
         $stock = app(InventoryService::class);
@@ -86,7 +86,7 @@ class InitialStockImportTest extends TestCase
         $this->assertSame(2, StockMovement::where('reference_type', 'initial_stock_import')->count());
 
         // Cabang yang sama tidak dapat diimpor ulang.
-        $lagi = $this->service()->preview("sku,cabang,qty\nFR-IMP-1,{$this->branch->id},5\n");
+        $lagi = $this->service()->preview("sku,cabang,qty\nFR-IMP-1,{$this->branch->id},5\n", $this->owner);
         $this->assertSame(1, count($lagi['errors'])); // branch_done pada validasi
         $this->assertSame(0, count($lagi['valid']));
     }
@@ -123,7 +123,7 @@ class InitialStockImportTest extends TestCase
 
         // Ambil token dari cache lewat pratinjau service tidak langsung:
         // ulangi alur service untuk token, lalu komitmen via HTTP.
-        $preview = $this->service()->preview("sku,cabang,qty\nLN-IMP-1,{$this->branch->id},3\n");
+        $preview = $this->service()->preview("sku,cabang,qty\nLN-IMP-1,{$this->branch->id},3\n", $this->owner);
         $this->actingAs($this->owner)->post('/stok/impor/komitmen', ['token' => $preview['token']])
             ->assertRedirect(route('stock.index'));
         $this->assertSame(3, app(InventoryService::class)->currentStock($this->lens->id, $this->branch->id));
