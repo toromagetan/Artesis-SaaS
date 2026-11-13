@@ -19,7 +19,7 @@
 <div x-show="sidebar" x-cloak @click="sidebar = false" class="fixed inset-0 z-30 bg-lentera-950/50 lg:hidden"></div>
 
 <aside :class="sidebar ? 'translate-x-0' : '-translate-x-full'"
-       class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-lentera-950 shadow-soft transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:translate-x-0">
+       class="sidebar-rail fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-lentera-950 shadow-soft transition-[transform,width] duration-200 lg:sticky lg:top-0 lg:h-screen lg:w-[68px] lg:shrink-0 lg:translate-x-0 lg:hover:w-64 lg:focus-within:w-64">
     {{-- Merek --}}
     <div class="flex shrink-0 items-center gap-2.5 border-b border-white/10 px-5 pb-4 pt-5">
         <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5">

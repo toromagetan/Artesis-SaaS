@@ -3,9 +3,7 @@
         <h1 class="text-xl font-semibold leading-tight text-lentera-950">{{ __('ui.dashboard.title') }}</h1>
     </x-slot>
 
-    <div id="dash-scope" class="dash-glass relative py-8" x-data="dashboardDinamis('{{ $period }}')" x-init="mulai()">
-        <div aria-hidden="true" class="pointer-events-none absolute -top-10 left-[8%] h-64 w-64 rounded-full bg-lentera-300/40 blur-3xl"></div>
-        <div aria-hidden="true" class="pointer-events-none absolute right-[4%] top-24 h-56 w-56 rounded-full bg-gold-light/30 blur-3xl"></div>
+    <div id="dash-scope" class="dash-clean relative py-8" x-data="dashboardDinamis('{{ $period }}')" x-init="mulai()">
         <div class="relative mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div class="inline-flex rounded-lg bg-white p-1 shadow-soft">
@@ -36,7 +34,7 @@
                 periode: awal,
                 diperbarui: '{{ now()->format('H:i:s') }}',
                 mulai() {
-                    // Animasi masuk kaca hanya untuk muat pertama: sesudah
+                    // Animasi masuk kartu hanya untuk muat pertama: sesudah
                     // ±1,4 dtk pembungkus ditandai .entered agar refresh
                     // berkala tidak memutar ulang animasi masuk.
                     setTimeout(() => document.getElementById('dash-scope')?.classList.add('entered'), 1400);
@@ -57,7 +55,7 @@
                         document.getElementById('dashboard-charts').innerHTML = d.charts_html;
                         this.diperbarui = d.updated_at;
                     } catch (e) { /* abaikan kegagalan sesaat; interval berikutnya mencoba lagi */ }
-                    // Konten baru masuk dari buram ke tajam (crossfade singkat).
+                    // Konten baru masuk dengan crossfade lembut singkat.
                     requestAnimationFrame(() => requestAnimationFrame(() => scope?.classList.remove('refreshing')));
                 },
             }));

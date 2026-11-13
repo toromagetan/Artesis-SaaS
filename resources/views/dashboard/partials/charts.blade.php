@@ -1,11 +1,11 @@
 @isset($charts)
     <div class="grid gap-4 lg:grid-cols-3">
-        <div class="glass-card p-6 lg:col-span-2">
+        <div class="dash-card p-6 lg:col-span-2">
             <p class="text-sm font-medium text-gray-700">{{ __('ui.dashboard.trend_title') }}</p>
             <p class="mb-3 text-xs text-gray-400">{{ __('ui.dashboard.trend_sub') }}</p>
             {!! $charts['trend_svg'] !!}
         </div>
-        <div class="glass-card p-6">
+        <div class="dash-card p-6">
             <p class="text-sm font-medium text-gray-700">{{ __('ui.dashboard.composition_title') }}</p>
             <p class="mb-3 text-xs text-gray-400">{{ __('ui.dashboard.composition_sub') }}</p>
             <div class="donut-wrap mx-auto max-w-[220px]">{!! $charts['composition_svg'] !!}</div>
