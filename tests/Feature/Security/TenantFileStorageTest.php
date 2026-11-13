@@ -11,10 +11,13 @@ use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Models\Plan;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Platform\Services\PlanService;
+use App\Support\TenantStorage;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\SaasSeeder;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -180,15 +183,15 @@ class TenantFileStorageTest extends TestCase
         $this->actingAs($adminA)->put(route('settings.general.update'), $this->settingsPayload([
             'store_logo' => UploadedFile::fake()->image('logo.png', 120, 40),
         ]))->assertRedirect(route('settings.general.edit'));
-        $logoA = 'tenants/'.$tenantA->id.'/settings/store-logo.png';
-        $this->assertSame($logoA, Setting::value('store.logo_path'));
+        $logoA = (string) Setting::value('store.logo_path');
+        $this->assertMatchesRegularExpression('#^tenants/'.$tenantA->id.'/settings/store-logo-.+\.png$#', $logoA);
         Storage::disk('public')->assertExists($logoA);
 
         $this->actingAs($adminB)->put(route('settings.general.update'), $this->settingsPayload([
             'store_logo' => UploadedFile::fake()->image('logo.jpg', 120, 40),
         ]))->assertRedirect(route('settings.general.edit'));
-        $logoB = 'tenants/'.$tenantB->id.'/settings/store-logo.jpg';
-        $this->assertSame($logoB, Setting::value('store.logo_path'));
+        $logoB = (string) Setting::value('store.logo_path');
+        $this->assertMatchesRegularExpression('#^tenants/'.$tenantB->id.'/settings/store-logo-.+\.jpg$#', $logoB);
         Storage::disk('public')->assertExists($logoB);
         // Logo A tidak tertimpa oleh unggahan B.
         Storage::disk('public')->assertExists($logoA);
@@ -199,5 +202,135 @@ class TenantFileStorageTest extends TestCase
         ]))->assertRedirect(route('settings.general.edit'));
         Storage::disk('public')->assertMissing($logoA);
         Storage::disk('public')->assertExists($logoB);
+    }
+
+    public function test_logo_replacement_with_same_extension_uses_a_new_unique_file(): void
+    {
+        [$tenantA, , $adminA] = $this->tenantAdmin('A');
+
+        $this->actingAs($adminA)->put(route('settings.general.update'), $this->settingsPayload([
+            'store_logo' => UploadedFile::fake()->image('logo.png', 120, 40),
+        ]))->assertRedirect(route('settings.general.edit'));
+        $first = (string) Setting::value('store.logo_path');
+
+        // Ekstensi SAMA (kasus F-01-R1): berkas lama tidak boleh
+        // tertimpa di path-nya sendiri; unggahan kedua memakai
+        // path baru dan berkas pertama terhapus sesudahnya.
+        $this->actingAs($adminA)->put(route('settings.general.update'), $this->settingsPayload([
+            'store_logo' => UploadedFile::fake()->image('logo-baru.png', 120, 40),
+        ]))->assertRedirect(route('settings.general.edit'));
+        $second = (string) Setting::value('store.logo_path');
+
+        $this->assertNotSame($first, $second);
+        $this->assertMatchesRegularExpression('#^tenants/'.$tenantA->id.'/settings/store-logo-.+\.png$#', $second);
+        Storage::disk('public')->assertMissing($first);
+        Storage::disk('public')->assertExists($second);
+    }
+
+    public function test_failed_logo_setting_save_keeps_old_logo_and_cleans_new_file(): void
+    {
+        [$tenantA, , $adminA] = $this->tenantAdmin('A');
+
+        $this->actingAs($adminA)->put(route('settings.general.update'), $this->settingsPayload([
+            'store_logo' => UploadedFile::fake()->image('logo.png', 120, 40),
+        ]))->assertRedirect(route('settings.general.edit'));
+        $first = (string) Setting::value('store.logo_path');
+
+        // Simulasikan kegagalan database KHUSUS pada penyimpanan
+        // nilai logo: penulisan berkas baru sudah terjadi saat itu,
+        // jadi berkas baru wajib dibersihkan dan nilai + berkas
+        // lama tidak berubah.
+        Setting::saving(function (Setting $model): void {
+            if ($model->key === 'store.logo_path') {
+                throw new \RuntimeException('kegagalan simpan uji');
+            }
+        });
+
+        $this->actingAs($adminA)->put(route('settings.general.update'), $this->settingsPayload([
+            'store_logo' => UploadedFile::fake()->image('logo-baru.png', 120, 40),
+        ]))->assertServerError();
+
+        $this->assertSame($first, Setting::value('store.logo_path'));
+        Storage::disk('public')->assertExists($first);
+        $this->assertSame([$first], Storage::disk('public')->files('tenants/'.$tenantA->id.'/settings'));
+    }
+
+    public function test_product_create_survives_disk_failure_with_a_warning(): void
+    {
+        [, , $adminA] = $this->tenantAdmin('A');
+
+        // Disk publik diarahkan ke lokasi yang tidak dapat ditulis.
+        config(['filesystems.disks.public.root' => '/proc/artesis-tidak-tertulis']);
+        Storage::forgetDisk('public');
+
+        $response = $this->actingAs($adminA)->post('/katalog/frame', $this->productPayload('FR-DISK'))
+            ->assertRedirect()
+            ->assertSessionHas('warning');
+
+        // Produk TETAP dibuat (tanpa gambar) dan pengguna tidak
+        // menemui 500 pasca-commit (F-01-R2).
+        $product = Product::withoutGlobalScopes()->where('sku', 'FR-DISK')->firstOrFail();
+        $this->assertNull($product->image_path);
+        $response->assertRedirect(route('products.show', $product));
+    }
+
+    public function test_product_update_aborts_cleanly_when_disk_fails(): void
+    {
+        [, , $adminA] = $this->tenantAdmin('A');
+        $product = $this->createProductAs($adminA, 'FR-DISK2');
+        $oldPath = $product->image_path;
+
+        config(['filesystems.disks.public.root' => '/proc/artesis-tidak-tertulis']);
+        Storage::forgetDisk('public');
+
+        $this->actingAs($adminA)->put('/produk/'.$product->id, [
+            'sku' => 'FR-DISK2', 'name' => 'Nama Berubah', 'type' => 'frame',
+            'cost_price' => '100000', 'sale_price' => '200000',
+            'image' => UploadedFile::fake()->image('baru.jpg', 400, 300),
+        ])->assertRedirect()->assertSessionHasErrors('image');
+
+        // Tidak ada perubahan yang diterapkan sama sekali.
+        $fresh = $product->fresh();
+        $this->assertSame($oldPath, $fresh->image_path);
+        $this->assertSame('Frame FR-DISK2', $fresh->name);
+    }
+
+    public function test_tenant_storage_buckets_follow_the_validated_context(): void
+    {
+        [$tenantA, , $adminA] = $this->tenantAdmin('A');
+        $platform = User::where('username', 'platform')->firstOrFail();
+
+        $this->assertSame('tenants/'.$tenantA->id.'/products', TenantStorage::directory($adminA, 'products'));
+        $this->assertSame('platform/products', TenantStorage::directory($platform, 'products'));
+    }
+
+    public function test_tenant_storage_standalone_bucket_when_no_tenant_exists(): void
+    {
+        // Tanpa satu pun tenant, pengguna bawaan adalah instalasi
+        // mandiri — ember standalone. (Begitu ada tenant, pengguna
+        // tanpa tenant menjadi unassigned dan ditolak; lihat test
+        // penolakan unassigned.)
+        $owner = User::where('username', 'owner')->firstOrFail();
+
+        $this->assertSame('standalone/products', TenantStorage::directory($owner, 'products'));
+    }
+
+    public function test_tenant_storage_rejects_a_dangling_tenant(): void
+    {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        $dangling = User::factory()->create(['tenant_id' => 999]);
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+        $this->expectException(AuthorizationException::class);
+        TenantStorage::directory($dangling, 'products');
+    }
+
+    public function test_tenant_storage_rejects_an_unassigned_user(): void
+    {
+        $this->tenantAdmin('A'); // memastikan tabel tenants tidak kosong
+        $unassigned = User::factory()->create(['tenant_id' => null]);
+
+        $this->expectException(AuthorizationException::class);
+        TenantStorage::directory($unassigned, 'products');
     }
 }

@@ -253,6 +253,8 @@ return [
         'parent_edit' => 'Sunting Induk',
         'parent_auto' => 'Otomatis dari nama & jenama varian',
         'parent_type_mismatch' => 'Induk harus bertipe sama dengan varian.',
+        'image_store_failed' => 'Imej gagal disimpan ke storan. Produk tetap disimpan; sila muat naik imej melalui halaman ubah produk.',
+        'image_store_failed_update' => 'Imej gagal disimpan ke storan. Tiada perubahan yang digunakan.',
         'add_variant' => 'Tambah Varian',
         'variants' => 'Varian',
         'variant_count' => ':count varian',

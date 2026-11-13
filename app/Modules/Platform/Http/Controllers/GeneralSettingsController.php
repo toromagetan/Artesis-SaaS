@@ -9,6 +9,7 @@ use App\Support\TenantStorage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -82,12 +83,26 @@ class GeneralSettingsController extends Controller
         } elseif ($request->hasFile('store_logo')) {
             $file = $request->file('store_logo');
             $ext = strtolower($file->getClientOriginalExtension() ?: 'png');
+            // Nama UNIK per unggahan (koreksi audit F-01-R1): nama
+            // tetap membuat unggahan berekstensi sama menimpa berkas
+            // lama di path yang sama SEBELUM nilai baru tersimpan.
+            // Kini: berkas baru ditulis ke path baru → nilai disimpan
+            // → berkas lama dihapus; bila penyimpanan nilai gagal,
+            // berkas baru dibersihkan dan berkas lama utuh.
             $path = $file->storeAs(
                 TenantStorage::directory($request->user(), 'settings'),
-                'store-logo.'.$ext,
+                'store-logo-'.Str::random(12).'.'.$ext,
                 'public',
             );
-            Setting::set('store.logo_path', $path);
+            if (! is_string($path) || $path === '') {
+                throw new \RuntimeException('Berkas logo gagal disimpan ke penyimpanan.');
+            }
+            try {
+                Setting::set('store.logo_path', $path);
+            } catch (\Throwable $e) {
+                Storage::disk('public')->delete($path);
+                throw $e;
+            }
             $map['store.logo_path'] = $path;
             if ($previousLogo !== '' && $previousLogo !== $path) {
                 $this->deleteLogoFile($previousLogo);

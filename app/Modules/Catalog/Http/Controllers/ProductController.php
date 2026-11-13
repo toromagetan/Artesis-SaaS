@@ -123,13 +123,23 @@ class ProductController extends Controller
      * Penghapusan berkas lama selalu terjadi SETELAH perubahan
      * data berhasil — kegagalan layanan tidak pernah menghapus
      * gambar yang masih dirujuk produk (audit A-02).
+     *
+     * Kegagalan tulis disk (false atau pengecualian Flysystem)
+     * dikembalikan sebagai null, BUKAN TypeError (koreksi audit
+     * F-01-R2); penolakan konteks oleh TenantStorage tetap
+     * diteruskan sebagai pengecualian otorisasi.
      */
-    private function storeImageFile(Request $request): string
+    private function storeImageFile(Request $request): ?string
     {
-        return $request->file('image')->store(
-            TenantStorage::directory($request->user(), 'products'),
-            'public',
-        );
+        $directory = TenantStorage::directory($request->user(), 'products');
+
+        try {
+            $path = $request->file('image')->store($directory, 'public');
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_string($path) && $path !== '' ? $path : null;
     }
 
     public function store(Request $request, string $type): RedirectResponse
@@ -150,17 +160,31 @@ class ProductController extends Controller
             $validated['attributes'] ?? [],
         );
 
+        $warning = null;
         if ($request->hasFile('image')) {
             $path = $this->storeImageFile($request);
-            try {
-                $product->forceFill(['image_path' => $path])->save();
-            } catch (\Throwable $e) {
-                Storage::disk('public')->delete($path);
-                throw $e;
+            if ($path === null) {
+                // F-01-R2: produk sudah sah tersimpan; kegagalan
+                // disk tidak boleh menjadi 500 pasca-commit dan
+                // tidak membatalkan produk — pengguna diperingatkan
+                // dan dapat mengunggah lewat halaman ubah.
+                $warning = __('ui.products.image_store_failed');
+            } else {
+                try {
+                    $product->forceFill(['image_path' => $path])->save();
+                } catch (\Throwable $e) {
+                    Storage::disk('public')->delete($path);
+                    throw $e;
+                }
             }
         }
 
-        return redirect()->route('products.show', $product)->with('status', __('ui.products.created'));
+        $redirect = redirect()->route('products.show', $product)->with('status', __('ui.products.created'));
+        if ($warning !== null) {
+            $redirect->with('warning', $warning);
+        }
+
+        return $redirect;
     }
 
     public function edit(Product $product): View
@@ -194,8 +218,14 @@ class ProductController extends Controller
         } elseif ($request->hasFile('image')) {
             // Berkas baru ditulis ke namespace pemilik TANPA
             // menyentuh berkas lama; berkas lama baru dihapus
-            // setelah pembaruan berhasil (A-02).
+            // setelah pembaruan berhasil (A-02). Kegagalan tulis
+            // disk membatalkan seluruh pembaruan SEBELUM layanan
+            // berjalan — tidak ada perubahan yang diterapkan
+            // (F-01-R2).
             $newPath = $this->storeImageFile($request);
+            if ($newPath === null) {
+                return back()->withInput()->withErrors(['image' => __('ui.products.image_store_failed_update')]);
+            }
             $validated['image_path'] = $newPath;
         }
 

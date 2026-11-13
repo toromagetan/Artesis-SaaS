@@ -260,6 +260,8 @@ return [
         'parent_edit' => 'Edit Parent',
         'parent_auto' => 'Automatic from variant name & brand',
         'parent_type_mismatch' => 'The parent must be of the same type as the variant.',
+        'image_store_failed' => 'The image could not be saved to storage. The product was still saved; please upload the image from the product edit page.',
+        'image_store_failed_update' => 'The image could not be saved to storage. No changes were applied.',
         'add_variant' => 'Add Variant',
         'variants' => 'Variants',
         'variant_count' => ':count variants',

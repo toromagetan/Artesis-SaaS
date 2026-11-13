@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\TenantContext;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -17,9 +18,15 @@ use Illuminate\Support\Facades\Storage;
  *   platform/…              aktor platform (seharusnya jarang)
  *
  * Ember diturunkan dari TenantContext aktor — satu-satunya sumber
- * identitas tenant — bukan dari input pengguna. Berkas WAJIB
- * ditulis lewat namespace ini agar unggahan satu tenant tidak
- * pernah berbagi direktori (atau nama berkas) dengan tenant lain.
+ * identitas tenant — bukan dari input pengguna, dan resolver ini
+ * GAGAL-TERTUTUP (koreksi audit F-01-R3, sejajar disiplin
+ * Setting::actorBucketForWrite): mode tenant hanya sah bila
+ * konteksnya valid (baris tenant benar-benar ada, isValid());
+ * tenant menggantung, unassigned, dan tamu DITOLAK dengan
+ * AuthorizationException — tidak ada fallback ke tenant_id mentah
+ * milik aktor. Berkas WAJIB ditulis lewat namespace ini agar
+ * unggahan satu tenant tidak pernah berbagi direktori (atau nama
+ * berkas) dengan tenant lain.
  */
 class TenantStorage
 {
@@ -28,10 +35,10 @@ class TenantStorage
         $context = TenantContext::for($actor);
 
         $bucket = match (true) {
-            $context->isTenant() => 'tenants/'.($context->tenant?->id ?? $actor->tenant_id),
+            $context->isTenant() && $context->isValid() => 'tenants/'.$context->tenantId(),
             $context->isStandalone() => 'standalone',
             $context->isPlatform() => 'platform',
-            default => 'unassigned',
+            default => throw new AuthorizationException('Konteks aktor tidak berhak atas penyimpanan berkas bisnis.'),
         };
 
         return $bucket.'/'.trim($base, '/');
