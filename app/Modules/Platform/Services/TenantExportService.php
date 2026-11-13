@@ -28,6 +28,11 @@ use ZipArchive;
  * - FROM_BRANCH_TABLES: saring from_branch_id ∈ cabang tenant.
  * - CHILD_TABLES: saring kolom FK ∈ id baris induk yang sudah
  *   terekstrak (rantai anak: item pembayaran dsb).
+ * - TENANT_STAMPED_TABLES: saring cap tenant_id = tenant, DITAMBAH
+ *   baris warisan tanpa cap yang cabangnya milik tenant (khusus
+ *   audit_logs pasca L-01: log tingkat perusahaan bercap tenant
+ *   dengan branch_id NULL wajib ikut; log platform/sistem tanpa
+ *   cap dan tanpa cabang tidak pernah ikut).
  * - SELF_TABLES: baris identitas tenant itu sendiri.
  * - EXCLUDED_TABLES: kredensial, operasional antrean/sesi, dan
  *   data global instalasi — tidak pernah masuk ekspor tenant.
@@ -58,7 +63,7 @@ class TenantExportService
 
     /** @var list<string> */
     private const BRANCH_TABLES = [
-        'accounts', 'audit_logs', 'broken_stocks', 'customer_credits',
+        'accounts', 'broken_stocks', 'customer_credits',
         'fitting_measurements', 'incentive_periods', 'insurance_usages',
         'journal_lines',
         'offline_devices', 'offline_exceptions', 'purchase_orders',
@@ -68,6 +73,9 @@ class TenantExportService
 
     /** @var list<string> */
     private const FROM_BRANCH_TABLES = ['stock_transfers'];
+
+    /** @var list<string> */
+    private const TENANT_STAMPED_TABLES = ['audit_logs'];
 
     /** @var array<string, array{0: string, 1: string}> tabel anak => [tabel induk, kolom FK] */
     private const CHILD_TABLES = [
@@ -133,6 +141,7 @@ class TenantExportService
             ...self::TENANT_TABLES,
             ...self::BRANCH_TABLES,
             ...self::FROM_BRANCH_TABLES,
+            ...self::TENANT_STAMPED_TABLES,
             ...array_keys(self::CHILD_TABLES),
             ...self::SELF_TABLES,
             ...self::EXCLUDED_TABLES,
@@ -252,6 +261,16 @@ class TenantExportService
         foreach (self::FROM_BRANCH_TABLES as $table) {
             if (in_array($table, $liveTables, true)) {
                 $extract($table, DB::table($table)->whereIn('from_branch_id', $branchIds));
+            }
+        }
+        foreach (self::TENANT_STAMPED_TABLES as $table) {
+            if (in_array($table, $liveTables, true)) {
+                $extract($table, DB::table($table)->where(function ($query) use ($tenant, $branchIds) {
+                    $query->where('tenant_id', $tenant->id)
+                        ->orWhere(function ($inner) use ($branchIds) {
+                            $inner->whereNull('tenant_id')->whereIn('branch_id', $branchIds);
+                        });
+                }));
             }
         }
         foreach (self::CHILD_TABLES as $table => [$parent, $fk]) {

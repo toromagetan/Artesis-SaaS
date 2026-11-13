@@ -161,10 +161,18 @@ class TenantExportIsolationTest extends TestCase
         }
         // Tabel bercabang: semuanya cabang A.
         $branchIdsA = [$branchA->id, $warehouseA->id];
-        foreach (['sales', 'stock_movements', 'journal_lines', 'audit_logs', 'purchase_orders', 'warranty_cases'] as $table) {
+        foreach (['sales', 'stock_movements', 'journal_lines', 'purchase_orders', 'warranty_cases'] as $table) {
             foreach ($tables[$table] as $row) {
                 $this->assertContains((int) $row['branch_id'], $branchIdsA, "Baris {$table} di luar cabang tenant A.");
             }
+        }
+        // Audit log (pasca L-01): setiap baris terekspor wajib bercap
+        // tenant A, ATAU warisan tanpa cap yang cabangnya milik A.
+        // Log platform/sistem (tanpa cap, tanpa cabang) tidak ikut.
+        foreach ($tables['audit_logs'] as $row) {
+            $stampedA = isset($row['tenant_id']) && (int) $row['tenant_id'] === $tenantA->id;
+            $legacyA = ! isset($row['tenant_id']) && isset($row['branch_id']) && in_array((int) $row['branch_id'], $branchIdsA, true);
+            $this->assertTrue($stampedA || $legacyA, 'Baris audit_logs di luar pagar tenant A.');
         }
         // Rantai anak penjualan: item & pembayaran milik penjualan A, B absen.
         $saleItemIdsA = collect($tables['sale_items'])->pluck('id')->map(fn ($id) => (int) $id)->all();
@@ -193,6 +201,40 @@ class TenantExportIsolationTest extends TestCase
         foreach (['api_tokens', 'member_portal_tokens', 'password_reset_tokens', 'sessions', 'plans', 'plan_features', 'permissions', 'product_categories', 'document_counters', 'ai_settings', 'wa_gateways', 'jobs', 'cache'] as $excluded) {
             $this->assertArrayNotHasKey($excluded, $tables, "Tabel {$excluded} tidak boleh masuk ekspor tenant.");
         }
+    }
+
+    /** M1 (audit 13 Nov, temuan B-02): log tingkat perusahaan bercap
+     *  tenant dengan branch_id NULL wajib ikut ekspor; log tenant
+     *  lain dan log platform/sistem tidak pernah ikut. */
+    public function test_export_includes_tenant_stamped_audit_logs_without_branch(): void
+    {
+        [$tenantB, $ownerB, $branchB] = $this->tenantOwner('b');
+        [$tenantA, $ownerA, $branchA] = $this->tenantOwner('a');
+
+        $insert = function (?int $tenantId, ?int $branchId, string $action) {
+            DB::table('audit_logs')->insert([
+                'tenant_id' => $tenantId, 'branch_id' => $branchId,
+                'user_id' => null, 'action' => $action,
+                'subject_type' => 'Tenant', 'subject_id' => null,
+                'old_values' => null, 'new_values' => null, 'ip' => null,
+                'created_at' => now(),
+            ]);
+        };
+        $insert($tenantA->id, null, 'uji.cap-a-tanpa-cabang');
+        $insert($tenantA->id, $branchA->id, 'uji.cap-a-dengan-cabang');
+        $insert($tenantB->id, null, 'uji.cap-b-tanpa-cabang');
+        $insert(null, $branchA->id, 'uji.warisan-cabang-a');
+        $insert(null, $branchB->id, 'uji.warisan-cabang-b');
+        $insert(null, null, 'uji.log-platform');
+
+        $actions = collect($this->exports->buildPayload($tenantA, $ownerA)['tables']['audit_logs'])
+            ->pluck('action')->all();
+        $this->assertContains('uji.cap-a-tanpa-cabang', $actions);
+        $this->assertContains('uji.cap-a-dengan-cabang', $actions);
+        $this->assertContains('uji.warisan-cabang-a', $actions);
+        $this->assertNotContains('uji.cap-b-tanpa-cabang', $actions);
+        $this->assertNotContains('uji.warisan-cabang-b', $actions);
+        $this->assertNotContains('uji.log-platform', $actions);
     }
 
     public function test_created_archive_is_verified_and_isolated_on_disk(): void
