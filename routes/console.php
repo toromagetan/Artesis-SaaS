@@ -255,3 +255,54 @@ Artisan::command('lentera:preflight-reversal', function () {
 
     return 1;
 })->purpose('Preflight read-only duplikat reversal_of_id sebelum migrasi indeks unik 000045 (LNT-005)');
+
+/*
+ * Gerbang konfigurasi produksi (M3, audit 13 Nov 2026 — temuan
+ * A-01/A-02): read-only; memeriksa konfigurasi yang WAJIB benar
+ * sebelum instalasi dinyatakan produksi. Verifikasi email B-01
+ * tidak pernah terkirim bila mailer masih 'log', dan anti-bot
+ * Turnstile mati bila kuncinya kosong — keduanya kegagalan senyap
+ * yang hanya terlihat sesudah pengguna terkunci/diserbu bot.
+ * Kode keluar 0 = semua pemeriksaan lulus; 1 = ada yang gagal.
+ * Deploy TIDAK selesai selama perintah ini gagal (lihat
+ * docs/DEPLOY-RUNBOOK.md Bagian 10).
+ */
+Artisan::command('lentera:cek-produksi', function () {
+    $gagal = [];
+    $periksa = function (bool $ok, string $label) use (&$gagal) {
+        if ($ok) {
+            $this->info("  [OK] {$label}");
+        } else {
+            $this->error("  [GAGAL] {$label}");
+            $gagal[] = $label;
+        }
+    };
+
+    $this->comment('Pemeriksaan konfigurasi produksi (APP_ENV='.config('app.env').'):');
+
+    $mailer = (string) config('mail.default');
+    $periksa(! in_array($mailer, ['log', 'array'], true), "Mailer aktif bukan log/array (saat ini: {$mailer})");
+    if ($mailer === 'smtp') {
+        $periksa(filled(config('mail.mailers.smtp.host')), 'MAIL_HOST terisi');
+        $periksa(filled(config('mail.mailers.smtp.username')), 'MAIL_USERNAME terisi');
+        $periksa(filled(config('mail.mailers.smtp.password')), 'MAIL_PASSWORD terisi');
+    }
+    $from = (string) config('mail.from.address');
+    $periksa(filled($from) && ! str_ends_with($from, '@example.com'), "MAIL_FROM_ADDRESS alamat nyata (saat ini: {$from})");
+
+    $siteKey = config('services.turnstile.site_key');
+    $secret = config('services.turnstile.secret');
+    $periksa(filled($siteKey) && filled($secret), 'TURNSTILE_SITE_KEY & TURNSTILE_SECRET_KEY terisi (anti-bot /daftar aktif)');
+
+    $periksa(config('app.debug') === false, 'APP_DEBUG=false');
+    $periksa(str_starts_with((string) config('app.url'), 'https://'), 'APP_URL memakai https://');
+
+    if ($gagal !== []) {
+        $this->error('GERBANG PRODUKSI GAGAL: '.count($gagal).' pemeriksaan tidak lulus. Perbaiki .env lalu jalankan ulang perintah ini.');
+
+        return 1;
+    }
+    $this->info('GERBANG PRODUKSI LULUS: konfigurasi siap produksi.');
+
+    return 0;
+})->purpose('Gerbang read-only konfigurasi wajib produksi (SMTP, Turnstile, APP_DEBUG, APP_URL)');
