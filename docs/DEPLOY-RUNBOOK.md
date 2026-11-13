@@ -78,6 +78,16 @@ DB_PASSWORD=<kata-sandi-kuat>
 SESSION_DRIVER=database
 QUEUE_CONNECTION=database
 CACHE_STORE=database
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_ENCRYPTION=tls
+MAIL_USERNAME=<alamat-gmail-anda>
+MAIL_PASSWORD=<redacted>
+MAIL_FROM_ADDRESS=<alamat-gmail-anda>
+MAIL_FROM_NAME="${APP_NAME}"
+TURNSTILE_SITE_KEY=<kunci-situs-cloudflare>
+TURNSTILE_SECRET_KEY=<kunci-rahasia-cloudflare>
 ```
 
 Lalu:
@@ -207,8 +217,42 @@ Kerjakan dari browser, catat hasilnya. Semua harus lulus:
 10. [ ] Backup manual dari menu Pengaturan terbuat; unduh dan uji buka berkasnya.
 11. [ ] Header: `curl -sI https://<domain>/` memuat HSTS + `server` tanpa versi nginx.
 12. [ ] Empat bahasa dapat dipilih (ID/EN/MS/ZH) dan halaman berganti bahasa.
+13. [ ] `php artisan lentera:cek-produksi` berakhir **LULUS** (kode keluar 0) — lihat Bagian 10.
 
-## 10. Prasyarat luar (di luar kendali kode)
+## 10. Konfigurasi wajib produksi: email SMTP & Turnstile
+
+Dua kegagalan paling berbahaya sifatnya SENYAP — aplikasi tampak
+sehat sampai pengguna terkunci atau pendaftaran diserbu bot:
+
+- **Mailer masih `log`** → email verifikasi (gerbang akses B-01),
+  tautan reset kata sandi, dsb tidak pernah meninggalkan server;
+  pendaftar baru terkunci di halaman verifikasi selamanya.
+- **Kunci Turnstile kosong** → anti-bot pendaftaran publik mati.
+
+**Email (keputusan pemilik proyek: Gmail yang sudah dipakai).**
+Aktifkan 2-Step Verification pada akun Google → Keamanan →
+Kata Sandi Aplikasi (App Passwords) → buat kata sandi aplikasi →
+isikan ke `MAIL_PASSWORD` (16 karakter, BUKAN kata sandi Gmail
+biasa). Isi blok `MAIL_*` pada `.env` sesuai Bagian 3. Kata sandi
+aplikasi diserahkan lewat jalur aman, tidak pernah lewat chat.
+
+**Turnstile.** Cloudflare Dashboard → Turnstile → Add site →
+domain aplikasi → salin Site Key & Secret Key ke `.env`.
+
+**Gerbang (WAJIB, sesudah `.env` terisi dan `config:clear`):**
+
+```bash
+php artisan lentera:cek-produksi
+```
+
+Perintah read-only ini memeriksa: mailer bukan `log`/`array`,
+kredensial SMTP lengkap, `MAIL_FROM_ADDRESS` bukan alamat contoh,
+kedua kunci Turnstile terisi, `APP_DEBUG=false`, `APP_URL`
+berawalan `https://`. Kode keluar 0 = LULUS. **Deploy tidak
+dianggap selesai selama gerbang ini gagal** — perbaiki `.env`,
+jalankan ulang, lalu lanjutkan daftar periksa Bagian 9.
+
+## 11. Prasyarat luar (di luar kendali kode)
 
 Item berikut BUKAN bagian deploy teknis dan menunggu keputusan/
 input pemilik:
