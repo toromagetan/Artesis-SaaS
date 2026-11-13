@@ -41,7 +41,7 @@ class InitialStockImportController extends Controller
         $request->validate(['file' => ['required', 'file', 'mimes:xlsx,csv', 'max:2048']]);
 
         $content = (string) file_get_contents($request->file('file')->getRealPath());
-        $preview = $this->service->preview($content);
+        $preview = $this->service->preview($content, $request->user());
 
         return view('inventory.import.preview', compact('preview'));
     }

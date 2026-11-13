@@ -4,11 +4,14 @@ namespace App\Modules\Inventory\Services;
 
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Inventory\Events\InitialStockImported;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Support\Money;
+use App\Support\TenantCache;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -57,8 +60,9 @@ class InitialStockImportService
     /**
      * @return array{token: string, valid: array<int, array{line: int, sku: string, product_id: int, branch_id: int, branch_name: string, qty: int}>, errors: array<int, array{line: int, message: string}>}
      */
-    public function preview(string $csvContent): array
+    public function preview(string $csvContent, ?User $actor = null): array
     {
+        $this->assertActorMatchesAmbient($actor);
         $lines = preg_split('/\r\n|\r|\n/', trim($csvContent)) ?: [];
         $rows = [];
         foreach ($lines as $i => $line) {
@@ -78,9 +82,33 @@ class InitialStockImportService
         }
         array_shift($rows);
 
-        $products = Product::where('is_active', true)->get()->keyBy('sku');
-        $branchesById = Branch::all()->keyBy('id');
-        $branchesByName = Branch::all()->keyBy(fn (Branch $b) => mb_strtolower(trim($b->name)));
+        // Pembacaan mengikuti konteks AKTOR yang sama dengan yang
+        // menentukan ember cache (koreksi audit C-01-R2): bila aktor
+        // eksplisit diberikan, produk & cabang dibaca sebagai milik
+        // tenant aktor — diambil tanpa scope ambient lalu disaring
+        // tenant_id tervalidasi konteksnya. Tanpa aktor eksplisit,
+        // pembacaan mengikuti konteks ambient seperti sebelumnya
+        // (jalur in-process/sistem).
+        if ($actor !== null) {
+            $context = TenantContext::for($actor);
+            if ($context->isTenant() && $context->isValid()) {
+                $products = Product::withoutGlobalScopes()
+                    ->where('tenant_id', $actor->tenant_id)->where('is_active', true)->get()->keyBy('sku');
+                $branches = Branch::where('tenant_id', $actor->tenant_id)->get();
+            } elseif ($context->isStandalone()) {
+                $products = Product::withoutGlobalScopes()
+                    ->whereNull('tenant_id')->where('is_active', true)->get()->keyBy('sku');
+                $branches = Branch::whereNull('tenant_id')->get();
+            } else {
+                throw new AuthorizationException('Aktor tidak berhak membuat pratinjau impor stok awal.');
+            }
+            $branchesById = $branches->keyBy('id');
+            $branchesByName = $branches->keyBy(fn (Branch $b) => mb_strtolower(trim($b->name)));
+        } else {
+            $products = Product::where('is_active', true)->get()->keyBy('sku');
+            $branchesById = Branch::all()->keyBy('id');
+            $branchesByName = Branch::all()->keyBy(fn (Branch $b) => mb_strtolower(trim($b->name)));
+        }
 
         $valid = [];
         $errors = [];
@@ -136,15 +164,17 @@ class InitialStockImportService
         }
 
         $token = (string) Str::uuid();
-        Cache::put(self::CACHE_PREFIX.$token, ['valid' => $valid, 'errors' => $errors], now()->addMinutes(30));
+        Cache::put(TenantCache::key(self::CACHE_PREFIX.$token, $actor), ['valid' => $valid, 'errors' => $errors], now()->addMinutes(30));
 
         return ['token' => $token, 'valid' => $valid, 'errors' => $errors];
     }
 
     /** @return array{token: string, valid: array, errors: array}|null */
-    public function getPreview(string $token): ?array
+    public function getPreview(string $token, ?User $actor = null): ?array
     {
-        $data = Cache::get(self::CACHE_PREFIX.$token);
+        $this->assertActorMatchesAmbient($actor);
+
+        $data = Cache::get(TenantCache::key(self::CACHE_PREFIX.$token, $actor));
 
         return $data === null ? null : ['token' => $token] + $data;
     }
@@ -157,7 +187,17 @@ class InitialStockImportService
      */
     public function commit(User $actor, string $token): array
     {
-        $preview = $this->getPreview($token);
+        $this->assertActorMatchesAmbient($actor);
+
+        // Komitmen adalah operasi bisnis tenant/standalone: aktor
+        // platform, unassigned, dan tenant menggantung ditolak
+        // gagal-tertutup (koreksi audit C-01-R1).
+        $context = TenantContext::for($actor);
+        if (! ($context->isTenant() && $context->isValid()) && ! $context->isStandalone()) {
+            throw new AuthorizationException('Aktor tidak berhak mengomit impor stok awal.');
+        }
+
+        $preview = $this->getPreview($token, $actor);
         if ($preview === null) {
             throw ValidationException::withMessages(['token' => __('ui.import.token_expired')]);
         }
@@ -181,15 +221,31 @@ class InitialStockImportService
                 }
             }
 
+            // Validasi kepemilikan EKSPLISIT per baris (koreksi
+            // audit C-01-R1 butir 7): produk & cabang diambil TANPA
+            // scope ambient lalu tenant_id-nya wajib sama dengan
+            // tenant_id aktor — findOrFail di bawah scope sesi tidak
+            // cukup sebagai bukti kepemilikan.
+            $resolved = [];
+            foreach ($rows as $i => $row) {
+                $product = Product::withoutGlobalScopes()->find($row['product_id']);
+                $branch = Branch::withoutGlobalScopes()->find($row['branch_id']);
+                if ($product === null || $branch === null
+                    || (int) ($product->tenant_id ?? 0) !== (int) ($actor->tenant_id ?? 0)
+                    || (int) ($branch->tenant_id ?? 0) !== (int) ($actor->tenant_id ?? 0)) {
+                    throw ValidationException::withMessages(['token' => __('ui.import.token_expired')]);
+                }
+                $resolved[$i] = [$product, $branch];
+            }
+
             // Jangkar batch: satu baris audit per komitmen menjadi
             // reference_id semua gerakan impor ini.
             $anchor = $this->audit->log(action: 'stock.import_initial', subjectType: 'initial_stock_import',
                 newValues: ['rows' => count($rows), 'branches' => $branchIds], actor: $actor);
 
             $totals = [];
-            foreach ($rows as $row) {
-                $product = Product::findOrFail($row['product_id']);
-                $branch = Branch::findOrFail($row['branch_id']);
+            foreach ($rows as $i => $row) {
+                [$product, $branch] = $resolved[$i];
                 $this->inventory->recordMovement(
                     $actor, $product, $branch, 'initial_stock',
                     $row['qty'], self::REFERENCE_TYPE, $anchor->id,
@@ -208,9 +264,24 @@ class InitialStockImportService
             return collect($totals)->map(fn (Money $m) => $m->toDecimalString())->all();
         });
 
-        Cache::forget(self::CACHE_PREFIX.$token);
+        Cache::forget(TenantCache::key(self::CACHE_PREFIX.$token, $actor));
 
         return $result;
+    }
+
+    /**
+     * Kontrak aktor konsisten (koreksi audit C-01-R1): bila aktor
+     * eksplisit diberikan sementara sesi ambient adalah pengguna
+     * LAIN, operasi ditolak gagal-tertutup — ember cache tidak
+     * boleh dipilih diam-diam dari konteks yang berbeda dengan
+     * identitas penulis stok.
+     */
+    private function assertActorMatchesAmbient(?User $actor): void
+    {
+        $ambient = auth()->user();
+        if ($actor !== null && $ambient !== null && (int) $ambient->id !== (int) $actor->id) {
+            throw new AuthorizationException('Aktor eksplisit berbeda dengan sesi aktif; operasi pratinjau ditolak.');
+        }
     }
 
     /** Isi berkas template CSV (dibuka Excel): petunjuk sebagai baris komentar tidak dipakai — header + contoh. */

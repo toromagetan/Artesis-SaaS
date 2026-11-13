@@ -168,7 +168,7 @@ Format per kelompok: deskripsi · aktor · aturan bisnis kunci · status + bukti
 
 | Area | Persyaratan | Status di baseline |
 |---|---|---|
-| Tenant isolation | Tenant A tidak dapat membaca/mengubah/mengekspor data tenant B lewat jalur apa pun (Bagian 6) | **Implemented** — Fase 0 selesai (PR #23–#35, s.d. `43db5b54`); sisa pengerasan (awalan cache, kapasitas terukur) di Fase 6 |
+| Tenant isolation | Tenant A tidak dapat membaca/mengubah/mengekspor data tenant B lewat jalur apa pun (Bagian 6) | **Implemented** — Fase 0 selesai (PR #23–#35, s.d. `43db5b54`); awalan cache ditutup di C-01; sisa pengerasan kapasitas terukur di Fase 6 |
 | Authentication | Sesi Laravel; kata sandi `Password::defaults()`; pemulihan istimewa hanya Owner aktif (respons generik anti-enumerasi, teraudit, throttle) | Implemented |
 | Authorization | Registry izin + policy + pagar konteks; aktor platform ditolak dari bisnis | Implemented (matriks keamanan per modul) |
 | Data privacy | Kredensial terenkripsi & tersamar; audit log menyaring kolom rahasia; portal member hanya data token itu | Implemented |
@@ -205,7 +205,7 @@ Format per kelompok: deskripsi · aktor · aturan bisnis kunci · status + bukti
 | Report & export | Laporan & ekspor hanya agregat tenant aktor | **Implemented** — pagar cabang/tenant + izin ekspor; ekspor data penuh per tenant di B-03 |
 | Backup & restore | Tenant tidak pernah dapat mengakses snapshot global; ekspor/restore per tenant terverifikasi kepemilikan | **Implemented untuk backup & ekspor** — snapshot global khusus platform (`backups.manage` + BackupPolicy); ekspor per tenant B-03. Restore per tenant diputuskan tidak dibangun |
 | File storage | Berkas (gambar produk, dokumen) terpisah per tenant & tidak dapat ditebak/diakses silang | **Partial** — arsip ekspor per direktori tenant (B-03); berkas unggahan lain masih disk bersama per instalasi |
-| Cache | Kunci cache tidak bertabrakan/terbaca antar-tenant | **Belum** — tanpa awalan tenant (pengerasan Fase 6) |
+| Cache | Kunci cache tidak bertabrakan/terbaca antar-tenant | **Implemented** — `TenantCache` memberi awalan ember pemilik (`t{tenant_id}:`, standalone/platform/system) pada cache data bisnis (C-01); tanpa awalan hanya data platform statis |
 | Queue & scheduler | Job membawa konteks tenant; scheduler tidak mencampur data antar-tenant | **Implemented** — perintah terjadwal berjalan dalam konteks sistem eksplisit; layanan berparameter aktor memvalidasi ember (ADR-022) |
 | Tenant suspension | Tenant nonaktif: seluruh penggunanya ditolak login & akses sampai diaktifkan kembali | **Implemented** (S-01) |
 | Tenant deletion/offboarding | Ekspor penuh per tenant → penghapusan terjadwal terverifikasi, tanpa menyentuh tenant lain | **Partial** — ekspor penuh ada (B-03); penghapusan terjadwal belum (OD-5) |

@@ -156,7 +156,7 @@ class JournalPostingTest extends TestCase
         // Impor stok awal → Dr Persediaan / Cr Modal Persediaan Awal.
         $branchB = Branch::create(['name' => 'Cabang Jurnal']);
         $import = app(InitialStockImportService::class);
-        $preview = $import->preview("sku,cabang,qty\n{$this->frame->sku},{$branchB->id},3\n");
+        $preview = $import->preview("sku,cabang,qty\n{$this->frame->sku},{$branchB->id},3\n", $this->owner);
         $import->commit($this->owner, $preview['token']);
         $this->assertSame('-180000.00', $this->balance(Chart::MODAL_PERSEDIAAN_AWAL)); // 3 × 60.000
         $this->assertAllJournalsBalanced();
