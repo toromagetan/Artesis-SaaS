@@ -9,6 +9,7 @@ use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Support\Money;
+use App\Support\TenantCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -136,7 +137,7 @@ class InitialStockImportService
         }
 
         $token = (string) Str::uuid();
-        Cache::put(self::CACHE_PREFIX.$token, ['valid' => $valid, 'errors' => $errors], now()->addMinutes(30));
+        Cache::put(TenantCache::key(self::CACHE_PREFIX.$token), ['valid' => $valid, 'errors' => $errors], now()->addMinutes(30));
 
         return ['token' => $token, 'valid' => $valid, 'errors' => $errors];
     }
@@ -144,7 +145,7 @@ class InitialStockImportService
     /** @return array{token: string, valid: array, errors: array}|null */
     public function getPreview(string $token): ?array
     {
-        $data = Cache::get(self::CACHE_PREFIX.$token);
+        $data = Cache::get(TenantCache::key(self::CACHE_PREFIX.$token));
 
         return $data === null ? null : ['token' => $token] + $data;
     }
@@ -208,7 +209,7 @@ class InitialStockImportService
             return collect($totals)->map(fn (Money $m) => $m->toDecimalString())->all();
         });
 
-        Cache::forget(self::CACHE_PREFIX.$token);
+        Cache::forget(TenantCache::key(self::CACHE_PREFIX.$token));
 
         return $result;
     }
