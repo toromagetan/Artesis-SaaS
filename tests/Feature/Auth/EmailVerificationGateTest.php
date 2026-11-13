@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\UserService;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Membership\Services\MemberPortalService;
 use App\Modules\Platform\Models\Plan;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Platform\Services\PlanService;
@@ -169,5 +172,103 @@ class EmailVerificationGateTest extends TestCase
         $owner->forceFill(['email' => 'mandiri@uji.id', 'email_verified_at' => null])->save();
 
         $this->actingAs($owner)->get(route('dashboard'))->assertOk();
+    }
+
+    public function test_profile_email_change_revokes_verification_and_notifies_new_address(): void
+    {
+        [, , $user] = $this->tenantUser('A', verified: true);
+        Notification::fake();
+
+        $this->actingAs($user)->patch(route('profile.update'), [
+            'name' => $user->name,
+            'email' => 'alamat-baru@uji.id',
+        ])->assertRedirect(route('profile.edit'));
+
+        $fresh = $user->fresh();
+        $this->assertSame('alamat-baru@uji.id', $fresh->email);
+        $this->assertFalse($fresh->hasVerifiedEmail());
+        // Notifikasi terkirim ke model yang kini beralamat BARU.
+        Notification::assertSentTo($fresh, VerifyEmail::class);
+
+        // Akses bisnis kembali tertahan sampai alamat baru terbukti.
+        $this->actingAs($fresh)->get(route('dashboard'))
+            ->assertRedirect(route('verification.notice'));
+    }
+
+    public function test_profile_update_without_email_change_keeps_verification(): void
+    {
+        [, , $user] = $this->tenantUser('A', verified: true);
+        Notification::fake();
+
+        $this->actingAs($user)->patch(route('profile.update'), [
+            'name' => 'Nama Diperbarui',
+            'email' => $user->email,
+        ])->assertRedirect(route('profile.edit'));
+
+        $this->assertTrue($user->fresh()->hasVerifiedEmail());
+        Notification::assertNotSentTo($user, VerifyEmail::class);
+        $this->actingAs($user)->get(route('dashboard'))->assertOk();
+    }
+
+    public function test_admin_email_change_revokes_verification_and_notifies(): void
+    {
+        [$tenant, $branch, $admin] = $this->tenantUser('A', verified: true);
+        $target = User::factory()->create(['tenant_id' => $tenant->id, 'email' => 'sasaran@uji.id']);
+        $target->roles()->sync([Role::where('name', 'Kasir')->firstOrFail()->id]);
+        $target->branches()->sync([$branch->id]);
+        Notification::fake();
+
+        // Jalur pengelolaan pengguna tenant (UserController
+        // meneruskan ke layanan ini).
+        app(UserService::class)->updateUser($target, ['email' => 'sasaran-baru@uji.id'], $admin);
+
+        $fresh = $target->fresh();
+        $this->assertSame('sasaran-baru@uji.id', $fresh->email);
+        $this->assertFalse($fresh->hasVerifiedEmail());
+        Notification::assertSentTo($fresh, VerifyEmail::class);
+        $this->actingAs($fresh)->get(route('dashboard'))
+            ->assertRedirect(route('verification.notice'));
+    }
+
+    public function test_changed_email_can_be_verified_via_signed_link(): void
+    {
+        [, , $user] = $this->tenantUser('A', verified: true);
+
+        $this->actingAs($user)->patch(route('profile.update'), [
+            'name' => $user->name,
+            'email' => 'terbukti@uji.id',
+        ]);
+        $user = $user->fresh();
+        $this->assertFalse($user->hasVerifiedEmail());
+
+        $url = URL::temporarySignedRoute('verification.verify', now()->addMinutes(60), [
+            'id' => $user->id,
+            'hash' => sha1('terbukti@uji.id'),
+        ]);
+        $this->actingAs($user)->get($url)->assertRedirect(route('dashboard'));
+        $this->assertTrue($user->fresh()->hasVerifiedEmail());
+        $this->actingAs($user)->get(route('dashboard'))->assertOk();
+    }
+
+    public function test_unverified_session_can_open_member_portal_and_webhook_but_not_business(): void
+    {
+        [$tenant, $branch, $unverified] = $this->tenantUser('A', verified: false);
+        $customer = Customer::factory()->create([
+            'tenant_id' => $tenant->id, 'branch_id' => $branch->id, 'name' => 'Pelanggan Portal',
+        ]);
+        $token = app(MemberPortalService::class)->issueToken($customer);
+
+        // Portal publik ber-token tidak bergantung pada status
+        // verifikasi sesi staf yang kebetulan masuk.
+        $this->actingAs($unverified)->get('/m/'.$token)
+            ->assertOk()->assertSee('Pelanggan Portal');
+        // Token tidak valid tetap ditolak seperti sebelumnya.
+        $this->actingAs($unverified)->get('/m/token-ngawur')->assertNotFound();
+        // Webhook publik menjawab dengan gerbang tokennya sendiri
+        // (403), bukan dialihkan ke halaman verifikasi.
+        $this->actingAs($unverified)->get('/wa/webhook')->assertForbidden();
+        // Rute bisnis tetap tertahan.
+        $this->actingAs($unverified)->get(route('dashboard'))
+            ->assertRedirect(route('verification.notice'));
     }
 }

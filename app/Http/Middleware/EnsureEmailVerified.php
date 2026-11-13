@@ -33,6 +33,14 @@ class EnsureEmailVerified
         'verification.verify',
         'verification.send',
         'logout',
+        // Koreksi audit B-01-R2: permukaan PUBLIK ber-token bukan
+        // sesi bisnis — portal member dan webhook Meta memakai
+        // token mereka sendiri sebagai kredensial, dan tidak
+        // boleh bergantung pada status verifikasi akun staf yang
+        // kebetulan terautentikasi di browser yang sama.
+        'portal.show',
+        'wa-webhook.verify',
+        'wa-webhook.handle',
     ];
 
     public function handle(Request $request, Closure $next): Response
