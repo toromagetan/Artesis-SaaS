@@ -144,6 +144,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/pembelian/pr/{pr}/cetak', [PurchaseRequestController::class, 'print'])->middleware('permission:pr.view')->name('pr.print');
     Route::get('/pembelian/penerimaan/{receipt}/cetak', [ReceiptController::class, 'print'])->middleware('permission:po.view')->name('receipts.print');
     Route::get('/pembelian/pembayaran/{payment}/cetak', [CollectivePaymentController::class, 'printPayment'])->middleware('permission:po.view')->name('payments.print');
+    Route::get('/pembelian/po/{po}/unduh', [PurchaseOrderController::class, 'download'])->middleware('permission:po.view')->name('po.download');
+    Route::get('/pembelian/pr/{pr}/unduh', [PurchaseRequestController::class, 'download'])->middleware('permission:pr.view')->name('pr.download');
+    Route::get('/pembelian/penerimaan/{receipt}/unduh', [ReceiptController::class, 'download'])->middleware('permission:po.view')->name('receipts.download');
+    Route::get('/pembelian/pembayaran/{payment}/unduh', [CollectivePaymentController::class, 'downloadPayment'])->middleware('permission:po.view')->name('payments.download');
 
     Route::get('/pembelian/penerimaan/{receipt}', [ReceiptController::class, 'show'])->middleware('permission:po.view')->name('receipts.show');
     Route::get('/pembelian/penerimaan/{receipt}/bayar', [ReceiptController::class, 'payForm'])->middleware('permission:payments.create')->name('receipts.pay');
@@ -185,6 +189,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/transfer/{transfer}/terima', [TransferController::class, 'receive'])->middleware('permission:stock.receive_transfer')->name('transfers.receive');
     Route::post('/transfer/{transfer}/batal', [TransferController::class, 'cancel'])->middleware('permission:stock.transfer')->name('transfers.cancel');
     Route::get('/transfer/{transfer}/cetak', [TransferController::class, 'print'])->middleware('permission:stock.view')->name('transfers.print');
+    Route::get('/transfer/{transfer}/unduh', [TransferController::class, 'download'])->middleware('permission:stock.view')->name('transfers.download');
     Route::post('/pembelian/po/{po}/transfer', [TransferController::class, 'storeFromPo'])->middleware('permission:stock.transfer')->name('po.transfer.store');
     Route::get('/stok/opname', [OpnameController::class, 'index'])->middleware('permission:stock.opname')->name('opnames.index');
     Route::get('/stok/opname/baru', [OpnameController::class, 'create'])->middleware('permission:stock.opname')->name('opnames.create');
@@ -235,6 +240,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/komisi/bayar', [CommissionController::class, 'pay'])->middleware('permission:payroll.manage')->name('commissions.pay');
     Route::get('/jurnal/{journal}', [JournalController::class, 'show'])->middleware('permission:journals.view')->name('journals.show');
     Route::get('/jurnal/{journal}/cetak', [JournalController::class, 'print'])->middleware('permission:journals.view')->name('journals.print');
+    Route::get('/jurnal/{journal}/unduh', [JournalController::class, 'download'])->middleware('permission:journals.view')->name('journals.download');
     Route::post('/jurnal/{journal}/balik', [JournalController::class, 'reverse'])->middleware('permission:journals.reverse')->name('journals.reverse');
     Route::get('/akun', [AccountController::class, 'index'])->middleware('permission:accounts.view')->name('accounts.index');
     Route::get('/akun/buat', [AccountController::class, 'create'])->middleware(['permission:accounts.manage', 'plan.feature:accounting_full'])->name('accounts.create');
@@ -294,9 +300,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/penjualan/{sale}/retur', [SaleController::class, 'storeReturn'])->middleware('permission:sales.return')->name('sales.return.store');
     Route::get('/penjualan/{sale}/cetak/orderan', [SaleController::class, 'printOrder'])->middleware('permission:sales.view')->name('sales.print-order');
     Route::get('/penjualan/{sale}/cetak/invoice', [SaleController::class, 'printInvoice'])->middleware('permission:sales.view')->name('sales.print-invoice');
+    Route::get('/penjualan/{sale}/unduh/orderan', [SaleController::class, 'downloadOrder'])->middleware('permission:sales.view')->name('sales.download-order');
+    Route::get('/penjualan/{sale}/unduh/invoice', [SaleController::class, 'downloadInvoice'])->middleware('permission:sales.view')->name('sales.download-invoice');
     Route::get('/penjualan/{sale}/cetak/resep', [SaleController::class, 'printPrescription'])->middleware('permission:sales.view')->name('sales.print-prescription');
+    Route::get('/penjualan/{sale}/unduh/resep', [SaleController::class, 'downloadPrescription'])->middleware('permission:sales.view')->name('sales.download-prescription');
     Route::get('/penjualan/{sale}/cetak/struk', [SaleController::class, 'printReceipt'])->middleware('permission:sales.view')->name('sales.print-receipt');
     Route::get('/penjualan/retur/{return}/cetak', [SaleController::class, 'printReturn'])->middleware('permission:sales.view')->name('sales.returns.print');
+    Route::get('/penjualan/retur/{return}/unduh', [SaleController::class, 'downloadReturn'])->middleware('permission:sales.view')->name('sales.returns.download');
 
     // ---- Pelanggan & Resep (M.2) ----
     Route::get('/pelanggan', [CustomerController::class, 'index'])->middleware('permission:customers.view')->name('customers.index');
@@ -318,6 +328,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/resep/{prescription}', [PrescriptionController::class, 'update'])->middleware('permission:prescriptions.create')->name('prescriptions.update');
     Route::post('/resep/{prescription}/duplikat', [PrescriptionController::class, 'duplicate'])->middleware('permission:prescriptions.create')->name('prescriptions.duplicate');
     Route::get('/resep/{prescription}/cetak', [PrescriptionController::class, 'print'])->middleware('permission:prescriptions.print')->name('prescriptions.print');
+    Route::get('/resep/{prescription}/unduh', [PrescriptionController::class, 'download'])->middleware('permission:prescriptions.print')->name('prescriptions.download');
 
     // ---- Katalog (M.1) ----
     Route::post('/produk-induk/{parent}/alih-aktif', [ProductController::class, 'toggleMasterActive'])->middleware('permission:products.deactivate')->name('products.masters.toggle-active');
@@ -346,23 +357,23 @@ Route::middleware('auth')->group(function () {
     Route::post('/member/{customer}/portal/cabut', [MemberController::class, 'revokePortalToken'])->middleware('permission:members.manage')->name('members.portal.revoke');
 
     // ---- Inbox & Kampanye WhatsApp (F3.8) ----
-    Route::get('/wa/inbox', [WaInboxController::class, 'index'])->middleware('permission:wa.inbox')->name('wa-inbox.index');
-    Route::get('/wa/inbox/{customer}', [WaInboxController::class, 'show'])->middleware('permission:wa.inbox')->name('wa-inbox.show');
-    Route::post('/wa/inbox/{customer}/balas', [WaInboxController::class, 'reply'])->middleware('permission:wa.inbox')->name('wa-inbox.reply');
-    Route::get('/wa/kampanye', [WaCampaignController::class, 'index'])->middleware('permission:wa.campaigns')->name('wa-campaigns.index');
-    Route::post('/wa/kampanye', [WaCampaignController::class, 'store'])->middleware('permission:wa.campaigns')->name('wa-campaigns.store');
-    Route::get('/wa/kampanye/{campaign}', [WaCampaignController::class, 'show'])->middleware('permission:wa.campaigns')->name('wa-campaigns.show');
-    Route::post('/wa/kampanye/{campaign}/setujui', [WaCampaignController::class, 'approve'])->middleware('permission:wa.campaigns.approve')->name('wa-campaigns.approve');
-    Route::post('/wa/kampanye/{campaign}/kirim', [WaCampaignController::class, 'send'])->middleware('permission:wa.campaigns')->name('wa-campaigns.send');
-    Route::post('/wa/kampanye/{campaign}/batalkan', [WaCampaignController::class, 'cancel'])->middleware('permission:wa.campaigns')->name('wa-campaigns.cancel');
-    Route::post('/wa/template/{template}/setujui', [WaTemplateController::class, 'approve'])->middleware('permission:wa.campaigns.approve')->name('wa-templates.approve');
+    Route::get('/wa/inbox', [WaInboxController::class, 'index'])->middleware(['permission:wa.inbox', 'wa.api'])->name('wa-inbox.index');
+    Route::get('/wa/inbox/{customer}', [WaInboxController::class, 'show'])->middleware(['permission:wa.inbox', 'wa.api'])->name('wa-inbox.show');
+    Route::post('/wa/inbox/{customer}/balas', [WaInboxController::class, 'reply'])->middleware(['permission:wa.inbox', 'wa.api'])->name('wa-inbox.reply');
+    Route::get('/wa/kampanye', [WaCampaignController::class, 'index'])->middleware(['permission:wa.campaigns', 'wa.api'])->name('wa-campaigns.index');
+    Route::post('/wa/kampanye', [WaCampaignController::class, 'store'])->middleware(['permission:wa.campaigns', 'wa.api'])->name('wa-campaigns.store');
+    Route::get('/wa/kampanye/{campaign}', [WaCampaignController::class, 'show'])->middleware(['permission:wa.campaigns', 'wa.api'])->name('wa-campaigns.show');
+    Route::post('/wa/kampanye/{campaign}/setujui', [WaCampaignController::class, 'approve'])->middleware(['permission:wa.campaigns.approve', 'wa.api'])->name('wa-campaigns.approve');
+    Route::post('/wa/kampanye/{campaign}/kirim', [WaCampaignController::class, 'send'])->middleware(['permission:wa.campaigns', 'wa.api'])->name('wa-campaigns.send');
+    Route::post('/wa/kampanye/{campaign}/batalkan', [WaCampaignController::class, 'cancel'])->middleware(['permission:wa.campaigns', 'wa.api'])->name('wa-campaigns.cancel');
+    Route::post('/wa/template/{template}/setujui', [WaTemplateController::class, 'approve'])->middleware(['permission:wa.campaigns.approve', 'wa.api'])->name('wa-templates.approve');
 
     // ---- Komunikasi WhatsApp (F3.4) ----
     Route::get('/pengaturan/umum', [GeneralSettingsController::class, 'edit'])->middleware('permission:settings.manage')->name('settings.general.edit');
     Route::put('/pengaturan/umum', [GeneralSettingsController::class, 'update'])->middleware('permission:settings.manage')->name('settings.general.update');
-    Route::get('/pengaturan/wa', [WaGatewayController::class, 'edit'])->middleware('permission:settings.manage')->name('wa-gateway.edit');
-    Route::put('/pengaturan/wa', [WaGatewayController::class, 'update'])->middleware('permission:settings.manage')->name('wa-gateway.update');
-    Route::post('/pengaturan/wa/uji', [WaGatewayController::class, 'test'])->middleware('permission:settings.manage')->name('wa-gateway.test');
+    Route::get('/pengaturan/wa', [WaGatewayController::class, 'edit'])->middleware(['permission:settings.manage', 'wa.api'])->name('wa-gateway.edit');
+    Route::put('/pengaturan/wa', [WaGatewayController::class, 'update'])->middleware(['permission:settings.manage', 'wa.api'])->name('wa-gateway.update');
+    Route::post('/pengaturan/wa/uji', [WaGatewayController::class, 'test'])->middleware(['permission:settings.manage', 'wa.api'])->name('wa-gateway.test');
     Route::get('/pengaturan/token-api', [ApiTokenController::class, 'index'])->middleware('permission:api_tokens.manage')->name('api-tokens.index');
     Route::post('/pengaturan/token-api', [ApiTokenController::class, 'store'])->middleware('permission:api_tokens.manage')->name('api-tokens.store');
     Route::post('/pengaturan/token-api/{token}/cabut', [ApiTokenController::class, 'revoke'])->middleware('permission:api_tokens.manage')->name('api-tokens.revoke');
@@ -387,10 +398,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/pengaturan/perangkat-offline', [OfflineDeviceController::class, 'index'])->middleware('permission:api_tokens.manage')->name('offline-devices.index');
     Route::post('/pengaturan/perangkat-offline', [OfflineDeviceController::class, 'store'])->middleware('permission:api_tokens.manage')->name('offline-devices.store');
     Route::post('/pengaturan/perangkat-offline/{device}/cabut', [OfflineDeviceController::class, 'revoke'])->middleware('permission:api_tokens.manage')->name('offline-devices.revoke');
-    Route::get('/wa/template', [WaTemplateController::class, 'index'])->middleware('permission:wa.templates')->name('wa-templates.index');
-    Route::get('/wa/template/{template}/ubah', [WaTemplateController::class, 'edit'])->middleware('permission:wa.templates')->name('wa-templates.edit');
-    Route::put('/wa/template/{template}', [WaTemplateController::class, 'update'])->middleware('permission:wa.templates')->name('wa-templates.update');
-    Route::get('/wa/log', [WaLogController::class, 'index'])->middleware('permission:wa.send')->name('wa-log.index');
+    Route::get('/wa/template', [WaTemplateController::class, 'index'])->middleware(['permission:wa.templates', 'wa.api'])->name('wa-templates.index');
+    Route::get('/wa/template/{template}/ubah', [WaTemplateController::class, 'edit'])->middleware(['permission:wa.templates', 'wa.api'])->name('wa-templates.edit');
+    Route::put('/wa/template/{template}', [WaTemplateController::class, 'update'])->middleware(['permission:wa.templates', 'wa.api'])->name('wa-templates.update');
+    Route::get('/wa/log', [WaLogController::class, 'index'])->middleware(['permission:wa.send', 'wa.api'])->name('wa-log.index');
 
     Route::middleware('permission:branches.manage')->group(function () {
         Route::get('/cabang', [BranchController::class, 'index'])->name('branches.index');

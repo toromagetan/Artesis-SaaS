@@ -16,9 +16,11 @@ use App\Modules\Master\Models\Supplier;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use App\Modules\Purchasing\Services\PurchaseOrderService;
 use App\Modules\Purchasing\Services\ReceiptService;
+use App\Support\DocumentPdf;
 use App\Support\XlsxWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -387,5 +389,16 @@ class PurchaseOrderController extends Controller
             'po' => $po,
             'storeName' => Setting::value('store.name', 'Artesis'),
         ]);
+    }
+
+    /** Unduh PDF PO (lampiran WhatsApp ke pemasok dsb.). */
+    public function download(PurchaseOrder $po): Response
+    {
+        $po->load(['supplier', 'branch', 'creator', 'items.detail.product']);
+
+        return DocumentPdf::download('purchasing.orders.print', [
+            'po' => $po,
+            'storeName' => Setting::value('store.name', 'Artesis'),
+        ], 'po-'.$po->number.'.pdf', 'a5', 'landscape');
     }
 }

@@ -2194,4 +2194,14 @@ return [
         'sub_expired' => 'Tamat',
         'sub_cancelled' => 'Dibatalkan',
     ],
+    'download_pdf' => 'Muat turun PDF',
+    'wa_link' => [
+        'send' => 'Hantar WhatsApp',
+        'greeting' => 'Halo :name, kami dari :store. Ada apa-apa yang boleh kami bantu?',
+        'sale_invoice' => "Halo :customer, terima kasih kerana membeli-belah di :store.\n\nInvois :number\nJumlah: :total\nTelah dibayar: :paid\nBaki: :remaining\nStatus bayaran: :status\n\nInvois anda dilampirkan bersama mesej ini. Terima kasih.",
+        'pickup_ready' => 'Halo :customer, berita baik dari :store. Tempahan anda (:number) telah siap dan boleh diambil di cawangan :branch. Terima kasih.',
+        'process_progress' => 'Halo :customer, kami dari :store memaklumkan tempahan anda (:number) masih dalam proses pengerjaan. Anggaran siap: :estimate. Kami akan maklumkan semula sebaik sahaja tempahan siap untuk diambil. Terima kasih atas kesabaran anda.',
+        'process_progress_no_estimate' => 'Halo :customer, kami dari :store memaklumkan tempahan anda (:number) masih dalam proses pengerjaan. Kami akan maklumkan semula sebaik sahaja tempahan siap untuk diambil. Terima kasih atas kesabaran anda.',
+        'po_order' => 'Halo :supplier, kami dari :store menghantar Pesanan Belian :number (dilampirkan). Mohon sahkan ketersediaan barang dan anggaran masa penghantaran. Terima kasih.',
+    ],
 ];

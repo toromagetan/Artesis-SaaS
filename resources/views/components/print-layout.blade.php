@@ -33,7 +33,8 @@
     @endphp
     <div class="store">
         @if ($storeLogo)
-            <img src="{{ \App\Support\TenantStorage::url($storeLogo) }}" alt="" style="max-height: 14mm; max-width: 60mm; margin-bottom: 4px;">
+            {{-- Data URI dipakai perender PDF (DocumentPdf); selain itu URL web biasa. --}}
+            <img src="{{ str_starts_with($storeLogo, 'data:') ? $storeLogo : \App\Support\TenantStorage::url($storeLogo) }}" alt="" style="max-height: 14mm; max-width: 60mm; margin-bottom: 4px;">
         @endif
         <div class="name">{{ $storeName }}</div>
         @if ($storeAddress)

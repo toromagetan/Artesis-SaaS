@@ -2218,4 +2218,14 @@ return [
         'sub_expired' => 'Expired',
         'sub_cancelled' => 'Cancelled',
     ],
+    'download_pdf' => 'Download PDF',
+    'wa_link' => [
+        'send' => 'Send via WhatsApp',
+        'greeting' => 'Hello :name, this is :store. How can we help you?',
+        'sale_invoice' => "Hello :customer, thank you for shopping at :store.\n\nInvoice :number\nTotal: :total\nPaid: :paid\nRemaining: :remaining\nPayment status: :status\n\nYour invoice is attached with this message. Thank you.",
+        'pickup_ready' => 'Hello :customer, good news from :store. Your order (:number) is finished and ready for pickup at our :branch branch. Thank you.',
+        'process_progress' => 'Hello :customer, this is :store letting you know your order (:number) is still being worked on. Estimated completion: :estimate. We will let you know as soon as it is ready for pickup. Thank you for your patience.',
+        'process_progress_no_estimate' => 'Hello :customer, this is :store letting you know your order (:number) is still being worked on. We will let you know as soon as it is ready for pickup. Thank you for your patience.',
+        'po_order' => 'Hello :supplier, we are :store sending Purchase Order :number (attached). Please confirm item availability and your estimated delivery time. Thank you.',
+    ],
 ];

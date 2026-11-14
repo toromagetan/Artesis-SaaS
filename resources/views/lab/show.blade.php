@@ -16,6 +16,9 @@
 
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('lab.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
+                @if ($waLabUrl = \App\Support\WaLink::forCustomer($process->sale->customer, $process->isDone() ? \App\Support\WaLink::pickupReadyText($process->sale) : \App\Support\WaLink::processProgressText($process)))
+                    <x-lentera.menu-item :href="$waLabUrl" target="_blank" icon="chat">{{ __('ui.wa_link.send') }}</x-lentera.menu-item>
+                @endif
                 @unless ($process->isDone())
                     <x-lentera.aksi-bar>
                         @can('lab.assign')

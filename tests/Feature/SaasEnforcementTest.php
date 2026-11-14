@@ -118,7 +118,10 @@ class SaasEnforcementTest extends TestCase
         [, , $admin] = $this->tenantAdmin('best_offer');
 
         $this->actingAs($admin)->get('/pembelian/pr')->assertOk();
-        $this->actingAs($admin)->get('/pengaturan/wa')->assertOk();
+        // Skema wa.me (keputusan owner 15 Nov 2026): pengaturan gateway WA
+        // API khusus platform/mandiri — aktor tenant ditolak walau paket
+        // tertinggi; tenant memakai tombol wa.me yang berlaku semua paket.
+        $this->actingAs($admin)->get('/pengaturan/wa')->assertForbidden();
         $this->actingAs($admin)->get('/pengaturan/token-api')->assertOk();
         $this->actingAs($admin)->get('/member')->assertOk();
     }

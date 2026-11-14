@@ -19,6 +19,7 @@
                 <div class="flex items-center gap-2">
                     <x-lentera.aksi-bar>
                         <x-lentera.menu-item :href="route('transfers.print', $transfer)" target="_blank" print>{{ __('ui.transfer.print') }}</x-lentera.menu-item>
+                        <x-lentera.menu-item :href="route('transfers.download', $transfer)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
                     </x-lentera.aksi-bar>
                     @if ($transfer->status === 'sent')
                         <x-lentera.aksi-bar>

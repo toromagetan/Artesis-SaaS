@@ -2218,4 +2218,14 @@ return [
         'sub_expired' => 'Berakhir',
         'sub_cancelled' => 'Dibatalkan',
     ],
+    'download_pdf' => 'Unduh PDF',
+    'wa_link' => [
+        'send' => 'Kirim WA',
+        'greeting' => 'Halo :name, kami dari :store. Ada yang bisa kami bantu?',
+        'sale_invoice' => "Halo :customer, terima kasih telah berbelanja di :store.\n\nInvoice :number\nTotal: :total\nTerbayar: :paid\nSisa: :remaining\nStatus pembayaran: :status\n\nBerikut kami lampirkan invoice Anda. Terima kasih.",
+        'pickup_ready' => 'Halo :customer, kabar baik dari :store. Pesanan Anda (:number) sudah selesai dan siap diambil di cabang :branch. Terima kasih.',
+        'process_progress' => 'Halo :customer, kami dari :store menginformasikan pesanan Anda (:number) masih dalam proses pengerjaan. Estimasi selesai: :estimate. Kami akan mengabari lagi begitu pesanan siap diambil. Terima kasih atas kesabaran Anda.',
+        'process_progress_no_estimate' => 'Halo :customer, kami dari :store menginformasikan pesanan Anda (:number) masih dalam proses pengerjaan. Kami akan mengabari lagi begitu pesanan siap diambil. Terima kasih atas kesabaran Anda.',
+        'po_order' => 'Halo :supplier, kami dari :store mengirimkan Purchase Order :number (terlampir). Mohon konfirmasi ketersediaan barang dan estimasi pengirimannya. Terima kasih.',
+    ],
 ];

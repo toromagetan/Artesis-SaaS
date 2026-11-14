@@ -10,8 +10,10 @@ use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
 use App\Modules\Purchasing\Models\PurchaseRequest;
 use App\Modules\Purchasing\Services\PurchaseRequestService;
+use App\Support\DocumentPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -132,6 +134,18 @@ class PurchaseRequestController extends Controller
             'storeName' => Setting::value('store.name', 'Artesis'),
             'printedBy' => auth()->user(),
         ]);
+    }
+
+    /** Unduh PDF PR (lampiran WhatsApp dsb.). */
+    public function download(PurchaseRequest $pr): Response
+    {
+        $pr->load(['branch', 'requester', 'items.detail.product', 'items.supplier', 'sale']);
+
+        return DocumentPdf::download('purchasing.requests.print', [
+            'pr' => $pr,
+            'storeName' => Setting::value('store.name', 'Artesis'),
+            'printedBy' => auth()->user(),
+        ], 'pr-'.$pr->number.'.pdf');
     }
 
     public function cancel(Request $request, PurchaseRequest $pr): RedirectResponse

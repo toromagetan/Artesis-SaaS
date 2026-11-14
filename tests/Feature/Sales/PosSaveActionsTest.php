@@ -4,7 +4,6 @@ namespace Tests\Feature\Sales;
 
 use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Comms\Models\WaMessage;
-use App\Modules\Comms\Models\WaTemplate;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Services\InventoryService;
@@ -18,8 +17,9 @@ use Tests\TestCase;
 /**
  * Aksi simpan terminal POS (PRD-DETAIL §2.2; audit 23 Okt 2026 B5):
  * Simpan & Cetak membuka orderan tercetak dari halaman detail;
- * Simpan & Kirim WA memastikan invoice terantre TANPA kirim ganda
- * (otomasi SaleCompleted sudah mengantrekannya lebih dulu).
+ * Simpan & Kirim WA membuka aplikasi WhatsApp (wa.me) dengan teks
+ * invoice terisi dari halaman detail (skema owner 15 Nov 2026 —
+ * tidak ada lagi antrean pesan API).
  */
 class PosSaveActionsTest extends TestCase
 {
@@ -67,20 +67,18 @@ class PosSaveActionsTest extends TestCase
         $plain->assertSessionMissing('open_print');
     }
 
-    public function test_save_and_send_wa_queues_invoice_exactly_once(): void
+    public function test_save_and_send_wa_opens_whatsapp_with_invoice_text(): void
     {
-        WaTemplate::create([
-            'key' => 'invoice', 'name' => 'Invoice', 'category' => 'utility',
-            'body' => 'Invoice {nomor} total {total} di {cabang}.', 'is_active' => true,
-        ]);
-
         $response = $this->actingAs($this->owner)->post(route('sales.store'), $this->payload(['intent' => 'wa']));
-        $response->assertRedirect();
         $sale = Sale::latest('id')->firstOrFail();
+        $response->assertRedirect(route('sales.show', $sale));
+        $response->assertSessionHas('open_wa');
 
-        // Otomasi SaleCompleted mengantrekan invoice; aksi WA kasir
-        // TIDAK menggandakannya.
-        $this->assertSame(1, WaMessage::where('template_key', 'invoice')->where('customer_id', $this->customer->id)->count());
-        $this->assertStringContainsString($sale->number, WaMessage::first()->body);
+        // Tautan wa.me menuju nomor pelanggan yang dinormalisasi,
+        // teksnya memuat nomor invoice; tidak ada pesan API terantre.
+        $openWa = (string) session('open_wa');
+        $this->assertStringStartsWith('https://wa.me/6281234567890?text=', $openWa);
+        $this->assertStringContainsString(rawurlencode($sale->number), $openWa);
+        $this->assertSame(0, WaMessage::count());
     }
 }

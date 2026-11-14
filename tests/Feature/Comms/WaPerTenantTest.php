@@ -23,8 +23,13 @@ use Tests\TestCase;
 
 /**
  * WA per tenant (keputusan owner 2026-11-14, menutup OD-4): setiap
- * tenant memakai gateway WhatsApp MILIKNYA — pengaturan, pengiriman,
- * dan atribusi webhook terpagar tenant pemilik nomor.
+ * tenant memakai gateway WhatsApp MILIKNYA — pengiriman dan atribusi
+ * webhook terpagar tenant pemilik nomor.
+ *
+ * Sejak keputusan owner 15 Nov 2026 (skema Kirim WA wa.me), halaman
+ * pengaturan gateway TERTUTUP untuk aktor tenant (middleware wa.api);
+ * resolusi gateway per tenant di lapisan layanan tetap berlaku untuk
+ * jalur platform/instalasi mandiri dan dikunci test di bawah.
  */
 class WaPerTenantTest extends TestCase
 {
@@ -90,29 +95,24 @@ class WaPerTenantTest extends TestCase
         ]);
     }
 
-    public function test_gateway_settings_are_scoped_to_own_tenant(): void
+    public function test_gateway_settings_are_closed_for_tenant_actors(): void
     {
         [$tenantA, $adminA] = $this->tenantAdmin('a');
-        [$tenantB] = $this->tenantAdmin('b');
         $this->gatewayFor($tenantA, 'PN-A', 'token-aaaa-1111', 'secret-a', '628110000001');
-        $this->gatewayFor($tenantB, 'PN-B', 'token-bbbb-2222', 'secret-b', '628110000002');
 
-        // Halaman pengaturan A menampilkan nomor A, bukan B.
-        $this->actingAs($adminA)->get(route('wa-gateway.edit'))
-            ->assertOk()
-            ->assertSee('628110000001')
-            ->assertDontSee('628110000002');
-
-        // Simpan sebagai A hanya mengubah baris A.
+        // Permukaan WA API dinonaktifkan untuk tenant (wa.api):
+        // halaman & simpan pengaturan gateway menolak aktor tenant
+        // walau tenant itu memiliki baris gateway sendiri.
+        $this->actingAs($adminA)->get(route('wa-gateway.edit'))->assertForbidden();
         $this->actingAs($adminA)->put(route('wa-gateway.update'), [
             'provider' => 'meta_cloud_api',
             'sender_number' => '0811-777-001',
             'phone_number_id' => 'PN-A',
             'is_active' => '1',
-        ])->assertRedirect();
+        ])->assertForbidden();
 
-        $this->assertSame('62811777001', WaGateway::forTenant($tenantA->id)->sender_number);
-        $this->assertSame('628110000002', WaGateway::forTenant($tenantB->id)->sender_number);
+        // Baris gateway tenant tidak berubah oleh upaya tadi.
+        $this->assertSame('628110000001', WaGateway::forTenant($tenantA->id)->sender_number);
     }
 
     public function test_outbound_uses_the_customers_own_tenant_gateway(): void

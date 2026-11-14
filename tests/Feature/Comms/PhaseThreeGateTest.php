@@ -143,10 +143,10 @@ class PhaseThreeGateTest extends TestCase
         // Laporan piutang: penjualan lunas tidak lagi tampil.
         $this->actingAs($this->owner)->get('/piutang')->assertOk()->assertDontSee($sale->number);
 
-        // (b) Invoice WA untuk penjualan ini tercatat di log.
-        $invoice = WaMessage::where('template_key', 'invoice')->where('customer_id', $this->customer->id)->first();
-        $this->assertNotNull($invoice);
-        $this->assertStringContainsString($sale->number, $invoice->body);
+        // (b) Skema wa.me (keputusan owner 15 Nov 2026): penjualan TIDAK
+        // lagi membuat pesan WA API — komunikasi pelanggan berjalan lewat
+        // tombol wa.me di aplikasi WA staf, jadi tidak ada baris pesan.
+        $this->assertSame(0, WaMessage::where('customer_id', $this->customer->id)->count());
 
         // (c) Poin: basis di luar pajak 1.000.000 -> 100 poin; liabilitas
         // jurnal == Σ poin aktif x nilai tukar.
@@ -159,7 +159,7 @@ class PhaseThreeGateTest extends TestCase
         $this->assertTrue($liability->equals($expected), 'liabilitas poin harus sama dengan poin aktif x nilai tukar');
     }
 
-    public function test_gateway_total_failure_keeps_sale_and_logs_message(): void
+    public function test_gateway_total_failure_keeps_sale_and_sends_nothing(): void
     {
         WaGateway::create([
             'provider' => 'meta_cloud_api',
@@ -184,10 +184,11 @@ class PhaseThreeGateTest extends TestCase
         $this->assertSame('paid', $sale->paymentStatus());
         $this->assertDatabaseHas('sales', ['id' => $sale->id, 'status' => 'active']);
 
-        // Pesan TETAP tercatat (untuk antrean ulang di produksi).
-        $invoice = WaMessage::where('template_key', 'invoice')->where('customer_id', $this->customer->id)->first();
-        $this->assertNotNull($invoice);
-        $this->assertStringContainsString($sale->number, $invoice->body);
-        $this->assertContains($invoice->status, ['queued', 'failed']);
+        // Skema wa.me (keputusan owner 15 Nov 2026): jalur penjualan tidak
+        // lagi menyentuh gateway sama sekali — tidak ada panggilan keluar
+        // dan tidak ada pesan tercatat, sehingga keadaan gateway tidak
+        // pernah dapat memengaruhi transaksi.
+        Http::assertNothingSent();
+        $this->assertSame(0, WaMessage::where('customer_id', $this->customer->id)->count());
     }
 }
