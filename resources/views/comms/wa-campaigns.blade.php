@@ -37,7 +37,7 @@
                                 <td class="px-4 py-3"><span class="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">{{ __('ui.campaigns.statuses.'.$campaign->status) }}</span></td>
                                 <td class="px-4 py-3 text-right">
                                     <x-lentera.aksi-baris>
-                                        <x-lentera.menu-item :href="route('wa-campaigns.show', $campaign)" sm>{{ __('ui.campaigns.detail') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('wa-campaigns.show', $campaign)" sm icon="eye" :title="__('ui.campaigns.detail')"><span class="sr-only">{{ __('ui.campaigns.detail') }}</span></x-lentera.menu-item>
                                     </x-lentera.aksi-baris>
                                 </td>
                             </tr>

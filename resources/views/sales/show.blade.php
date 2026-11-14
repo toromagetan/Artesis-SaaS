@@ -169,7 +169,7 @@
                             @if (! $sale->isVoid())
                                 @can('sales.update')
                                     <span class="ml-auto">
-                                        <x-lentera.aksi-dialog :label="__('ui.sales.precal_edit')" :title="__('ui.sales.precal_edit').' — '.$item->product_name_snapshot" :action="route('sales.precal.update', [$sale, $item])" :confirmText="__('ui.save')" sm>
+                                        <x-lentera.aksi-dialog :label="__('ui.sales.precal_edit')" :title="__('ui.sales.precal_edit').' — '.$item->product_name_snapshot" :action="route('sales.precal.update', [$sale, $item])" :confirmText="__('ui.save')" sm icon="pencil">
                                             <div class="grid grid-cols-3 gap-3">
                                                 @foreach (\App\Modules\Sales\Services\RxPrecalValidator::KEYS as $key)
                                                     <div @if ($key === 'type_frame') class="col-span-2" @endif>

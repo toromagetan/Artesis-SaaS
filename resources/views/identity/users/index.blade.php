@@ -48,12 +48,12 @@
                                 <td class="px-4 py-3"><x-lentera.badge :active="$user->is_active" /></td>
                                 <td class="px-4 py-3 text-right">
                                     <x-lentera.aksi-baris>
-                                        <x-lentera.menu-item :href="route('users.show', $user)" sm>{{ __('ui.users.detail') }}</x-lentera.menu-item>
-                                        <x-lentera.menu-item :href="route('users.edit', $user)" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('users.show', $user)" sm icon="eye" :title="__('ui.users.detail')"><span class="sr-only">{{ __('ui.users.detail') }}</span></x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('users.edit', $user)" sm icon="pencil" :title="__('ui.edit')"><span class="sr-only">{{ __('ui.edit') }}</span></x-lentera.menu-item>
 
                                         <form method="POST" action="{{ route('users.toggle-active', $user) }}">
                                             @csrf
-                                            <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $user->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $user->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                                            <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $user->is_active ? 'text-red-600' : 'text-lentera-700' }}" title="{{ $user->is_active ? __('ui.deactivate') : __('ui.activate') }}" aria-label="{{ $user->is_active ? __('ui.deactivate') : __('ui.activate') }}"><svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v8" /><path stroke-linecap="round" stroke-linejoin="round" d="M6.34 6.34a8 8 0 1011.32 0" /></svg><span class="sr-only">{{ $user->is_active ? __('ui.deactivate') : __('ui.activate') }}</span></button>
                                         </form>
                                     </x-lentera.aksi-baris>
                                 </td>

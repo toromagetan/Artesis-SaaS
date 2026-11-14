@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WaMessage extends Model
 {
     protected $fillable = [
-        'customer_id', 'phone', 'template_key', 'body', 'direction', 'status',
+        'tenant_id', 'customer_id', 'phone', 'template_key', 'body', 'direction', 'status',
         'trigger', 'campaign_id', 'sent_by', 'provider_message_id', 'error', 'sent_at', 'read_at',
     ];
 

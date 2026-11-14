@@ -59,12 +59,12 @@
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <x-lentera.aksi-baris>
-                                        <x-lentera.menu-item :href="route('prescriptions.show', $prescription)" sm>{{ __('ui.prescriptions.detail') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('prescriptions.show', $prescription)" sm icon="eye" :title="__('ui.prescriptions.detail')"><span class="sr-only">{{ __('ui.prescriptions.detail') }}</span></x-lentera.menu-item>
                                         @can('prescriptions.create')
-                                            <x-lentera.menu-item :href="route('prescriptions.edit', $prescription)" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('prescriptions.edit', $prescription)" sm icon="pencil" :title="__('ui.edit')"><span class="sr-only">{{ __('ui.edit') }}</span></x-lentera.menu-item>
                                         @endcan
                                         @can('prescriptions.print')
-                                            <x-lentera.menu-item :href="route('prescriptions.print', $prescription)" sm>{{ __('ui.prescriptions.print') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('prescriptions.print', $prescription)" sm icon="printer" :title="__('ui.prescriptions.print')"><span class="sr-only">{{ __('ui.prescriptions.print') }}</span></x-lentera.menu-item>
                                         @endcan
                                     </x-lentera.aksi-baris>
                                 </td>

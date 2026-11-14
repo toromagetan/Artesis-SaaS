@@ -55,19 +55,19 @@
                                 <td class="px-4 py-3 text-right">
                                     <x-lentera.aksi-baris>
                                         @can('points.adjust')
-                                            <x-lentera.menu-item :href="route('members.adjust', $customer)" sm>{{ __('ui.members.adjust_points') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('members.adjust', $customer)" sm icon="adjust" :title="__('ui.members.adjust_points')"><span class="sr-only">{{ __('ui.members.adjust_points') }}</span></x-lentera.menu-item>
                                         @endcan
                                         @can('members.manage')
                                             <form method="POST" action="{{ route('members.portal.issue', $customer) }}">
                                                 @csrf
-                                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.members.portal_issue') }}</button>
+                                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500" title="{{ __('ui.members.portal_issue') }}" aria-label="{{ __('ui.members.portal_issue') }}"><svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg><span class="sr-only">{{ __('ui.members.portal_issue') }}</span></button>
                                             </form>
                                             <form method="POST" action="{{ route('members.portal.revoke', $customer) }}" onsubmit="return confirm('{{ __('ui.members.portal_revoked') }}?')">
                                                 @csrf
-                                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-red-600 shadow-soft transition duration-150 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.members.portal_revoke') }}</button>
+                                                <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-red-600 shadow-soft transition duration-150 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-lentera-500" title="{{ __('ui.members.portal_revoke') }}" aria-label="{{ __('ui.members.portal_revoke') }}"><svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-linecap="round" stroke-linejoin="round" /><path stroke-linecap="round" stroke-linejoin="round" d="M5.8 5.8l12.4 12.4" /></svg><span class="sr-only">{{ __('ui.members.portal_revoke') }}</span></button>
                                             </form>
                                         @endcan
-                                        <x-lentera.menu-item :href="route('customers.show', $customer)" sm>{{ __('ui.members.view_customer') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('customers.show', $customer)" sm icon="eye" :title="__('ui.members.view_customer')"><span class="sr-only">{{ __('ui.members.view_customer') }}</span></x-lentera.menu-item>
                                     </x-lentera.aksi-baris>
                                 </td>
                             </tr>
