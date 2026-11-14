@@ -11,8 +11,11 @@ use App\Modules\Master\Models\Branch;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Support\Money;
 use App\Support\TenantCache;
+use App\Support\XlsxReader;
+use App\Support\XlsxWriter;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -64,7 +67,6 @@ class InitialStockImportService
      */
     public function preview(string $csvContent, ?User $actor = null): array
     {
-        $this->assertActorMatchesAmbient($actor);
         $lines = preg_split('/\r\n|\r|\n/', trim($csvContent)) ?: [];
         $rows = [];
         foreach ($lines as $i => $line) {
@@ -73,6 +75,42 @@ class InitialStockImportService
             }
             $rows[] = ['line' => $i + 1, 'cells' => str_getcsv($line)];
         }
+
+        return $this->previewRows($rows, $actor);
+    }
+
+    /**
+     * Pratinjau dari berkas unggahan (A5): XLSX dibaca lewat
+     * XlsxReader, selain itu diperlakukan sebagai teks CSV —
+     * pemilik toko bekerja langsung dari Excel.
+     */
+    public function previewUpload(UploadedFile $file, ?User $actor = null): array
+    {
+        $binary = (string) file_get_contents($file->getRealPath());
+        if (str_starts_with($binary, "PK\x03\x04")) {
+            try {
+                $sheet = XlsxReader::rows($binary);
+            } catch (\Throwable) {
+                throw ValidationException::withMessages(['file' => __('ui.import.unreadable')]);
+            }
+            $rows = [];
+            foreach ($sheet as $i => $cells) {
+                $rows[] = ['line' => $i + 1, 'cells' => $cells];
+            }
+
+            return $this->previewRows($rows, $actor);
+        }
+
+        return $this->preview($binary, $actor);
+    }
+
+    /**
+     * @param  list<array{line: int, cells: list<mixed>}>  $rows
+     * @return array{token: string, valid: array<int, array{line: int, sku: string, detail_id: int, detail_type: string, branch_id: int, branch_name: string, qty: int}>, errors: array<int, array{line: int, message: string}>}
+     */
+    private function previewRows(array $rows, ?User $actor = null): array
+    {
+        $this->assertActorMatchesAmbient($actor);
         if ($rows === []) {
             throw ValidationException::withMessages(['file' => __('ui.import.empty_file')]);
         }
@@ -288,8 +326,8 @@ class InitialStockImportService
         }
     }
 
-    /** Isi berkas template CSV (dibuka Excel): petunjuk sebagai baris komentar tidak dipakai — header + contoh. */
-    public function templateCsv(): string
+    /** Isi berkas template XLSX (A5): header + satu baris contoh dari data nyata. */
+    public function templateXlsx(): string
     {
         $branch = Branch::orderBy('id')->first();
         $product = null;
@@ -299,12 +337,12 @@ class InitialStockImportService
                 break;
             }
         }
-        $lines = ['sku,cabang,qty'];
+        $rows = [['sku', 'cabang', 'qty']];
         if ($product !== null && $branch !== null) {
-            $lines[] = $product->sku.','.$branch->id.',10';
+            $rows[] = [$product->sku, $branch->id, 10];
         }
 
-        return implode("\n", $lines)."\n";
+        return XlsxWriter::make([['title' => 'Template Stok Awal', 'rows' => $rows]]);
     }
 
     /**

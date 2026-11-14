@@ -29,9 +29,9 @@ class InitialStockImportController extends Controller
     {
         Gate::authorize('stock.import-initial');
 
-        return response($this->service->templateCsv(), 200, [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="template-stok-awal.csv"',
+        return response($this->service->templateXlsx(), 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="template-stok-awal.xlsx"',
         ]);
     }
 
@@ -40,8 +40,7 @@ class InitialStockImportController extends Controller
         Gate::authorize('stock.import-initial');
         $request->validate(['file' => ['required', 'file', 'mimes:xlsx,csv', 'max:2048']]);
 
-        $content = (string) file_get_contents($request->file('file')->getRealPath());
-        $preview = $this->service->preview($content, $request->user());
+        $preview = $this->service->previewUpload($request->file('file'), $request->user());
 
         return view('inventory.import.preview', compact('preview'));
     }
