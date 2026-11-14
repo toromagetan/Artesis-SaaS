@@ -11,6 +11,7 @@ use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Services\InitialStockImportService;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
+use App\Support\XlsxReader;
 use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -112,7 +113,9 @@ class InitialStockImportTest extends TestCase
         $this->actingAs($this->owner)->get('/stok/impor')->assertOk();
         $response = $this->actingAs($this->owner)->get('/stok/impor/template');
         $response->assertOk();
-        $this->assertStringContainsString('sku,cabang,qty', $response->getContent());
+        $this->assertStringContainsString('spreadsheetml.sheet', (string) $response->headers->get('Content-Type'));
+        $sheet = XlsxReader::rows($response->getContent());
+        $this->assertSame(['sku', 'cabang', 'qty'], $sheet[0]);
     }
 
     public function test_http_upload_preview_commit_flow(): void

@@ -19,7 +19,7 @@
                     @csrf
                     <div>
                         <x-input-label for="file" :value="__('ui.import.file')" />
-                        <input id="file" name="file" type="file" accept=".csv,text/csv,text/plain" required
+                        <input id="file" name="file" type="file" accept=".xlsx,.csv" required
                                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-lentera-500 focus:outline-none focus:ring-lentera-500">
                     </div>
                     <div class="mt-6 flex items-center gap-3">

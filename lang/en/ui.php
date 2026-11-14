@@ -1484,8 +1484,8 @@ return [
     'import' => [
         'title' => 'Initial Stock Import',
         'intro' => 'Once per branch. Download the template, fill SKU + branch (exact ID or name) + qty, upload for preview. The preview must be clean before committing; a commit cannot be repeated for the same branch.',
-        'template' => 'Download Template (CSV)',
-        'file' => 'CSV File',
+        'template' => 'Download Template (XLSX)',
+        'file' => 'XLSX / CSV File',
         'upload' => 'Preview',
         'preview_title' => 'Import Preview',
         'valid_rows' => 'Valid rows',
@@ -1494,6 +1494,7 @@ return [
         'commit' => 'Commit Import',
         'committed' => 'Initial stock import committed.',
         'empty_file' => 'The file is empty.',
+        'unreadable' => 'The Excel file could not be read. Make sure it is .xlsx or .csv.',
         'header_invalid' => 'The file header must be exactly: sku,cabang,qty',
         'sku_unknown' => 'SKU :sku was not found / is inactive.',
         'branch_unknown' => 'Branch ":branch" could not be resolved (use the exact ID or name).',

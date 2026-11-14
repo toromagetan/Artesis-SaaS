@@ -1484,8 +1484,8 @@ return [
     'import' => [
         'title' => 'Impor Stok Awal',
         'intro' => 'Satu kali per cabang. Unduh template, isi SKU + cabang (ID atau nama persis) + qty, unggah untuk pratinjau. Pratinjau wajib bersih sebelum komitmen; komitmen tidak dapat diulang untuk cabang yang sama.',
-        'template' => 'Unduh Template (CSV)',
-        'file' => 'Berkas CSV',
+        'template' => 'Unduh Template (XLSX)',
+        'file' => 'Berkas XLSX / CSV',
         'upload' => 'Pratinjau',
         'preview_title' => 'Pratinjau Impor',
         'valid_rows' => 'Baris valid',
@@ -1494,6 +1494,7 @@ return [
         'commit' => 'Komitmen Impor',
         'committed' => 'Impor stok awal terkomitmen.',
         'empty_file' => 'Berkas kosong.',
+        'unreadable' => 'Berkas Excel tidak dapat dibaca. Pastikan formatnya .xlsx atau .csv.',
         'header_invalid' => 'Header berkas harus persis: sku,cabang,qty',
         'sku_unknown' => 'SKU :sku tidak ditemukan / nonaktif.',
         'branch_unknown' => 'Cabang ":branch" tidak terurai (pakai ID atau nama persis).',

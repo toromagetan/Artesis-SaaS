@@ -1461,8 +1461,8 @@ return [
     'import' => [
         'title' => '初始库存导入',
         'intro' => '每个门店仅一次。下载模板，填写 SKU + 门店（确切 ID 或名称）+ 数量，上传预览。预览必须干净才能提交；同一门店的提交不能重复。',
-        'template' => '下载模板（CSV）',
-        'file' => 'CSV 文件',
+        'template' => '下载模板（XLSX）',
+        'file' => 'XLSX / CSV 文件',
         'upload' => '预览',
         'preview_title' => '导入预览',
         'valid_rows' => '有效行',
@@ -1471,6 +1471,7 @@ return [
         'commit' => '提交导入',
         'committed' => '初始库存导入已提交。',
         'empty_file' => '文件为空。',
+        'unreadable' => '无法读取 Excel 文件。请确保格式为 .xlsx 或 .csv。',
         'header_invalid' => '文件表头必须确切为：sku,cabang,qty',
         'sku_unknown' => '找不到 SKU :sku / 已停用。',
         'branch_unknown' => '无法解析门店“:branch”（请使用确切的 ID 或名称）。',
