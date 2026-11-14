@@ -2,12 +2,12 @@
 
 namespace App\Modules\Accounting\Models;
 
-use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * Snapshot insentif per baris SaleItem per penerima (paritas
@@ -22,7 +22,7 @@ class IncentiveItem extends Model
     public const STATUS_CANCELLED = 'cancelled';
 
     protected $fillable = [
-        'incentive_period_id', 'sale_id', 'sale_item_id', 'product_id', 'product_name',
+        'incentive_period_id', 'sale_id', 'sale_item_id', 'detail_id', 'detail_type', 'product_name',
         'recipient_user_id', 'recipient_role', 'incentive_rule_id', 'calculation_type',
         'rule_value', 'quantity', 'item_subtotal', 'item_final_amount',
         'transaction_amount', 'incentive_amount', 'status', 'cancellation_reason',
@@ -55,9 +55,9 @@ class IncentiveItem extends Model
         return $this->belongsTo(SaleItem::class);
     }
 
-    public function product(): BelongsTo
+    public function detail(): MorphTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->morphTo();
     }
 
     public function recipient(): BelongsTo

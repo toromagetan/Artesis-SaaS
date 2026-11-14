@@ -3,7 +3,7 @@
 namespace Tests\Feature\Sales;
 
 use App\Modules\Accounting\Models\JournalLine;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Services\InventoryService;
@@ -30,7 +30,7 @@ class SplitPaymentTest extends TestCase
 
     private Customer $customer;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -39,7 +39,7 @@ class SplitPaymentTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->customer = Customer::factory()->create(['branch_id' => $branch->id]);
-        $this->frame = Product::factory()->ofType('frame')->create(['sale_price' => '400000']);
+        $this->frame = FrameDetail::factory()->create(['sale_price' => '400000']);
         // Frame tipe ketat stok: sediakan stok agar penjualan sah.
         app(InventoryService::class)->recordMovement(
             $this->owner, $this->frame, $branch, 'initial_stock', 10, 'test_seed', 1,
@@ -51,7 +51,7 @@ class SplitPaymentTest extends TestCase
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ], [
             ['method' => 'cash', 'amount' => '100000'],
             ['method' => 'qris', 'amount' => '150000', 'reference' => 'QR-1'],
@@ -81,7 +81,7 @@ class SplitPaymentTest extends TestCase
         app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ], [
             ['method' => 'cash', 'amount' => '300000'],
             ['method' => 'card', 'amount' => '200000'],
@@ -94,7 +94,7 @@ class SplitPaymentTest extends TestCase
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'exclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ], [
             ['method' => 'cash', 'amount' => '200000'],
         ]);
@@ -111,7 +111,7 @@ class SplitPaymentTest extends TestCase
             'customer_id' => $this->customer->id,
             'sale_date' => '2026-10-18',
             'tax_mode' => 'inclusive',
-            'items' => [['product_id' => $this->frame->id, 'qty' => 1]],
+            'items' => [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1]],
             'payments' => [
                 ['method' => 'cash', 'amount' => '50000', 'reference' => ''],
                 ['method' => 'transfer', 'amount' => '75000', 'reference' => 'TRX-9'],

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Clinical\Models\Prescription;
@@ -66,10 +67,12 @@ class MasterTenantIsolationTest extends TestCase
         return [$tenant, $admin, $branch];
     }
 
-    private function product(Tenant $tenant, string $name): Product
+    private function product(Tenant $tenant, string $name): FrameDetail
     {
-        return Product::create([
-            'type' => 'frame', 'name' => $name, 'brand' => 'Uji',
+        return FrameDetail::factory()->create([
+            'product_id' => Product::factory()->forType('frame')->create([
+                'name' => $name, 'brand' => 'Uji', 'tenant_id' => $tenant->id,
+            ])->id,
             'sku' => 'SKU-'.$name, 'cost_price' => 10000, 'sale_price' => 20000,
             'is_active' => true, 'tenant_id' => $tenant->id,
         ]);
@@ -84,9 +87,9 @@ class MasterTenantIsolationTest extends TestCase
 
         $this->actingAs($adminA)->get('/katalog/frame')
             ->assertOk()->assertSee('Frame Milik A')->assertDontSee('Frame Milik B');
-        $this->actingAs($adminA)->get('/produk/'.$foreign->id)->assertNotFound();
-        $this->actingAs($adminA)->get('/produk/'.$foreign->id.'/ubah')->assertNotFound();
-        $this->actingAs($adminA)->get('/produk/'.$own->id)->assertOk();
+        $this->actingAs($adminA)->get('/produk/frame/'.$foreign->id)->assertNotFound();
+        $this->actingAs($adminA)->get('/produk/frame/'.$foreign->id.'/ubah')->assertNotFound();
+        $this->actingAs($adminA)->get('/produk/frame/'.$own->id)->assertOk();
 
         $this->actingAs($adminB)->get('/katalog/frame')
             ->assertOk()->assertSee('Frame Milik B')->assertDontSee('Frame Milik A');
@@ -98,8 +101,8 @@ class MasterTenantIsolationTest extends TestCase
         [$tenantB, $adminB] = $this->tenantAdmin('b');
         $service = app(ProductService::class);
 
-        $parentA = $service->createParent($adminA, ['type' => 'frame', 'name' => 'Induk Sama', 'brand' => 'Uji']);
-        $parentB = $service->createParent($adminB, ['type' => 'frame', 'name' => 'Induk Sama', 'brand' => 'Uji']);
+        $parentA = $service->createMaster($adminA, ['type' => 'frame', 'name' => 'Induk Sama', 'brand' => 'Uji']);
+        $parentB = $service->createMaster($adminB, ['type' => 'frame', 'name' => 'Induk Sama', 'brand' => 'Uji']);
 
         $this->assertSame($tenantA->id, $parentA->tenant_id);
         $this->assertSame($tenantB->id, $parentB->tenant_id);

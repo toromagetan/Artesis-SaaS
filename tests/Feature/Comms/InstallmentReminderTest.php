@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Comms;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Comms\Models\WaMessage;
 use App\Modules\Comms\Models\WaTemplate;
 use App\Modules\Comms\Services\WaAutomationService;
@@ -43,11 +43,11 @@ class InstallmentReminderTest extends TestCase
     private function saleWithInstallment(string $dueDate): void
     {
         $customer = Customer::factory()->create(['branch_id' => $this->branch->id, 'phone' => '081234567890']);
-        $frame = Product::factory()->ofType('frame')->create(['sale_price' => '300000']);
+        $frame = FrameDetail::factory()->create(['sale_price' => '300000']);
         app(InventoryService::class)->recordMovement($this->owner, $frame, $this->branch, 'initial_stock', 3, 'test_seed', 1);
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $customer->id, 'sale_date' => today()->toDateString(), 'tax_mode' => 'inclusive', 'branch_id' => $this->branch->id,
-        ], [['product_id' => $frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
         app(InstallmentService::class)->createSchedule($this->owner, $sale, 2, $dueDate);
     }
 

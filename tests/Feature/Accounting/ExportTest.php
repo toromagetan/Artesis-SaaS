@@ -5,7 +5,7 @@ namespace Tests\Feature\Accounting;
 use App\Modules\Accounting\Models\Commission;
 use App\Modules\Accounting\Models\Payroll;
 use App\Modules\Accounting\Services\PostingService;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -52,13 +52,13 @@ class ExportTest extends TestCase
             'net_amount' => '3250000', 'created_by' => $this->owner->id,
         ]);
         $customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
-        $frame = Product::factory()->ofType('frame')->create(['sale_price' => '100000']);
+        $frame = FrameDetail::factory()->create(['sale_price' => '100000']);
         app(InventoryService::class)->recordMovement(
             $this->owner, $frame, $this->branch, 'initial_stock', 5, 'test_seed', 1,
         );
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $customer->id, 'sale_date' => '2026-10-05', 'tax_mode' => 'inclusive', 'branch_id' => $this->branch->id,
-        ], [['product_id' => $frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
         Commission::create([
             'type' => 'doctor', 'source_sale_id' => $sale->id, 'base_amount' => '100000', 'rate' => '10.00',
             'amount' => '10000', 'period' => '2026-10', 'status' => 'accrued',

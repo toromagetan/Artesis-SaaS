@@ -96,15 +96,26 @@ class SearchController extends Controller
 
             if ($user->hasPermission('products.view')) {
                 // Produk adalah data master level tenant: pagarnya izin.
-                $products = Product::query()
-                    ->where(function ($query) use ($q) {
-                        $query->where('name', 'like', "%{$q}%")
-                            ->orWhere('sku', 'like', "%{$q}%")
-                            ->orWhere('brand', 'like', "%{$q}%");
-                    })
-                    ->orderBy('name')
-                    ->limit(10)
-                    ->get();
+                // A1: hasil pencarian adalah DETAIL (unit jual);
+                // nama & brand tinggal di master induknya.
+                $products = collect();
+                foreach (Product::DETAIL_MODELS as $model) {
+                    $products = $products->concat($model::query()
+                        ->with('product')
+                        ->where(function ($query) use ($q) {
+                            $query->where('sku', 'like', "%{$q}%")
+                                ->orWhere('barcode', 'like', "%{$q}%")
+                                ->orWhereHas('product', fn ($master) => $master
+                                    ->where('name', 'like', "%{$q}%")
+                                    ->orWhere('brand', 'like', "%{$q}%"));
+                        })
+                        ->limit(10)
+                        ->get());
+                }
+                $products = $products
+                    ->sortBy(fn ($d) => $d->product?->name ?? '')
+                    ->take(10)
+                    ->values();
             }
 
             if ($user->hasPermission('branches.manage')) {

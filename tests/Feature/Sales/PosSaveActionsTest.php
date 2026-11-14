@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Sales;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Comms\Models\WaMessage;
 use App\Modules\Comms\Models\WaTemplate;
 use App\Modules\CRM\Models\Customer;
@@ -29,7 +29,7 @@ class PosSaveActionsTest extends TestCase
 
     private Customer $customer;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -38,7 +38,7 @@ class PosSaveActionsTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->customer = Customer::factory()->create(['branch_id' => $branch->id, 'phone' => '081234567890']);
-        $this->frame = Product::factory()->ofType('frame')->create(['sale_price' => '400000']);
+        $this->frame = FrameDetail::factory()->create(['sale_price' => '400000']);
         app(InventoryService::class)->recordMovement(
             $this->owner, $this->frame, $branch, 'initial_stock', 10, 'test_seed', 1,
         );
@@ -50,7 +50,7 @@ class PosSaveActionsTest extends TestCase
             'customer_id' => $this->customer->id,
             'sale_date' => '2026-10-18',
             'tax_mode' => 'inclusive',
-            'items' => [['product_id' => $this->frame->id, 'qty' => 1]],
+            'items' => [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1]],
             'payments' => [['method' => 'cash', 'amount' => '400000', 'reference' => '']],
         ], $extra);
     }

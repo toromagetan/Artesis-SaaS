@@ -4,7 +4,7 @@ namespace Tests\Feature\Sales;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalLine;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\TenantContext;
@@ -36,7 +36,7 @@ class CustomerCreditTest extends TestCase
 
     private Branch $branch;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -47,7 +47,7 @@ class CustomerCreditTest extends TestCase
         // Fixture tingkat instalasi: konteks sistem dinyatakan eksplisit
         // (penulisan global tanpa aktor wajib TenantContext::asSystem).
         TenantContext::asSystem(fn () => Setting::set('tax.rate_default', '0'));
-        $this->frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000', 'sale_price' => '100000']);
+        $this->frame = FrameDetail::factory()->create(['cost_price' => '50000', 'sale_price' => '100000']);
         app(InventoryService::class)->recordMovement($this->owner, $this->frame, $this->branch, 'initial_stock', 50, 'test', 1);
     }
 
@@ -64,7 +64,7 @@ class CustomerCreditTest extends TestCase
         return app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $customer->id, 'branch_id' => $this->branch->id,
             'sale_date' => now()->format('Y-m-d'), 'tax_mode' => 'inclusive',
-        ], [['product_id' => $this->frame->id, 'qty' => 1, 'unit_price' => $price]],
+        ], [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_price' => $price]],
             [['method' => 'cash', 'amount' => $price]]);
     }
 
@@ -73,7 +73,7 @@ class CustomerCreditTest extends TestCase
         return app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $customer->id, 'branch_id' => $this->branch->id,
             'sale_date' => now()->format('Y-m-d'), 'tax_mode' => 'inclusive',
-        ], [['product_id' => $this->frame->id, 'qty' => 1, 'unit_price' => $price]], []);
+        ], [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_price' => $price]], []);
     }
 
     private function issueCredit(Customer $customer, string $price = '100000'): CustomerCredit

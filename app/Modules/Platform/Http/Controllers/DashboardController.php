@@ -122,7 +122,7 @@ class DashboardController extends Controller
             $latest = StockMovement::withoutGlobalScopes()
                 ->selectRaw('MAX(id) as id')
                 ->whereIn('branch_id', $branchIds)
-                ->groupBy('product_id', 'branch_id');
+                ->groupBy('detail_id', 'detail_type', 'branch_id');
             $balances = StockMovement::withoutGlobalScopes()
                 ->joinSub($latest, 'latest', 'latest.id', '=', 'stock_movements.id')
                 ->pluck('stock_movements.balance_after');

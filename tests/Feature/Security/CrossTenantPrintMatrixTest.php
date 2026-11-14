@@ -4,6 +4,7 @@ namespace Tests\Feature\Security;
 
 use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Services\PostingService;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\CRM\Models\Customer;
@@ -58,7 +59,7 @@ class CrossTenantPrintMatrixTest extends TestCase
 
     private User $adminB;
 
-    private Product $productA;
+    private FrameDetail $productA;
 
     private Sale $saleA;
 
@@ -119,11 +120,7 @@ class CrossTenantPrintMatrixTest extends TestCase
     private function buildTenantADocuments(): void
     {
         $supplier = Supplier::create(['name' => 'PT Lensa A', 'is_active' => true, 'tenant_id' => $this->tenantA->id]);
-        $this->productA = Product::create([
-            'type' => 'frame', 'name' => 'Frame Cetak A', 'brand' => 'Uji',
-            'sku' => 'SKU-CETAK-A', 'cost_price' => 100000, 'sale_price' => 250000,
-            'is_active' => true, 'tenant_id' => $this->tenantA->id,
-        ]);
+        $this->productA = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Cetak A', 'brand' => 'Uji', 'tenant_id' => $this->tenantA->id])->id, 'sku' => 'SKU-CETAK-A', 'cost_price' => 100000, 'sale_price' => 250000, 'is_active' => true, 'tenant_id' => $this->tenantA->id]);
         $customer = Customer::create([
             'name' => 'Pelanggan Cetak A', 'phone' => '0812999', 'branch_id' => $this->branchA->id,
             'tenant_id' => $this->tenantA->id,
@@ -131,7 +128,7 @@ class CrossTenantPrintMatrixTest extends TestCase
 
         $orders = app(PurchaseOrderService::class);
         $this->poA = $orders->create($this->adminA, $supplier->id, $this->branchA->id, [
-            ['product_id' => $this->productA->id, 'qty' => 5, 'unit_cost' => '100000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->productA->id, 'qty' => 5, 'unit_cost' => '100000'],
         ]);
         $orders->markSent($this->adminA, $this->poA);
         $this->receiptA = app(ReceiptService::class)->store($this->adminA, $this->poA, [
@@ -141,7 +138,7 @@ class CrossTenantPrintMatrixTest extends TestCase
         $this->saleA = app(SalesService::class)->createSale($this->adminA, [
             'customer_id' => $customer->id, 'sale_date' => '2026-10-02',
             'tax_mode' => 'exclusive', 'branch_id' => $this->branchA->id,
-        ], [['product_id' => $this->productA->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $this->productA->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
 
         $this->returnA = SaleReturn::create([
             'sale_id' => $this->saleA->id, 'branch_id' => $this->branchA->id, 'number' => 'RT-CETAK-A',
@@ -157,7 +154,7 @@ class CrossTenantPrintMatrixTest extends TestCase
             'requester_id' => $this->adminA->id, 'status' => 'draft',
         ]);
         $this->prA->items()->create([
-            'product_id' => $this->productA->id, 'qty' => 3, 'estimated_price' => '100000', 'supplier_id' => $supplier->id,
+            'detail_type' => 'frame', 'detail_id' => $this->productA->id, 'qty' => 3, 'estimated_price' => '100000', 'supplier_id' => $supplier->id,
         ]);
 
         $this->paymentA = PurchasePayment::create([

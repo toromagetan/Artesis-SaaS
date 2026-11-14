@@ -143,16 +143,16 @@ class SaasEnforcementTest extends TestCase
         $this->plans->setOverride($tenant, 'products_max', ['limit_value' => 1], null, 'Uji batas', $this->platform);
 
         $service = app(ProductService::class);
-        $product = $service->create($admin, [
-            'sku' => 'FR-UJI-1', 'type' => 'frame', 'name' => 'Frame Uji',
+        $product = $service->createDetail($admin, 'frame', [
+            'sku' => 'FR-UJI-1', 'name' => 'Frame Uji',
             'cost_price' => '100000', 'sale_price' => '150000',
         ]);
         $this->assertSame($tenant->id, $product->tenant_id);
         $this->assertSame(1, $this->gate->usage($admin, 'products_max'));
 
         $this->expectException(ValidationException::class);
-        $service->create($admin, [
-            'sku' => 'FR-UJI-2', 'type' => 'frame', 'name' => 'Frame Uji 2',
+        $service->createDetail($admin, 'frame', [
+            'sku' => 'FR-UJI-2', 'name' => 'Frame Uji 2',
             'cost_price' => '100000', 'sale_price' => '150000',
         ]);
     }

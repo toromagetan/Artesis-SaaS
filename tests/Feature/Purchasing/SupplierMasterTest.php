@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Purchasing;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
@@ -36,7 +36,7 @@ class SupplierMasterTest extends TestCase
 
     private Branch $lain;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -45,7 +45,7 @@ class SupplierMasterTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->pusat = Branch::where('name', 'Pusat')->firstOrFail();
         $this->lain = Branch::create(['name' => 'Cabang Lain', 'is_active' => true]);
-        $this->frame = Product::factory()->ofType('frame')->create(['cost_price' => '100000']);
+        $this->frame = FrameDetail::factory()->create(['cost_price' => '100000']);
 
         $this->admin = User::factory()->create();
         $this->admin->roles()->sync([Role::where('name', 'admin')->firstOrFail()->id]);
@@ -65,7 +65,7 @@ class SupplierMasterTest extends TestCase
     {
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($actor, $supplier->id, $branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => $qty, 'unit_cost' => $unitCost],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => $qty, 'unit_cost' => $unitCost],
         ]);
         $orders->markSent($actor, $po);
 

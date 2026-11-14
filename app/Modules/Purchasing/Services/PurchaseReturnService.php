@@ -82,9 +82,9 @@ class PurchaseReturnService
                     'qty' => $row['qty'],
                     'amount' => $row['amount']->toDecimalString(),
                 ]);
-                $product = $row['item']->purchaseOrderItem->product;
+                $detail = $row['item']->purchaseOrderItem->detail;
                 $this->inventory->recordMovement(
-                    $actor, $product, $branch, 'purchase_return',
+                    $actor, $detail, $branch, 'purchase_return',
                     -$row['qty'], 'purchase_return', $retur->id,
                     ['preferReceiptItemId' => $row['item']->id],
                 );

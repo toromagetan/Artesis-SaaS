@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Platform;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -31,7 +32,7 @@ class ApiTokenTest extends TestCase
 
     public function test_token_lifecycle_and_scoped_access(): void
     {
-        Product::factory()->create(['sku' => 'API-1', 'name' => 'Produk API']);
+        FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Produk API'])->id, 'sku' => 'API-1']);
         $issued = app(ApiTokenService::class)->issue($this->owner, 'Integrasi Uji', ['products.read']);
         $plain = $issued['plain'];
         $token = $issued['token'];

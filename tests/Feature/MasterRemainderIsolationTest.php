@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -102,11 +103,7 @@ class MasterRemainderIsolationTest extends TestCase
             'name' => 'Pelanggan A', 'phone' => '0811000', 'branch_id' => $branchA->id,
             'tenant_id' => $adminA->tenant_id,
         ]);
-        $product = Product::create([
-            'type' => 'frame', 'name' => 'Frame A', 'brand' => 'Uji',
-            'sku' => 'SKU-A-DOC', 'cost_price' => 10000, 'sale_price' => 20000,
-            'is_active' => true, 'tenant_id' => $adminA->tenant_id,
-        ]);
+        $product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame A', 'brand' => 'Uji', 'tenant_id' => $adminA->tenant_id])->id, 'sku' => 'SKU-A-DOC', 'cost_price' => 10000, 'sale_price' => 20000, 'is_active' => true, 'tenant_id' => $adminA->tenant_id]);
 
         $this->actingAs($adminA);
         try {
@@ -116,7 +113,7 @@ class MasterRemainderIsolationTest extends TestCase
                 'sale_date' => now()->format('Y-m-d'),
                 'doctor_id' => $foreignDoctor->id,
                 'tax_mode' => 'inclusive',
-            ], [['product_id' => $product->id, 'qty' => 1, 'unit_price' => '20000']]);
+            ], [['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1, 'unit_price' => '20000']]);
             $this->fail('Penjualan seharusnya menolak dokter tenant lain.');
         } catch (ModelNotFoundException) {
             $this->assertDatabaseCount('sales', 0);

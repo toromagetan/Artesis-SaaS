@@ -2,9 +2,9 @@
 
 namespace App\Modules\Inventory\Models;
 
-use App\Modules\Catalog\Models\Product;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * Baris lembar hitung opname: system_qty adalah snapshot saldo resmi
@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class StockOpnameItem extends Model
 {
     protected $fillable = [
-        'stock_opname_id', 'product_id', 'system_qty',
+        'stock_opname_id', 'detail_id', 'detail_type', 'system_qty',
         'counted_qty', 'difference', 'movement_id',
     ];
 
@@ -32,9 +32,9 @@ class StockOpnameItem extends Model
         return $this->belongsTo(StockOpname::class, 'stock_opname_id');
     }
 
-    public function product(): BelongsTo
+    public function detail(): MorphTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->morphTo();
     }
 
     public function movement(): BelongsTo

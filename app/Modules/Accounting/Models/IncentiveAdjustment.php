@@ -6,6 +6,7 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Sales\Models\SaleReturn;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * Penyesuaian insentif (paritas Artesis): clawback retur
@@ -22,7 +23,7 @@ class IncentiveAdjustment extends Model
 
     protected $fillable = [
         'incentive_period_id', 'original_incentive_item_id', 'sale_return_id',
-        'sale_id', 'sale_item_id', 'product_id', 'product_name',
+        'sale_id', 'sale_item_id', 'detail_id', 'detail_type', 'product_name',
         'recipient_user_id', 'recipient_role', 'returned_quantity',
         'adjustment_type', 'amount', 'reason', 'created_by',
     ];
@@ -48,6 +49,11 @@ class IncentiveAdjustment extends Model
     public function saleReturn(): BelongsTo
     {
         return $this->belongsTo(SaleReturn::class, 'sale_return_id');
+    }
+
+    public function detail(): MorphTo
+    {
+        return $this->morphTo();
     }
 
     public function recipient(): BelongsTo

@@ -80,7 +80,10 @@ class PlanGate
         }
 
         return match ($featureKey) {
-            'products_max' => Product::where('tenant_id', $tenant->id)->count(),
+            // A1: batas produk dihitung per DETAIL (unit SKU pada
+            // lima tabel detail), bukan per master.
+            'products_max' => collect(Product::DETAIL_MODELS)
+                ->sum(fn (string $model) => $model::where('tenant_id', $tenant->id)->count()),
             'users_max' => User::where('tenant_id', $tenant->id)->where('is_platform', false)->count(),
             'branches_max' => Branch::where('tenant_id', $tenant->id)->count(),
             default => 0,

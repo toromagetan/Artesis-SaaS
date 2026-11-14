@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Security;
 
+use App\Modules\Catalog\Models\FrameDetail;
+use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -59,16 +61,8 @@ class GlobalSearchTenantIsolationTest extends TestCase
         [$tenantA, $this->adminA, $branchA] = $this->tenantAdmin('a');
         [$tenantB, $this->adminB, $branchB] = $this->tenantAdmin('b');
 
-        Product::create([
-            'type' => 'lens', 'name' => 'Lensa Progresif Alpha', 'brand' => 'Uji',
-            'sku' => 'SKU-CARI-A', 'cost_price' => 10000, 'sale_price' => 20000,
-            'is_active' => true, 'tenant_id' => $tenantA->id,
-        ]);
-        Product::create([
-            'type' => 'lens', 'name' => 'Lensa Progresif Beta', 'brand' => 'Uji',
-            'sku' => 'SKU-CARI-B', 'cost_price' => 10000, 'sale_price' => 20000,
-            'is_active' => true, 'tenant_id' => $tenantB->id,
-        ]);
+        LensDetail::factory()->create(['product_id' => Product::factory()->forType('lens')->create(['name' => 'Lensa Progresif Alpha', 'brand' => 'Uji', 'tenant_id' => $tenantA->id])->id, 'sku' => 'SKU-CARI-A', 'cost_price' => 10000, 'sale_price' => 20000, 'is_active' => true, 'tenant_id' => $tenantA->id]);
+        LensDetail::factory()->create(['product_id' => Product::factory()->forType('lens')->create(['name' => 'Lensa Progresif Beta', 'brand' => 'Uji', 'tenant_id' => $tenantB->id])->id, 'sku' => 'SKU-CARI-B', 'cost_price' => 10000, 'sale_price' => 20000, 'is_active' => true, 'tenant_id' => $tenantB->id]);
         Customer::create([
             'name' => 'Pelanggan Alpha Unik', 'phone' => '0812111', 'branch_id' => $branchA->id,
             'tenant_id' => $tenantA->id,
@@ -222,16 +216,12 @@ class GlobalSearchTenantIsolationTest extends TestCase
     private function seedTransactions(Tenant $tenant, User $admin, Branch $branch, string $tag): array
     {
         $supplier = Supplier::create(['name' => 'PT Cari '.$tag, 'is_active' => true, 'tenant_id' => $tenant->id]);
-        $product = Product::create([
-            'type' => 'frame', 'name' => 'Frame Cari '.$tag, 'brand' => 'Uji',
-            'sku' => 'SKU-CARITRX-'.$tag, 'cost_price' => 100000, 'sale_price' => 250000,
-            'is_active' => true, 'tenant_id' => $tenant->id,
-        ]);
+        $product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Cari '.$tag, 'brand' => 'Uji', 'tenant_id' => $tenant->id])->id, 'sku' => 'SKU-CARITRX-'.$tag, 'cost_price' => 100000, 'sale_price' => 250000, 'is_active' => true, 'tenant_id' => $tenant->id]);
         $customer = Customer::where('tenant_id', $tenant->id)->firstOrFail();
 
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($admin, $supplier->id, $branch->id, [
-            ['product_id' => $product->id, 'qty' => 5, 'unit_cost' => '100000'],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 5, 'unit_cost' => '100000'],
         ]);
         $orders->markSent($admin, $po);
         app(ReceiptService::class)->store($admin, $po, [
@@ -241,7 +231,7 @@ class GlobalSearchTenantIsolationTest extends TestCase
         $sale = app(SalesService::class)->createSale($admin, [
             'customer_id' => $customer->id, 'sale_date' => '2026-10-02',
             'tax_mode' => 'exclusive', 'branch_id' => $branch->id,
-        ], [['product_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
 
         return [$sale, $po];
     }

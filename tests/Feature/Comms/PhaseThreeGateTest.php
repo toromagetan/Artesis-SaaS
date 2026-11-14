@@ -5,7 +5,7 @@ namespace Tests\Feature\Comms;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Models\JournalLine;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Comms\Models\WaGateway;
 use App\Modules\Comms\Models\WaMessage;
 use App\Modules\CRM\Models\Customer;
@@ -44,7 +44,7 @@ class PhaseThreeGateTest extends TestCase
 
     private Customer $customer;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -56,7 +56,7 @@ class PhaseThreeGateTest extends TestCase
         $this->customer = Customer::factory()->create([
             'branch_id' => $this->branch->id, 'name' => 'Gerbang Tiga', 'phone' => '0812-3333-4444',
         ]);
-        $this->frame = Product::factory()->ofType('frame')->create(['sale_price' => '500000']);
+        $this->frame = FrameDetail::factory()->create(['sale_price' => '500000']);
         app(InventoryService::class)
             ->recordMovement($this->owner, $this->frame, $this->branch, 'initial_stock', 10, 'test_seed', 1);
     }
@@ -94,7 +94,7 @@ class PhaseThreeGateTest extends TestCase
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'exclusive',
             'installment_count' => 3, 'installment_first_due' => '2026-11-17',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 2],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 2],
         ], [
             ['method' => 'cash', 'amount' => '200000'],
             ['method' => 'qris', 'amount' => '100000'],
@@ -175,7 +175,7 @@ class PhaseThreeGateTest extends TestCase
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ], [
             ['method' => 'cash', 'amount' => '500000'],
         ]);

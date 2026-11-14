@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Sales;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\RxDetail;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -35,9 +37,9 @@ class SalesTest extends TestCase
 
     private Customer $customer;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
-    private Product $lensRx;
+    private RxDetail $lensRx;
 
     protected function setUp(): void
     {
@@ -51,8 +53,14 @@ class SalesTest extends TestCase
         $this->kasir->branches()->sync([$this->branchA->id]);
 
         $this->customer = Customer::factory()->create(['branch_id' => $this->branchA->id]);
-        $this->frame = Product::factory()->ofType('frame')->create(['sale_price' => '500000', 'name' => 'Frame Uji']);
-        $this->lensRx = Product::factory()->ofType('rx')->create(['sale_price' => '300000', 'name' => 'Lensa RX Uji']);
+        $this->frame = FrameDetail::factory()->create([
+            'sale_price' => '500000',
+            'product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Uji'])->id,
+        ]);
+        $this->lensRx = RxDetail::factory()->create([
+            'sale_price' => '300000',
+            'product_id' => Product::factory()->forType('rx')->create(['name' => 'Lensa RX Uji'])->id,
+        ]);
 
         // Sejak M.4 penjualan frame wajib punya stok (saldo tidak boleh negatif).
         app(InventoryService::class)->recordMovement(
@@ -73,7 +81,7 @@ class SalesTest extends TestCase
             'tax_mode' => 'exclusive',
             'discount_amount' => '50000',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 2], // 1.000.000
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 2], // 1.000.000
         ], [
             ['method' => 'cash', 'amount' => '500000'],
         ]);
@@ -94,7 +102,7 @@ class SalesTest extends TestCase
             'customer_id' => $this->customer->id,
             'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '111000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '111000'],
         ]);
 
         // Inklusif 11%: pajak di dalam 111.000 = 111.000 × 11/111 = 11.000; total tetap 111.000
@@ -113,7 +121,7 @@ class SalesTest extends TestCase
             'prescription_id' => $rx->id,
             'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
+            ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);
 
         $this->assertNotNull($rx->refresh()->used_at);
@@ -140,7 +148,7 @@ class SalesTest extends TestCase
             'customer_id' => $this->customer->id,
             'prescription_id' => $rxOther->id,
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ]);
     }
 
@@ -150,7 +158,7 @@ class SalesTest extends TestCase
         $this->service()->createSale($this->kasir, [
             'customer_id' => $this->customer->id,
         ], [
-            ['product_id' => $this->lensRx->id, 'qty' => 1],
+            ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 1],
         ]);
     }
 
@@ -160,7 +168,7 @@ class SalesTest extends TestCase
             $this->service()->createSale($this->kasir, [
                 'customer_id' => $this->customer->id,
             ], [
-                ['product_id' => $this->frame->id, 'qty' => 1],
+                ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
             ], [
                 ['method' => 'cash', 'amount' => '600000'],
             ]);
@@ -176,7 +184,7 @@ class SalesTest extends TestCase
         $sale = $this->service()->createSale($this->kasir, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ]);
 
         $this->service()->addPayment($this->kasir, $sale, 'qris', '200000');
@@ -203,7 +211,7 @@ class SalesTest extends TestCase
                 'customer_id' => $this->customer->id,
                 'discount_amount' => '150000',
             ], [
-                ['product_id' => $this->frame->id, 'qty' => 1],
+                ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
             ]);
             $this->fail('Diskon besar kasir harus ditolak');
         } catch (ValidationException $e) {
@@ -216,7 +224,7 @@ class SalesTest extends TestCase
             'discount_amount' => '150000',
             'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ]);
         $this->assertSame('350000.00', (string) $sale->total_amount);
     }
@@ -226,7 +234,7 @@ class SalesTest extends TestCase
         $sale = $this->service()->createSale($this->kasir, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ], [
             ['method' => 'cash', 'amount' => '200000'],
         ]);
@@ -259,7 +267,7 @@ class SalesTest extends TestCase
             'customer_id' => $this->customer->id,
             'sale_date' => '2026-10-17',
             'tax_mode' => 'inclusive',
-            'items' => [['product_id' => $this->frame->id, 'qty' => 1]],
+            'items' => [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1]],
             'payment_method' => 'cash',
             'payment_amount' => '500000',
         ])->assertRedirect();
@@ -307,7 +315,7 @@ class SalesTest extends TestCase
             'prescription_id' => $rxB->id,
             'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
+            ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);
 
         $this->assertSame($this->branchA->id, $sale->branch_id);

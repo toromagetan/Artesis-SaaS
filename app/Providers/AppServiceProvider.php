@@ -4,6 +4,11 @@ namespace App\Providers;
 
 use App\Modules\Accounting\Listeners\AccrueCommissions;
 use App\Modules\Accounting\Listeners\PostJournalForDomainEvents;
+use App\Modules\Catalog\Models\AccessoriesDetail;
+use App\Modules\Catalog\Models\FrameDetail;
+use App\Modules\Catalog\Models\LensDetail;
+use App\Modules\Catalog\Models\RxDetail;
+use App\Modules\Catalog\Models\SoftlensDetail;
 use App\Modules\Comms\Listeners\SendPickupReminderMessage;
 use App\Modules\Comms\Listeners\SendSaleInvoiceMessage;
 use App\Modules\Identity\Models\User;
@@ -23,6 +28,7 @@ use App\Modules\Sales\Events\SalePaymentRecorded;
 use App\Modules\Sales\Events\SaleReturned;
 use App\Modules\Sales\Events\SaleVoided;
 use App\Support\PermissionRegistry;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -44,6 +50,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // A1: alias morph pendek detail produk (persis pola Artesis)
+        // — tersimpan pada kolom detail_type rujukan transaksional.
+        Relation::morphMap([
+            'frame' => FrameDetail::class,
+            'lens' => LensDetail::class,
+            'rx' => RxDetail::class,
+            'softlens' => SoftlensDetail::class,
+            'accessory' => AccessoriesDetail::class,
+        ]);
+
         Gate::policy(User::class, UserPolicy::class);
 
         // Jembatan @can()/Gate ke registry izin: ability yang merupakan

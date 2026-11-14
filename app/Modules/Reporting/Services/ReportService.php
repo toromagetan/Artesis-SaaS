@@ -2,6 +2,7 @@
 
 namespace App\Modules\Reporting\Services;
 
+use App\Modules\Catalog\Models\Product;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Models\StockTransferItem;
 use App\Modules\Inventory\Services\FifoService;
@@ -152,56 +153,85 @@ class ReportService
      */
     public function stockReport(array $branchIds, ?string $type = null): array
     {
+        // A1: saldo per DETAIL (morph) — nama/SKU dihidrasi dari
+        // model detail per tipe karena tak ada satu tabel produk.
         $latest = StockMovement::withoutGlobalScopes()
             ->selectRaw('MAX(id) as id')
             ->whereIn('branch_id', $branchIds)
-            ->groupBy('product_id', 'branch_id');
+            ->groupBy('detail_id', 'detail_type', 'branch_id');
 
         $balances = StockMovement::withoutGlobalScopes()
             ->joinSub($latest, 'latest', 'latest.id', '=', 'stock_movements.id')
-            ->join('products', 'products.id', '=', 'stock_movements.product_id')
-            ->select('stock_movements.*', 'products.name as product_name', 'products.sku', 'products.type', 'products.cost_price')
-            ->when($type !== null, fn ($q) => $q->where('products.type', $type))
-            ->orderBy('products.name')
+            ->select('stock_movements.*')
+            ->when($type !== null, fn ($q) => $q->where('stock_movements.detail_type', $type))
             ->get();
 
         $inTransitRows = StockTransferItem::query()
             ->join('stock_transfers', 'stock_transfers.id', '=', 'stock_transfer_items.stock_transfer_id')
-            ->join('products', 'products.id', '=', 'stock_transfer_items.product_id')
             ->where('stock_transfers.status', 'sent')
             ->whereIn('stock_transfers.to_branch_id', $branchIds)
-            ->when($type !== null, fn ($q) => $q->where('products.type', $type))
-            ->selectRaw('stock_transfers.to_branch_id as branch_id, stock_transfer_items.product_id, SUM(stock_transfer_items.qty) as qty, products.name as product_name, products.sku, products.type')
-            ->groupBy('stock_transfers.to_branch_id', 'stock_transfer_items.product_id', 'products.name', 'products.sku', 'products.type')
+            ->when($type !== null, fn ($q) => $q->where('stock_transfer_items.detail_type', $type))
+            ->selectRaw('stock_transfers.to_branch_id as branch_id, stock_transfer_items.detail_id, stock_transfer_items.detail_type, SUM(stock_transfer_items.qty) as qty')
+            ->groupBy('stock_transfers.to_branch_id', 'stock_transfer_items.detail_id', 'stock_transfer_items.detail_type')
             ->get();
-        $inTransit = $inTransitRows->mapWithKeys(fn ($r) => [$r->branch_id.':'.$r->product_id => (int) $r->qty]);
+        $inTransit = $inTransitRows->mapWithKeys(fn ($r) => [$r->branch_id.':'.$r->detail_type.':'.$r->detail_id => (int) $r->qty]);
+
+        // Hidrasi detail per tipe (dengan master) untuk nama & SKU.
+        $detailInfo = [];
+        $needed = [];
+        foreach ($balances as $m) {
+            $needed[$m->detail_type][$m->detail_id] = true;
+        }
+        foreach ($inTransitRows as $r) {
+            $needed[$r->detail_type][$r->detail_id] = true;
+        }
+        foreach ($needed as $alias => $ids) {
+            $model = Product::DETAIL_MODELS[$alias] ?? null;
+            if ($model === null) {
+                continue;
+            }
+            foreach ($model::withoutGlobalScopes()->with('product')->whereIn('id', array_keys($ids))->get() as $detail) {
+                $detailInfo[$alias.':'.$detail->id] = [
+                    'product_name' => $detail->product?->name,
+                    'sku' => $detail->sku,
+                ];
+            }
+        }
 
         // Nilai persediaan FIFO (ADR-014): Σ lapisan tersisa per
-        // produk-cabang — satu sumber dengan halaman Stok & jurnal.
+        // detail-cabang — satu sumber dengan halaman Stok & jurnal.
         $fifoValues = $this->fifo->inventoryValues($branchIds);
-        $result = $balances->map(fn ($m) => [
-            'branch_id' => $m->branch_id,
-            'product_id' => $m->product_id,
-            'product_name' => $m->product_name,
-            'sku' => $m->sku,
-            'type' => $m->type,
-            'qty' => (int) $m->balance_after,
-            'in_transit' => (int) ($inTransit[$m->branch_id.':'.$m->product_id] ?? 0),
-            'value' => $fifoValues[$m->branch_id.':'.$m->product_id] ?? Money::zero(),
-        ])->all();
+        $result = $balances->map(function ($m) use ($inTransit, $fifoValues, $detailInfo) {
+            $key = $m->detail_type.':'.$m->detail_id;
+            $info = $detailInfo[$key] ?? ['product_name' => null, 'sku' => null];
+
+            return [
+                'branch_id' => $m->branch_id,
+                'detail_id' => $m->detail_id,
+                'detail_type' => $m->detail_type,
+                'product_name' => $info['product_name'],
+                'sku' => $info['sku'],
+                'type' => $m->detail_type,
+                'qty' => (int) $m->balance_after,
+                'in_transit' => (int) ($inTransit[$m->branch_id.':'.$key] ?? 0),
+                'value' => $fifoValues[$m->branch_id.':'.$key] ?? Money::zero(),
+            ];
+        })->sortBy(fn ($r) => $r['product_name'] ?? '')->values()->all();
 
         // Stok dalam perjalanan tetap terlihat walau cabang tujuan
         // belum memiliki gerakan apa pun (PRD 7.3).
-        $known = collect($result)->map(fn ($r) => $r['branch_id'].':'.$r['product_id'])->all();
+        $known = collect($result)->map(fn ($r) => $r['branch_id'].':'.$r['detail_type'].':'.$r['detail_id'])->all();
         foreach ($inTransitRows as $row) {
-            $key = $row->branch_id.':'.$row->product_id;
+            $key = $row->branch_id.':'.$row->detail_type.':'.$row->detail_id;
             if (! in_array($key, $known, true)) {
+                $info = $detailInfo[$row->detail_type.':'.$row->detail_id] ?? ['product_name' => null, 'sku' => null];
                 $result[] = [
                     'branch_id' => (int) $row->branch_id,
-                    'product_id' => (int) $row->product_id,
-                    'product_name' => $row->product_name,
-                    'sku' => $row->sku,
-                    'type' => $row->type,
+                    'detail_id' => (int) $row->detail_id,
+                    'detail_type' => $row->detail_type,
+                    'product_name' => $info['product_name'],
+                    'sku' => $info['sku'],
+                    'type' => $row->detail_type,
                     'qty' => 0,
                     'in_transit' => (int) $row->qty,
                     'value' => Money::zero(),

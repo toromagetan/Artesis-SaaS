@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Sales;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -38,7 +38,7 @@ class OfflineSyncTest extends TestCase
 
     private Customer $customer;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     private string $token;
 
@@ -54,7 +54,7 @@ class OfflineSyncTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
-        $this->frame = Product::factory()->ofType('frame')->create(['sku' => 'OFF-F', 'cost_price' => '50000', 'sale_price' => '100000']);
+        $this->frame = FrameDetail::factory()->create(['sku' => 'OFF-F', 'cost_price' => '50000', 'sale_price' => '100000']);
         $this->stockIn(2);
 
         $kasir = User::factory()->create();
@@ -71,7 +71,7 @@ class OfflineSyncTest extends TestCase
         $supplier = Supplier::create(['name' => 'PT Off', 'is_active' => true]);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $supplier->id, $this->branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => $qty, 'unit_cost' => '50000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => $qty, 'unit_cost' => '50000'],
         ]);
         $orders->markSent($this->owner, $po);
         app(ReceiptService::class)->store($this->owner, $po, [
@@ -89,7 +89,7 @@ class OfflineSyncTest extends TestCase
     {
         return ['client_uuid' => $uuid, 'local_no' => '000'.$qty, 'offline_at' => '2026-10-18 10:00:00',
             'customer_id' => $this->customer->id, 'tax_mode' => 'exclusive',
-            'items' => [['product_id' => $this->frame->id, 'qty' => $qty]],
+            'items' => [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => $qty]],
             'payments' => [['method' => $method, 'amount' => $amount]]];
     }
 
@@ -167,7 +167,7 @@ class OfflineSyncTest extends TestCase
     {
         $headers = ['Authorization' => 'Bearer '.$this->token];
         $snap = $this->withHeaders($headers)->getJson('/api/v1/offline/snapshot')->assertOk();
-        $row = collect($snap->json('products'))->firstWhere('id', $this->frame->id);
+        $row = collect($snap->json('products'))->firstWhere('key', 'frame:'.$this->frame->id);
         $this->assertSame(2, $row['stock']);
 
         $this->withHeaders($headers)->postJson('/api/v1/offline/sync', $this->syncPayload([

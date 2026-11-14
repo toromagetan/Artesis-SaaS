@@ -3,6 +3,7 @@
 namespace Tests\Feature\Sales;
 
 use App\Modules\Accounting\Models\Journal;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -43,7 +44,7 @@ class WarrantyTest extends TestCase
 
     private Branch $warehouse;
 
-    private Product $product;
+    private FrameDetail $product;
 
     private Sale $sale;
 
@@ -58,13 +59,14 @@ class WarrantyTest extends TestCase
         $this->branchA = Branch::where('name', 'Pusat')->firstOrFail();
         $this->warehouse = Branch::factory()->create(['name' => 'Gudang Utama', 'is_main_warehouse' => true]);
         $supplier = Supplier::create(['name' => 'PT Garansi', 'is_active' => true]);
-        $this->product = Product::factory()->ofType('frame')->create([
-            'sku' => 'WR-1', 'name' => 'Frame Garansi', 'cost_price' => '40000', 'sale_price' => '100000',
+        $this->product = FrameDetail::factory()->create([
+            'sku' => 'WR-1', 'cost_price' => '40000', 'sale_price' => '100000',
+            'product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Garansi'])->id,
         ]);
         $orders = app(PurchaseOrderService::class);
         foreach ([$this->branchA, $this->warehouse] as $branch) {
             $po = $orders->create($this->owner, $supplier->id, $branch->id, [
-                ['product_id' => $this->product->id, 'qty' => 5, 'unit_cost' => '40000'],
+                ['detail_type' => 'frame', 'detail_id' => $this->product->id, 'qty' => 5, 'unit_cost' => '40000'],
             ]);
             $orders->markSent($this->owner, $po);
             app(ReceiptService::class)->store($this->owner, $po, [
@@ -75,7 +77,7 @@ class WarrantyTest extends TestCase
         $this->sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $customer->id, 'sale_date' => now()->toDateString(),
             'tax_mode' => 'exclusive', 'branch_id' => $this->branchA->id,
-        ], [['product_id' => $this->product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $this->product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
     }
 
     private function openCase(): WarrantyCase
@@ -86,7 +88,7 @@ class WarrantyTest extends TestCase
 
     private function stockAt(int $branchId): int
     {
-        return app(InventoryService::class)->balancesForBranch($branchId)[$this->product->id] ?? 0;
+        return app(InventoryService::class)->balancesForBranch($branchId)['frame:'.$this->product->id] ?? 0;
     }
 
     public function test_full_cycle_with_good_inspection_and_stock_replacement(): void
@@ -203,13 +205,14 @@ class WarrantyTest extends TestCase
     {
         // Cabang ketiga yang tidak dikelola kasir dan bukan gudang.
         $satelit = Branch::factory()->create(['name' => 'Satelit']);
-        $satProduct = Product::factory()->ofType('frame')->create([
-            'sku' => 'WR-SAT', 'name' => 'Frame Satelit', 'cost_price' => '40000', 'sale_price' => '100000',
+        $satProduct = FrameDetail::factory()->create([
+            'sku' => 'WR-SAT', 'cost_price' => '40000', 'sale_price' => '100000',
+            'product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Satelit'])->id,
         ]);
         $orders = app(PurchaseOrderService::class);
         $supplier = Supplier::firstOrFail();
         $po = $orders->create($this->owner, $supplier->id, $satelit->id, [
-            ['product_id' => $satProduct->id, 'qty' => 2, 'unit_cost' => '40000'],
+            ['detail_type' => 'frame', 'detail_id' => $satProduct->id, 'qty' => 2, 'unit_cost' => '40000'],
         ]);
         $orders->markSent($this->owner, $po);
         app(ReceiptService::class)->store($this->owner, $po, [
@@ -219,11 +222,11 @@ class WarrantyTest extends TestCase
         $satSale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $satCustomer->id, 'sale_date' => now()->toDateString(),
             'tax_mode' => 'exclusive', 'branch_id' => $satelit->id,
-        ], [['product_id' => $satProduct->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $satProduct->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
         $satCase = app(WarrantyService::class)->createCase($this->owner, $satSale,
             $satSale->items->first(), 1, 'Retak', null);
         BrokenStock::create([
-            'branch_id' => $satelit->id, 'product_id' => $satProduct->id,
+            'branch_id' => $satelit->id, 'detail_type' => 'frame', 'detail_id' => $satProduct->id,
             'warranty_case_id' => $satCase->id, 'quantity' => 1,
             'status' => 'pending_inspection', 'created_by' => $this->owner->id,
         ]);

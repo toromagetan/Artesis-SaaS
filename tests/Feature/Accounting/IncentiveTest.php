@@ -7,7 +7,7 @@ use App\Modules\Accounting\Models\IncentiveItem;
 use App\Modules\Accounting\Models\IncentivePeriod;
 use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Services\IncentiveService;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -46,7 +46,7 @@ class IncentiveTest extends TestCase
 
     private User $admin;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     private Customer $customer;
 
@@ -63,7 +63,7 @@ class IncentiveTest extends TestCase
         $this->seller = $this->makeUser('penjual.cabang', 'Cabang');
         $this->admin = $this->makeUser('kepala.optik', 'Admin');
 
-        $this->frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000', 'sale_price' => '100000']);
+        $this->frame = FrameDetail::factory()->create(['cost_price' => '50000', 'sale_price' => '100000']);
         app(InventoryService::class)->recordMovement($this->owner, $this->frame, $this->branch, 'initial_stock', 50, 'test', 1);
         $this->customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
     }
@@ -77,10 +77,11 @@ class IncentiveTest extends TestCase
         return $user;
     }
 
-    private function rule(string $role, string $type, string $value, ?int $productId = null): void
+    private function rule(string $role, string $type, string $value, ?int $detailId = null): void
     {
         app(IncentiveService::class)->createRule($this->owner, [
-            'name' => "Rule {$role}", 'recipient_role' => $role, 'product_id' => $productId,
+            'name' => "Rule {$role}", 'recipient_role' => $role,
+            'detail_type' => $detailId !== null ? 'frame' : null, 'detail_id' => $detailId,
             'calculation_type' => $type, 'value' => $value,
             'effective_from' => '2026-01-01', 'effective_to' => null, 'is_active' => true,
         ]);
@@ -97,7 +98,7 @@ class IncentiveTest extends TestCase
         return app(SalesService::class)->createSale($actor, [
             'customer_id' => $this->customer->id, 'branch_id' => $this->branch->id,
             'sale_date' => $date, 'tax_mode' => 'inclusive',
-        ], [['product_id' => $this->frame->id, 'qty' => $qty, 'unit_price' => '100000']],
+        ], [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => $qty, 'unit_price' => '100000']],
             $paid ? [['method' => 'cash', 'amount' => (string) (100000 * $qty)]] : []);
     }
 

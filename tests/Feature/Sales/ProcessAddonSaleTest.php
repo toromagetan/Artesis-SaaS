@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Sales;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\AccessoriesDetail;
+use App\Modules\Catalog\Models\FrameDetail;
+use App\Modules\Catalog\Models\RxDetail;
 use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\CRM\Models\Customer;
@@ -57,30 +59,30 @@ class ProcessAddonSaleTest extends TestCase
         ], $items);
     }
 
-    private function processAddon(array $attrs = []): Product
+    private function processAddon(array $attrs = []): AccessoriesDetail
     {
-        return Product::factory()->ofType('accessory')->create(array_merge([
+        return AccessoriesDetail::factory()->create(array_merge([
             'sale_price' => '150000', 'cost_price' => '75000', 'is_process_item' => true,
         ], $attrs));
     }
 
     public function test_rx_sale_with_process_addon_creates_auto_pr_containing_both(): void
     {
-        $rx = Product::factory()->ofType('rx')->create(['sale_price' => '450000']);
+        $rx = RxDetail::factory()->create(['sale_price' => '450000']);
         $addon = $this->processAddon();
 
         $sale = $this->saleWith([
-            ['product_id' => $rx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
-            ['product_id' => $addon->id, 'qty' => 2],
+            ['detail_type' => 'rx', 'detail_id' => $rx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
+            ['detail_type' => 'accessory', 'detail_id' => $addon->id, 'qty' => 2],
         ]);
 
         $pr = PurchaseRequest::where('sale_id', $sale->id)->firstOrFail();
         $this->assertSame('submitted', $pr->status);
-        $items = $pr->items()->get()->keyBy('product_id');
-        $this->assertSame(1, (int) $items[$rx->id]->qty);
-        $this->assertSame(2, (int) $items[$addon->id]->qty);
+        $items = $pr->items()->get()->keyBy(fn ($i) => $i->detail_type.':'.$i->detail_id);
+        $this->assertSame(1, (int) $items['rx:'.$rx->id]->qty);
+        $this->assertSame(2, (int) $items['accessory:'.$addon->id]->qty);
         // Backorder tercatat seperti tipe lunak lain (saldo boleh negatif).
-        $this->assertSame(-2, app(InventoryService::class)->currentStock($addon->id, $this->branch->id));
+        $this->assertSame(-2, app(InventoryService::class)->currentStock('accessory', $addon->id, $this->branch->id));
     }
 
     public function test_process_addon_only_sale_flows_through_pr_to_po(): void
@@ -88,23 +90,23 @@ class ProcessAddonSaleTest extends TestCase
         $addon = $this->processAddon();
         $supplier = Supplier::create(['name' => 'PT Lab Uji', 'is_active' => true]);
 
-        $sale = $this->saleWith([['product_id' => $addon->id, 'qty' => 3]]);
+        $sale = $this->saleWith([['detail_type' => 'accessory', 'detail_id' => $addon->id, 'qty' => 3]]);
         $pr = PurchaseRequest::where('sale_id', $sale->id)->firstOrFail();
         $this->assertSame(3, (int) $pr->items()->firstOrFail()->qty);
 
         $prs = app(PurchaseRequestService::class);
         $prs->approve($this->owner, $pr);
         $po = $prs->convertToPo($this->owner, [$pr->refresh()], $supplier->id);
-        $this->assertSame($addon->id, (int) $po->items()->firstOrFail()->product_id);
+        $this->assertSame($addon->id, (int) $po->items()->firstOrFail()->detail_id);
         $this->assertSame('converted', $pr->refresh()->status);
     }
 
     public function test_plain_accessory_without_stock_is_still_rejected(): void
     {
-        $plain = Product::factory()->ofType('accessory')->create(['sale_price' => '25000']);
+        $plain = AccessoriesDetail::factory()->create(['sale_price' => '25000']);
 
         try {
-            $this->saleWith([['product_id' => $plain->id, 'qty' => 1]]);
+            $this->saleWith([['detail_type' => 'accessory', 'detail_id' => $plain->id, 'qty' => 1]]);
             $this->fail('Aksesoris biasa tanpa stok harus ditolak');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('qty', $e->errors());
@@ -115,11 +117,11 @@ class ProcessAddonSaleTest extends TestCase
 
     public function test_frame_shortage_is_still_rejected(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['sale_price' => '500000']);
+        $frame = FrameDetail::factory()->create(['sale_price' => '500000']);
         app(InventoryService::class)->recordMovement($this->owner, $frame, $this->branch, 'initial_stock', 1, 'test_seed', 1);
 
         $this->expectException(ValidationException::class);
-        $this->saleWith([['product_id' => $frame->id, 'qty' => 2]]);
+        $this->saleWith([['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 2]]);
     }
 
     public function test_process_flag_only_applies_to_accessories_via_service(): void
@@ -127,13 +129,13 @@ class ProcessAddonSaleTest extends TestCase
         $service = app(ProductService::class);
         $base = ['sku' => 'SKU-UNIQ', 'name' => 'Produk Uji', 'cost_price' => '1000', 'sale_price' => '2000', 'is_process_item' => true];
 
-        $frame = $service->create($this->owner, [...$base, 'sku' => 'FRM-FLAG', 'type' => 'frame']);
-        $this->assertFalse($frame->is_process_item);
+        $frame = $service->createDetail($this->owner, 'frame', [...$base, 'sku' => 'FRM-FLAG']);
+        $this->assertFalse($frame->is_process_item ?? false);
 
-        $addon = $service->create($this->owner, [...$base, 'sku' => 'ACC-FLAG', 'type' => 'accessory']);
+        $addon = $service->createDetail($this->owner, 'accessory', [...$base, 'sku' => 'ACC-FLAG']);
         $this->assertTrue($addon->is_process_item);
 
-        $updated = $service->update($this->owner, $addon, ['type' => 'accessory', 'is_process_item' => false]);
+        $updated = $service->updateDetail($this->owner, $addon, ['is_process_item' => false]);
         $this->assertFalse($updated->is_process_item);
     }
 
@@ -144,7 +146,7 @@ class ProcessAddonSaleTest extends TestCase
             'is_process_item' => '1',
         ]);
         $response->assertRedirect();
-        $product = Product::where('sku', 'ACC-HTTP-1')->firstOrFail();
+        $product = AccessoriesDetail::where('sku', 'ACC-HTTP-1')->firstOrFail();
         $this->assertTrue($product->is_process_item);
 
         $index = $this->actingAs($this->owner)->get(route('products.index', ['type' => 'accessory']));

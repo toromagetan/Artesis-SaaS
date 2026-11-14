@@ -44,7 +44,7 @@
                         @forelse ($rows as $row)
                             <tr class="border-b border-gray-50 last:border-0">
                                 <td class="px-4 py-3 font-medium text-gray-800">
-                                    <a href="{{ route('products.show', $row['product']) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $row['product']->name }}</a>
+                                    <a href="{{ route('products.show', [$row['product']::DETAIL_TYPE, $row['product']->id]) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $row['product']->product->name }}</a>
                                     <span class="block text-xs text-gray-400">{{ $row['product']->typeLabel() }}</span>
                                 </td>
                                 <td class="px-4 py-3">{{ $row['product']->sku }}</td>

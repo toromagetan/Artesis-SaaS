@@ -37,10 +37,15 @@ class IncentiveController extends Controller
 
         return view('accounting.incentives.index', [
             'periods' => $periods,
-            'rules' => IncentiveRule::with('product')->latest('id')->get(),
+            'rules' => IncentiveRule::with('detail.product')->latest('id')->get(),
             'branches' => Branch::where('is_active', true)->orderBy('name')->get(),
             'roles' => Role::orderBy('name')->pluck('name'),
-            'products' => Product::where('is_active', true)->orderBy('name')->get(['id', 'sku', 'name']),
+            // A1: aturan dapat menunjuk DETAIL tertentu.
+            'products' => collect(Product::DETAIL_MODELS)
+                ->flatMap(fn ($model) => $model::with('product')->where('is_active', true)
+                    ->whereHas('product', fn ($q) => $q->where('is_active', true))->get())
+                ->sortBy(fn ($d) => $d->product?->name ?? '')
+                ->values(),
             // Daftar penerima terpagari tenant aktor (putaran
             // koreksi temuan 3 — pola daftar pengguna yang sama).
             'recipients' => (function () use ($request) {
@@ -59,13 +64,23 @@ class IncentiveController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'recipient_role' => ['required', Rule::exists('roles', 'name')],
-            'product_id' => ['nullable', Rule::exists('products', 'id')],
+            'detail_key' => ['nullable', 'string'],
             'calculation_type' => ['required', Rule::in(['percent', 'flat'])],
             'value' => ['required', 'numeric', 'gt:0'],
             'effective_from' => ['required', 'date'],
             'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
         ]);
-        $service->createRule($request->user(), $validated);
+        // Kunci komposit "alias:id" dari formulir → pasangan morph.
+        $detail = ['detail_type' => null, 'detail_id' => null];
+        if (! empty($validated['detail_key'])) {
+            [$type, $id] = array_pad(explode(':', (string) $validated['detail_key'], 2), 2, null);
+            if (! isset(Product::DETAIL_MODELS[(string) $type])) {
+                return back()->withErrors(['detail_key' => __('ui.incentives.product')])->withInput();
+            }
+            $detail = ['detail_type' => $type, 'detail_id' => (int) $id];
+        }
+        unset($validated['detail_key']);
+        $service->createRule($request->user(), $validated + $detail);
 
         return back()->with('status', __('ui.incentives.rule_created'));
     }

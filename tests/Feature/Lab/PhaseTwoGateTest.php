@@ -3,7 +3,7 @@
 namespace Tests\Feature\Lab;
 
 use App\Modules\Accounting\Models\Journal;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\RxDetail;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -48,7 +48,7 @@ class PhaseTwoGateTest extends TestCase
         $branch = Branch::where('name', 'Pusat')->firstOrFail();
         $customer = Customer::factory()->create(['branch_id' => $branch->id]);
         $supplier = Supplier::create(['name' => 'PT Lab Uji', 'is_active' => true]);
-        $rx = Product::factory()->ofType('rx')->create(['sale_price' => '450000']);
+        $rx = RxDetail::factory()->create(['sale_price' => '450000']);
 
         $technician = User::create([
             'name' => 'Bimo Teknisi', 'username' => 'bimo', 'password' => 'password', 'is_active' => true,
@@ -62,7 +62,7 @@ class PhaseTwoGateTest extends TestCase
             // ADR-019: item RX mewajibkan resep pelanggan yang sama.
             'prescription_id' => Prescription::factory()->create(['customer_id' => $customer->id])->id,
         ], [
-            ['product_id' => $rx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
+            ['detail_type' => 'rx', 'detail_id' => $rx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);
         $process = LensProcess::where('sale_id', $sale->id)->firstOrFail();
         $this->assertSame('waiting', $process->status);

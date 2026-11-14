@@ -3,6 +3,7 @@
 namespace Tests\Feature\Platform;
 
 use App\Modules\Accounting\Services\PostingService;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -40,7 +41,7 @@ class PrintDocumentsTest extends TestCase
 
     private Supplier $supplier;
 
-    private Product $product;
+    private FrameDetail $product;
 
     private Customer $customer;
 
@@ -56,14 +57,12 @@ class PrintDocumentsTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->supplier = Supplier::create(['name' => 'PT Lensa', 'is_active' => true]);
-        $this->product = Product::factory()->ofType('frame')->create([
-            'sku' => 'FR-1', 'name' => 'Ray RB-1 Hitam', 'cost_price' => '100000', 'sale_price' => '250000',
-        ]);
+        $this->product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Ray RB-1 Hitam'])->id, 'sku' => 'FR-1', 'cost_price' => '100000', 'sale_price' => '250000']);
         $this->customer = Customer::factory()->create(['name' => 'Budi', 'phone' => '0812000', 'branch_id' => $this->branch->id]);
 
         $orders = app(PurchaseOrderService::class);
         $this->po = $orders->create($this->owner, $this->supplier->id, $this->branch->id, [
-            ['product_id' => $this->product->id, 'qty' => 5, 'unit_cost' => '100000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->product->id, 'qty' => 5, 'unit_cost' => '100000'],
         ]);
         $orders->markSent($this->owner, $this->po);
         $this->receipt = app(ReceiptService::class)->store($this->owner, $this->po, [
@@ -76,7 +75,7 @@ class PrintDocumentsTest extends TestCase
         return app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-02',
             'tax_mode' => 'exclusive', 'branch_id' => $this->branch->id,
-        ], [['product_id' => $this->product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $this->product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
     }
 
     public function test_all_print_documents_render(): void
@@ -86,7 +85,7 @@ class PrintDocumentsTest extends TestCase
         $return->items()->create(['sale_item_id' => $sale->items->first()->id, 'qty' => 1, 'condition' => 'resale', 'amount' => '250000']);
 
         $pr = PurchaseRequest::create(['number' => 'PR-TEST-1', 'branch_id' => $this->branch->id, 'requester_id' => $this->owner->id, 'status' => 'draft']);
-        $pr->items()->create(['product_id' => $this->product->id, 'qty' => 3, 'estimated_price' => '100000', 'supplier_id' => $this->supplier->id]);
+        $pr->items()->create(['detail_type' => 'frame', 'detail_id' => $this->product->id, 'qty' => 3, 'estimated_price' => '100000', 'supplier_id' => $this->supplier->id]);
 
         $payment = PurchasePayment::create(['number' => 'PAY-TEST-1', 'supplier_id' => $this->supplier->id, 'method' => 'transfer', 'amount' => '500000', 'payment_date' => '2026-10-03', 'paid_by' => $this->owner->id]);
         PurchasePaymentAllocation::create(['purchase_payment_id' => $payment->id, 'receipt_id' => $this->receipt->id, 'amount' => '500000']);

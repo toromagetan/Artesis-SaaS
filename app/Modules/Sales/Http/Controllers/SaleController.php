@@ -126,28 +126,41 @@ class SaleController extends Controller
         $branchId = BranchContext::for($request->user())->currentBranchId();
         $inventory = app(InventoryService::class);
 
-        $products = Product::where('is_active', true)
-            ->with('parent')
-            ->when($q !== '', function ($query) use ($q) {
-                $query->where(function ($sub) use ($q) {
-                    $sub->where('name', 'like', "%{$q}%")
-                        ->orWhere('sku', 'like', "%{$q}%");
-                });
-            })
-            ->orderBy('type')
-            ->orderBy('name')
-            ->limit(15)
-            ->get();
+        // A1: pencarian POS berjalan di atas DETAIL (unit jual);
+        // nama & brand tinggal di master.
+        $details = collect();
+        foreach (Product::DETAIL_MODELS as $model) {
+            $found = $model::with('product')
+                ->where('is_active', true)
+                ->whereHas('product', fn ($p) => $p->where('is_active', true))
+                ->when($q !== '', function ($query) use ($q) {
+                    $query->where(function ($sub) use ($q) {
+                        $sub->where('sku', 'like', "%{$q}%")
+                            ->orWhere('barcode', 'like', "%{$q}%")
+                            ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$q}%")
+                                ->orWhere('brand', 'like', "%{$q}%"));
+                    });
+                })
+                ->limit(15)
+                ->get();
+            $details = $details->concat($found);
+        }
+        $details = $details
+            ->sortBy(fn ($d) => [$d->product?->name ?? '', $d->sku])
+            ->take(15)
+            ->values();
 
-        return response()->json($products->map(fn (Product $product) => [
-            'id' => $product->id,
-            'name' => $product->name,
-            'parent_name' => $product->parent?->name,
-            'sku' => $product->sku,
-            'type' => $product->type,
-            'type_label' => $product->typeLabel(),
-            'sale_price' => (string) $product->sale_price,
-            'stock' => $branchId !== null ? $inventory->currentStock($product->id, $branchId) : null,
+        return response()->json($details->map(fn ($detail) => [
+            'key' => $detail::DETAIL_TYPE.':'.$detail->id,
+            'detail_type' => $detail::DETAIL_TYPE,
+            'detail_id' => $detail->id,
+            'name' => $detail->product?->name,
+            'detail_label' => $detail->detailLabel(),
+            'sku' => $detail->sku,
+            'type' => $detail::DETAIL_TYPE,
+            'type_label' => $detail->typeLabel(),
+            'sale_price' => (string) $detail->sale_price,
+            'stock' => $branchId !== null ? $inventory->currentStock($detail::DETAIL_TYPE, $detail->id, $branchId) : null,
         ])->values());
     }
 
@@ -213,7 +226,7 @@ class SaleController extends Controller
     {
         // Baris item kosong dari formulir dibuang sebelum validasi.
         $items = collect((array) $request->input('items', []))
-            ->filter(fn ($row) => is_array($row) && ! empty($row['product_id']) && ! empty($row['qty']))
+            ->filter(fn ($row) => is_array($row) && ! empty($row['detail_id']) && ! empty($row['detail_type']) && ! empty($row['qty']))
             ->values()
             ->all();
         $request->merge(['items' => $items]);
@@ -236,7 +249,8 @@ class SaleController extends Controller
             'tax_mode' => ['required', Rule::in(['inclusive', 'exclusive'])],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', Rule::exists('products', 'id')],
+            'items.*.detail_type' => ['required', Rule::in(Product::TYPES)],
+            'items.*.detail_id' => ['required', 'integer', 'min:1'],
             'items.*.qty' => ['required', 'integer', 'min:1'],
             'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],

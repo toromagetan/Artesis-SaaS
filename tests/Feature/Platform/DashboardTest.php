@@ -2,7 +2,8 @@
 
 namespace Tests\Feature\Platform;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
+use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -39,8 +40,8 @@ class DashboardTest extends TestCase
 
     public function test_dashboard_cards_show_scoped_numbers(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000', 'sale_price' => '100000']);
-        $lens = Product::factory()->ofType('lens')->create(['cost_price' => '70000', 'sale_price' => '150000']);
+        $frame = FrameDetail::factory()->create(['cost_price' => '50000', 'sale_price' => '100000']);
+        $lens = LensDetail::factory()->create(['cost_price' => '70000', 'sale_price' => '150000']);
         $stock = app(InventoryService::class);
         $stock->recordMovement($this->owner, $frame, $this->branch, 'initial_stock', 3, 'test_seed', 1); // menipis ≤5
         $stock->recordMovement($this->owner, $lens, $this->branch, 'initial_stock', 10, 'test_seed', 1);
@@ -52,11 +53,11 @@ class DashboardTest extends TestCase
             'sale_date' => now()->format('Y-m-d'),
             'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $lens->id, 'qty' => 1, 'unit_price' => '150000'],
+            ['detail_type' => 'lens', 'detail_id' => $lens->id, 'qty' => 1, 'unit_price' => '150000'],
         ], [['method' => 'cash', 'amount' => '100000']]); // piutang 50rb + proses lab waiting
 
         $pr = app(PurchaseRequestService::class)->create($this->owner, $this->branch->id, [
-            ['product_id' => $frame->id, 'qty' => 2],
+            ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 2],
         ]);
         app(PurchaseRequestService::class)->submit($this->owner, $pr);
 
@@ -91,8 +92,8 @@ class DashboardTest extends TestCase
 
     public function test_dashboard_is_dynamic_with_charts_and_period_endpoint(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000', 'sale_price' => '100000']);
-        $lens = Product::factory()->ofType('lens')->create(['cost_price' => '70000', 'sale_price' => '150000']);
+        $frame = FrameDetail::factory()->create(['cost_price' => '50000', 'sale_price' => '100000']);
+        $lens = LensDetail::factory()->create(['cost_price' => '70000', 'sale_price' => '150000']);
         $stock = app(InventoryService::class);
         $stock->recordMovement($this->owner, $frame, $this->branch, 'initial_stock', 10, 'test_seed', 1);
         $stock->recordMovement($this->owner, $lens, $this->branch, 'initial_stock', 10, 'test_seed', 1);
@@ -101,14 +102,14 @@ class DashboardTest extends TestCase
         $sales->createSale($this->owner, [
             'customer_id' => $customer->id, 'branch_id' => $this->branch->id,
             'sale_date' => now()->format('Y-m-d'), 'tax_mode' => 'inclusive',
-        ], [['product_id' => $lens->id, 'qty' => 1, 'unit_price' => '150000']],
+        ], [['detail_type' => 'lens', 'detail_id' => $lens->id, 'qty' => 1, 'unit_price' => '150000']],
             [['method' => 'cash', 'amount' => '150000']]);
         // Dibayar sebagian agar posisi kas (190rb) tidak menyamai
         // total penjualan 30 hari (220rb) — asersi periode tetap tajam.
         $sales->createSale($this->owner, [
             'customer_id' => $customer->id, 'branch_id' => $this->branch->id,
             'sale_date' => now()->subDays(10)->format('Y-m-d'), 'tax_mode' => 'inclusive',
-        ], [['product_id' => $frame->id, 'qty' => 1, 'unit_price' => '70000']],
+        ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 1, 'unit_price' => '70000']],
             [['method' => 'cash', 'amount' => '40000']]);
 
         // Pemuatan awal (bawaan 30 hari): grafik + tab periode tampil,

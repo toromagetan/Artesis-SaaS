@@ -23,7 +23,7 @@
         <tbody>
             @foreach ($pr->items as $item)
                 <tr>
-                    <td>{{ $item->product->name }}</td>
+                    <td>{{ $item->detail->product->name }}</td>
                     <td>{{ $item->qty }}</td>
                     <td>{{ $item->estimated_price !== null ? \App\Support\Money::fromDecimal((string) $item->estimated_price)->format() : '—' }}</td>
                     <td>{{ $item->supplier?->name ?? '—' }}</td>

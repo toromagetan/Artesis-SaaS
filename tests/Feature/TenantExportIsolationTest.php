@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -95,14 +96,12 @@ class TenantExportIsolationTest extends TestCase
     /** Rantai data nyata: PO + penerimaan, penjualan (+item, pembayaran, jurnal), transfer antar-cabang. */
     private function seedBusinessData(User $owner, Tenant $tenant, Branch $branch, Branch $warehouse, string $tag): array
     {
-        $product = Product::factory()->ofType('frame')->create([
-            'sku' => 'EX-'.$tag, 'name' => 'Frame '.$tag,
-            'cost_price' => '40000', 'sale_price' => '100000', 'tenant_id' => $tenant->id,
-        ]);
+        $product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame '.$tag, 'tenant_id' => $tenant->id])->id, 'sku' => 'EX-'.$tag,
+            'cost_price' => '40000', 'sale_price' => '100000', 'tenant_id' => $tenant->id, ]);
         $supplier = Supplier::create(['name' => 'Supplier '.$tag, 'is_active' => true, 'tenant_id' => $tenant->id]);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($owner, $supplier->id, $branch->id, [
-            ['product_id' => $product->id, 'qty' => 5, 'unit_cost' => '40000'],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 5, 'unit_cost' => '40000'],
         ]);
         $orders->markSent($owner, $po);
         app(ReceiptService::class)->store($owner, $po, [
@@ -112,9 +111,9 @@ class TenantExportIsolationTest extends TestCase
         $sale = app(SalesService::class)->createSale($owner, [
             'customer_id' => $customer->id, 'sale_date' => now()->toDateString(),
             'tax_mode' => 'exclusive', 'branch_id' => $branch->id,
-        ], [['product_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
         app(TransferService::class)->sendFromBranchStock($owner, $branch->id, $warehouse->id, [
-            ['product_id' => $product->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1],
         ]);
 
         return [$product, $sale];

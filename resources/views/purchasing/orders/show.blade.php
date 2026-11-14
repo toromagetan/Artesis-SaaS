@@ -92,7 +92,7 @@
                     <tbody>
                         @foreach ($po->items as $item)
                             <tr class="border-b border-gray-50 last:border-0">
-                                <td class="px-4 py-3 font-medium text-gray-800">{{ $item->product->name }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ $item->detail->product->name }}</td>
                                 <td class="px-4 py-3 tnum">{{ $item->qty_ordered }}</td>
                                 <td class="px-4 py-3 tnum">{{ $item->qty_received }}</td>
                                 <td class="px-4 py-3 tnum">{{ $item->remainingQty() }}</td>
@@ -113,12 +113,12 @@
                             @foreach ($po->items as $i => $item)
                                 <div class="grid grid-cols-12 items-end gap-2">
                                     <div class="col-span-7 text-sm">
-                                        <span class="font-medium text-gray-800">{{ $item->product->name }}</span>
-                                        <span class="block text-xs text-gray-400">{{ __('ui.transfer.available') }}: {{ $distributable[$item->product_id] ?? 0 }}</span>
+                                        <span class="font-medium text-gray-800">{{ $item->detail->product->name }}</span>
+                                        <span class="block text-xs text-gray-400">{{ __('ui.transfer.available') }}: {{ $distributable[$item->detail_type.':'.$item->detail_id] ?? 0 }}</span>
                                     </div>
-                                    <input type="hidden" name="items[{{ $i }}][product_id]" value="{{ $item->product_id }}">
+                                    <input type="hidden" name="items[{{ $i }}][detail_key]" value="{{ $item->detail_type }}:{{ $item->detail_id }}">
                                     <div class="col-span-5">
-                                        <x-text-input name="items[{{ $i }}][qty]" type="number" min="0" max="{{ $distributable[$item->product_id] ?? 0 }}" class="block w-full tnum" placeholder="{{ __('ui.purchasing.qty_send') }}" />
+                                        <x-text-input name="items[{{ $i }}][qty]" type="number" min="0" max="{{ $distributable[$item->detail_type.':'.$item->detail_id] ?? 0 }}" class="block w-full tnum" placeholder="{{ __('ui.purchasing.qty_send') }}" />
                                     </div>
                                 </div>
                             @endforeach
@@ -155,7 +155,7 @@
                                 <tr class="border-b border-gray-50 last:border-0">
                                     <td class="py-2 pe-4 font-medium"><a href="{{ route('transfers.show', $transfer) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $transfer->number }}</a></td>
                                     <td class="py-2 pe-4">{{ $transfer->toBranch->name }}</td>
-                                    <td class="py-2 pe-4">{{ $transfer->items->map(fn ($i) => $i->product->name.' ×'.$i->qty)->join(', ') }}</td>
+                                    <td class="py-2 pe-4">{{ $transfer->items->map(fn ($i) => $i->detail->product->name.' ×'.$i->qty)->join(', ') }}</td>
                                     <td class="py-2">{{ __('ui.transfer.statuses.'.$transfer->status) }}</td>
                                 </tr>
                             @endforeach

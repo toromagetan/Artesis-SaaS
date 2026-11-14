@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Accounting\Models\Journal;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -28,6 +29,7 @@ use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\SaasSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -107,16 +109,14 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
     /** Produk berstok di cabang jual + gudang, lalu satu penjualan qty 1 di $saleBranch. */
     private function stockedSale(User $admin, Tenant $tenant, Branch $saleBranch, Branch $warehouse, string $tag): array
     {
-        $product = Product::factory()->ofType('frame')->create([
-            'sku' => 'WR-'.$tag, 'name' => 'Frame '.$tag,
+        $product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame '.$tag, 'tenant_id' => $tenant->id])->id, 'sku' => 'WR-'.$tag,
             'cost_price' => '40000', 'sale_price' => '100000',
-            'tenant_id' => $tenant->id,
-        ]);
+            'tenant_id' => $tenant->id, ]);
         $supplier = Supplier::create(['name' => 'Supplier '.$tag, 'is_active' => true, 'tenant_id' => $tenant->id]);
         $orders = app(PurchaseOrderService::class);
         foreach ([$saleBranch, $warehouse] as $branch) {
             $po = $orders->create($admin, $supplier->id, $branch->id, [
-                ['product_id' => $product->id, 'qty' => 5, 'unit_cost' => '40000'],
+                ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 5, 'unit_cost' => '40000'],
             ]);
             $orders->markSent($admin, $po);
             app(ReceiptService::class)->store($admin, $po, [
@@ -127,7 +127,7 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
         $sale = app(SalesService::class)->createSale($admin, [
             'customer_id' => $customer->id, 'sale_date' => now()->toDateString(),
             'tax_mode' => 'exclusive', 'branch_id' => $saleBranch->id,
-        ], [['product_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
 
         return [$product, $supplier, $sale];
     }
@@ -138,7 +138,7 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
     }
 
     /** Kasus sampai tahap old_item_received dengan sumber pengganti purchase_order. */
-    private function caseReadyForPo(User $admin, Sale $sale, Product $product): WarrantyCase
+    private function caseReadyForPo(User $admin, Sale $sale, Model $product): WarrantyCase
     {
         $case = $this->makeCase($admin, $sale);
         $this->warranty->sendOldItem($admin, $case);
@@ -271,14 +271,12 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
         $owner = User::where('username', 'owner')->firstOrFail();
         $pusat = Branch::where('name', 'Pusat')->firstOrFail();
         $warehouse = Branch::factory()->create(['name' => 'Gudang Standalone', 'is_main_warehouse' => true]);
-        $product = Product::factory()->ofType('frame')->create([
-            'sku' => 'WR-SA', 'name' => 'Frame Standalone', 'cost_price' => '40000', 'sale_price' => '100000',
-        ]);
+        $product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Standalone'])->id, 'sku' => 'WR-SA', 'cost_price' => '40000', 'sale_price' => '100000']);
         $supplier = Supplier::create(['name' => 'Supplier Standalone', 'is_active' => true]);
         $orders = app(PurchaseOrderService::class);
         foreach ([$pusat, $warehouse] as $branch) {
             $po = $orders->create($owner, $supplier->id, $branch->id, [
-                ['product_id' => $product->id, 'qty' => 5, 'unit_cost' => '40000'],
+                ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 5, 'unit_cost' => '40000'],
             ]);
             $orders->markSent($owner, $po);
             app(ReceiptService::class)->store($owner, $po, [
@@ -289,7 +287,7 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
         $sale = app(SalesService::class)->createSale($owner, [
             'customer_id' => $customer->id, 'sale_date' => now()->toDateString(),
             'tax_mode' => 'exclusive', 'branch_id' => $pusat->id,
-        ], [['product_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
         $case = $this->makeCase($owner, $sale);
         $this->warranty->sendOldItem($owner, $case);
         $broken = $this->warranty->receiveOldItem($owner, $case);
@@ -406,7 +404,7 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
             ->first();
         $this->assertNotNull($movement);
         $this->assertSame(-1, (int) $movement->qty);
-        $this->assertSame(4, app(InventoryService::class)->currentStock($productA->id, $warehouseA->id));
+        $this->assertSame(4, app(InventoryService::class)->currentStock('frame', $productA->id, $warehouseA->id));
 
         // Jurnal beban garansi memakai cabang gudang A di semua baris.
         $journal = Journal::where('source_type', 'warranty_shipment')->where('source_id', $case->id)->first();

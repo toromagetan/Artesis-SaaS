@@ -7,7 +7,8 @@ use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Models\Payroll;
 use App\Modules\Accounting\Services\CommissionService;
 use App\Modules\Accounting\Services\PayrollService;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
+use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -42,7 +43,7 @@ class PayrollCommissionTest extends TestCase
 
     private Customer $customer;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -51,7 +52,7 @@ class PayrollCommissionTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
-        $this->frame = Product::factory()->ofType('frame')->create(['sale_price' => '500000', 'cost_price' => '400000']);
+        $this->frame = FrameDetail::factory()->create(['sale_price' => '500000', 'cost_price' => '400000']);
         app(InventoryService::class)->recordMovement($this->owner, $this->frame, $this->branch, 'initial_stock', 20, 'test_seed', 1);
     }
 
@@ -108,7 +109,7 @@ class PayrollCommissionTest extends TestCase
         $doctor = Doctor::create(['name' => 'dr. Rujukan', 'commission_rate' => '10', 'is_active' => true]);
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-10', 'tax_mode' => 'exclusive', 'doctor_id' => $doctor->id,
-        ], [['product_id' => $this->frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '555000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '555000']]);
 
         $row = Commission::where('source_sale_id', $sale->id)->first();
         $this->assertNotNull($row);
@@ -142,10 +143,10 @@ class PayrollCommissionTest extends TestCase
     {
         Setting::updateOrCreate(['key' => 'lab.technician_commission_rate'], ['value' => '5']);
         $technician = $this->staff('teknisi-f17');
-        $lens = Product::factory()->ofType('lens')->create(['sale_price' => '300000', 'cost_price' => '200000']);
+        $lens = LensDetail::factory()->create(['sale_price' => '300000', 'cost_price' => '200000']);
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-11', 'tax_mode' => 'exclusive',
-        ], [['product_id' => $lens->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '333000']]);
+        ], [['detail_type' => 'lens', 'detail_id' => $lens->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '333000']]);
 
         $process = LensProcess::where('sale_id', $sale->id)->first();
         $this->assertNotNull($process);
@@ -167,7 +168,7 @@ class PayrollCommissionTest extends TestCase
         $sales = app(SalesService::class);
         $sale = $sales->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => now()->toDateString(), 'tax_mode' => 'exclusive', 'doctor_id' => $doctor->id,
-        ], [['product_id' => $this->frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '555000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '555000']]);
 
         $service = app(CommissionService::class);
         $period = now()->format('Y-m');

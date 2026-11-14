@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Inventory;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\SoftlensDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Models\StockLayer;
@@ -49,22 +49,20 @@ class SoftlensExpiryTest extends TestCase
         $this->supplier = Supplier::create(['name' => 'PT Lensa Uji', 'is_active' => true]);
     }
 
-    private function trackedSoftlens(string $sku = 'SL-EXP-1'): Product
+    private function trackedSoftlens(string $sku = 'SL-EXP-1'): SoftlensDetail
     {
-        $product = Product::factory()->ofType('softlens')->create([
+        // §193: expiry_tracked & power kini KOLOM softlens_details.
+        return SoftlensDetail::factory()->create([
             'sku' => $sku, 'cost_price' => '30000', 'sale_price' => '90000',
+            'expiry_tracked' => true, 'power' => '-2.00',
         ]);
-        $product->productAttributes()->create(['key' => 'expiry_tracked', 'value' => '1']);
-        $product->productAttributes()->create(['key' => 'power', 'value' => '-2.00']);
-
-        return $product->refresh();
     }
 
-    private function receive(Product $product, int $qty, ?string $expiryDate): Receipt
+    private function receive(SoftlensDetail $product, int $qty, ?string $expiryDate): Receipt
     {
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $this->supplier->id, $this->branch->id, [
-            ['product_id' => $product->id, 'qty' => $qty, 'unit_cost' => '30000'],
+            ['detail_type' => 'softlens', 'detail_id' => $product->id, 'qty' => $qty, 'unit_cost' => '30000'],
         ]);
         $orders->markSent($this->owner, $po);
         $line = ['purchase_order_item_id' => $po->items->first()->id, 'qty' => $qty, 'unit_cost_actual' => '30000'];
@@ -95,8 +93,9 @@ class SoftlensExpiryTest extends TestCase
 
     public function test_untracked_product_receipt_without_expiry_is_fine(): void
     {
-        $product = Product::factory()->ofType('softlens')->create([
+        $product = SoftlensDetail::factory()->create([
             'sku' => 'SL-EXP-X', 'cost_price' => '30000', 'sale_price' => '90000',
+            'expiry_tracked' => false,
         ]);
         $receipt = $this->receive($product, 3, null);
         $this->assertNull($receipt->items->first()->expiry_date);
@@ -110,7 +109,7 @@ class SoftlensExpiryTest extends TestCase
         try {
             app(SalesService::class)->createSale($this->owner, [
                 'customer_id' => $this->customer->id, 'tax_mode' => 'exclusive', 'tax_rate' => '0',
-            ], [['product_id' => $product->id, 'qty' => 2]]);
+            ], [['detail_type' => 'softlens', 'detail_id' => $product->id, 'qty' => 2]]);
             $this->fail('Penjualan softlens kedaluwarsa harus diblokir.');
         } catch (ValidationException) {
             $this->addToAssertionCount(1);
@@ -126,9 +125,9 @@ class SoftlensExpiryTest extends TestCase
 
         app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'exclusive', 'tax_rate' => '0',
-        ], [['product_id' => $product->id, 'qty' => 3]]);
+        ], [['detail_type' => 'softlens', 'detail_id' => $product->id, 'qty' => 3]]);
 
-        $layers = StockLayer::where('product_id', $product->id)->orderBy('id')->get();
+        $layers = StockLayer::where('detail_type', 'softlens')->where('detail_id', $product->id)->orderBy('id')->get();
         $this->assertSame(5, (int) $layers[0]->qty_remaining, 'Lapisan kedaluwarsa tidak boleh tersentuh.');
         $this->assertSame(2, (int) $layers[1]->qty_remaining);
 
@@ -136,7 +135,7 @@ class SoftlensExpiryTest extends TestCase
         try {
             app(SalesService::class)->createSale($this->owner, [
                 'customer_id' => $this->customer->id, 'tax_mode' => 'exclusive', 'tax_rate' => '0',
-            ], [['product_id' => $product->id, 'qty' => 3]]);
+            ], [['detail_type' => 'softlens', 'detail_id' => $product->id, 'qty' => 3]]);
             $this->fail('Penjualan melampaui stok layak jual harus diblokir selama stok kedaluwarsa tersimpan.');
         } catch (ValidationException) {
             $this->addToAssertionCount(1);
@@ -148,7 +147,7 @@ class SoftlensExpiryTest extends TestCase
         $product = $this->trackedSoftlens();
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'exclusive', 'tax_rate' => '0',
-        ], [['product_id' => $product->id, 'qty' => 2]]);
+        ], [['detail_type' => 'softlens', 'detail_id' => $product->id, 'qty' => 2]]);
         $this->assertSame('active', $sale->status);
     }
 
@@ -166,10 +165,10 @@ class SoftlensExpiryTest extends TestCase
         $this->assertFalse($rows[1]['expired']);
         $this->assertSame(3, $rows[1]['qty']);
 
-        $nearest = $fifo->nearestExpiries([$product->id], [$this->branch->id]);
+        $nearest = $fifo->nearestExpiries('softlens', [$product->id], [$this->branch->id]);
         $this->assertSame(now()->subDay()->toDateString(), $nearest[$product->id]['date']);
         $this->assertTrue($nearest[$product->id]['expired']);
-        $this->assertSame(2, $fifo->expiredQty($product->id, $this->branch->id));
-        $this->assertSame(7, $fifo->sellableQty($product->id, $this->branch->id));
+        $this->assertSame(2, $fifo->expiredQty('softlens', $product->id, $this->branch->id));
+        $this->assertSame(7, $fifo->sellableQty('softlens', $product->id, $this->branch->id));
     }
 }

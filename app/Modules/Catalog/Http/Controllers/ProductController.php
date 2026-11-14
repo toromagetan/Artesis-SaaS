@@ -4,12 +4,12 @@ namespace App\Modules\Catalog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
-use App\Modules\Catalog\Models\ProductParent;
 use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Master\Models\Branch;
 use App\Support\TenantStorage;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -17,9 +17,10 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Katalog produk (Blueprint D.3 + PRD Detail menu Katalog).
- * Daftar per tipe; detail = halaman penuh; perintah terkelompok
- * Perintah sejajar AksiBar (ADR-018).
+ * Katalog produk (A1 — master + detail persis Artesis).
+ * Daftar per tipe menampilkan master beserta detailnya; detail
+ * dialamatkan per tipe+id karena id detail hanya unik per tabel
+ * tipenya. Detail = halaman penuh; perintah sejajar AksiBar.
  */
 class ProductController extends Controller
 {
@@ -35,26 +36,27 @@ class ProductController extends Controller
         $this->assertType($type);
         $q = trim((string) $request->query('q', ''));
 
-        // ADR-015: daftar katalog menampilkan INDUK beserta variannya.
-        $parents = ProductParent::with(['variants' => fn ($query) => $query->orderBy('sku')])
-            ->where('type', $type)
-            ->when($q !== '', function ($query) use ($q) {
-                $query->where(function ($sub) use ($q) {
+        $relation = Product::DETAIL_RELATIONS[$type];
+
+        $parents = Product::with([$relation => fn ($query) => $query->orderBy('sku')])
+            ->whereHas('category', fn ($query) => $query->where('type', $type))
+            ->when($q !== '', function ($query) use ($q, $relation) {
+                $query->where(function ($sub) use ($q, $relation) {
                     $sub->where('name', 'like', "%{$q}%")
                         ->orWhere('brand', 'like', "%{$q}%")
-                        ->orWhereHas('variants', fn ($v) => $v->where('sku', 'like', "%{$q}%"));
+                        ->orWhereHas($relation, fn ($v) => $v->where('sku', 'like', "%{$q}%"));
                 });
             })
             ->orderBy('name')
             ->paginate(25)
             ->withQueryString();
 
-        // Varian lama yang belum berinduk tetap ditampilkan.
-        $orphans = Product::where('type', $type)->whereNull('parent_id')->orderBy('name')->get();
+        // Normalisasi nama relasi untuk view: setiap master membawa
+        // detailnya pada relasi `variants` (istilah view A1).
+        foreach ($parents as $master) {
+            $master->setRelation('variants', $master->getRelation($relation));
+        }
 
-        // F4.3 (PRD 4.4): daftar softlens menampilkan tanggal
-        // kedaluwarsa terdekat dari lapisan bersisa di cabang yang
-        // terlihat pemanggil — dipertahankan penuh pada model baru.
         $expiries = [];
         if ($type === 'softlens') {
             $context = BranchContext::for($request->user());
@@ -62,17 +64,33 @@ class ProductController extends Controller
                 ? Branch::pluck('id')->map(fn ($id) => (int) $id)->all()
                 : $context->managedBranchIds();
             $variantIds = $parents->flatMap(fn ($p) => $p->variants->pluck('id'))->all();
-            $expiries = app(FifoService::class)->nearestExpiries($variantIds, $branchIds);
+            $expiries = app(FifoService::class)->nearestExpiries('softlens', $variantIds, $branchIds);
         }
 
-        return view('catalog.products.index', compact('parents', 'orphans', 'type', 'q', 'expiries'));
+        return view('catalog.products.index', compact('parents', 'type', 'q', 'expiries'));
     }
 
-    public function show(Product $product): View
+    public function show(string $type, int $id): View
     {
-        $product->load(['productAttributes', 'parent']);
+        $this->assertType($type);
+        $product = $this->service->findDetail($type, $id);
+        $product->load(['product', 'detailAttributes']);
 
-        return view('catalog.products.show', compact('product'));
+        // Baris atribut halaman detail: atribut bebas + nilai kolom
+        // yang dulu atribut (index & jenis lensa; expiry_tracked).
+        $displayAttributes = [];
+        if ($type === 'lens') {
+            $displayAttributes['index'] = $product->index !== '' ? $product->index : null;
+            $displayAttributes['lens_kind'] = $product->type;
+        }
+        foreach (ProductService::ATTRIBUTE_KEYS[$type] as $key) {
+            $displayAttributes[$key] = $product->attributeValue($key);
+        }
+        if (in_array($type, ['softlens', 'accessory'], true)) {
+            $displayAttributes['expiry_tracked'] = $product->expiry_tracked ? __('ui.yes') : __('ui.no');
+        }
+
+        return view('catalog.products.show', compact('product', 'type', 'displayAttributes'));
     }
 
     public function create(Request $request, string $type): View
@@ -80,27 +98,74 @@ class ProductController extends Controller
         $this->assertType($type);
 
         $parent = $request->query('induk') !== null
-            ? ProductParent::where('type', $type)->find($request->query('induk'))
+            ? Product::whereHas('category', fn ($q) => $q->where('type', $type))->find($request->query('induk'))
             : null;
 
         return view('catalog.products.create', [
             'type' => $type,
             'product' => null,
             'parent' => $parent,
-            'parents' => ProductParent::where('type', $type)->orderBy('name')->get(),
-            'attributeKeys' => ProductService::ATTRIBUTE_KEYS[$type],
+            'parents' => Product::whereHas('category', fn ($q) => $q->where('type', $type))->orderBy('name')->get(),
+            'attributeKeys' => $this->formAttributeKeys($type),
         ]);
     }
 
-    /** Aturan validasi bersama buat/ubah varian (ADR-015). */
-    private function variantRules(?Product $product = null): array
+    /**
+     * Kunci yang dirender form: atribut bebas + kolom berkunci
+     * formulir (index & lens_kind lensa; expiry_tracked softlens)
+     * agar bentuk form A1 tidak berubah.
+     *
+     * @return list<string>
+     */
+    private function formAttributeKeys(string $type): array
     {
-        $id = $product?->id;
+        return match ($type) {
+            'lens' => ['index', 'coating', 'diameter', 'lens_kind'],
+            'softlens' => ['wear_period', 'expiry_tracked'],
+            default => ProductService::ATTRIBUTE_KEYS[$type],
+        };
+    }
+
+    /**
+     * Pisahkan masukan form menjadi kolom detail ($data) dan
+     * atribut bebas: index/lens_kind lensa adalah kolom;
+     * expiry_tracked softlens & aksesoris adalah kolom boolean.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array{0: array<string, mixed>, 1: array<string, string>}
+     */
+    private function splitFormInput(string $type, array $validated): array
+    {
+        $attributes = $validated['attributes'] ?? [];
+        unset($validated['attributes']);
+
+        if ($type === 'lens') {
+            foreach (['index', 'lens_kind'] as $key) {
+                if (array_key_exists($key, $attributes)) {
+                    $validated[$key] = $attributes[$key];
+                    unset($attributes[$key]);
+                }
+            }
+        }
+        if (in_array($type, ['softlens', 'accessory'], true) && array_key_exists('expiry_tracked', $attributes)) {
+            $validated['expiry_tracked'] = $attributes['expiry_tracked'];
+            unset($attributes['expiry_tracked']);
+        }
+
+        return [$validated, $attributes];
+    }
+
+    /** Aturan validasi bersama buat/ubah detail (SKU unik per tenant, §192). */
+    private function detailRules(string $type, ?Model $detail, ?int $tenantId): array
+    {
+        $table = (new (Product::DETAIL_MODELS[$type]))->getTable();
+        $id = $detail?->id;
+        $perTenant = fn ($rule) => $rule->where(fn ($q) => $q->where('tenant_id', $tenantId));
 
         return [
-            'parent_id' => ['nullable', 'integer', Rule::exists('product_parents', 'id')],
-            'sku' => ['required', 'string', 'max:50', Rule::unique('products', 'sku')->ignore($id)],
-            'barcode' => ['nullable', 'string', 'max:50', Rule::unique('products', 'barcode')->ignore($id)],
+            'parent_id' => ['nullable', 'integer', Rule::exists('products', 'id')],
+            'sku' => ['required', 'string', 'max:50', $perTenant(Rule::unique($table, 'sku'))->ignore($id)],
+            'barcode' => ['nullable', 'string', 'max:50', $perTenant(Rule::unique($table, 'barcode'))->ignore($id)],
             'name' => ['required', 'string', 'max:150'],
             'brand' => ['nullable', 'string', 'max:80'],
             'color' => ['nullable', 'string', 'max:50'],
@@ -108,10 +173,11 @@ class ProductController extends Controller
             'cyl' => ['nullable', 'numeric', 'between:-30,30'],
             'add' => ['nullable', 'numeric', 'between:0,4'],
             'power' => ['nullable', 'numeric', 'between:-30,30'],
-            'eye_side' => ['nullable', Rule::in(['R', 'L'])],
+            'eye_side' => ['nullable', Rule::in(['R', 'L', 'Both'])],
             'image' => ['nullable', 'image', 'max:2048'],
             'image_remove' => ['nullable', 'boolean'],
             'is_process_item' => ['nullable', 'boolean'],
+            'expiry_tracked' => ['nullable', 'boolean'],
             'cost_price' => ['required', 'numeric', 'min:0'],
             'sale_price' => ['required', 'numeric', 'min:0'],
             'attributes' => ['nullable', 'array'],
@@ -124,11 +190,6 @@ class ProductController extends Controller
      * Penghapusan berkas lama selalu terjadi SETELAH perubahan
      * data berhasil — kegagalan layanan tidak pernah menghapus
      * gambar yang masih dirujuk produk (audit A-02).
-     *
-     * Kegagalan tulis disk (false atau pengecualian Flysystem)
-     * dikembalikan sebagai null, BUKAN TypeError (koreksi audit
-     * F-01-R2); penolakan konteks oleh TenantStorage tetap
-     * diteruskan sebagai pengecualian otorisasi.
      */
     private function storeImageFile(Request $request): ?string
     {
@@ -147,28 +208,28 @@ class ProductController extends Controller
     {
         $this->assertType($type);
 
-        $validated = $request->validate($this->variantRules());
-        // Checkbox tak tercentang tidak terkirim — normalkan eksplisit.
+        $validated = $request->validate($this->detailRules($type, null, $request->user()->tenant_id));
         $validated['is_process_item'] = $request->boolean('is_process_item');
+        $validated['expiry_tracked'] = $request->boolean('expiry_tracked');
         unset($validated['image'], $validated['image_remove']);
 
-        // Data DULU, berkas kemudian (A-02): penolakan layanan —
-        // termasuk batas produk paket — tidak meninggalkan berkas
-        // yatim, karena belum ada berkas yang ditulis sama sekali.
-        $product = $this->service->create(
+        [$data, $attributes] = $this->splitFormInput($type, $validated);
+        // Nama field master pada form tetap parent_id (A1).
+        $data['product_id'] = $data['parent_id'] ?? null;
+        unset($data['parent_id']);
+
+        // Data DULU, berkas kemudian (A-02).
+        $product = $this->service->createDetail(
             $request->user(),
-            [...$validated, 'type' => $type, 'image_path' => null],
-            $validated['attributes'] ?? [],
+            $type,
+            [...$data, 'image_path' => null],
+            $attributes,
         );
 
         $warning = null;
         if ($request->hasFile('image')) {
             $path = $this->storeImageFile($request);
             if ($path === null) {
-                // F-01-R2: produk sudah sah tersimpan; kegagalan
-                // disk tidak boleh menjadi 500 pasca-commit dan
-                // tidak membatalkan produk — pengguna diperingatkan
-                // dan dapat mengunggah lewat halaman ubah.
                 $warning = __('ui.products.image_store_failed');
             } else {
                 try {
@@ -180,7 +241,7 @@ class ProductController extends Controller
             }
         }
 
-        $redirect = redirect()->route('products.show', $product)->with('status', __('ui.products.created'));
+        $redirect = redirect()->route('products.show', [$type, $product->id])->with('status', __('ui.products.created'));
         if ($warning !== null) {
             $redirect->with('warning', $warning);
         }
@@ -188,26 +249,33 @@ class ProductController extends Controller
         return $redirect;
     }
 
-    public function edit(Product $product): View
+    public function edit(string $type, int $id): View
     {
-        $product->load('productAttributes');
+        $this->assertType($type);
+        $product = $this->service->findDetail($type, $id);
+        $product->load(['product', 'detailAttributes']);
 
         return view('catalog.products.edit', [
             'product' => $product,
-            'parents' => ProductParent::where('type', $product->type)->orderBy('name')->get(),
-            'attributeKeys' => ProductService::ATTRIBUTE_KEYS[$product->type],
+            'parent' => $product->product,
+            'parents' => Product::whereHas('category', fn ($q) => $q->where('type', $type))->orderBy('name')->get(),
+            'attributeKeys' => $this->formAttributeKeys($type),
             'typeLocked' => $this->service->typeIsLocked($product),
+            'type' => $type,
         ]);
     }
 
-    public function update(Request $request, Product $product): RedirectResponse
+    public function update(Request $request, string $type, int $id): RedirectResponse
     {
+        $this->assertType($type);
+        $product = $this->service->findDetail($type, $id);
+
         $validated = $request->validate([
-            ...$this->variantRules($product),
+            ...$this->detailRules($type, $product, $request->user()->tenant_id),
             'type' => ['required', Rule::in(Product::TYPES)],
         ]);
-        // Checkbox tak tercentang tidak terkirim — normalkan eksplisit.
         $validated['is_process_item'] = $request->boolean('is_process_item');
+        $validated['expiry_tracked'] = $request->boolean('expiry_tracked');
         unset($validated['image'], $validated['image_remove']);
 
         $oldPath = $product->image_path;
@@ -217,12 +285,6 @@ class ProductController extends Controller
         if ($removeImage) {
             $validated['image_path'] = null;
         } elseif ($request->hasFile('image')) {
-            // Berkas baru ditulis ke namespace pemilik TANPA
-            // menyentuh berkas lama; berkas lama baru dihapus
-            // setelah pembaruan berhasil (A-02). Kegagalan tulis
-            // disk membatalkan seluruh pembaruan SEBELUM layanan
-            // berjalan — tidak ada perubahan yang diterapkan
-            // (F-01-R2).
             $newPath = $this->storeImageFile($request);
             if ($newPath === null) {
                 return back()->withInput()->withErrors(['image' => __('ui.products.image_store_failed_update')]);
@@ -230,16 +292,23 @@ class ProductController extends Controller
             $validated['image_path'] = $newPath;
         }
 
+        $newType = $validated['type'];
+        unset($validated['type']);
+        [$data, $attributes] = $this->splitFormInput($newType, $validated);
+        $data['product_id'] = $data['parent_id'] ?? null;
+        unset($data['parent_id']);
+        if ($newType !== $type) {
+            $data['type'] = $newType;
+        }
+
         try {
-            $this->service->update(
+            $updated = $this->service->updateDetail(
                 $request->user(),
                 $product,
-                $validated,
-                $validated['attributes'] ?? [],
+                $data,
+                $attributes,
             );
         } catch (\Throwable $e) {
-            // Pembaruan gagal: berkas baru dibersihkan, berkas lama
-            // dan data produk tetap utuh seperti sebelum permintaan.
             if ($newPath !== null) {
                 Storage::disk('public')->delete($newPath);
             }
@@ -250,12 +319,15 @@ class ProductController extends Controller
             Storage::disk('public')->delete($oldPath);
         }
 
-        return redirect()->route('products.show', $product)->with('status', __('ui.products.updated'));
+        return redirect()->route('products.show', [$updated::DETAIL_TYPE, $updated->id])->with('status', __('ui.products.updated'));
     }
 
-    public function toggleActive(Request $request, Product $product): RedirectResponse
+    public function toggleActive(Request $request, string $type, int $id): RedirectResponse
     {
-        $this->service->setActive($request->user(), $product, ! $product->is_active);
+        $this->assertType($type);
+        $product = $this->service->findDetail($type, $id);
+
+        $this->service->setDetailActive($request->user(), $product, ! $product->is_active);
 
         return back()->with('status', $product->is_active ? __('ui.products.activated') : __('ui.products.deactivated'));
     }

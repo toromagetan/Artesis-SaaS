@@ -4,7 +4,6 @@ namespace App\Modules\Sales\Services;
 
 use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Accounting\Support\Chart;
-use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Identity\Services\TenantContext;
@@ -23,6 +22,7 @@ use App\Modules\Sales\Models\WarrantyPayment;
 use App\Modules\Sales\Models\WarrantyReplacement;
 use App\Support\Money;
 use App\Support\Numbering;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -168,7 +168,7 @@ class WarrantyService
             $replacement = $locked->replacement()->lockForUpdate()->firstOrFail();
             $item = SaleItem::findOrFail($locked->sale_item_id);
             $broken = BrokenStock::create([
-                'branch_id' => $warehouse->id, 'product_id' => $item->product_id,
+                'branch_id' => $warehouse->id, 'detail_id' => $item->detail_id, 'detail_type' => $item->detail_type,
                 'warranty_case_id' => $locked->id, 'quantity' => $replacement->quantity,
                 'status' => 'pending_inspection', 'created_by' => $actor->id,
             ]);
@@ -193,9 +193,9 @@ class WarrantyService
             }
             $case = WarrantyCase::query()->lockForUpdate()->findOrFail($locked->warranty_case_id);
             if ($condition === 'good') {
-                $product = Product::findOrFail($locked->product_id);
+                $product = $locked->detail;
                 $sale = Sale::findOrFail($case->sale_id);
-                $unitCost = $this->fifo->saleMovementUnitCost($sale->id, $product->id) ?? (string) $product->cost_price;
+                $unitCost = $this->fifo->saleMovementUnitCost($sale->id, $product::DETAIL_TYPE, $product->id) ?? (string) $product->cost_price;
                 $this->inventory->recordMovement($actor, $product, $locked->branch, 'warranty_return',
                     $locked->quantity, 'broken_stock', $locked->id, ['inboundUnitCost' => $unitCost]);
                 $locked->update(['status' => 'resolved', 'resolution' => 'return_to_stock',
@@ -235,7 +235,7 @@ class WarrantyService
         });
     }
 
-    public function prepareReplacement(User $actor, WarrantyCase $case, string $source, Product $product, string $customerCharge): WarrantyCase
+    public function prepareReplacement(User $actor, WarrantyCase $case, string $source, Model $product, string $customerCharge): WarrantyCase
     {
         if (! $actor->hasPermission('stock.transfer')) {
             abort(403);
@@ -250,13 +250,13 @@ class WarrantyService
             }
             $replacement = $locked->replacement()->lockForUpdate()->firstOrFail();
             if ($source === 'stock') {
-                $available = $this->inventory->balancesForBranch($warehouse->id)[$product->id] ?? 0;
+                $available = $this->inventory->balancesForBranch($warehouse->id)[$product::DETAIL_TYPE.':'.$product->id] ?? 0;
                 if ($available < $replacement->quantity) {
-                    throw ValidationException::withMessages(['product_id' => __('ui.warranty.stock_short')]);
+                    throw ValidationException::withMessages(['detail_id' => __('ui.warranty.stock_short')]);
                 }
             }
             $replacement->update([
-                'source' => $source, 'replacement_product_id' => $product->id,
+                'source' => $source, 'replacement_detail_id' => $product->id, 'replacement_detail_type' => $product::DETAIL_TYPE,
                 'replacement_value' => Money::fromDecimal((string) $product->sale_price)->mul($replacement->quantity)->toDecimalString(),
                 'customer_charge' => Money::fromDecimal($customerCharge)->toDecimalString(),
                 'status' => $source === 'stock' ? 'ready' : 'waiting_po',
@@ -290,16 +290,16 @@ class WarrantyService
         return DB::transaction(function () use ($actor, $case, $supplier, $warehouse) {
             $locked = WarrantyCase::query()->lockForUpdate()->findOrFail($case->id);
             $replacement = $locked->replacement()->lockForUpdate()->firstOrFail();
-            if ($replacement->source !== 'purchase_order' || $replacement->replacement_product_id === null) {
+            if ($replacement->source !== 'purchase_order' || $replacement->replacement_detail_id === null) {
                 throw ValidationException::withMessages(['warranty' => __('ui.warranty.not_po_source')]);
             }
             if ($replacement->purchase_order_id !== null) {
                 throw ValidationException::withMessages(['warranty' => __('ui.warranty.po_exists')]);
             }
-            $product = Product::findOrFail($replacement->replacement_product_id);
+            $product = $replacement->replacementDetail;
             $orders = app(PurchaseOrderService::class);
             $po = $orders->create($actor, $supplier->id, $warehouse->id, [
-                ['product_id' => $product->id, 'qty' => $replacement->quantity, 'unit_cost' => (string) $product->cost_price],
+                ['detail_type' => $product::DETAIL_TYPE, 'detail_id' => $product->id, 'qty' => $replacement->quantity, 'unit_cost' => (string) $product->cost_price],
             ]);
             $orders->markSent($actor, $po);
             $replacement->update(['purchase_order_id' => $po->id]);
@@ -344,7 +344,7 @@ class WarrantyService
                 throw ValidationException::withMessages(['warranty' => __('ui.warranty.not_ready')]);
             }
             $replacement = $locked->replacement()->lockForUpdate()->firstOrFail();
-            $product = Product::findOrFail($replacement->replacement_product_id);
+            $product = $replacement->replacementDetail;
             $movement = $this->inventory->recordMovement($actor, $product, $warehouse, 'warranty_out',
                 -$replacement->quantity, 'warranty_case', $locked->id);
             $replacement->update(['status' => 'shipped', 'shipped_movement_id' => $movement->id]);
@@ -376,7 +376,7 @@ class WarrantyService
                 throw ValidationException::withMessages(['warranty' => __('ui.warranty.stage_invalid')]);
             }
             $replacement = $locked->replacement()->lockForUpdate()->firstOrFail();
-            $product = Product::findOrFail($replacement->replacement_product_id);
+            $product = $replacement->replacementDetail;
             $qty = $replacement->quantity;
             // Biaya per unit lapisan masuk = total biaya gerakan keluar
             // dibagi qty dalam sen bulat (Money); selisih pembulatan

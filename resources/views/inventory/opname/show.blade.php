@@ -73,8 +73,8 @@
                     <tbody>
                         @forelse ($flatItems as $item)
                             <tr class="border-b border-gray-50 last:border-0">
-                                <td class="px-4 py-3">{{ $item->product->name }}</td>
-                                <td class="px-4 py-3">{{ $item->product->sku }}</td>
+                                <td class="px-4 py-3">{{ $item->detail->product->name }}</td>
+                                <td class="px-4 py-3">{{ $item->detail->sku }}</td>
                                 <td class="px-4 py-3 text-right tabular-nums">{{ $item->system_qty }}</td>
                                 <td class="px-4 py-3 text-right">
                                     @if ($opname->status === 'counting')
@@ -117,7 +117,7 @@
                                                 @foreach ($row['cells'][$matrixService->colKey($col)] ?? [] as $item)
                                                     <div class="mb-1 last:mb-0">
                                                         <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
-                                                            <span>{{ $item->product->sku }}@if ($item->product->eye_side) · {{ $item->product->eye_side }}@endif</span>
+                                                            <span>{{ $item->detail->sku }}@if ($item->detail->eye_side ?? null) · {{ $item->detail->eye_side }}@endif</span>
                                                             <span>{{ __('ui.opname.system_qty') }}: <span class="tnum">{{ $item->system_qty }}</span></span>
                                                         </div>
                                                         @if ($opname->status === 'counting')

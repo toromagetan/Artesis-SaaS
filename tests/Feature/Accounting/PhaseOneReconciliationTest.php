@@ -7,7 +7,7 @@ use App\Modules\Accounting\Services\FinancialReportService;
 use App\Modules\Accounting\Services\FixedAssetService;
 use App\Modules\Accounting\Services\LedgerService;
 use App\Modules\Accounting\Services\ManualJournalService;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
@@ -68,10 +68,10 @@ class PhaseOneReconciliationTest extends TestCase
 
         // 2–3 Sep — PO frame 10 @400.000, diterima penuh.
         $supplier = Supplier::create(['name' => 'PT Gerbang', 'is_active' => true]);
-        $frame = Product::factory()->ofType('frame')->create(['cost_price' => '400000', 'sale_price' => '500000']);
+        $frame = FrameDetail::factory()->create(['cost_price' => '400000', 'sale_price' => '500000']);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $supplier->id, $b, [
-            ['product_id' => $frame->id, 'qty' => 10, 'unit_cost' => '400000'],
+            ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 10, 'unit_cost' => '400000'],
         ]);
         $orders->markSent($this->owner, $po);
         $receipt = app(ReceiptService::class)->store($this->owner, $po, [
@@ -83,7 +83,7 @@ class PhaseOneReconciliationTest extends TestCase
         $sales = app(SalesService::class);
         $sales->createSale($this->owner, [
             'customer_id' => $customer->id, 'sale_date' => '2026-09-05', 'tax_mode' => 'exclusive',
-        ], [['product_id' => $frame->id, 'qty' => 2]], [['method' => 'cash', 'amount' => '1110000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 2]], [['method' => 'cash', 'amount' => '1110000']]);
 
         // 8 Sep — retur pembelian 1 frame (receipt belum dibayar → kurangi utang).
         app(PurchaseReturnService::class)->store($this->owner, $receipt, [
@@ -96,7 +96,7 @@ class PhaseOneReconciliationTest extends TestCase
         // 12 Sep — penjualan kredit 1 frame (555.000), dibayar susulan tunai.
         $sale2 = $sales->createSale($this->owner, [
             'customer_id' => $customer->id, 'sale_date' => '2026-09-12', 'tax_mode' => 'exclusive',
-        ], [['product_id' => $frame->id, 'qty' => 1]], []);
+        ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 1]], []);
         $sales->addPayment($this->owner, $sale2, 'cash', '555000');
 
         // 15 Sep — aset tetap (perolehan Agustus) disusutkan untuk September.

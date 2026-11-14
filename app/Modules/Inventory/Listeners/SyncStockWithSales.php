@@ -30,12 +30,12 @@ class SyncStockWithSales
         $actor = User::findOrFail($sale->cashier_id);
         $branch = Branch::findOrFail($sale->branch_id);
 
-        foreach ($sale->items()->with('product')->get() as $item) {
-            if ($item->product === null) {
+        foreach ($sale->items()->with('detail')->get() as $item) {
+            if ($item->detail === null) {
                 continue;
             }
             $this->inventory->recordMovement(
-                $actor, $item->product, $branch, 'sale',
+                $actor, $item->detail, $branch, 'sale',
                 -$item->qty, 'sale', $sale->id,
             );
         }
@@ -47,12 +47,12 @@ class SyncStockWithSales
         $actor = User::findOrFail($sale->voided_by ?? $sale->cashier_id);
         $branch = Branch::findOrFail($sale->branch_id);
 
-        foreach ($sale->items()->with('product')->get() as $item) {
-            if ($item->product === null) {
+        foreach ($sale->items()->with('detail')->get() as $item) {
+            if ($item->detail === null) {
                 continue;
             }
             $this->inventory->recordMovement(
-                $actor, $item->product, $branch, 'sale_void',
+                $actor, $item->detail, $branch, 'sale_void',
                 $item->qty, 'sale', $sale->id,
             );
         }
@@ -64,23 +64,23 @@ class SyncStockWithSales
         $actor = User::findOrFail($return->created_by);
         $branch = Branch::findOrFail($return->branch_id);
 
-        foreach ($return->items()->with('saleItem.product')->get() as $returnItem) {
+        foreach ($return->items()->with('saleItem.detail')->get() as $returnItem) {
             // Hanya barang layak jual (resale) yang kembali ke stok;
             // barang rusak tidak menambah stok jual (PRD 2.5).
             if ($returnItem->condition !== 'resale') {
                 continue;
             }
-            $product = $returnItem->saleItem?->product;
-            if ($product === null) {
+            $detail = $returnItem->saleItem?->detail;
+            if ($detail === null) {
                 continue;
             }
             // Lapisan retur berharga biaya ASAL konsumsinya (ADR-014);
-            // fallback cost_price master bila penjualan asal belum
+            // fallback cost_price detail bila penjualan asal belum
             // terkonsumsi lapisan (mis. data pra-FIFO).
-            $unitCost = $this->fifo->saleMovementUnitCost((int) $return->sale_id, $product->id)
-                ?? (string) $product->cost_price;
+            $unitCost = $this->fifo->saleMovementUnitCost((int) $return->sale_id, $detail::DETAIL_TYPE, $detail->id)
+                ?? (string) $detail->cost_price;
             $this->inventory->recordMovement(
-                $actor, $product, $branch, 'sale_return',
+                $actor, $detail, $branch, 'sale_return',
                 $returnItem->qty, 'sale_return', $return->id,
                 ['inboundUnitCost' => $unitCost],
             );

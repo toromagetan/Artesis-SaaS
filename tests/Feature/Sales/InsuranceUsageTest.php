@@ -4,7 +4,7 @@ namespace Tests\Feature\Sales;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalLine;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -36,7 +36,7 @@ class InsuranceUsageTest extends TestCase
 
     private Branch $branch;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     private Insurance $insurance;
 
@@ -51,7 +51,7 @@ class InsuranceUsageTest extends TestCase
         // Fixture tingkat instalasi: konteks sistem dinyatakan eksplisit
         // (penulisan global tanpa aktor wajib TenantContext::asSystem).
         TenantContext::asSystem(fn () => Setting::set('tax.rate_default', '0'));
-        $this->frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000', 'sale_price' => '200000']);
+        $this->frame = FrameDetail::factory()->create(['cost_price' => '50000', 'sale_price' => '200000']);
         app(InventoryService::class)->recordMovement($this->owner, $this->frame, $this->branch, 'initial_stock', 10, 'test', 1);
         $this->insurance = Insurance::create(['name' => 'Sehat Bersama', 'claim_value' => '100000', 'is_active' => true]);
         $this->customer = Customer::factory()->create(['branch_id' => $this->branch->id, 'insurance_id' => $this->insurance->id]);
@@ -71,7 +71,7 @@ class InsuranceUsageTest extends TestCase
             'customer_id' => $this->customer->id, 'branch_id' => $this->branch->id,
             'sale_date' => now()->format('Y-m-d'), 'tax_mode' => 'inclusive',
             'insurance_id' => $this->insurance->id, 'insurance_claim_amount' => '80000',
-        ], [['product_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '200000']],
+        ], [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '200000']],
             [['method' => 'cash', 'amount' => '50000']]);
     }
 
@@ -81,7 +81,7 @@ class InsuranceUsageTest extends TestCase
             'customer_id' => $this->customer->id, 'branch_id' => $this->branch->id,
             'sale_date' => now()->format('Y-m-d'), 'tax_mode' => 'inclusive',
             'insurance_id' => $this->insurance->id, 'insurance_claim_amount' => '80000',
-        ], [['product_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '200000']],
+        ], [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '200000']],
             [['method' => 'cash', 'amount' => '50000']]);
 
         // Terbayar = tunai 50rb + klaim 80rb; sisa piutang pelanggan 70rb.
@@ -98,7 +98,7 @@ class InsuranceUsageTest extends TestCase
     public function test_claim_requires_active_insurance_and_within_total(): void
     {
         $service = app(SalesService::class);
-        $items = [['product_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '200000']];
+        $items = [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '200000']];
         $base = [
             'customer_id' => $this->customer->id, 'branch_id' => $this->branch->id,
             'sale_date' => now()->format('Y-m-d'), 'tax_mode' => 'inclusive',

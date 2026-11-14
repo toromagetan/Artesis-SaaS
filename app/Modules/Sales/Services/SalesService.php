@@ -2,6 +2,7 @@
 
 namespace App\Modules\Sales\Services;
 
+use App\Modules\Catalog\Models\AccessoriesDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\Clinical\Services\PrescriptionService;
@@ -49,7 +50,7 @@ class SalesService
     /**
      * @param  array<string, mixed>  $data  customer_id, prescription_id?, sale_date,
      *                                      discount_amount?, tax_mode?, doctor_id?, insurance_id?, notes?
-     * @param  array<int, array<string, mixed>>  $items  product_id, qty, unit_price?, discount_amount?, prescription_ref?
+     * @param  array<int, array<string, mixed>>  $items  detail_type, detail_id, qty, unit_price?, discount_amount?, prescription_ref?
      * @param  array<int, array<string, mixed>>  $payments  method, amount, reference?
      */
     /** Piutang beredar pelanggan: Σ (total − terbayar) penjualan aktif. */
@@ -127,17 +128,23 @@ class SalesService
             $hasRx = false;
             $subtotal = Money::zero();
             foreach ($items as $i => $item) {
-                $product = Product::findOrFail($item['product_id']);
-                if (! $product->is_active) {
+                $detailClass = Product::DETAIL_MODELS[(string) ($item['detail_type'] ?? '')] ?? null;
+                if ($detailClass === null) {
                     throw ValidationException::withMessages([
-                        "items.{$i}.product_id" => __('ui.sales.product_inactive'),
+                        "items.{$i}.detail_type" => __('ui.sales.product_inactive'),
+                    ]);
+                }
+                $detail = $detailClass::with('product')->findOrFail($item['detail_id']);
+                if (! $detail->is_active || ! ($detail->product?->is_active ?? false)) {
+                    throw ValidationException::withMessages([
+                        "items.{$i}.detail_id" => __('ui.sales.product_inactive'),
                     ]);
                 }
                 $qty = (int) $item['qty'];
                 if ($qty < 1) {
                     throw ValidationException::withMessages(["items.{$i}.qty" => __('ui.sales.qty_invalid')]);
                 }
-                $unitPrice = Money::fromDecimal((string) ($item['unit_price'] ?? $product->sale_price));
+                $unitPrice = Money::fromDecimal((string) ($item['unit_price'] ?? $detail->sale_price));
                 $itemDiscount = Money::fromDecimal((string) ($item['discount_amount'] ?? '0'));
                 $gross = $unitPrice->mul($qty);
                 if ($itemDiscount->cmp($gross) > 0) {
@@ -145,7 +152,7 @@ class SalesService
                         "items.{$i}.discount_amount" => __('ui.sales.discount_exceeds_line'),
                     ]);
                 }
-                if ($product->type === 'rx' && empty($item['prescription_ref'])) {
+                if ($detail::DETAIL_TYPE === 'rx' && empty($item['prescription_ref'])) {
                     throw ValidationException::withMessages([
                         "items.{$i}.prescription_ref" => __('ui.sales.rx_ref_required'),
                     ]);
@@ -154,7 +161,7 @@ class SalesService
                 // tervalidasi RxPrecalValidator, boleh kosong
                 // (precal_complete=false, dilengkapi kemudian).
                 $rxParameters = null;
-                if ($product->type === 'rx') {
+                if ($detail::DETAIL_TYPE === 'rx') {
                     $hasRx = true;
                     $precalValidator = app(RxPrecalValidator::class);
                     $precalErrors = $precalValidator->validate($item['precal'] ?? null);
@@ -176,7 +183,7 @@ class SalesService
                 $lineTotal = $gross->sub($itemDiscount);
                 $subtotal = $subtotal->add($lineTotal);
                 $lines[] = [
-                    'product' => $product,
+                    'detail' => $detail,
                     'qty' => $qty,
                     'unit_price' => $unitPrice,
                     'discount' => $itemDiscount,
@@ -203,23 +210,25 @@ class SalesService
             $fifo = app(FifoService::class);
             $wanted = [];
             foreach ($lines as $line) {
-                $wanted[$line['product']->id] = ($wanted[$line['product']->id] ?? 0) + $line['qty'];
+                $key = $line['detail']::DETAIL_TYPE.':'.$line['detail']->id;
+                $wanted[$key] = ($wanted[$key] ?? 0) + $line['qty'];
             }
             foreach ($lines as $line) {
-                $product = $line['product'];
-                if ($product->type !== 'softlens'
-                    || $product->attributeValue('expiry_tracked') !== '1'
-                    || ! isset($wanted[$product->id])
+                $detail = $line['detail'];
+                $key = $detail::DETAIL_TYPE.':'.$detail->id;
+                if ($detail::DETAIL_TYPE !== 'softlens'
+                    || ! $detail->expiry_tracked
+                    || ! isset($wanted[$key])
                 ) {
                     continue;
                 }
-                $qtyWanted = $wanted[$product->id];
-                unset($wanted[$product->id]);
-                if ($fifo->sellableQty($product->id, $branchId) < $qtyWanted
-                    && $fifo->expiredQty($product->id, $branchId) > 0
+                $qtyWanted = $wanted[$key];
+                unset($wanted[$key]);
+                if ($fifo->sellableQty('softlens', $detail->id, $branchId) < $qtyWanted
+                    && $fifo->expiredQty('softlens', $detail->id, $branchId) > 0
                 ) {
                     throw ValidationException::withMessages([
-                        'items' => __('ui.sales.softlens_expired', ['product' => $product->name]),
+                        'items' => __('ui.sales.softlens_expired', ['product' => $detail->product->name]),
                     ]);
                 }
             }
@@ -269,9 +278,10 @@ class SalesService
 
             foreach ($lines as $line) {
                 $sale->items()->create([
-                    'product_id' => $line['product']->id,
-                    'product_name_snapshot' => $line['product']->name,
-                    'type' => $line['product']->type,
+                    'detail_id' => $line['detail']->id,
+                    'detail_type' => $line['detail']::DETAIL_TYPE,
+                    'product_name_snapshot' => $line['detail']->product->name,
+                    'type' => $line['detail']::DETAIL_TYPE,
                     'qty' => $line['qty'],
                     'unit_price' => $line['unit_price']->toDecimalString(),
                     'discount_amount' => $line['discount']->toDecimalString(),
@@ -377,39 +387,45 @@ class SalesService
             // penjualan gagal, PR ikut gulung.
             $shortages = [];
             $available = [];
+            $detailByKey = [];
             foreach ($lines as $line) {
-                $type = $line['product']->type;
-                $isProcessAddon = $type === 'accessory' && $line['product']->is_process_item;
+                $detail = $line['detail'];
+                $type = $detail::DETAIL_TYPE;
+                $key = $type.':'.$detail->id;
+                $detailByKey[$key] = $detail;
+                $isProcessAddon = $detail instanceof AccessoriesDetail && $detail->is_process_item;
                 if (! in_array($type, ['lens', 'rx', 'softlens'], true) && ! $isProcessAddon) {
                     continue;
                 }
                 if ($type === 'rx' || $isProcessAddon) {
-                    $shortages[$line['product']->id] = ($shortages[$line['product']->id] ?? 0) + $line['qty'];
+                    $shortages[$key] = ($shortages[$key] ?? 0) + $line['qty'];
 
                     continue;
                 }
-                $pid = $line['product']->id;
-                $available[$pid] ??= app(InventoryService::class)->currentStock($pid, $branchId);
-                $covered = min($line['qty'], max(0, $available[$pid]));
-                $available[$pid] -= $covered;
+                $available[$key] ??= app(InventoryService::class)->currentStock($type, $detail->id, $branchId);
+                $covered = min($line['qty'], max(0, $available[$key]));
+                $available[$key] -= $covered;
                 if ($line['qty'] - $covered > 0) {
-                    $shortages[$pid] = ($shortages[$pid] ?? 0) + ($line['qty'] - $covered);
+                    $shortages[$key] = ($shortages[$key] ?? 0) + ($line['qty'] - $covered);
                 }
             }
             if ($shortages !== []) {
                 // Precal item RX ikut tersalin ke item PR (ADR-019).
-                $rxByProduct = [];
+                $rxByDetail = [];
                 foreach ($lines as $line) {
-                    if ($line['rx_parameters'] !== null && ! isset($rxByProduct[$line['product']->id])) {
-                        $rxByProduct[$line['product']->id] = $line['rx_parameters'];
+                    $key = $line['detail']::DETAIL_TYPE.':'.$line['detail']->id;
+                    if ($line['rx_parameters'] !== null && ! isset($rxByDetail[$key])) {
+                        $rxByDetail[$key] = $line['rx_parameters'];
                     }
                 }
                 $prItems = [];
-                foreach ($shortages as $productId => $qty) {
+                foreach ($shortages as $key => $qty) {
+                    $detail = $detailByKey[$key];
                     $prItems[] = [
-                        'product_id' => $productId,
+                        'detail_type' => $detail::DETAIL_TYPE,
+                        'detail_id' => $detail->id,
                         'qty' => $qty,
-                        'rx_parameters' => $rxByProduct[$productId] ?? null,
+                        'rx_parameters' => $rxByDetail[$key] ?? null,
                     ];
                 }
                 app(PurchaseRequestService::class)
@@ -474,7 +490,8 @@ class SalesService
 
             PurchaseRequestItem::query()
                 ->whereHas('purchaseRequest', fn ($q) => $q->where('sale_id', $sale->id))
-                ->where('product_id', $item->product_id)
+                ->where('detail_type', $item->detail_type)
+                ->where('detail_id', $item->detail_id)
                 ->whereNotNull('rx_parameters')
                 ->get()
                 ->each(fn (PurchaseRequestItem $prItem) => $prItem->update(['rx_parameters' => $params]));

@@ -65,12 +65,12 @@
                         <tbody>
                             @forelse ($products as $product)
                                 <tr class="border-b border-gray-50 last:border-0">
-                                    <td class="px-4 py-3"><input type="checkbox" name="selected[]" value="{{ $product->id }}" class="rounded border-gray-300 text-lentera-600 focus:ring-lentera-500"></td>
-                                    <td class="px-4 py-3 font-medium text-gray-800">{{ $product->name }}</td>
+                                    <td class="px-4 py-3"><input type="checkbox" name="selected[]" value="{{ $product::DETAIL_TYPE }}:{{ $product->id }}" class="rounded border-gray-300 text-lentera-600 focus:ring-lentera-500"></td>
+                                    <td class="px-4 py-3 font-medium text-gray-800">{{ $product->product->name }}</td>
                                     <td class="px-4 py-3">{{ $product->sku }}</td>
                                     <td class="px-4 py-3">{{ $product->barcode ?: '—' }}</td>
                                     <td class="px-4 py-3 tnum">{{ \App\Support\Money::fromDecimal((string) $product->sale_price)->format() }}</td>
-                                    <td class="px-4 py-3"><input type="number" name="copies[{{ $product->id }}]" value="1" min="0" max="500" class="w-20 rounded-md border-gray-300 text-sm tnum shadow-sm focus:border-lentera-500 focus:ring-lentera-500"></td>
+                                    <td class="px-4 py-3"><input type="number" name="copies[{{ $product::DETAIL_TYPE }}:{{ $product->id }}]" value="1" min="0" max="500" class="w-20 rounded-md border-gray-300 text-sm tnum shadow-sm focus:border-lentera-500 focus:ring-lentera-500"></td>
                                 </tr>
                             @empty
                                 <tr><td colspan="6"><x-lentera.empty-state>{{ __('ui.products.empty') }}</x-lentera.empty-state></td></tr>

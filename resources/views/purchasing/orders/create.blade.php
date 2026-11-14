@@ -87,10 +87,10 @@
                         @for ($i = 0; $i < 4; $i++)
                             <div class="grid grid-cols-12 gap-2">
                                 <div class="col-span-6">
-                                    <select name="items[{{ $i }}][product_id]" class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                    <select name="items[{{ $i }}][detail_key]" class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
                                         <option value="">— {{ __('ui.purchasing.product') }} —</option>
                                         @foreach ($products as $product)
-                                            <option value="{{ $product->id }}">{{ $product->name }} ({{ $product->sku }})</option>
+                                            <option value="{{ $product::DETAIL_TYPE }}:{{ $product->id }}">{{ $product->product?->name }} ({{ $product->sku }})</option>
                                         @endforeach
                                     </select>
                                 </div>

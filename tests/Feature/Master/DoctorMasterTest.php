@@ -3,6 +3,7 @@
 namespace Tests\Feature\Master;
 
 use App\Modules\Accounting\Models\Commission;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -100,12 +101,10 @@ class DoctorMasterTest extends TestCase
             'phone' => '081200000000', 'commission_rate' => 10, 'is_active' => true,
         ]);
         $supplier = Supplier::create(['name' => 'PT Uji', 'is_active' => true]);
-        $product = Product::factory()->ofType('frame')->create([
-            'sku' => 'DR-1', 'name' => 'Frame Uji Dokter', 'cost_price' => '40000', 'sale_price' => '100000',
-        ]);
+        $product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Uji Dokter'])->id, 'sku' => 'DR-1', 'cost_price' => '40000', 'sale_price' => '100000']);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $supplier->id, $this->branch->id, [
-            ['product_id' => $product->id, 'qty' => 3, 'unit_cost' => '40000'],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 3, 'unit_cost' => '40000'],
         ]);
         $orders->markSent($this->owner, $po);
         app(ReceiptService::class)->store($this->owner, $po, [
@@ -116,7 +115,7 @@ class DoctorMasterTest extends TestCase
             'customer_id' => $customer->id, 'sale_date' => now()->toDateString(),
             'tax_mode' => 'exclusive', 'branch_id' => $this->branch->id,
             'doctor_id' => $doctor->id,
-        ], [['product_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '100000']]);
         Commission::create([
             'type' => 'doctor', 'beneficiary_doctor_id' => $doctor->id,
             'source_sale_id' => $sale->id, 'base_amount' => '100000', 'rate' => '10.00',

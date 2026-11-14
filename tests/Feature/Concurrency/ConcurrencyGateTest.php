@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Concurrency;
 
+use App\Modules\Catalog\Models\FrameDetail;
+use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
@@ -189,13 +191,13 @@ class ConcurrencyGateTest extends TestCase
 
     public function test_concurrent_payments_never_exceed_bill(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000', 'sale_price' => '100000']);
+        $frame = FrameDetail::factory()->create(['cost_price' => '50000', 'sale_price' => '100000']);
         app(InventoryService::class)->recordMovement($this->owner, $frame, $this->branch, 'initial_stock', 10, 'conc_seed', 1);
         $customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $customer->id, 'branch_id' => $this->branch->id,
             'sale_date' => now()->format('Y-m-d'), 'tax_mode' => 'inclusive',
-        ], [['product_id' => $frame->id, 'qty' => 1, 'unit_price' => '100000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 1, 'unit_price' => '100000']]);
 
         $results = $this->runWorkers('pay', ['sale_id' => $sale->id, 'amount' => '60000'], 4);
         $this->assertSame(1, $this->successes($results), 'Tepat satu pembayaran 60rb boleh masuk ke tagihan 100rb');
@@ -205,12 +207,12 @@ class ConcurrencyGateTest extends TestCase
 
     public function test_double_collective_payment_allocates_once(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000']);
+        $frame = FrameDetail::factory()->create(['cost_price' => '50000']);
         $supplier = Supplier::create(['name' => 'PT Konkuren', 'is_active' => true]);
         $orders = app(PurchaseOrderService::class);
         foreach (range(1, 3) as $i) {
             $po = $orders->create($this->owner, $supplier->id, $this->branch->id, [
-                ['product_id' => $frame->id, 'qty' => 40, 'unit_cost' => '50000'],
+                ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 40, 'unit_cost' => '50000'],
             ]);
             $orders->markSent($this->owner, $po);
             app(ReceiptService::class)->store($this->owner, $po, [
@@ -230,29 +232,29 @@ class ConcurrencyGateTest extends TestCase
 
     public function test_last_stock_race_never_negative(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['name' => 'Frame Rebutan', 'cost_price' => '50000', 'sale_price' => '100000']);
+        $frame = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Rebutan'])->id, 'cost_price' => '50000', 'sale_price' => '100000']);
         app(InventoryService::class)->recordMovement($this->owner, $frame, $this->branch, 'initial_stock', 1, 'conc_seed', 1);
         $customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
 
         $results = $this->runWorkers('sale', [
             'customer_id' => $customer->id, 'branch_id' => $this->branch->id,
-            'product_id' => $frame->id, 'price' => '100000',
+            'detail_type' => 'frame', 'detail_id' => $frame->id, 'price' => '100000',
         ], 4);
         $this->assertSame(1, $this->successes($results), 'Stok terakhir hanya boleh terjual satu kali');
-        $this->assertSame(0, app(InventoryService::class)->currentStock($frame->id, $this->branch->id));
-        $min = StockMovement::where('product_id', $frame->id)->min('balance_after');
+        $this->assertSame(0, app(InventoryService::class)->currentStock('frame', $frame->id, $this->branch->id));
+        $min = StockMovement::where('detail_type', 'frame')->where('detail_id', $frame->id)->min('balance_after');
         $this->assertGreaterThanOrEqual(0, (int) $min, 'Saldo tidak pernah negatif');
     }
 
     public function test_double_complete_recorded_once(): void
     {
-        $lens = Product::factory()->ofType('lens')->create(['cost_price' => '70000', 'sale_price' => '150000']);
+        $lens = LensDetail::factory()->create(['cost_price' => '70000', 'sale_price' => '150000']);
         app(InventoryService::class)->recordMovement($this->owner, $lens, $this->branch, 'initial_stock', 5, 'conc_seed', 1);
         $customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
         app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $customer->id, 'branch_id' => $this->branch->id,
             'sale_date' => now()->format('Y-m-d'), 'tax_mode' => 'inclusive',
-        ], [['product_id' => $lens->id, 'qty' => 1, 'unit_price' => '150000']]);
+        ], [['detail_type' => 'lens', 'detail_id' => $lens->id, 'qty' => 1, 'unit_price' => '150000']]);
         $process = LensProcess::firstOrFail();
 
         $results = $this->runWorkers('complete', ['process_id' => $process->id], 4);
@@ -264,11 +266,11 @@ class ConcurrencyGateTest extends TestCase
 
     public function test_concurrent_receiving_never_exceeds_po_qty(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000']);
+        $frame = FrameDetail::factory()->create(['cost_price' => '50000']);
         $supplier = Supplier::create(['name' => 'PT Terima Konkuren', 'is_active' => true]);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $supplier->id, $this->branch->id, [
-            ['product_id' => $frame->id, 'qty' => 5, 'unit_cost' => '50000'],
+            ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 5, 'unit_cost' => '50000'],
         ]);
         $orders->markSent($this->owner, $po);
 
@@ -277,14 +279,14 @@ class ConcurrencyGateTest extends TestCase
         ], 4);
         $this->assertSame(1, $this->successes($results), 'Dua penerimaan 3 unit akan melampaui PO 5 unit');
         $this->assertSame(3, (int) $po->items()->first()->qty_received);
-        $this->assertSame(3, app(InventoryService::class)->currentStock($frame->id, $this->branch->id));
+        $this->assertSame(3, app(InventoryService::class)->currentStock('frame', $frame->id, $this->branch->id));
     }
 
     public function test_double_submit_applied_once(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000']);
+        $frame = FrameDetail::factory()->create(['cost_price' => '50000']);
         $pr = app(PurchaseRequestService::class)->create($this->owner, $this->branch->id, [
-            ['product_id' => $frame->id, 'qty' => 2],
+            ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 2],
         ]);
 
         $results = $this->runWorkers('submit', ['pr_id' => $pr->id], 3);

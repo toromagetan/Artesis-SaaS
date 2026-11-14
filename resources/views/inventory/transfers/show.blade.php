@@ -81,7 +81,7 @@
                     <tbody>
                         @foreach ($transfer->items as $item)
                             <tr class="border-b border-gray-50 last:border-0">
-                                <td class="px-4 py-3 font-medium text-gray-800">{{ $item->product->name }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ $item->detail->product->name }}</td>
                                 <td class="px-4 py-3 tnum">{{ $item->qty }}</td>
                             </tr>
                         @endforeach

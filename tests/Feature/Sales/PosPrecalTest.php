@@ -3,6 +3,7 @@
 namespace Tests\Feature\Sales;
 
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\RxDetail;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\Clinical\Services\PrecalService;
 use App\Modules\CRM\Models\Customer;
@@ -38,7 +39,7 @@ class PosPrecalTest extends TestCase
 
     private Customer $customer;
 
-    private Product $lensRx;
+    private RxDetail $lensRx;
 
     private Prescription $prescription;
 
@@ -54,7 +55,7 @@ class PosPrecalTest extends TestCase
         $this->kasir->branches()->sync([$this->branch->id]);
 
         $this->customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
-        $this->lensRx = Product::factory()->ofType('rx')->create(['sale_price' => '300000', 'name' => 'Lensa RX Uji']);
+        $this->lensRx = RxDetail::factory()->create(['sale_price' => '300000', 'product_id' => Product::factory()->forType('rx')->create(['name' => 'Lensa RX Uji'])->id]);
         $this->prescription = Prescription::factory()->create(['customer_id' => $this->customer->id]);
     }
 
@@ -129,7 +130,7 @@ class PosPrecalTest extends TestCase
                 'sale_date' => '2026-10-22',
                 'tax_mode' => 'inclusive',
             ], [
-                ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
+                ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
             ]);
             $this->fail('Penjualan RX tanpa resep harus ditolak');
         } catch (ValidationException $e) {
@@ -141,7 +142,7 @@ class PosPrecalTest extends TestCase
     public function test_rx_sale_stores_manual_precal_and_snapshot_without_pd_keys(): void
     {
         $sale = app(SalesService::class)->createSale($this->kasir, $this->rxSaleData(), [
-            ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair', 'precal' => $this->fullPrecal()],
+            ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair', 'precal' => $this->fullPrecal()],
         ]);
 
         $item = $sale->items()->firstOrFail();
@@ -167,7 +168,7 @@ class PosPrecalTest extends TestCase
     public function test_rx_sale_partial_precal_is_flagged_incomplete(): void
     {
         $sale = app(SalesService::class)->createSale($this->kasir, $this->rxSaleData(), [
-            ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'od', 'precal' => ['pvr' => '52']],
+            ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'od', 'precal' => ['pvr' => '52']],
         ]);
 
         $params = $sale->items()->firstOrFail()->rx_parameters;
@@ -180,7 +181,7 @@ class PosPrecalTest extends TestCase
     {
         try {
             app(SalesService::class)->createSale($this->kasir, $this->rxSaleData(), [
-                ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair', 'precal' => ['de' => 'X']],
+                ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair', 'precal' => ['de' => 'X']],
             ]);
             $this->fail('DE tidak valid harus ditolak');
         } catch (ValidationException $e) {
@@ -191,7 +192,7 @@ class PosPrecalTest extends TestCase
     public function test_precal_is_copied_to_automatic_pr_items(): void
     {
         $sale = app(SalesService::class)->createSale($this->kasir, $this->rxSaleData(), [
-            ['product_id' => $this->lensRx->id, 'qty' => 2, 'prescription_ref' => 'pair', 'precal' => $this->fullPrecal()],
+            ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 2, 'prescription_ref' => 'pair', 'precal' => $this->fullPrecal()],
         ]);
 
         $pr = PurchaseRequest::where('sale_id', $sale->id)->firstOrFail();
@@ -206,7 +207,7 @@ class PosPrecalTest extends TestCase
     public function test_update_precal_completes_and_syncs_to_pr(): void
     {
         $sale = app(SalesService::class)->createSale($this->kasir, $this->rxSaleData(), [
-            ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
+            ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);
         $item = $sale->items()->firstOrFail();
         $this->assertFalse($item->rx_parameters['precal_complete']);
@@ -223,7 +224,7 @@ class PosPrecalTest extends TestCase
     public function test_update_precal_requires_sales_update_permission(): void
     {
         $sale = app(SalesService::class)->createSale($this->kasir, $this->rxSaleData(), [
-            ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
+            ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);
         $item = $sale->items()->firstOrFail();
 
@@ -247,7 +248,7 @@ class PosPrecalTest extends TestCase
         $this->actingAs($this->kasir)
             ->getJson(route('sales.search-products', ['q' => 'Lensa RX']))
             ->assertOk()
-            ->assertJsonFragment(['id' => $this->lensRx->id, 'type' => 'rx']);
+            ->assertJsonFragment(['detail_id' => $this->lensRx->id, 'type' => 'rx']);
 
         $this->actingAs($this->kasir)
             ->getJson(route('sales.search-customers', ['q' => $this->customer->name]))
@@ -273,7 +274,7 @@ class PosPrecalTest extends TestCase
             'sale_date' => '2026-10-22',
             'tax_mode' => 'inclusive',
             'items' => [
-                ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair', 'precal' => $this->fullPrecal()],
+                ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair', 'precal' => $this->fullPrecal()],
             ],
             'payments' => [
                 ['method' => 'cash', 'amount' => '300000'],

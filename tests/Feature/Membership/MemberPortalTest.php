@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Membership;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -49,18 +49,18 @@ class MemberPortalTest extends TestCase
         $points = app(PointsService::class);
         $points->adjust($this->owner, $this->customer, 77, 'modal portal');
 
-        $frame = Product::factory()->ofType('frame')->create(['sale_price' => '250000']);
+        $frame = FrameDetail::factory()->create(['sale_price' => '250000']);
         app(InventoryService::class)
             ->recordMovement($this->owner, $frame, $this->branch, 'initial_stock', 5, 'test_seed', 1);
         $ownSale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
-        ], [['product_id' => $frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
 
         // Pelanggan lain dengan penjualannya sendiri.
         $other = Customer::factory()->create(['branch_id' => $this->branch->id, 'name' => 'Orang Lain']);
         $otherSale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $other->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
-        ], [['product_id' => $frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
 
         $token = $portal->issueToken($this->customer);
         $response = $this->get('/m/'.$token);

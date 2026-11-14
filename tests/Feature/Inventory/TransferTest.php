@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Inventory;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Models\StockTransfer;
@@ -34,7 +34,7 @@ class TransferTest extends TestCase
 
     private Branch $cabangB;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -43,7 +43,7 @@ class TransferTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->pusat = Branch::where('name', 'Pusat')->firstOrFail();
         $this->cabangB = Branch::create(['name' => 'Cabang B']);
-        $this->frame = Product::factory()->ofType('frame')->create(['cost_price' => '100000']);
+        $this->frame = FrameDetail::factory()->create(['cost_price' => '100000']);
     }
 
     private function stock(): InventoryService
@@ -57,7 +57,7 @@ class TransferTest extends TestCase
         $supplier = Supplier::create(['name' => 'PT Transfer Uji', 'is_active' => true]);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $supplier->id, $this->pusat->id, [
-            ['product_id' => $this->frame->id, 'qty' => $qty, 'unit_cost' => '100000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => $qty, 'unit_cost' => '100000'],
         ]);
         $orders->markSent($this->owner, $po);
         app(ReceiptService::class)->store($this->owner, $po, [
@@ -71,21 +71,21 @@ class TransferTest extends TestCase
     {
         $po = $this->receivedPo(10);
         $service = app(TransferService::class);
-        $this->assertSame(10, $service->distributableFromPo($po)[$this->frame->id]);
+        $this->assertSame(10, $service->distributableFromPo($po)['frame:'.$this->frame->id]);
 
         $transfer = $service->sendFromPo($this->owner, $po, $this->cabangB->id, [
-            ['product_id' => $this->frame->id, 'qty' => 4],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 4],
         ]);
         $this->assertMatchesRegularExpression('/^TRF-\d{6}-0001$/', $transfer->number);
         // Asal berkurang saat sent; tujuan BELUM bertambah (dalam perjalanan).
-        $this->assertSame(6, $this->stock()->currentStock($this->frame->id, $this->pusat->id));
-        $this->assertSame(0, $this->stock()->currentStock($this->frame->id, $this->cabangB->id));
-        $this->assertSame(6, $service->distributableFromPo($po->refresh())[$this->frame->id]);
+        $this->assertSame(6, $this->stock()->currentStock('frame', $this->frame->id, $this->pusat->id));
+        $this->assertSame(0, $this->stock()->currentStock('frame', $this->frame->id, $this->cabangB->id));
+        $this->assertSame(6, $service->distributableFromPo($po->refresh())['frame:'.$this->frame->id]);
 
         // Melebihi sisa distribusi ditolak.
         try {
             $service->sendFromPo($this->owner, $po->refresh(), $this->cabangB->id, [
-                ['product_id' => $this->frame->id, 'qty' => 7],
+                ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 7],
             ]);
             $this->fail('Transfer melebihi sisa PO harus ditolak');
         } catch (ValidationException) {
@@ -94,7 +94,7 @@ class TransferTest extends TestCase
 
         $service->receive($this->owner, $transfer);
         $this->assertSame('received', $transfer->refresh()->status);
-        $this->assertSame(4, $this->stock()->currentStock($this->frame->id, $this->cabangB->id));
+        $this->assertSame(4, $this->stock()->currentStock('frame', $this->frame->id, $this->cabangB->id));
 
         // Terima dua kali ditolak (idempotensi).
         $this->expectException(ValidationException::class);
@@ -107,19 +107,19 @@ class TransferTest extends TestCase
         $service = app(TransferService::class);
 
         $transfer = $service->sendFromBranchStock($this->owner, $this->pusat->id, $this->cabangB->id, [
-            ['product_id' => $this->frame->id, 'qty' => 2],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 2],
         ]);
-        $this->assertSame(3, $this->stock()->currentStock($this->frame->id, $this->pusat->id));
+        $this->assertSame(3, $this->stock()->currentStock('frame', $this->frame->id, $this->pusat->id));
 
         $service->cancel($this->owner, $transfer);
         $this->assertSame('cancelled', $transfer->refresh()->status);
-        $this->assertSame(5, $this->stock()->currentStock($this->frame->id, $this->pusat->id));
+        $this->assertSame(5, $this->stock()->currentStock('frame', $this->frame->id, $this->pusat->id));
         // Transfer batal tidak mengurangi sisa distribusi/saldo mana pun lagi.
-        $this->assertSame(0, $this->stock()->currentStock($this->frame->id, $this->cabangB->id));
+        $this->assertSame(0, $this->stock()->currentStock('frame', $this->frame->id, $this->cabangB->id));
 
         // Sesudah diterima, batal ditolak.
         $transfer2 = $service->sendFromBranchStock($this->owner, $this->pusat->id, $this->cabangB->id, [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ]);
         $service->receive($this->owner, $transfer2);
         $this->expectException(ValidationException::class);
@@ -131,7 +131,7 @@ class TransferTest extends TestCase
         $service = app(TransferService::class);
         try {
             $service->sendFromBranchStock($this->owner, $this->pusat->id, $this->pusat->id, [
-                ['product_id' => $this->frame->id, 'qty' => 1],
+                ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
             ]);
             $this->fail('Transfer ke cabang yang sama harus ditolak');
         } catch (ValidationException) {
@@ -141,7 +141,7 @@ class TransferTest extends TestCase
         // Stok cabang bebas: tidak boleh melebihi saldo (semua tipe).
         $this->expectException(ValidationException::class);
         $service->sendFromBranchStock($this->owner, $this->pusat->id, $this->cabangB->id, [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ]);
     }
 
@@ -149,7 +149,7 @@ class TransferTest extends TestCase
     {
         $po = $this->receivedPo(3);
         $transfer = app(TransferService::class)->sendFromPo($this->owner, $po, $this->cabangB->id, [
-            ['product_id' => $this->frame->id, 'qty' => 3],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 3],
         ]);
 
         // Matriks nyata: Kasir tidak memegang stock.* sama sekali → 403.
@@ -173,7 +173,7 @@ class TransferTest extends TestCase
         $gudangB->branches()->sync([$this->cabangB->id]);
         $this->actingAs($gudangB)->post('/transfer/'.$transfer->id.'/terima')->assertRedirect();
         $this->assertSame('received', $transfer->refresh()->status);
-        $this->assertSame(3, $this->stock()->currentStock($this->frame->id, $this->cabangB->id));
+        $this->assertSame(3, $this->stock()->currentStock('frame', $this->frame->id, $this->cabangB->id));
 
         // Pengguna cabang ketiga yang tak terkait: 404.
         $branchC = Branch::create(['name' => 'Cabang C']);

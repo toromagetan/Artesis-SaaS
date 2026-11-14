@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Lab;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\RxDetail;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -40,7 +40,7 @@ class QcRecordingTest extends TestCase
 
     private Customer $customer;
 
-    private Product $lensRx;
+    private RxDetail $lensRx;
 
     protected function setUp(): void
     {
@@ -49,7 +49,7 @@ class QcRecordingTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
-        $this->lensRx = Product::factory()->ofType('rx')->create(['sale_price' => '300000']);
+        $this->lensRx = RxDetail::factory()->create(['sale_price' => '300000']);
         $this->technician = User::create([
             'name' => 'Teknisi Uji', 'username' => 'teknisiuji', 'password' => 'password', 'is_active' => true,
         ]);
@@ -67,7 +67,7 @@ class QcRecordingTest extends TestCase
             // ADR-019: item RX mewajibkan resep pelanggan yang sama.
             'prescription_id' => Prescription::factory()->create(['customer_id' => $this->customer->id])->id,
         ], [
-            ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
+            ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);
 
         return LensProcess::where('sale_id', $sale->id)->firstOrFail();

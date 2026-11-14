@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Security;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -82,11 +83,7 @@ class ReportExportTenantIsolationTest extends TestCase
     private function seedSale(Tenant $tenant, User $admin, Branch $branch, string $tag, int $qty): Sale
     {
         $supplier = Supplier::create(['name' => 'PT Ekspor '.$tag, 'is_active' => true, 'tenant_id' => $tenant->id]);
-        $product = Product::create([
-            'type' => 'frame', 'name' => 'Frame Ekspor '.$tag, 'brand' => 'Uji',
-            'sku' => 'SKU-EKSPOR-'.$tag, 'cost_price' => 100000, 'sale_price' => 250000,
-            'is_active' => true, 'tenant_id' => $tenant->id,
-        ]);
+        $product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Ekspor '.$tag, 'brand' => 'Uji', 'tenant_id' => $tenant->id])->id, 'sku' => 'SKU-EKSPOR-'.$tag, 'cost_price' => 100000, 'sale_price' => 250000, 'is_active' => true, 'tenant_id' => $tenant->id]);
         $customer = Customer::create([
             'name' => 'Pelanggan Ekspor '.$tag, 'phone' => '0813'.$tag, 'branch_id' => $branch->id,
             'tenant_id' => $tenant->id,
@@ -94,7 +91,7 @@ class ReportExportTenantIsolationTest extends TestCase
 
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($admin, $supplier->id, $branch->id, [
-            ['product_id' => $product->id, 'qty' => 5, 'unit_cost' => '100000'],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 5, 'unit_cost' => '100000'],
         ]);
         $orders->markSent($admin, $po);
         app(ReceiptService::class)->store($admin, $po, [
@@ -104,7 +101,7 @@ class ReportExportTenantIsolationTest extends TestCase
         return app(SalesService::class)->createSale($admin, [
             'customer_id' => $customer->id, 'sale_date' => '2026-10-10',
             'tax_mode' => 'exclusive', 'branch_id' => $branch->id,
-        ], [['product_id' => $product->id, 'qty' => $qty]], [['method' => 'cash', 'amount' => (string) (250000 * $qty)]]);
+        ], [['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => $qty]], [['method' => 'cash', 'amount' => (string) (250000 * $qty)]]);
     }
 
     public function test_sales_report_csv_export_contains_only_own_tenant_rows(): void

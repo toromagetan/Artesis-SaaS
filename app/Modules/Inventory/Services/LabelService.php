@@ -2,42 +2,49 @@
 
 namespace App\Modules\Inventory\Services;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Purchasing\Models\Receipt;
 use App\Support\Barcode;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 /**
  * Label harga & barcode (F4.4, PRD-Detail 7.6): menyusun daftar
- * label dari pilihan produk (dengan jumlah salinan per produk)
- * atau dari satu batch penerimaan (salinan = qty diterima ×
- * pengali). Barcode produk 12/13 digit numerik dicetak EAN-13;
+ * label dari pilihan detail produk (dengan jumlah salinan per
+ * detail) atau dari satu batch penerimaan (salinan = qty diterima
+ * × pengali). Barcode detail 12/13 digit numerik dicetak EAN-13;
  * selain itu Code 128 dari barcode, atau dari SKU bila kosong.
+ * A1: label menempel pada DETAIL (SKU/barcode/harga milik detail).
  */
 class LabelService
 {
     /**
-     * @param  array<int, int>  $copiesByProductId  product_id => jumlah label
+     * @param  array<string, int>  $copiesByDetailKey  "alias:id" => jumlah label
      * @return array<int, array<string, mixed>>
      */
-    public function forProducts(array $copiesByProductId): array
+    public function forProducts(array $copiesByDetailKey): array
     {
-        $copiesByProductId = array_filter(
-            $copiesByProductId,
+        $copiesByDetailKey = array_filter(
+            $copiesByDetailKey,
             fn ($copies) => (int) $copies > 0,
         );
-        if ($copiesByProductId === []) {
+        if ($copiesByDetailKey === []) {
             throw ValidationException::withMessages(['items' => __('ui.labels.nothing_selected')]);
         }
-        $products = Product::whereIn('id', array_keys($copiesByProductId))->get()->keyBy('id');
+        $service = app(ProductService::class);
         $labels = [];
-        foreach ($copiesByProductId as $productId => $copies) {
-            $product = $products->get((int) $productId);
-            if ($product === null) {
+        foreach ($copiesByDetailKey as $key => $copies) {
+            [$type, $id] = array_pad(explode(':', (string) $key, 2), 2, null);
+            if ($type === null || $id === null) {
+                continue;
+            }
+            try {
+                $detail = $service->findDetail($type, (int) $id);
+            } catch (\Throwable) {
                 continue;
             }
             for ($i = 0, $n = min((int) $copies, 500); $i < $n; $i++) {
-                $labels[] = $this->entryFor($product);
+                $labels[] = $this->entryFor($detail);
             }
         }
 
@@ -47,16 +54,16 @@ class LabelService
     /** @return array<int, array<string, mixed>> */
     public function forReceipt(Receipt $receipt, int $multiplier = 1): array
     {
-        $receipt->loadMissing('items.purchaseOrderItem.product');
+        $receipt->loadMissing('items.purchaseOrderItem.detail');
         $labels = [];
         foreach ($receipt->items as $item) {
-            $product = $item->purchaseOrderItem?->product;
-            if ($product === null) {
+            $detail = $item->purchaseOrderItem?->detail;
+            if ($detail === null) {
                 continue;
             }
             $count = min(max(1, $multiplier), 50) * (int) $item->qty;
             for ($i = 0, $n = min($count, 2000); $i < $n; $i++) {
-                $labels[] = $this->entryFor($product);
+                $labels[] = $this->entryFor($detail);
             }
         }
         if ($labels === []) {
@@ -66,10 +73,10 @@ class LabelService
         return $labels;
     }
 
-    /** Satu entri label: nama, SKU, harga, SVG barcode + teksnya. */
-    public function entryFor(Product $product): array
+    /** Satu entri label: nama master, SKU, harga, SVG barcode + teksnya. */
+    public function entryFor(Model $detail): array
     {
-        $raw = trim((string) ($product->barcode ?: $product->sku));
+        $raw = trim((string) ($detail->barcode ?: $detail->sku));
         $format = 'code128';
         $svg = null;
         if (preg_match('/^\d{12,13}$/', $raw) === 1) {
@@ -86,9 +93,9 @@ class LabelService
         }
 
         return [
-            'name' => $product->name,
-            'sku' => $product->sku,
-            'price' => $product->sale_price,
+            'name' => $detail->product?->name ?? '',
+            'sku' => $detail->sku,
+            'price' => $detail->sale_price,
             'barcode_text' => $raw,
             'format' => $format,
             'svg' => $svg,

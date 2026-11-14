@@ -74,9 +74,11 @@ class OpnameService
                 throw ValidationException::withMessages(['branch_id' => __('ui.opname.already_active')]);
             }
             $balances = $this->inventory->balancesForBranch($locked->branch_id);
-            foreach ($balances as $productId => $balance) {
+            foreach ($balances as $key => $balance) {
+                [$detailType, $detailId] = explode(':', $key);
                 $locked->items()->create([
-                    'product_id' => $productId,
+                    'detail_id' => (int) $detailId,
+                    'detail_type' => $detailType,
                     'system_qty' => $balance,
                     'counted_qty' => null,
                     'difference' => 0,
@@ -170,12 +172,12 @@ class OpnameService
                 'approved_by' => $actor->id,
                 'approved_at' => now(),
             ]);
-            foreach ($locked->items()->with('product')->get() as $item) {
+            foreach ($locked->items()->with('detail')->get() as $item) {
                 if ($item->difference === 0) {
                     continue;
                 }
                 $movement = $this->inventory->recordMovement(
-                    $actor, $item->product, $branch, 'opname',
+                    $actor, $item->detail, $branch, 'opname',
                     $item->difference, 'stock_opname', $locked->id,
                 );
                 $item->update(['movement_id' => $movement->id]);

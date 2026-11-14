@@ -3,7 +3,8 @@
 namespace Tests\Feature\Inventory;
 
 use App\Modules\Accounting\Models\Journal;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
+use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Models\StockLayer;
@@ -22,6 +23,7 @@ use App\Modules\Sales\Services\SalesService;
 use App\Support\Money;
 use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -63,12 +65,12 @@ class FifoCostingTest extends TestCase
     }
 
     /** Terima $qty unit produk ke Pusat pada harga aktual $unitCost. */
-    private function receive(Product $product, int $qty, string $unitCost, ?Branch $branch = null): Receipt
+    private function receive(Model $product, int $qty, string $unitCost, ?Branch $branch = null): Receipt
     {
         $branch ??= $this->pusat;
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $this->supplier->id, $branch->id, [
-            ['product_id' => $product->id, 'qty' => $qty, 'unit_cost' => $unitCost],
+            ['detail_type' => $product::DETAIL_TYPE, 'detail_id' => $product->id, 'qty' => $qty, 'unit_cost' => $unitCost],
         ]);
         $orders->markSent($this->owner, $po);
         $receipt = app(ReceiptService::class)->store($this->owner, $po, [
@@ -78,14 +80,14 @@ class FifoCostingTest extends TestCase
         return $receipt;
     }
 
-    private function sell(Product $product, int $qty, ?Branch $branch = null): Sale
+    private function sell(Model $product, int $qty, ?Branch $branch = null): Sale
     {
         return app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id,
             'tax_mode' => 'exclusive', 'tax_rate' => '0',
             'branch_id' => ($branch ?? $this->pusat)->id,
         ], [
-            ['product_id' => $product->id, 'qty' => $qty],
+            ['detail_type' => $product::DETAIL_TYPE, 'detail_id' => $product->id, 'qty' => $qty],
         ]);
     }
 
@@ -116,7 +118,7 @@ class FifoCostingTest extends TestCase
 
     public function test_fifo_layers_hpp_and_gl_reconcile(): void
     {
-        $frame = Product::factory()->ofType('frame')->create([
+        $frame = FrameDetail::factory()->create([
             'sku' => 'FR-FIFO-1', 'cost_price' => '75000', 'sale_price' => '200000',
         ]);
         $this->receive($frame, 10, '80000');
@@ -129,18 +131,18 @@ class FifoCostingTest extends TestCase
         $this->assertSame('1000000.00', (string) $lines['5-1100']->debit);
         $this->assertSame('1000000.00', (string) $lines['1-1400']->credit);
 
-        $layers = StockLayer::where('product_id', $frame->id)->orderBy('id')->get();
+        $layers = StockLayer::where('detail_type', $frame::DETAIL_TYPE)->where('detail_id', $frame->id)->orderBy('id')->get();
         $this->assertSame(0, (int) $layers[0]->qty_remaining);
         $this->assertSame(8, (int) $layers[1]->qty_remaining);
 
-        $value = $this->fifo()->inventoryValue($frame->id, $this->pusat->id);
+        $value = $this->fifo()->inventoryValue($frame::DETAIL_TYPE, $frame->id, $this->pusat->id);
         $this->assertSame('800000.00', $value->toDecimalString());
         $this->assertTrue($this->glBalance('1-1400', $this->pusat->id)->equals($value));
     }
 
     public function test_backorder_hpp_deferred_until_covering_receipt(): void
     {
-        $lens = Product::factory()->ofType('lens')->create([
+        $lens = LensDetail::factory()->create([
             'sku' => 'LN-FIFO-1', 'cost_price' => '40000', 'sale_price' => '150000',
         ]);
         $sale = $this->sell($lens, 4);
@@ -157,15 +159,15 @@ class FifoCostingTest extends TestCase
         $this->assertSame('200000.00', (string) $coverage['5-1100']->debit);
         $this->assertSame('200000.00', (string) $coverage['1-1400']->credit);
 
-        $value = $this->fifo()->inventoryValue($lens->id, $this->pusat->id);
+        $value = $this->fifo()->inventoryValue($lens::DETAIL_TYPE, $lens->id, $this->pusat->id);
         $this->assertSame('300000.00', $value->toDecimalString());
         $this->assertTrue($this->glBalance('1-1400', $this->pusat->id)->equals($value));
-        $this->assertSame(6, app(InventoryService::class)->currentStock($lens->id, $this->pusat->id));
+        $this->assertSame(6, app(InventoryService::class)->currentStock($lens::DETAIL_TYPE, $lens->id, $this->pusat->id));
     }
 
     public function test_purchase_return_consumes_own_receipt_layers_first(): void
     {
-        $frame = Product::factory()->ofType('frame')->create([
+        $frame = FrameDetail::factory()->create([
             'sku' => 'FR-FIFO-2', 'cost_price' => '75000', 'sale_price' => '200000',
         ]);
         $this->receive($frame, 10, '80000');
@@ -175,7 +177,7 @@ class FifoCostingTest extends TestCase
             ['receipt_item_id' => $second->items->first()->id, 'qty' => 3],
         ], 'Kelebihan kirim');
 
-        $layers = StockLayer::where('product_id', $frame->id)->orderBy('id')->get();
+        $layers = StockLayer::where('detail_type', $frame::DETAIL_TYPE)->where('detail_id', $frame->id)->orderBy('id')->get();
         $this->assertSame(10, (int) $layers[0]->qty_remaining);
         $this->assertSame(7, (int) $layers[1]->qty_remaining);
 
@@ -190,7 +192,7 @@ class FifoCostingTest extends TestCase
 
     public function test_sale_return_restocks_at_original_fifo_cost(): void
     {
-        $frame = Product::factory()->ofType('frame')->create([
+        $frame = FrameDetail::factory()->create([
             'sku' => 'FR-FIFO-3', 'cost_price' => '75000', 'sale_price' => '200000',
         ]);
         $this->receive($frame, 5, '80000');
@@ -204,54 +206,54 @@ class FifoCostingTest extends TestCase
         $lines = $this->journalLines('sale_return', $retur->id);
         $this->assertSame('80000.00', (string) $lines['1-1400']->debit);
         $this->assertSame('80000.00', (string) $lines['5-1100']->credit);
-        $restockLayer = StockLayer::where('product_id', $frame->id)
+        $restockLayer = StockLayer::where('detail_type', $frame::DETAIL_TYPE)->where('detail_id', $frame->id)
             ->where('qty_received', 1)->firstOrFail();
         $this->assertSame('80000.00', (string) $restockLayer->unit_cost);
     }
 
     public function test_transfer_carries_layer_costs_to_destination(): void
     {
-        $frame = Product::factory()->ofType('frame')->create([
+        $frame = FrameDetail::factory()->create([
             'sku' => 'FR-FIFO-4', 'cost_price' => '75000', 'sale_price' => '200000',
         ]);
         $this->receive($frame, 10, '80000');
 
         $transfers = app(TransferService::class);
         $transfer = $transfers->sendFromBranchStock($this->owner, $this->pusat->id, $this->cabangB->id, [
-            ['product_id' => $frame->id, 'qty' => 4],
+            ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 4],
         ]);
         $transfers->receive($this->owner, $transfer);
 
-        $destValue = $this->fifo()->inventoryValue($frame->id, $this->cabangB->id);
+        $destValue = $this->fifo()->inventoryValue($frame::DETAIL_TYPE, $frame->id, $this->cabangB->id);
         $this->assertSame('320000.00', $destValue->toDecimalString());
-        $destLayer = StockLayer::where('product_id', $frame->id)
+        $destLayer = StockLayer::where('detail_type', $frame::DETAIL_TYPE)->where('detail_id', $frame->id)
             ->where('branch_id', $this->cabangB->id)->firstOrFail();
         $this->assertSame('80000.00', (string) $destLayer->unit_cost);
-        $this->assertSame('480000.00', $this->fifo()->inventoryValue($frame->id, $this->pusat->id)->toDecimalString());
+        $this->assertSame('480000.00', $this->fifo()->inventoryValue($frame::DETAIL_TYPE, $frame->id, $this->pusat->id)->toDecimalString());
     }
 
     public function test_void_restores_layer_quantities(): void
     {
-        $frame = Product::factory()->ofType('frame')->create([
+        $frame = FrameDetail::factory()->create([
             'sku' => 'FR-FIFO-5', 'cost_price' => '75000', 'sale_price' => '200000',
         ]);
         $this->receive($frame, 5, '80000');
         $this->receive($frame, 5, '100000');
         $sale = $this->sell($frame, 7);
 
-        $layers = StockLayer::where('product_id', $frame->id)->orderBy('id')->get();
+        $layers = StockLayer::where('detail_type', $frame::DETAIL_TYPE)->where('detail_id', $frame->id)->orderBy('id')->get();
         $this->assertSame([0, 3], $layers->map(fn ($l) => (int) $l->qty_remaining)->all());
 
         app(SalesService::class)->voidSale($this->owner, $sale, 'Salah input');
 
-        $layers = StockLayer::where('product_id', $frame->id)->orderBy('id')->get();
+        $layers = StockLayer::where('detail_type', $frame::DETAIL_TYPE)->where('detail_id', $frame->id)->orderBy('id')->get();
         $this->assertSame([5, 5], $layers->map(fn ($l) => (int) $l->qty_remaining)->all());
-        $this->assertSame('900000.00', $this->fifo()->inventoryValue($frame->id, $this->pusat->id)->toDecimalString());
+        $this->assertSame('900000.00', $this->fifo()->inventoryValue($frame::DETAIL_TYPE, $frame->id, $this->pusat->id)->toDecimalString());
     }
 
     public function test_migration_rebuilds_layers_and_posts_opening_adjustment(): void
     {
-        $frame = Product::factory()->ofType('frame')->create([
+        $frame = FrameDetail::factory()->create([
             'sku' => 'FR-FIFO-6', 'cost_price' => '75000', 'sale_price' => '200000',
         ]);
         $this->receive($frame, 10, '80000');
@@ -278,7 +280,7 @@ class FifoCostingTest extends TestCase
         Artisan::call('lentera:fifo-migrasi');
 
         // Lapisan terbangun ulang persis FIFO; GL disesuaikan ke nilai lapisan.
-        $this->assertSame('800000.00', $this->fifo()->inventoryValue($frame->id, $this->pusat->id)->toDecimalString());
+        $this->assertSame('800000.00', $this->fifo()->inventoryValue($frame::DETAIL_TYPE, $frame->id, $this->pusat->id)->toDecimalString());
         $this->assertSame('800000.00', $this->glBalance('1-1400', $this->pusat->id)->toDecimalString());
         $opening = $this->journalLines('fifo_opening', $this->pusat->id);
         $this->assertSame('100000.00', (string) $opening['5-1100']->debit);

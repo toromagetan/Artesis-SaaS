@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Platform;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -73,13 +74,13 @@ class AiAssistantTest extends TestCase
         ]);
     }
 
-    private function fixtureSale(): Product
+    private function fixtureSale(): FrameDetail
     {
         $supplier = Supplier::create(['name' => 'PT AI', 'is_active' => true]);
-        $product = Product::factory()->ofType('frame')->create(['sku' => 'AI-1', 'name' => 'Frame Uji', 'cost_price' => '50000', 'sale_price' => '100000']);
+        $product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Uji'])->id, 'sku' => 'AI-1', 'cost_price' => '50000', 'sale_price' => '100000']);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $supplier->id, $this->branch->id, [
-            ['product_id' => $product->id, 'qty' => 5, 'unit_cost' => '50000'],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 5, 'unit_cost' => '50000'],
         ]);
         $orders->markSent($this->owner, $po);
         app(ReceiptService::class)->store($this->owner, $po, [
@@ -88,7 +89,7 @@ class AiAssistantTest extends TestCase
         $customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
         app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $customer->id, 'sale_date' => now()->toDateString(), 'tax_mode' => 'exclusive', 'branch_id' => $this->branch->id,
-        ], [['product_id' => $product->id, 'qty' => 2]], [['method' => 'cash', 'amount' => '200000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 2]], [['method' => 'cash', 'amount' => '200000']]);
 
         return $product;
     }

@@ -106,9 +106,12 @@ class AiAssistantService
         if ($product === null) {
             return ['status' => 'unknown', 'text' => '', 'basis' => $basis];
         }
+        // A1: master menaungi banyak detail — stok = Σ saldo detailnya.
         $qty = 0;
-        foreach ($branchIds as $branchId) {
-            $qty += $this->inventory->balancesForBranch($branchId)[$product->id] ?? 0;
+        foreach ($product->allDetails() as $detail) {
+            foreach ($branchIds as $branchId) {
+                $qty += $this->inventory->balancesForBranch($branchId)[$detail::DETAIL_TYPE.':'.$detail->id] ?? 0;
+            }
         }
 
         return ['status' => 'ok', 'text' => $product->name.': '.$qty, 'basis' => $basis + ['product' => $product->name, 'source' => 'InventoryService']];

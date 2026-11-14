@@ -68,7 +68,7 @@ try {
             'sale_date' => now()->format('Y-m-d'),
             'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $params['product_id'], 'qty' => 1, 'unit_price' => $params['price']],
+            ['detail_type' => $params['detail_type'], 'detail_id' => $params['detail_id'], 'qty' => 1, 'unit_price' => $params['price']],
         ], [['method' => 'cash', 'amount' => $params['price']]]),
         'complete' => app(LensProcessService::class)->complete(
             $owner, LensProcess::findOrFail($params['process_id']),

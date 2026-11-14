@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Inventory;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\RxDetail;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
@@ -14,6 +16,7 @@ use App\Modules\Sales\Services\SaleReturnService;
 use App\Modules\Sales\Services\SalesService;
 use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -46,7 +49,7 @@ class InventorySalesIntegrationTest extends TestCase
         return app(InventoryService::class);
     }
 
-    private function seedStock(Product $product, int $qty): void
+    private function seedStock(Model $product, int $qty): void
     {
         $this->inventory()->recordMovement(
             $this->owner, $product, $this->branch, 'initial_stock', $qty, 'test_seed', 1,
@@ -55,16 +58,16 @@ class InventorySalesIntegrationTest extends TestCase
 
     public function test_sale_consumes_stock_and_records_balance_chain(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['sale_price' => '100000']);
+        $frame = FrameDetail::factory()->create(['sale_price' => '100000']);
         $this->seedStock($frame, 5);
 
         app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $frame->id, 'qty' => 2],
+            ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 2],
         ]);
 
-        $this->assertSame(3, $this->inventory()->currentStock($frame->id, $this->branch->id));
+        $this->assertSame(3, $this->inventory()->currentStock($frame::DETAIL_TYPE, $frame->id, $this->branch->id));
         $movements = StockMovement::orderBy('id')->get();
         $this->assertSame([5, 3], $movements->pluck('balance_after')->all());
         $this->assertSame('sale', $movements->last()->reason);
@@ -73,67 +76,67 @@ class InventorySalesIntegrationTest extends TestCase
 
     public function test_frame_sale_beyond_stock_is_rejected_and_sale_rolls_back(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['sale_price' => '100000']);
+        $frame = FrameDetail::factory()->create(['sale_price' => '100000']);
         $this->seedStock($frame, 1);
 
         try {
             app(SalesService::class)->createSale($this->owner, [
                 'customer_id' => $this->customer->id, 'tax_mode' => 'inclusive',
             ], [
-                ['product_id' => $frame->id, 'qty' => 2],
+                ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 2],
             ]);
             $this->fail('Stok frame tidak cukup harus ditolak');
         } catch (ValidationException) {
             // Penjualan batal total: tidak ada sale, tidak ada gerakan sale.
             $this->assertSame(0, Sale::count());
             $this->assertSame(1, StockMovement::count()); // hanya initial_stock
-            $this->assertSame(1, $this->inventory()->currentStock($frame->id, $this->branch->id));
+            $this->assertSame(1, $this->inventory()->currentStock($frame::DETAIL_TYPE, $frame->id, $this->branch->id));
         }
     }
 
     public function test_lens_may_go_negative_as_backorder(): void
     {
-        $lens = Product::factory()->ofType('rx')->create(['sale_price' => '100000']);
+        $lens = RxDetail::factory()->create(['sale_price' => '100000']);
 
         app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'inclusive',
             // ADR-019: item RX mewajibkan resep pelanggan yang sama.
             'prescription_id' => Prescription::factory()->create(['customer_id' => $this->customer->id])->id,
         ], [
-            ['product_id' => $lens->id, 'qty' => 1, 'prescription_ref' => 'pair'],
+            ['detail_type' => 'rx', 'detail_id' => $lens->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);
 
-        $this->assertSame(-1, $this->inventory()->currentStock($lens->id, $this->branch->id));
+        $this->assertSame(-1, $this->inventory()->currentStock($lens::DETAIL_TYPE, $lens->id, $this->branch->id));
     }
 
     public function test_void_restores_stock_with_sale_void_movement(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['sale_price' => '100000']);
+        $frame = FrameDetail::factory()->create(['sale_price' => '100000']);
         $this->seedStock($frame, 4);
 
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $frame->id, 'qty' => 3],
+            ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 3],
         ]);
-        $this->assertSame(1, $this->inventory()->currentStock($frame->id, $this->branch->id));
+        $this->assertSame(1, $this->inventory()->currentStock($frame::DETAIL_TYPE, $frame->id, $this->branch->id));
 
         app(SalesService::class)->voidSale($this->owner, $sale, 'Batal');
-        $this->assertSame(4, $this->inventory()->currentStock($frame->id, $this->branch->id));
+        $this->assertSame(4, $this->inventory()->currentStock($frame::DETAIL_TYPE, $frame->id, $this->branch->id));
         $this->assertSame('sale_void', StockMovement::orderByDesc('id')->first()->reason);
     }
 
     public function test_resale_return_restocks_but_damaged_does_not(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['sale_price' => '100000']);
+        $frame = FrameDetail::factory()->create(['sale_price' => '100000']);
         $this->seedStock($frame, 2);
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $frame->id, 'qty' => 2],
+            ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 2],
         ]);
         $item = $sale->items->first();
-        $this->assertSame(0, $this->inventory()->currentStock($frame->id, $this->branch->id));
+        $this->assertSame(0, $this->inventory()->currentStock($frame::DETAIL_TYPE, $frame->id, $this->branch->id));
 
         app(SaleReturnService::class)->create($this->owner, $sale, [
             ['sale_item_id' => $item->id, 'qty' => 1, 'condition' => 'resale'],
@@ -141,13 +144,13 @@ class InventorySalesIntegrationTest extends TestCase
         ], 'Retur campuran', 'cash');
 
         // Hanya unit resale yang kembali ke stok.
-        $this->assertSame(1, $this->inventory()->currentStock($frame->id, $this->branch->id));
+        $this->assertSame(1, $this->inventory()->currentStock($frame::DETAIL_TYPE, $frame->id, $this->branch->id));
         $this->assertSame(1, StockMovement::where('reason', 'sale_return')->count());
     }
 
     public function test_movement_rows_are_immutable_by_design(): void
     {
-        $frame = Product::factory()->ofType('frame')->create();
+        $frame = FrameDetail::factory()->create();
         $movement = $this->inventory()->recordMovement(
             $this->owner, $frame, $this->branch, 'initial_stock', 7, 'test_seed', 1,
         );
@@ -157,7 +160,7 @@ class InventorySalesIntegrationTest extends TestCase
 
     public function test_stock_pages_render_with_balances(): void
     {
-        $frame = Product::factory()->ofType('frame')->create(['name' => 'Frame Stok Uji']);
+        $frame = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Stok Uji'])->id]);
         $this->seedStock($frame, 9);
 
         $this->actingAs($this->owner)->get('/stok')

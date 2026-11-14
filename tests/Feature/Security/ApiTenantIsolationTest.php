@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Security;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -87,11 +88,7 @@ class ApiTenantIsolationTest extends TestCase
     private function seedTenantSales(Tenant $tenant, User $admin, Branch $branch, string $tag): Sale
     {
         $supplier = Supplier::create(['name' => 'PT API '.$tag, 'is_active' => true, 'tenant_id' => $tenant->id]);
-        $product = Product::create([
-            'type' => 'frame', 'name' => 'Frame API '.$tag, 'brand' => 'Uji',
-            'sku' => 'SKU-API-'.$tag, 'cost_price' => 100000, 'sale_price' => 250000,
-            'is_active' => true, 'tenant_id' => $tenant->id,
-        ]);
+        $product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame API '.$tag, 'brand' => 'Uji', 'tenant_id' => $tenant->id])->id, 'sku' => 'SKU-API-'.$tag, 'cost_price' => 100000, 'sale_price' => 250000, 'is_active' => true, 'tenant_id' => $tenant->id]);
         $customer = Customer::create([
             'name' => 'Pelanggan API '.$tag, 'phone' => '0812'.$tag, 'branch_id' => $branch->id,
             'tenant_id' => $tenant->id,
@@ -99,7 +96,7 @@ class ApiTenantIsolationTest extends TestCase
 
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($admin, $supplier->id, $branch->id, [
-            ['product_id' => $product->id, 'qty' => 5, 'unit_cost' => '100000'],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 5, 'unit_cost' => '100000'],
         ]);
         $orders->markSent($admin, $po);
         app(ReceiptService::class)->store($admin, $po, [
@@ -109,7 +106,7 @@ class ApiTenantIsolationTest extends TestCase
         return app(SalesService::class)->createSale($admin, [
             'customer_id' => $customer->id, 'sale_date' => '2026-10-02',
             'tax_mode' => 'exclusive', 'branch_id' => $branch->id,
-        ], [['product_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '250000']]);
     }
 
     public function test_products_and_customers_endpoints_are_tenant_fenced(): void

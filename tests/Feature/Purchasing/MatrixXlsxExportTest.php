@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Purchasing;
 
+use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\Catalog\Models\Product;
-use App\Modules\Catalog\Models\ProductParent;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
@@ -25,12 +25,11 @@ class MatrixXlsxExportTest extends TestCase
         $this->seed(IdentitySeeder::class);
         $owner = User::where('username', 'owner')->firstOrFail();
         $branch = Branch::where('name', 'Pusat')->firstOrFail();
-        $parent = ProductParent::create([
-            'name' => 'FSV 1.56 Bluecromic', 'brand' => 'Essilor', 'type' => 'lens', 'is_active' => true,
+        $parent = Product::factory()->forType('lens')->create([
+            'name' => 'FSV 1.56 Bluecromic', 'brand' => 'Essilor', 'is_active' => true,
         ]);
-        $variant = Product::create([
-            'parent_id' => $parent->id, 'sku' => 'LN-A', 'type' => 'lens',
-            'name' => 'FSV 1.56 Bluecromic', 'brand' => 'Essilor',
+        $variant = LensDetail::factory()->create([
+            'product_id' => $parent->id, 'sku' => 'LN-A',
             'sph' => -1.00, 'cyl' => 0.00, 'cost_price' => '50000', 'sale_price' => '100000', 'is_active' => true,
         ]);
         app(InventoryService::class)->recordMovement($owner, $variant, $branch, 'initial_stock', 6, 'test', 1);

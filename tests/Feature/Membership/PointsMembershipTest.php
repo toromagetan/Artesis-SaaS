@@ -3,7 +3,7 @@
 namespace Tests\Feature\Membership;
 
 use App\Modules\Accounting\Models\JournalLine;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -40,7 +40,7 @@ class PointsMembershipTest extends TestCase
 
     private Customer $customer;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -50,7 +50,7 @@ class PointsMembershipTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
-        $this->frame = Product::factory()->ofType('frame')->create(['sale_price' => '500000']);
+        $this->frame = FrameDetail::factory()->create(['sale_price' => '500000']);
         app(InventoryService::class)
             ->recordMovement($this->owner, $this->frame, $this->branch, 'initial_stock', 50, 'test_seed', 1);
     }
@@ -86,7 +86,7 @@ class PointsMembershipTest extends TestCase
         return app(SalesService::class)->createSale($this->owner, [
             'customer_id' => ($customer ?? $this->customer)->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'exclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ], [
             ['method' => 'cash', 'amount' => '555000'],
         ]);
@@ -132,7 +132,7 @@ class PointsMembershipTest extends TestCase
         $sale2 = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '100000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '100000'],
         ], [
             ['method' => 'cash', 'amount' => '95000'],
         ]);
@@ -157,7 +157,7 @@ class PointsMembershipTest extends TestCase
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '10000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '10000'],
         ], [
             ['method' => 'points', 'amount' => '10000'],
         ]);
@@ -199,7 +199,7 @@ class PointsMembershipTest extends TestCase
         $paidByPoints = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '10000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '10000'],
         ], [
             ['method' => 'points', 'amount' => '10000'],
         ]);

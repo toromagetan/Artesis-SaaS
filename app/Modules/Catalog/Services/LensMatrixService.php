@@ -2,23 +2,29 @@
 
 namespace App\Modules\Catalog\Services;
 
+use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\Catalog\Models\Product;
-use App\Modules\Catalog\Models\ProductParent;
 use App\Modules\Inventory\Services\InventoryService;
 use Illuminate\Support\Collection;
 
 /**
  * Matriks stok lensa — model mengikuti Artesis, penempatan tetap
  * alat bantu di dalam alur PO dan opname (BUKAN menu tersendiri;
- * keputusan owner 2026-10-19).
+ * keputusan owner 2026-10-19). Menu matriks tersendiri adalah
+ * modul A3 program adopsi.
  *
- * Model Artesis: sumbu adalah RENTANG LENGKAP langkah 0,25
- * sehingga sel tanpa varian tetap tampil (stok 0). Tiga bentuk
- * menurut jenis lensa (atribut lens_kind varian):
+ * A1: matriks bekerja di atas LensDetail (kolom type/index/
+ * eye_side/sph/cyl/add persis Artesis) di bawah master Product.
+ * Sumbu adalah RENTANG LENGKAP langkah 0,25 sehingga sel tanpa
+ * detail tetap tampil (stok 0). Tiga bentuk menurut jenis lensa
+ * (kolom type detail):
  *  - SV        : SPH -15,00..+6,00 × CYL -4,00..0,00
  *  - Progresif : SPH -2,00..+2,00 × ADD 0,75..3,00, baris
  *                terpisah per sisi mata (R dan L)
  *  - Bifokal   : SPH -2,00..+2,00 × ADD 0,75..3,00
+ *
+ * RX tidak lagi bermatriks: RxDetail persis Artesis tidak
+ * membawa sph/cyl (rentang RX hidup sebagai atribut).
  */
 class LensMatrixService
 {
@@ -30,87 +36,84 @@ class LensMatrixService
 
     public function __construct(private readonly InventoryService $inventory) {}
 
-    /** Produk layak matriks: lensa/RX bervarian induk dan ber-SPH. */
-    public function isMatrixProduct(Product $product): bool
+    /** Detail layak matriks: lensa ber-SPH. */
+    public function isMatrixProduct(LensDetail $detail): bool
     {
-        return in_array($product->type, ['lens', 'rx'], true)
-            && $product->parent_id !== null
-            && $product->sph !== null;
+        return $detail->sph !== null;
     }
 
-    /** Induk lensa yang memiliki minimal satu varian berkekuatan. */
+    /** Master lensa yang memiliki minimal satu detail berkekuatan. */
     public function matrixParents(): Collection
     {
-        return ProductParent::where('is_active', true)
-            ->where('type', 'lens')
-            ->whereHas('variants', fn ($q) => $q->whereNotNull('sph')->where('is_active', true))
+        return Product::where('is_active', true)
+            ->whereHas('category', fn ($q) => $q->where('type', 'lens'))
+            ->whereHas('lensDetails', fn ($q) => $q->whereNotNull('sph')->where('is_active', true))
             ->orderBy('name')
             ->get();
     }
 
-    /** Jenis matriks dari atribut lens_kind (teks bebas → dinormalkan). */
-    public function kindOfVariant(Product $product): string
+    /** Jenis matriks dari kolom type detail (enum Artesis). */
+    public function kindOfVariant(LensDetail $detail): string
     {
-        $raw = strtolower((string) ($product->attributeValue('lens_kind') ?? ''));
-
-        return match (true) {
-            str_contains($raw, 'prog') => self::KIND_PROGRESSIVE,
-            str_contains($raw, 'bif') => self::KIND_BIFOCAL,
+        return match ($detail->type) {
+            'Progresif' => self::KIND_PROGRESSIVE,
+            'Bifocal' => self::KIND_BIFOCAL,
             default => self::KIND_SV,
         };
     }
 
-    /** Jenis matriks sebuah induk: dari varian pertamanya yang berkekuatan. */
-    public function kindForParent(ProductParent $parent): string
+    /** Jenis matriks sebuah master: dari detail pertamanya yang berkekuatan. */
+    public function kindForParent(Product $parent): string
     {
-        $variant = $parent->variants()->whereNotNull('sph')->where('is_active', true)->orderBy('sku')->first();
+        $variant = $parent->lensDetails()->whereNotNull('sph')->where('is_active', true)->orderBy('sku')->first();
 
         return $variant !== null ? $this->kindOfVariant($variant) : self::KIND_SV;
     }
 
     /**
-     * Nilai saringan index/coating yang tersedia pada varian induk.
+     * Nilai saringan index/coating yang tersedia pada detail master.
      *
      * @return array{indexes: list<string>, coatings: list<string>}
      */
-    public function filterOptions(ProductParent $parent): array
+    public function filterOptions(Product $parent): array
     {
-        $variants = $parent->variants()->where('is_active', true)->get();
+        $variants = $parent->lensDetails()->where('is_active', true)->with('detailAttributes')->get();
 
         return [
-            'indexes' => $variants->map(fn (Product $p) => $p->attributeValue('index'))->filter()->unique()->sort()->values()->all(),
-            'coatings' => $variants->map(fn (Product $p) => $p->attributeValue('coating'))->filter()->unique()->sort()->values()->all(),
+            'indexes' => $variants->map(fn (LensDetail $d) => $d->index)->filter(fn ($v) => $v !== '' && $v !== null)->unique()->sort()->values()->all(),
+            'coatings' => $variants->map(fn (LensDetail $d) => $d->attributeValue('coating'))->filter()->unique()->sort()->values()->all(),
         ];
     }
 
     /**
-     * Grid rentang lengkap satu induk pada satu cabang.
+     * Grid rentang lengkap satu master pada satu cabang.
      *
-     * @return array{kind: string, cols: list<float>, col_label: string, rows: list<array{label: string, sph: float, eye: ?string, cells: array<string, ?array{product: Product, stock: int}>}>}
+     * @return array{kind: string, cols: list<float>, col_label: string, rows: list<array{label: string, sph: float, eye: ?string, cells: array<string, ?array{product: LensDetail, stock: int}>}>}
      */
-    public function gridForParent(ProductParent $parent, int $branchId, ?string $index = null, ?string $coating = null): array
+    public function gridForParent(Product $parent, int $branchId, ?string $index = null, ?string $coating = null): array
     {
         $kind = $this->kindForParent($parent);
         $balances = $this->inventory->balancesForBranch($branchId);
 
-        $variants = $parent->variants()
+        $variants = $parent->lensDetails()
             ->where('is_active', true)
             ->whereNotNull('sph')
+            ->with('detailAttributes')
             ->orderBy('sku')
             ->get()
-            ->filter(function (Product $p) use ($index, $coating) {
-                if ($index !== null && $index !== '' && $p->attributeValue('index') !== $index) {
+            ->filter(function (LensDetail $d) use ($index, $coating) {
+                if ($index !== null && $index !== '' && $d->index !== $index) {
                     return false;
                 }
-                if ($coating !== null && $coating !== '' && $p->attributeValue('coating') !== $coating) {
+                if ($coating !== null && $coating !== '' && $d->attributeValue('coating') !== $coating) {
                     return false;
                 }
 
                 return true;
             });
 
-        $cellOf = function (Product $p) use ($balances) {
-            return ['product' => $p, 'stock' => (int) ($balances[$p->id] ?? 0)];
+        $cellOf = function (LensDetail $d) use ($balances) {
+            return ['product' => $d, 'stock' => (int) ($balances['lens:'.$d->id] ?? 0)];
         };
 
         if ($kind === self::KIND_PROGRESSIVE) {
@@ -176,39 +179,38 @@ class LensMatrixService
     }
 
     /**
-     * Kelompok matriks untuk item snapshot opname: mengikuti bentuk
-     * per jenis untuk induk lensa; produk berkekuatan lain (RX)
-     * memakai grid SPH×CYL dari item yang ada saja.
+     * Kelompok matriks untuk item snapshot opname: hanya item
+     * berdetail LensDetail, dikelompokkan per master.
      *
-     * @param  iterable<object>  $items  item opname berelasi product.parent
-     * @return list<array{parent: ProductParent, col_label: string, cols: list<float>, rows: list<array{label: string, cells: array<string, list<object>}>}>}
+     * @param  iterable<object>  $items  item opname berelasi detail (morph)
+     * @return list<array{parent: Product, col_label: string, cols: list<float>, rows: list<array{label: string, cells: array<string, list<object>}>}>}
      */
     public function snapshotGroups(iterable $items): array
     {
         $byParent = [];
         foreach ($items as $item) {
-            $product = $item->product;
-            if (! $this->isMatrixProduct($product)) {
+            $detail = $item->detail ?? null;
+            if (! $detail instanceof LensDetail || ! $this->isMatrixProduct($detail)) {
                 continue;
             }
-            $byParent[$product->parent_id]['parent'] = $product->parent;
-            $byParent[$product->parent_id]['items'][] = $item;
+            $byParent[$detail->product_id]['parent'] = $detail->product;
+            $byParent[$detail->product_id]['items'][] = $item;
         }
 
         $groups = [];
         foreach ($byParent as $data) {
             $parent = $data['parent'];
             $list = collect($data['items']);
-            $kind = $parent->type === 'lens' ? $this->kindForParent($parent) : self::KIND_SV;
+            $kind = $this->kindForParent($parent);
 
             if ($kind === self::KIND_PROGRESSIVE) {
-                $cols = $list->map(fn ($i) => ($i->product->add ?? 0) + 0)->unique()->sort()->values()->all();
+                $cols = $list->map(fn ($i) => ($i->detail->add ?? 0) + 0)->unique()->sort()->values()->all();
                 $rows = [];
-                $rowKeys = $list->map(fn ($i) => [$i->product->sph + 0, $i->product->eye_side])->unique()->sortDesc();
+                $rowKeys = $list->map(fn ($i) => [$i->detail->sph + 0, $i->detail->eye_side])->unique()->sortDesc();
                 foreach ($rowKeys as [$sph, $eye]) {
                     $cells = [];
                     foreach ($cols as $add) {
-                        $cells[$this->colKey($add)] = $list->filter(fn ($i) => $i->product->sph + 0 == $sph && ($i->product->add ?? 0) + 0 == $add && $i->product->eye_side === $eye)->values()->all();
+                        $cells[$this->colKey($add)] = $list->filter(fn ($i) => $i->detail->sph + 0 == $sph && ($i->detail->add ?? 0) + 0 == $add && $i->detail->eye_side === $eye)->values()->all();
                     }
                     $rows[] = ['label' => $this->display($sph).' · '.($eye ?? '—'), 'cells' => $cells];
                 }
@@ -218,12 +220,12 @@ class LensMatrixService
             }
 
             if ($kind === self::KIND_BIFOCAL) {
-                $cols = $list->map(fn ($i) => ($i->product->add ?? 0) + 0)->unique()->sort()->values()->all();
+                $cols = $list->map(fn ($i) => ($i->detail->add ?? 0) + 0)->unique()->sort()->values()->all();
                 $rows = [];
-                foreach ($list->map(fn ($i) => $i->product->sph + 0)->unique()->sortDesc() as $sph) {
+                foreach ($list->map(fn ($i) => $i->detail->sph + 0)->unique()->sortDesc() as $sph) {
                     $cells = [];
                     foreach ($cols as $add) {
-                        $cells[$this->colKey($add)] = $list->filter(fn ($i) => $i->product->sph + 0 == $sph && ($i->product->add ?? 0) + 0 == $add)->values()->all();
+                        $cells[$this->colKey($add)] = $list->filter(fn ($i) => $i->detail->sph + 0 == $sph && ($i->detail->add ?? 0) + 0 == $add)->values()->all();
                     }
                     $rows[] = ['label' => $this->display($sph), 'cells' => $cells];
                 }
@@ -232,12 +234,12 @@ class LensMatrixService
                 continue;
             }
 
-            $cols = $list->map(fn ($i) => ($i->product->cyl ?? 0) + 0)->unique()->sortDesc()->values()->all();
+            $cols = $list->map(fn ($i) => ($i->detail->cyl ?? 0) + 0)->unique()->sortDesc()->values()->all();
             $rows = [];
-            foreach ($list->map(fn ($i) => $i->product->sph + 0)->unique()->sortDesc() as $sph) {
+            foreach ($list->map(fn ($i) => $i->detail->sph + 0)->unique()->sortDesc() as $sph) {
                 $cells = [];
                 foreach ($cols as $cyl) {
-                    $cells[$this->colKey($cyl)] = $list->filter(fn ($i) => $i->product->sph + 0 == $sph && ($i->product->cyl ?? 0) + 0 == $cyl)->values()->all();
+                    $cells[$this->colKey($cyl)] = $list->filter(fn ($i) => $i->detail->sph + 0 == $sph && ($i->detail->cyl ?? 0) + 0 == $cyl)->values()->all();
                 }
                 $rows[] = ['label' => $this->display($sph), 'cells' => $cells];
             }
@@ -258,7 +260,7 @@ class LensMatrixService
         return $descending ? array_reverse($values) : $values;
     }
 
-    /** Kunci sel dari pasangan daya (untuk pencocokan varian). */
+    /** Kunci sel dari pasangan daya (untuk pencocokan detail). */
     public function key(float $sph, float $second): string
     {
         return number_format($sph, 2, '.', '').'|'.number_format($second, 2, '.', '');

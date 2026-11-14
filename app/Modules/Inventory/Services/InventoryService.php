@@ -2,11 +2,11 @@
 
 namespace App\Modules\Inventory\Services;
 
-use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Models\StockOpname;
 use App\Modules\Master\Models\Branch;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -35,7 +35,7 @@ class InventoryService
      */
     public function recordMovement(
         User $actor,
-        Product $product,
+        Model $detail,
         Branch $branch,
         string $reason,
         int $qty,
@@ -68,7 +68,8 @@ class InventoryService
         }
 
         $lastBalance = StockMovement::withoutGlobalScopes()
-            ->where('product_id', $product->id)
+            ->where('detail_id', $detail->id)
+            ->where('detail_type', $detail->getMorphClass())
             ->where('branch_id', $branch->id)
             ->orderByDesc('id')
             ->lockForUpdate()
@@ -79,16 +80,18 @@ class InventoryService
         // Add-on proses (aksesoris is_process_item, owner 2026-10-27)
         // dikecualikan dari pagar ketat: ia pekerjaan, bukan ready stok —
         // kekurangannya menjadi backorder PR seperti Lensa RX.
-        $isStrict = in_array($product->type, StockMovement::STRICT_TYPES, true)
-            && ! ($product->type === 'accessory' && $product->is_process_item);
+        $alias = $detail::DETAIL_TYPE;
+        $isStrict = in_array($alias, StockMovement::STRICT_TYPES, true)
+            && ! ($alias === 'accessory' && $detail->is_process_item);
         if ($newBalance < 0 && $isStrict) {
             throw ValidationException::withMessages([
-                'qty' => __('ui.stock.insufficient', ['product' => $product->name, 'branch' => $branch->name]),
+                'qty' => __('ui.stock.insufficient', ['product' => $detail->product->name, 'branch' => $branch->name]),
             ]);
         }
 
         $movement = StockMovement::create([
-            'product_id' => $product->id,
+            'detail_id' => $detail->id,
+            'detail_type' => $detail->getMorphClass(),
             'branch_id' => $branch->id,
             'reason' => $reason,
             'qty' => $qty,
@@ -105,20 +108,23 @@ class InventoryService
         return $movement;
     }
 
-    /** Saldo resmi satu produk di satu cabang (0 bila belum ada gerakan). */
-    public function currentStock(int $productId, int $branchId): int
+    /** Saldo resmi satu detail di satu cabang (0 bila belum ada gerakan). */
+    public function currentStock(string $detailType, int $detailId, int $branchId): int
     {
         return StockMovement::withoutGlobalScopes()
-            ->where('product_id', $productId)
+            ->where('detail_type', $detailType)
+            ->where('detail_id', $detailId)
             ->where('branch_id', $branchId)
             ->orderByDesc('id')
             ->value('balance_after') ?? 0;
     }
 
     /**
-     * Peta saldo terakhir per produk untuk satu cabang.
+     * Peta saldo terakhir per detail untuk satu cabang (A1:
+     * berkunci komposit "alias:id" karena id detail hanya unik
+     * per tabel tipenya).
      *
-     * @return array<int, int> product_id => balance
+     * @return array<string, int> "detail_type:detail_id" => balance
      */
     public function balancesForBranch(int $branchId): array
     {
@@ -128,13 +134,13 @@ class InventoryService
                 $query->selectRaw('MAX(id)')
                     ->from('stock_movements')
                     ->where('branch_id', $branchId)
-                    ->groupBy('product_id');
+                    ->groupBy('detail_type', 'detail_id');
             })
-            ->pluck('sm.balance_after', 'sm.product_id');
+            ->get(['sm.detail_type', 'sm.detail_id', 'sm.balance_after']);
 
         $map = [];
-        foreach ($rows as $productId => $balance) {
-            $map[(int) $productId] = (int) $balance;
+        foreach ($rows as $row) {
+            $map[$row->detail_type.':'.$row->detail_id] = (int) $row->balance_after;
         }
 
         return $map;

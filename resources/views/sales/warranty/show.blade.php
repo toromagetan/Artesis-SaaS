@@ -50,7 +50,7 @@
 
             @foreach ($case->brokenStocks as $broken)
                 <div class="rounded-lg bg-white p-6 shadow-soft">
-                    <h2 class="font-semibold text-gray-800">{{ __('ui.warranty.broken_title') }} — {{ $broken->product->name }} × {{ $broken->quantity }} ({{ $broken->status }})</h2>
+                    <h2 class="font-semibold text-gray-800">{{ __('ui.warranty.broken_title') }} — {{ $broken->detail->product->name }} × {{ $broken->quantity }} ({{ $broken->status }})</h2>
                     @if ($broken->status === 'pending_inspection')
                         <form method="POST" action="{{ route('warranties.inspect', $broken) }}" class="mt-4 flex flex-wrap items-end gap-3">
                             @csrf
@@ -104,9 +104,9 @@
                         </div>
                         <div class="sm:col-span-2">
                             <x-input-label for="product_id" :value="__('ui.warranty.product')" />
-                            <select id="product_id" name="product_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                            <select id="product_id" name="detail_key" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
                                 @foreach ($products as $product)
-                                    <option value="{{ $product->id }}" @selected($product->id === $case->saleItem->product_id)>{{ $product->name }} ({{ $product->sku }})</option>
+                                    <option value="{{ $product::DETAIL_TYPE }}:{{ $product->id }}" @selected($product::DETAIL_TYPE === $case->saleItem->detail_type && $product->id === $case->saleItem->detail_id)>{{ $product->product?->name }} ({{ $product->sku }})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -126,7 +126,7 @@
                     <h2 class="font-semibold text-gray-800">{{ __('ui.warranty.replacement') }}</h2>
                     <dl class="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
                         <div><dt class="text-gray-400">{{ __('ui.warranty.source') }}</dt><dd class="font-medium">{{ __('ui.warranty.source_'.($r->source === 'purchase_order' ? 'po' : $r->source)) }}</dd></div>
-                        <div><dt class="text-gray-400">{{ __('ui.warranty.product') }}</dt><dd class="font-medium">{{ $r->product->name ?? '—' }}</dd></div>
+                        <div><dt class="text-gray-400">{{ __('ui.warranty.product') }}</dt><dd class="font-medium">{{ $r->replacementDetail->product->name ?? '—' }}</dd></div>
                         <div><dt class="text-gray-400">{{ __('ui.warranty.status') }}</dt><dd class="font-medium">{{ $r->status }}{{ $case->status === 'replacement_preparing' ? ($ready ? ' — '.__('ui.warranty.ready') : ' — '.__('ui.warranty.not_ready')) : '' }}</dd></div>
                         <div><dt class="text-gray-400">{{ __('ui.warranty.original_value') }}</dt><dd class="font-medium">{{ \App\Support\Money::fromDecimal((string) $r->original_value)->format() }}</dd></div>
                         <div><dt class="text-gray-400">{{ __('ui.warranty.replacement_value') }}</dt><dd class="font-medium">{{ \App\Support\Money::fromDecimal((string) $r->replacement_value)->format() }}</dd></div>

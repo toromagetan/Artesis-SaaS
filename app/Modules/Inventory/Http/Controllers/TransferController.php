@@ -12,6 +12,7 @@ use App\Modules\Master\Models\Setting;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -54,7 +55,14 @@ class TransferController extends Controller
         $managed = $context->hasGlobalAccess()
             ? $branches
             : $branches->whereIn('id', $context->managedBranchIds())->values();
-        $products = Product::where('is_active', true)->orderBy('type')->orderBy('name')->get();
+        // Pilihan item = detail aktif dari kelima tipe (A1).
+        $products = collect();
+        foreach (Product::DETAIL_MODELS as $model) {
+            $products = $products->merge(
+                $model::with('product')->where('is_active', true)->get()
+            );
+        }
+        $products = $products->sortBy(fn ($d) => [$d->product?->name ?? '', $d->sku])->values();
 
         return view('inventory.transfers.create', compact('branches', 'managed', 'products'));
     }
@@ -90,7 +98,7 @@ class TransferController extends Controller
     public function show(StockTransfer $transfer): View
     {
         $this->assertVisible($transfer);
-        $transfer->load(['fromBranch', 'toBranch', 'sender', 'receiver', 'items.product', 'purchaseOrder']);
+        $transfer->load(['fromBranch', 'toBranch', 'sender', 'receiver', 'items.detail.product', 'purchaseOrder']);
 
         return view('inventory.transfers.show', compact('transfer'));
     }
@@ -112,7 +120,7 @@ class TransferController extends Controller
     public function print(StockTransfer $transfer): View
     {
         $this->assertVisible($transfer);
-        $transfer->load(['fromBranch', 'toBranch', 'sender', 'items.product']);
+        $transfer->load(['fromBranch', 'toBranch', 'sender', 'items.detail.product']);
 
         return view('inventory.transfers.print', [
             'transfer' => $transfer,
@@ -122,8 +130,15 @@ class TransferController extends Controller
 
     private function validateSend(Request $request, bool $fromPo = false): array
     {
+        // Baris form membawa detail_key "alias:id" → dipecah menjadi
+        // detail_type + detail_id untuk layanan (A1).
         $items = collect((array) $request->input('items', []))
-            ->filter(fn ($row) => is_array($row) && ! empty($row['product_id']) && ! empty($row['qty']))
+            ->filter(fn ($row) => is_array($row) && ! empty($row['detail_key']) && ! empty($row['qty']))
+            ->map(function ($row) {
+                [$type, $id] = array_pad(explode(':', (string) $row['detail_key'], 2), 2, null);
+
+                return ['detail_type' => $type, 'detail_id' => (int) $id, 'qty' => (int) $row['qty']];
+            })
             ->values()
             ->all();
         $request->merge(['items' => $items]);
@@ -132,7 +147,8 @@ class TransferController extends Controller
             'tujuan' => ['required', 'integer'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer'],
+            'items.*.detail_type' => ['required', Rule::in(Product::TYPES)],
+            'items.*.detail_id' => ['required', 'integer'],
             'items.*.qty' => ['required', 'integer', 'min:1'],
         ];
         if (! $fromPo) {

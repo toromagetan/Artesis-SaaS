@@ -10,6 +10,7 @@ use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
 use App\Support\Money;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -17,6 +18,7 @@ use Illuminate\View\View;
  * Stok per cabang & pergerakan (PRD Detail 7.1/7.2).
  * Saldo selalu dari buku besar stock_movements (B.4) — halaman ini
  * murni membaca; tidak ada penulisan stok dari controller.
+ * A1: unit stok adalah DETAIL produk (morph), bukan master.
  */
 class StockController extends Controller
 {
@@ -39,32 +41,42 @@ class StockController extends Controller
         $balances = $branchId !== 0 ? $this->inventory->balancesForBranch($branchId) : [];
         $values = $branchId !== 0 ? $this->fifo->inventoryValues([$branchId]) : [];
 
-        $products = Product::query()
-            ->when($q !== '', function ($query) use ($q) {
-                $query->where(function ($sub) use ($q) {
-                    $sub->where('name', 'like', "%{$q}%")->orWhere('sku', 'like', "%{$q}%");
-                });
-            })
-            ->when(in_array($type, Product::TYPES, true), fn ($query) => $query->where('type', $type))
-            ->orderBy('type')
-            ->orderBy('name')
-            ->get()
-            ->map(function (Product $product) use ($balances, $values, $branchId) {
-                $qty = $balances[$product->id] ?? 0;
+        $types = in_array($type, Product::TYPES, true) ? [$type] : Product::TYPES;
+        $details = collect();
+        foreach ($types as $alias) {
+            $model = Product::DETAIL_MODELS[$alias];
+            $found = $model::with('product')
+                ->when($q !== '', function ($query) use ($q) {
+                    $query->where(function ($sub) use ($q) {
+                        $sub->where('sku', 'like', "%{$q}%")
+                            ->orWhere('barcode', 'like', "%{$q}%")
+                            ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$q}%")->orWhere('brand', 'like', "%{$q}%"));
+                    });
+                })
+                ->get();
+            $details = $details->merge($found);
+        }
+
+        $rows = $details
+            ->map(function (Model $detail) use ($balances, $values, $branchId) {
+                $key = $detail::DETAIL_TYPE.':'.$detail->id;
+                $qty = $balances[$key] ?? 0;
                 // Nilai persediaan FIFO (ADR-014): Σ lapisan tersisa.
-                $value = $values[$branchId.':'.$product->id] ?? Money::zero();
+                $value = $values[$branchId.':'.$key] ?? Money::zero();
 
                 return [
-                    'product' => $product,
+                    'product' => $detail,
                     'qty' => $qty,
                     'value' => $value,
                     'status' => $qty < 0 ? 'backorder' : ($qty === 0 ? 'empty' : ($qty <= 5 ? 'low' : 'safe')),
                 ];
             })
-            ->filter(fn ($row) => $row['qty'] !== 0 || $q !== '' || $type !== '');
+            ->filter(fn ($row) => $row['qty'] !== 0 || $q !== '' || $type !== '')
+            ->sortBy(fn ($row) => [$row['product']->product?->name ?? '', $row['product']->sku])
+            ->values();
 
         return view('inventory.stock.index', [
-            'rows' => $products,
+            'rows' => $rows,
             'branches' => $branches,
             'branchId' => $branchId,
             'q' => $q,
@@ -80,12 +92,28 @@ class StockController extends Controller
         $reason = (string) $request->query('alasan', '');
         $q = trim((string) $request->query('q', ''));
 
-        $movements = StockMovement::with(['product', 'branch', 'creator'])
+        $movements = StockMovement::with(['detail.product', 'branch', 'creator'])
             ->when($branchId, fn ($query) => $query->where('branch_id', (int) $branchId))
             ->when(in_array($reason, StockMovement::REASONS, true), fn ($query) => $query->where('reason', $reason))
             ->when($q !== '', function ($query) use ($q) {
-                $query->whereHas('product', function ($sub) use ($q) {
-                    $sub->where('name', 'like', "%{$q}%")->orWhere('sku', 'like', "%{$q}%");
+                // Pencarian lintas tipe detail: kumpulkan pasangan
+                // (alias, id) yang SKU/nama masternya cocok.
+                $pairs = [];
+                foreach (Product::DETAIL_MODELS as $alias => $model) {
+                    $ids = $model::where('sku', 'like', "%{$q}%")
+                        ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$q}%"))
+                        ->pluck('id')->all();
+                    if ($ids !== []) {
+                        $pairs[] = [$alias, $ids];
+                    }
+                }
+                $query->where(function ($sub) use ($pairs) {
+                    foreach ($pairs as [$alias, $ids]) {
+                        $sub->orWhere(fn ($w) => $w->where('detail_type', $alias)->whereIn('detail_id', $ids));
+                    }
+                    if ($pairs === []) {
+                        $sub->whereRaw('1 = 0');
+                    }
                 });
             })
             ->orderByDesc('id')

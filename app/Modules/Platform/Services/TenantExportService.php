@@ -56,7 +56,7 @@ class TenantExportService
     private const TENANT_TABLES = [
         'branches', 'commissions', 'customers', 'doctors', 'fixed_assets',
         'incentive_rules', 'insurances', 'journals', 'membership_levels',
-        'payrolls', 'period_locks', 'prescriptions', 'product_parents',
+        'payrolls', 'period_locks', 'prescriptions',
         'products', 'roles', 'settings', 'suppliers', 'tenant_billing_requests',
         'tenant_feature_overrides', 'tenant_subscriptions', 'users',
     ];
@@ -100,7 +100,11 @@ class TenantExportService
         'warranty_replacements' => ['warranty_cases', 'warranty_case_id'],
         'customer_credit_applications' => ['customer_credits', 'customer_credit_id'],
         'points_ledger' => ['customers', 'customer_id'],
-        'product_attributes' => ['products', 'product_id'],
+        'frame_details' => ['products', 'product_id'],
+        'lens_details' => ['products', 'product_id'],
+        'rx_details' => ['products', 'product_id'],
+        'softlens_details' => ['products', 'product_id'],
+        'accessories_details' => ['products', 'product_id'],
         'wa_messages' => ['customers', 'customer_id'],
         'incentive_items' => ['incentive_periods', 'incentive_period_id'],
         'incentive_adjustments' => ['incentive_periods', 'incentive_period_id'],
@@ -143,6 +147,7 @@ class TenantExportService
             ...self::FROM_BRANCH_TABLES,
             ...self::TENANT_STAMPED_TABLES,
             ...array_keys(self::CHILD_TABLES),
+            'product_detail_attributes',
             ...self::SELF_TABLES,
             ...self::EXCLUDED_TABLES,
         ];
@@ -281,6 +286,34 @@ class TenantExportService
             if (in_array($table, $liveTables, true)) {
                 $extract($table, DB::table($table)->whereIn($fk, $idSets[$parent] ?? []));
             }
+        }
+
+        // Langkah khusus A1: atribut detail produk menunjuk salah
+        // satu dari LIMA tabel detail secara morph (detail_type +
+        // detail_id) — baris ikut bila pasangan (tipe, id)-nya milik
+        // detail yang sudah terekstrak untuk tenant ini.
+        if (in_array('product_detail_attributes', $liveTables, true)) {
+            $detailTables = [
+                'frame' => 'frame_details', 'lens' => 'lens_details', 'rx' => 'rx_details',
+                'softlens' => 'softlens_details', 'accessory' => 'accessories_details',
+            ];
+            $extract('product_detail_attributes', DB::table('product_detail_attributes')
+                ->where(function ($query) use ($idSets, $detailTables) {
+                    $any = false;
+                    foreach ($detailTables as $alias => $table) {
+                        $ids = $idSets[$table] ?? [];
+                        if ($ids === []) {
+                            continue;
+                        }
+                        $any = true;
+                        $query->orWhere(function ($inner) use ($alias, $ids) {
+                            $inner->where('detail_type', $alias)->whereIn('detail_id', $ids);
+                        });
+                    }
+                    if (! $any) {
+                        $query->whereRaw('1 = 0');
+                    }
+                }));
         }
 
         // Langkah khusus ROLES (keputusan desain audit putaran 1):

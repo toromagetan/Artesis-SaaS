@@ -325,10 +325,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/katalog/{type}', [ProductController::class, 'index'])->middleware('permission:products.view')->name('products.index');
     Route::get('/katalog/{type}/buat', [ProductController::class, 'create'])->middleware('permission:products.create')->name('products.create');
     Route::post('/katalog/{type}', [ProductController::class, 'store'])->middleware('permission:products.create')->name('products.store');
-    Route::get('/produk/{product}', [ProductController::class, 'show'])->middleware('permission:products.view')->name('products.show');
-    Route::get('/produk/{product}/ubah', [ProductController::class, 'edit'])->middleware('permission:products.update')->name('products.edit');
-    Route::put('/produk/{product}', [ProductController::class, 'update'])->middleware('permission:products.update')->name('products.update');
-    Route::post('/produk/{product}/alih-aktif', [ProductController::class, 'toggleActive'])->middleware('permission:products.deactivate')->name('products.toggle-active');
+    Route::get('/produk/{type}/{id}', [ProductController::class, 'show'])->middleware('permission:products.view')->name('products.show');
+    Route::get('/produk/{type}/{id}/ubah', [ProductController::class, 'edit'])->middleware('permission:products.update')->name('products.edit');
+    Route::put('/produk/{type}/{id}', [ProductController::class, 'update'])->middleware('permission:products.update')->name('products.update');
+    Route::post('/produk/{type}/{id}/alih-aktif', [ProductController::class, 'toggleActive'])->middleware('permission:products.deactivate')->name('products.toggle-active');
 
     // ---- Membership & Poin (F3.6) ----
     Route::get('/member', [MemberController::class, 'index'])->middleware('permission:members.view')->name('members.index');

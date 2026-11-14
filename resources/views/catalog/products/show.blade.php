@@ -10,18 +10,18 @@
             @endif
 
             <div class="mb-4 flex items-center justify-between">
-                <a href="{{ route('products.index', $product->type) }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
+                <a href="{{ route('products.index', $product::DETAIL_TYPE) }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 @if (auth()->user()->hasPermission('products.update') || auth()->user()->hasPermission('products.deactivate') || auth()->user()->hasPermission('products.create'))
                     <x-lentera.aksi-bar>
                         @can('products.create')
-                            <x-lentera.menu-item :href="route('products.create', $product->type)">{{ __('ui.products.create') }}</x-lentera.menu-item>
+                            <x-lentera.menu-item :href="route('products.create', $product::DETAIL_TYPE)">{{ __('ui.products.create') }}</x-lentera.menu-item>
                         @endcan
                         @can('products.update')
-                            <x-lentera.menu-item :href="route('products.edit', $product)">{{ __('ui.edit') }}</x-lentera.menu-item>
+                            <x-lentera.menu-item :href="route('products.edit', [$product::DETAIL_TYPE, $product->id])">{{ __('ui.edit') }}</x-lentera.menu-item>
                         @endcan
                         @can('products.deactivate')
 
-                            <form method="POST" action="{{ route('products.toggle-active', $product) }}">
+                            <form method="POST" action="{{ route('products.toggle-active', [$product::DETAIL_TYPE, $product->id]) }}">
                                 @csrf
                                 <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $product->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $product->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
                             </form>
@@ -35,14 +35,14 @@
                     @if ($product->imageUrl())
                         <img src="{{ $product->imageUrl() }}" alt="" class="h-16 w-16 rounded object-cover">
                     @endif
-                    <h2 class="text-lg font-semibold text-gray-800">{{ $product->name }}</h2>
+                    <h2 class="text-lg font-semibold text-gray-800">{{ $product->product->name }}</h2>
                     <span class="inline-flex items-center rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-xs font-semibold text-gold-dark">{{ $product->typeLabel() }}</span>
                     <x-lentera.badge :active="$product->is_active" />
                 </div>
                 <dl class="grid grid-cols-[160px_1fr] gap-y-3 text-sm">
-                    @if ($product->parent)
+                    @if ($product->product)
                         <dt class="text-gray-500">{{ __('ui.products.parent') }}</dt>
-                        <dd class="font-medium text-gray-800"><a href="{{ route('products.parents.show', $product->parent) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $product->parent->name }}</a></dd>
+                        <dd class="font-medium text-gray-800"><a href="{{ route('products.parents.show', $product->product) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $product->product->name }}</a></dd>
                     @endif
                     <dt class="text-gray-500">{{ __('ui.products.sku') }}</dt>
                     <dd class="font-medium text-gray-800">{{ $product->sku }}</dd>
@@ -51,21 +51,17 @@
                         <dd class="font-medium text-gray-800">{{ $product->detailLabel() }}</dd>
                     @endif
                     <dt class="text-gray-500">{{ __('ui.products.brand') }}</dt>
-                    <dd class="font-medium text-gray-800">{{ $product->brand ?: '—' }}</dd>
+                    <dd class="font-medium text-gray-800">{{ $product->product->brand ?: '—' }}</dd>
                     <dt class="text-gray-500">{{ __('ui.products.color') }}</dt>
                     <dd class="font-medium text-gray-800">{{ $product->color ?: '—' }}</dd>
                     <dt class="text-gray-500">{{ __('ui.products.cost_price') }}</dt>
                     <dd class="font-medium text-gray-800 tnum">{{ \App\Support\Money::fromDecimal((string) $product->cost_price)->format() }}</dd>
                     <dt class="text-gray-500">{{ __('ui.products.sale_price') }}</dt>
                     <dd class="font-medium text-gray-800 tnum">{{ \App\Support\Money::fromDecimal((string) $product->sale_price)->format() }}</dd>
-                    @foreach (\App\Modules\Catalog\Services\ProductService::ATTRIBUTE_KEYS[$product->type] as $key)
+                    @foreach ($displayAttributes as $key => $value)
                         <dt class="text-gray-500">{{ __('ui.products.attributes.'.$key) }}</dt>
                         <dd class="font-medium text-gray-800">
-                            @if ($key === 'expiry_tracked')
-                                {{ $product->attributeValue($key) === '1' ? __('ui.yes') : __('ui.no') }}
-                            @else
-                                {{ $product->attributeValue($key) ?: '—' }}
-                            @endif
+                            {{ $value ?? '—' }}
                         </dd>
                     @endforeach
                 </dl>
