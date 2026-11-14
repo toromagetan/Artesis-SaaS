@@ -15,6 +15,8 @@
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
                 @can('products.create')
+                    <span class="flex items-center gap-2">
+                        <a href="{{ route('products.import.form') }}" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.product_import.title') }}</a>
                     <x-lentera.aksi-dialog :label="__('ui.products.create')" :title="__('ui.products.create').' — '.__('ui.products.types.'.$type)" wide>
                         <form method="POST" action="{{ route('products.store', $type) }}" enctype="multipart/form-data">
                             @csrf
@@ -24,6 +26,7 @@
                             </div>
                         </form>
                     </x-lentera.aksi-dialog>
+                    </span>
                 @endcan
             </div>
 

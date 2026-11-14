@@ -13,6 +13,7 @@ use App\Modules\Accounting\Http\Controllers\LedgerController;
 use App\Modules\Accounting\Http\Controllers\PayrollController;
 use App\Modules\Accounting\Http\Controllers\PeriodController;
 use App\Modules\Catalog\Http\Controllers\ProductController;
+use App\Modules\Catalog\Http\Controllers\ProductImportController;
 use App\Modules\Clinical\Http\Controllers\FittingController;
 use App\Modules\Clinical\Http\Controllers\PrescriptionController;
 use App\Modules\Comms\Http\Controllers\WaCampaignController;
@@ -318,6 +319,9 @@ Route::middleware('auth')->group(function () {
 
     // ---- Katalog (M.1) ----
     Route::post('/produk-induk/{parent}/alih-aktif', [ProductController::class, 'toggleMasterActive'])->middleware('permission:products.deactivate')->name('products.masters.toggle-active');
+    Route::get('/katalog/impor', [ProductImportController::class, 'form'])->middleware('permission:products.create')->name('products.import.form');
+    Route::get('/katalog/impor/template', [ProductImportController::class, 'template'])->middleware('permission:products.create')->name('products.import.template');
+    Route::post('/katalog/impor', [ProductImportController::class, 'store'])->middleware('permission:products.create')->name('products.import.store');
     Route::get('/katalog/{type}', [ProductController::class, 'index'])->middleware('permission:products.view')->name('products.index');
     Route::get('/katalog/{type}/buat', [ProductController::class, 'create'])->middleware('permission:products.create')->name('products.create');
     Route::post('/katalog/{type}', [ProductController::class, 'store'])->middleware('permission:products.create')->name('products.store');
