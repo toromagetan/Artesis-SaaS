@@ -1,4 +1,4 @@
-@props(['label', 'danger' => false, 'title' => null, 'sm' => false])
+@props(['label', 'danger' => false, 'title' => null, 'sm' => false, 'wide' => false])
 {{-- AksiDialog (ADR-018) — tombol perintah yang membutuhkan isian
      (alasan/konfirmasi/dll.): tombolnya terlihat sejajar seperti perintah
      lain; isian dibuka lewat dialog. Slot berisi <form> aksinya.
@@ -9,7 +9,7 @@
         {{ $label }}
     </button>
     <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/50 p-4 sm:items-center" @keydown.escape.window="open = false">
-        <div class="w-full max-w-md rounded-xl bg-white p-5 text-left shadow-soft" @click.away="open = false">
+        <div class="w-full {{ $wide ? 'max-w-2xl' : 'max-w-md' }} rounded-xl bg-white p-5 text-left shadow-soft" @click.away="open = false">
             @if($title)
                 <h3 class="mb-3 text-base font-semibold text-gray-900">{{ $title }}</h3>
             @endif

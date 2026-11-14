@@ -45,21 +45,20 @@ class ProductCategoryTest extends TestCase
 
     public function test_parent_automatically_holds_the_category_of_its_type(): void
     {
-        $this->actingAs($this->owner)->post('/katalog/lens/induk', [
-            'name' => 'FSV 1.56 Bluecromic',
+        $this->actingAs($this->owner)->post('/katalog/lens', [
+            'sku' => 'LNS-FSV156', 'name' => 'FSV 1.56 Bluecromic', 'cost_price' => 10, 'sale_price' => 20,
         ])->assertRedirect();
         $lens = Product::where('name', 'FSV 1.56 Bluecromic')->firstOrFail();
         $this->assertSame('lens', $lens->typeKey());
         $this->assertSame('Lensa', $lens->category->name);
 
-        $this->actingAs($this->owner)->post('/katalog/softlens/induk', [
-            'name' => 'X2 N8',
+        // A2: master lahir dari formulir detail; kategorinya
+        // mengikuti tipe halaman tempat ia dibuat.
+        $this->actingAs($this->owner)->post('/katalog/softlens', [
+            'sku' => 'SFT-X2N8', 'name' => 'X2 N8', 'cost_price' => 10, 'sale_price' => 20,
         ])->assertRedirect();
         $softlens = Product::where('name', 'X2 N8')->firstOrFail();
         $this->assertSame('Softlens', $softlens->category->name);
-
-        // Nama kategori tampil di detail induk.
-        $this->actingAs($this->owner)->get('/produk-induk/'.$lens->id)
-            ->assertOk()->assertSee('Lensa');
+        $this->assertSame('Lensa', $lens->category->name);
     }
 }

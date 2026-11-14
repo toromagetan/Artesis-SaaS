@@ -38,8 +38,11 @@ class ProductTwoLevelTest extends TestCase
 
     public function test_master_crud_and_detail_grouping_over_http(): void
     {
-        $this->actingAs($this->owner)->post('/katalog/lens/induk', [
-            'name' => 'Lensa Progresif Premium', 'brand' => 'Essilor',
+        // A2: master lahir dari formulir detail yang sama (tidak
+        // ada lagi permukaan induk terpisah).
+        $this->actingAs($this->owner)->post('/katalog/lens', [
+            'sku' => 'LNS-G0', 'name' => 'Lensa Progresif Premium', 'brand' => 'Essilor',
+            'sph' => -2, 'add' => 1.5, 'cost_price' => 100, 'sale_price' => 200,
         ])->assertRedirect();
 
         $master = Product::where('name', 'Lensa Progresif Premium')->firstOrFail();
@@ -52,12 +55,15 @@ class ProductTwoLevelTest extends TestCase
         $detail = LensDetail::where('sku', 'LNS-G1')->firstOrFail();
         $this->assertSame($master->id, $detail->product_id);
 
-        $this->actingAs($this->owner)->get("/produk-induk/{$master->id}")
+        // Satu halaman kelola menampilkan master beserta SKU detailnya.
+        $this->actingAs($this->owner)->get('/katalog/lens')
             ->assertOk()->assertSee('LNS-G1');
 
-        $this->actingAs($this->owner)->put("/produk-induk/{$master->id}", [
-            'name' => 'Lensa Progresif Premium V2', 'brand' => 'Essilor',
-        ])->assertRedirect(route('products.parents.show', $master));
+        // Nama master diperbarui lewat formulir ubah detail (A2).
+        $this->actingAs($this->owner)->put("/produk/lens/{$detail->id}", [
+            'type' => 'lens', 'sku' => 'LNS-G1', 'name' => 'Lensa Progresif Premium V2', 'brand' => 'Essilor',
+            'cost_price' => 100, 'sale_price' => 200,
+        ])->assertRedirect();
         $this->assertSame('Lensa Progresif Premium V2', $master->refresh()->name);
 
         $this->actingAs($this->owner)->post("/produk-induk/{$master->id}/alih-aktif")->assertRedirect();
@@ -118,10 +124,6 @@ class ProductTwoLevelTest extends TestCase
 
     public function test_gudang_cannot_create_master_or_detail(): void
     {
-        $this->actingAs($this->gudang)->post('/katalog/lens/induk', [
-            'name' => 'Ditolak', 'brand' => 'X',
-        ])->assertForbidden();
-
         $this->actingAs($this->gudang)->post('/katalog/lens', [
             'sku' => 'LNS-DITOLAK', 'name' => 'Ditolak', 'cost_price' => 1, 'sale_price' => 2,
         ])->assertForbidden();
