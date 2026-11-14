@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Kategori produk (paritas Artesis, lanjutan ADR-015).
+ * Kategori produk (paritas Artesis, ADR-023; sebelumnya ADR-015).
  * Setiap kategori terpetakan ke tepat satu tipe sistem
  * (frame/lens/rx/softlens/accessory) yang menjadi kunci perilaku.
  */
