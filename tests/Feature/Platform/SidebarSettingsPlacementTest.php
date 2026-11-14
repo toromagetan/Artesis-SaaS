@@ -10,10 +10,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Penempatan menu pengaturan (koreksi owner 2026-10-22): Gateway WA,
- * Asisten AI, Log Aktivitas, Backup, Token API & Perangkat Offline
- * berada di grup "Master & Pengaturan" di bawah induk "Pengaturan" —
- * BUKAN lagi terselip di submenu WhatsApp grup Komunikasi.
+ * Penempatan menu pengaturan (koreksi owner 2026-10-22, diselaraskan
+ * ke cermin menu Artesis A6 — keputusan owner 2026-11-14 §190/§191):
+ * Gateway WA, Asisten AI, Backup, Token API & Perangkat Offline
+ * berada di grup "Pengaturan"; WhatsApp operasional (Inbox dsb.)
+ * berada di grup "Transaksi" — pengaturan BUKAN lagi terselip di
+ * submenu WhatsApp. Log Aktivitas berdiri sendiri di antara Stok
+ * dan Laporan, persis posisi Artesis.
  */
 class SidebarSettingsPlacementTest extends TestCase
 {
@@ -35,28 +38,35 @@ class SidebarSettingsPlacementTest extends TestCase
         $this->kasir->branches()->sync([$branch->id]);
     }
 
-    public function test_settings_links_live_under_master_settings_group_not_whatsapp(): void
+    public function test_settings_links_live_under_settings_group_not_whatsapp(): void
     {
         $html = $this->actingAs($this->owner)->get(route('dashboard'))->assertOk()->getContent();
 
-        $commStart = strpos($html, __('ui.nav.communication'));
-        $masterStart = strpos($html, htmlspecialchars(__('ui.nav.group_master_settings'), ENT_QUOTES, 'UTF-8'));
-        $this->assertNotFalse($commStart, 'Grup Komunikasi harus tetap ada.');
-        $this->assertNotFalse($masterStart, 'Grup Master & Pengaturan harus ada.');
-        $this->assertLessThan($masterStart, $commStart);
+        $trxStart = strpos($html, __('ui.nav.group_transactions'));
+        $settingsStart = strpos($html, htmlspecialchars(__('ui.nav.settings'), ENT_QUOTES, 'UTF-8'));
+        $reportsStart = strpos($html, htmlspecialchars(__('ui.nav.reports'), ENT_QUOTES, 'UTF-8'));
+        $this->assertNotFalse($trxStart, 'Grup Transaksi harus ada.');
+        $this->assertNotFalse($settingsStart, 'Grup Pengaturan harus ada.');
+        $this->assertNotFalse($reportsStart, 'Grup Laporan harus ada.');
+        $this->assertLessThan($settingsStart, $trxStart);
 
-        $commSection = substr($html, $commStart, $masterStart - $commStart);
-        $masterSection = substr($html, $masterStart);
+        $trxSection = substr($html, $trxStart, $settingsStart - $trxStart);
+        $settingsSection = substr($html, $settingsStart);
 
-        foreach ([route('wa-gateway.edit'), route('ai-setting.edit'), route('audit-logs.index'), route('backups.index')] as $url) {
-            $this->assertStringNotContainsString($url, $commSection, "URL pengaturan {$url} tidak boleh lagi di grup Komunikasi.");
-            $this->assertStringContainsString($url, $masterSection, "URL pengaturan {$url} harus ada di grup Master & Pengaturan.");
+        foreach ([route('wa-gateway.edit'), route('ai-setting.edit'), route('backups.index')] as $url) {
+            $this->assertStringNotContainsString($url, $trxSection, "URL pengaturan {$url} tidak boleh di grup Transaksi (submenu WhatsApp).");
+            $this->assertStringContainsString($url, $settingsSection, "URL pengaturan {$url} harus ada di grup Pengaturan.");
         }
 
-        // Induk "Pengaturan" tampil di grup Master & Pengaturan.
-        $this->assertStringContainsString(__('ui.nav.settings'), $masterSection);
-        // Menu WhatsApp murni operasional tetap di grup Komunikasi.
-        $this->assertStringContainsString(route('wa-inbox.index'), $commSection);
+        // Log Aktivitas berdiri sendiri SEBELUM grup Laporan (posisi Artesis),
+        // bukan di dalam grup Transaksi maupun Pengaturan.
+        $auditPos = strpos($html, route('audit-logs.index'));
+        $this->assertNotFalse($auditPos, 'Menu Log Aktivitas harus ada.');
+        $this->assertLessThan($reportsStart, $auditPos);
+        $this->assertStringNotContainsString(route('audit-logs.index'), $settingsSection);
+
+        // Menu WhatsApp operasional tinggal di grup Transaksi.
+        $this->assertStringContainsString(route('wa-inbox.index'), $trxSection);
     }
 
     public function test_settings_links_hidden_without_settings_permission(): void
