@@ -50,7 +50,10 @@ class SendWhatsAppMessage implements ShouldQueue
             return;
         }
 
-        $gateway = $factory->active();
+        // WA per tenant: pesan selalu dikirim lewat gateway milik
+        // tenant pemilik pesan; tenant tanpa gateway aktif membiarkan
+        // pesan 'queued' (ADR-009), tidak menumpang gateway lain.
+        $gateway = $factory->forTenant($message->tenant_id);
         if ($gateway === null) {
             return; // Menunggu konfigurasi gateway; tetap tercatat 'queued'.
         }

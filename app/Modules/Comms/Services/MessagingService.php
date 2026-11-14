@@ -82,6 +82,7 @@ class MessagingService
 
         if ($customer->wa_opt_out) {
             return WaMessage::create([
+                'tenant_id' => $customer->tenant_id,
                 'customer_id' => $customer->id,
                 'phone' => $phone,
                 'template_key' => $templateKey,
@@ -96,6 +97,7 @@ class MessagingService
         }
 
         $message = WaMessage::create([
+            'tenant_id' => $customer->tenant_id,
             'customer_id' => $customer->id,
             'phone' => $phone,
             'template_key' => $templateKey,

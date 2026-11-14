@@ -8,6 +8,7 @@ use App\Modules\Comms\Models\WaGateway;
 use App\Modules\Comms\Models\WaMessage;
 use App\Modules\Comms\Services\GatewayFactory;
 use App\Modules\Comms\Services\MessagingService;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,15 +21,27 @@ use Illuminate\View\View;
  * (tersimpan terenkripsi, tidak pernah tampil penuh), nomor pengirim,
  * status koneksi & tombol uji kirim. Terpagar settings.manage.
  * Token yang dikosongkan saat simpan = token lama dipertahankan.
+ *
+ * Kepemilikan per tenant (keputusan owner 2026-11-14): aktor tenant
+ * hanya melihat & mengubah gateway MILIK tenantnya; aktor platform
+ * & instalasi mandiri mengelola baris global (tenant_id NULL).
  */
 #[Middleware('plan.feature:whatsapp')]
 class WaGatewayController extends Controller
 {
-    public function edit(): View
+    public function edit(Request $request): View
     {
-        $gateway = WaGateway::orderBy('id')->first();
+        $gateway = WaGateway::forTenant($this->bucket($request));
 
         return view('comms.wa-gateway', compact('gateway'));
+    }
+
+    /** Ember kepemilikan aktor: tenant_id aktor, atau null untuk platform/mandiri. */
+    private function bucket(Request $request): ?int
+    {
+        $context = TenantContext::for($request->user());
+
+        return $context->isValid() ? $context->tenantId() : null;
     }
 
     public function update(Request $request, AuditLogger $audit): RedirectResponse
@@ -45,7 +58,7 @@ class WaGatewayController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $gateway = WaGateway::orderBy('id')->first() ?? new WaGateway;
+        $gateway = WaGateway::forTenant($this->bucket($request)) ?? new WaGateway(['tenant_id' => $this->bucket($request)]);
         $credentials = $gateway->credentials();
         $credentials['phone_number_id'] = $validated['phone_number_id'];
         $credentials['waba_id'] = $validated['waba_id'] ?? '';
@@ -94,12 +107,14 @@ class WaGatewayController extends Controller
             'test_phone' => ['required', 'string', 'max:30'],
         ]);
 
-        $gateway = $factory->active();
+        // Uji kirim memakai gateway ember aktor sendiri.
+        $gateway = $factory->forTenant($this->bucket($request));
         if ($gateway === null) {
             return back()->with('test_result', __('ui.wa.test_no_gateway'));
         }
 
         $message = WaMessage::create([
+            'tenant_id' => $this->bucket($request),
             'customer_id' => null,
             'phone' => MessagingService::normalizePhone($validated['test_phone']),
             'template_key' => null,

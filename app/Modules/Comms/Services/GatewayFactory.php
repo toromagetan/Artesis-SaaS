@@ -14,14 +14,34 @@ use App\Modules\Comms\Services\Gateways\MetaCloudApiGateway;
  */
 class GatewayFactory
 {
+    /** Gateway global instalasi (baris tenant_id NULL) — mode mandiri / platform. */
     public function activeGateway(): ?WaGateway
     {
-        return WaGateway::where('is_active', true)->orderBy('id')->first();
+        return WaGateway::activeForTenant(null);
     }
 
     public function active(): ?MessagingGateway
     {
-        $gateway = $this->activeGateway();
+        return $this->build($this->activeGateway());
+    }
+
+    /**
+     * Gateway milik tenant tertentu (keputusan owner 2026-11-14):
+     * tenant TIDAK pernah memakai gateway tenant lain atau gateway
+     * global; belum punya gateway aktif = null (pesan menunggu).
+     */
+    public function forTenant(?int $tenantId): ?MessagingGateway
+    {
+        return $this->build(WaGateway::activeForTenant($tenantId));
+    }
+
+    public function gatewayRowForTenant(?int $tenantId): ?WaGateway
+    {
+        return WaGateway::activeForTenant($tenantId);
+    }
+
+    private function build(?WaGateway $gateway): ?MessagingGateway
+    {
         if ($gateway === null) {
             return null;
         }
