@@ -36,6 +36,16 @@ class Tenant extends Model
         return $this->hasMany(TenantSubscription::class)->latest('id');
     }
 
+    public function aiCreditRequests(): HasMany
+    {
+        return $this->hasMany(AiCreditRequest::class);
+    }
+
+    public function aiCreditLedger(): HasMany
+    {
+        return $this->hasMany(AiCreditLedger::class);
+    }
+
     public function billingRequests(): HasMany
     {
         return $this->hasMany(TenantBillingRequest::class);

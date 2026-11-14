@@ -4,8 +4,10 @@ namespace App\Modules\Platform\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Master\Models\Setting;
+use App\Modules\Platform\Models\AiCreditRequest;
 use App\Modules\Platform\Models\Plan;
 use App\Modules\Platform\Models\TenantBillingRequest;
+use App\Modules\Platform\Services\AiCreditService;
 use App\Modules\Platform\Services\BillingService;
 use App\Modules\Platform\Services\PlanGate;
 use App\Modules\Platform\Services\PlanService;
@@ -24,6 +26,7 @@ class MyPlanController extends Controller
         private readonly PlanGate $gate,
         private readonly PlanService $plans,
         private readonly BillingService $billing,
+        private readonly AiCreditService $aiCredits,
     ) {}
 
     public function index(Request $request): View
@@ -58,6 +61,21 @@ class MyPlanController extends Controller
                 ->first();
         }
 
+        // AI bayar per penggunaan: saldo & pengajuan isi ulang hanya
+        // untuk tenant yang paketnya membuka fitur asisten AI.
+        $aiCredit = null;
+        if ($tenant !== null && (bool) (($this->plans->effectiveFeatures($tenant))['ai_assistant'] ?? false)) {
+            $aiCredit = [
+                'balance' => $this->aiCredits->balance($tenant),
+                'price' => $this->aiCredits->pricePerQuestion(),
+                'pending' => $tenant->aiCreditRequests()
+                    ->where('status', AiCreditRequest::STATUS_PENDING)
+                    ->latest()
+                    ->first(),
+                'ledger' => $tenant->aiCreditLedger()->orderByDesc('id')->limit(10)->get(),
+            ];
+        }
+
         return view('platform.my-plan', [
             'tenant' => $tenant,
             'subscription' => $subscription,
@@ -69,6 +87,7 @@ class MyPlanController extends Controller
             'paidPlans' => $paidPlans,
             'monthlyTotals' => $monthlyTotals,
             'pendingRequest' => $pendingRequest,
+            'aiCredit' => $aiCredit,
             'bankName' => Setting::value('billing_bank_name'),
             'bankAccount' => Setting::value('billing_bank_account'),
             'accountName' => Setting::value('billing_account_name'),

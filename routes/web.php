@@ -39,6 +39,7 @@ use App\Modules\Master\Http\Controllers\SupplierController;
 use App\Modules\Membership\Http\Controllers\MemberController;
 use App\Modules\Membership\Http\Controllers\MemberPortalController;
 use App\Modules\Membership\Http\Controllers\MembershipLevelController;
+use App\Modules\Platform\Http\Controllers\AiCreditController;
 use App\Modules\Platform\Http\Controllers\AiSettingController;
 use App\Modules\Platform\Http\Controllers\ApiTokenController;
 use App\Modules\Platform\Http\Controllers\AssistantController;
@@ -49,6 +50,7 @@ use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Platform\Http\Controllers\GeneralSettingsController;
 use App\Modules\Platform\Http\Controllers\MyPlanController;
 use App\Modules\Platform\Http\Controllers\PlanController;
+use App\Modules\Platform\Http\Controllers\PlatformAiCreditController;
 use App\Modules\Platform\Http\Controllers\PlatformBillingController;
 use App\Modules\Platform\Http\Controllers\SignupController;
 use App\Modules\Platform\Http\Controllers\TenantController;
@@ -435,6 +437,7 @@ Route::middleware('auth')->group(function () {
     // Instalasi Mandiri untuk aktor tanpa tenant).
     Route::get('/paket-saya', [MyPlanController::class, 'index'])->middleware('permission:settings.manage')->name('plans.my');
     Route::post('/paket-saya/tagihan', [BillingController::class, 'store'])->middleware('permission:settings.manage')->name('billing.store');
+    Route::post('/paket-saya/ai/isi-ulang', [AiCreditController::class, 'store'])->middleware('permission:settings.manage')->name('ai-credits.store');
 
     // Panel SaaS (M3): khusus aktor platform — gerbang ganda middleware
     // 'platform' (is_platform) + izin grup platform.
@@ -454,6 +457,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/platform/penagihan/pengaturan', [PlatformBillingController::class, 'updateSettings'])->name('platform.billing.settings');
         Route::post('/platform/penagihan/{billingRequest}/konfirmasi', [PlatformBillingController::class, 'confirm'])->name('platform.billing.confirm');
         Route::post('/platform/penagihan/{billingRequest}/tolak', [PlatformBillingController::class, 'reject'])->name('platform.billing.reject');
+        Route::post('/platform/penagihan/ai/{aiCreditRequest}/konfirmasi', [PlatformAiCreditController::class, 'confirm'])->name('platform.ai-credits.confirm');
+        Route::post('/platform/penagihan/ai/{aiCreditRequest}/tolak', [PlatformAiCreditController::class, 'reject'])->name('platform.ai-credits.reject');
     });
 });
 

@@ -26,6 +26,8 @@
                                 <span class="rounded-full bg-lentera-50 px-2.5 py-1 font-medium text-lentera-800 ring-1 ring-inset ring-lentera-600/20">{{ __('ui.ai.basis_source') }}: {{ $result['basis']['source'] }}</span>
                             @endif
                         </div>
+                    @elseif ($result['status'] === 'ai_no_credit')
+                        <p class="mt-2 rounded-lg border border-gold/50 bg-gold/10 px-4 py-3 text-sm text-gold-dark">{{ __('ui.ai.no_credit') }} <a href="{{ route('plans.my') }}" class="font-semibold underline">{{ __('ui.ai.no_credit_link') }}</a></p>
                     @elseif ($result['status'] === 'ai_not_configured')
                         <p class="mt-2 rounded-lg border border-gold/50 bg-gold/10 px-4 py-3 text-sm text-gold-dark">{{ __('ui.ai.not_configured') }}</p>
                     @elseif ($result['status'] === 'ai_provider_error')
