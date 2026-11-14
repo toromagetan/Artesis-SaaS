@@ -42,7 +42,7 @@
                 <dl class="grid grid-cols-[160px_1fr] gap-y-3 text-sm">
                     @if ($product->product)
                         <dt class="text-gray-500">{{ __('ui.products.parent') }}</dt>
-                        <dd class="font-medium text-gray-800"><a href="{{ route('products.parents.show', $product->product) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $product->product->name }}</a></dd>
+                        <dd class="font-medium text-gray-800">{{ $product->product->name }}</dd>
                     @endif
                     <dt class="text-gray-500">{{ __('ui.products.sku') }}</dt>
                     <dd class="font-medium text-gray-800">{{ $product->sku }}</dd>

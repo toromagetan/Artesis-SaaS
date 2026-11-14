@@ -17,10 +17,14 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Katalog produk (A1 — master + detail persis Artesis).
- * Daftar per tipe menampilkan master beserta detailnya; detail
- * dialamatkan per tipe+id karena id detail hanya unik per tabel
- * tipenya. Detail = halaman penuh; perintah sejajar AksiBar.
+ * Katalog produk (A1 master + detail; A2 satu halaman kelola
+ * persis Artesis). Halaman daftar per tipe adalah SATU-SATUNYA
+ * permukaan kelola: buat/ubah berjalan lewat dialog formulir di
+ * halaman itu (dialog untuk aksi berisi isian — ADR-018), master
+ * dibuat/diperbarui dari formulir detail yang sama, dan tidak ada
+ * lagi halaman induk terpisah. GET buat/ubah mengarah ke daftar.
+ * Detail tetap halaman penuh; detail dialamatkan per tipe+id
+ * karena id detail hanya unik per tabel tipenya.
  */
 class ProductController extends Controller
 {
@@ -67,7 +71,22 @@ class ProductController extends Controller
             $expiries = app(FifoService::class)->nearestExpiries('softlens', $variantIds, $branchIds);
         }
 
-        return view('catalog.products.index', compact('parents', 'type', 'q', 'expiries'));
+        // Opsi master untuk pemilih pada dialog formulir (A2).
+        $masterOptions = Product::whereHas('category', fn ($query) => $query->where('type', $type))
+            ->orderBy('name')->get();
+
+        return view('catalog.products.index', [
+            'parents' => $parents, 'type' => $type, 'q' => $q, 'expiries' => $expiries,
+            'masterOptions' => $masterOptions, 'attributeKeys' => $this->formAttributeKeys($type),
+        ]);
+    }
+
+    /** Alih aktif master (A2 — pengganti permukaan induk lama). */
+    public function toggleMasterActive(Request $request, Product $parent): RedirectResponse
+    {
+        $this->service->setMasterActive($request->user(), $parent, ! $parent->is_active);
+
+        return back()->with('status', $parent->is_active ? __('ui.products.activated') : __('ui.products.deactivated'));
     }
 
     public function show(string $type, int $id): View
@@ -93,21 +112,12 @@ class ProductController extends Controller
         return view('catalog.products.show', compact('product', 'type', 'displayAttributes'));
     }
 
-    public function create(Request $request, string $type): View
+    /** A2: tidak ada halaman buat terpisah — formulirnya dialog di daftar. */
+    public function create(Request $request, string $type): RedirectResponse
     {
         $this->assertType($type);
 
-        $parent = $request->query('induk') !== null
-            ? Product::whereHas('category', fn ($q) => $q->where('type', $type))->find($request->query('induk'))
-            : null;
-
-        return view('catalog.products.create', [
-            'type' => $type,
-            'product' => null,
-            'parent' => $parent,
-            'parents' => Product::whereHas('category', fn ($q) => $q->where('type', $type))->orderBy('name')->get(),
-            'attributeKeys' => $this->formAttributeKeys($type),
-        ]);
+        return redirect()->route('products.index', $type);
     }
 
     /**
@@ -249,20 +259,13 @@ class ProductController extends Controller
         return $redirect;
     }
 
-    public function edit(string $type, int $id): View
+    /** A2: tidak ada halaman ubah terpisah — formulirnya dialog di daftar. */
+    public function edit(string $type, int $id): RedirectResponse
     {
         $this->assertType($type);
-        $product = $this->service->findDetail($type, $id);
-        $product->load(['product', 'detailAttributes']);
+        $this->service->findDetail($type, $id);
 
-        return view('catalog.products.edit', [
-            'product' => $product,
-            'parent' => $product->product,
-            'parents' => Product::whereHas('category', fn ($q) => $q->where('type', $type))->orderBy('name')->get(),
-            'attributeKeys' => $this->formAttributeKeys($type),
-            'typeLocked' => $this->service->typeIsLocked($product),
-            'type' => $type,
-        ]);
+        return redirect()->route('products.index', $type);
     }
 
     public function update(Request $request, string $type, int $id): RedirectResponse

@@ -15,10 +15,15 @@
                     <x-secondary-button type="submit">{{ __('ui.search') }}</x-secondary-button>
                 </form>
                 @can('products.create')
-                    <x-lentera.aksi-bar>
-                        <x-lentera.menu-item :href="route('products.parents.create', $type)" primary>{{ __('ui.products.parent_create') }}</x-lentera.menu-item>
-                        <x-lentera.menu-item :href="route('products.create', $type)">{{ __('ui.products.create') }}</x-lentera.menu-item>
-                    </x-lentera.aksi-bar>
+                    <x-lentera.aksi-dialog :label="__('ui.products.create')" :title="__('ui.products.create').' — '.__('ui.products.types.'.$type)" wide>
+                        <form method="POST" action="{{ route('products.store', $type) }}" enctype="multipart/form-data">
+                            @csrf
+                            @include('catalog.products._form', ['product' => null, 'parent' => null, 'parents' => $masterOptions, 'idPrefix' => 'create-'])
+                            <div class="mt-6 flex items-center gap-3">
+                                <x-primary-button>{{ __('ui.save') }}</x-primary-button>
+                            </div>
+                        </form>
+                    </x-lentera.aksi-dialog>
                 @endcan
             </div>
 
@@ -41,10 +46,20 @@
                         @forelse ($parents as $parent)
                             <tr class="border-b border-gray-100 bg-lentera-50/60">
                                 <td colspan="{{ $type === 'softlens' ? 7 : 6 }}" class="px-4 py-2.5">
-                                    <a href="{{ route('products.parents.show', $parent) }}" class="font-semibold text-lentera-900 underline-offset-2 hover:underline">{{ $parent->name }}</a>
-                                    @if ($parent->brand)<span class="text-gray-500">· {{ $parent->brand }}</span>@endif
-                                    <span class="text-gray-500">· {{ __('ui.products.variant_count', ['count' => $parent->variants->count()]) }}</span>
-                                    @unless ($parent->is_active)<span class="ml-2 text-xs font-medium text-red-600">{{ __('ui.inactive') }}</span>@endunless
+                                    <span class="flex items-center justify-between gap-3">
+                                        <span>
+                                            <span class="font-semibold text-lentera-900">{{ $parent->name }}</span>
+                                            @if ($parent->brand)<span class="text-gray-500">· {{ $parent->brand }}</span>@endif
+                                            <span class="text-gray-500">· {{ __('ui.products.variant_count', ['count' => $parent->variants->count()]) }}</span>
+                                            @unless ($parent->is_active)<span class="ml-2 text-xs font-medium text-red-600">{{ __('ui.inactive') }}</span>@endunless
+                                        </span>
+                                        @can('products.deactivate')
+                                            <form method="POST" action="{{ route('products.masters.toggle-active', $parent) }}">
+                                                @csrf
+                                                <button type="submit" class="text-xs font-medium {{ $parent->is_active ? 'text-red-600' : 'text-lentera-700' }} hover:underline">{{ $parent->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                                            </form>
+                                        @endcan
+                                    </span>
                                 </td>
                             </tr>
                             @foreach ($parent->variants as $product)

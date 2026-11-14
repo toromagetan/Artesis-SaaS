@@ -27,7 +27,29 @@
         <x-lentera.aksi-baris>
             <x-lentera.menu-item :href="route('products.show', [$product::DETAIL_TYPE, $product->id])" sm>{{ __('ui.products.detail') }}</x-lentera.menu-item>
             @can('products.update')
-                <x-lentera.menu-item :href="route('products.edit', [$product::DETAIL_TYPE, $product->id])" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
+                @php($typeLocked = app(\App\Modules\Catalog\Services\ProductService::class)->typeIsLocked($product))
+                <x-lentera.aksi-dialog :label="__('ui.edit')" :title="__('ui.products.edit').' — '.$product->product->name" sm wide>
+                    <form method="POST" action="{{ route('products.update', [$product::DETAIL_TYPE, $product->id]) }}" enctype="multipart/form-data">
+                        @csrf
+                        @method('PUT')
+                        <div class="mb-4">
+                            <x-input-label :for="'type-'.$product->id" :value="__('ui.products.type')" />
+                            <select id="type-{{ $product->id }}" name="type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500" @disabled($typeLocked)>
+                                @foreach (\App\Modules\Catalog\Models\Product::TYPES as $t)
+                                    <option value="{{ $t }}" @selected(old('type', $product::DETAIL_TYPE) === $t)>{{ __('ui.products.types.'.$t) }}</option>
+                                @endforeach
+                            </select>
+                            @if ($typeLocked)
+                                <input type="hidden" name="type" value="{{ $product::DETAIL_TYPE }}">
+                                <p class="mt-1 text-xs text-gray-400">{{ __('ui.products.type_locked') }}</p>
+                            @endif
+                        </div>
+                        @include('catalog.products._form', ['type' => $product::DETAIL_TYPE, 'parent' => $product->product, 'parents' => $masterOptions, 'idPrefix' => 'edit-'.$product->id.'-'])
+                        <div class="mt-6 flex items-center gap-3">
+                            <x-primary-button>{{ __('ui.save_changes') }}</x-primary-button>
+                        </div>
+                    </form>
+                </x-lentera.aksi-dialog>
             @endcan
             @can('products.deactivate')
 

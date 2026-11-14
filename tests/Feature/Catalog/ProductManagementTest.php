@@ -195,26 +195,35 @@ class ProductManagementTest extends TestCase
 
     public function test_create_page_renders_for_every_product_type(): void
     {
-        // Regresi PR #50: halaman buat kelima tipe dulu 500
-        // "Undefined variable $product" — wajib selalu ter-render.
+        // A2 (paritas Artesis): GET buat mengarah ke satu halaman
+        // kelola; dialog formulirnya wajib ter-render untuk kelima
+        // tipe (regresi PR #50: form dulu 500 "Undefined variable
+        // $product").
         foreach (Product::TYPES as $type) {
-            $this->actingAs($this->admin)->get("/katalog/{$type}/buat")->assertOk();
+            $this->actingAs($this->admin)->get("/katalog/{$type}/buat")
+                ->assertRedirect(route('products.index', $type));
+            $this->actingAs($this->admin)->get("/katalog/{$type}")
+                ->assertOk()->assertSee('name="sku"', false);
         }
     }
 
-    public function test_create_page_renders_with_parent_preselected(): void
+    public function test_create_dialog_lists_existing_masters(): void
     {
         $master = Product::factory()->forType('frame')->create();
 
-        $this->actingAs($this->admin)->get("/katalog/frame/buat?induk={$master->id}")->assertOk();
+        // Pemilih induk pada dialog buat memuat master yang ada.
+        $this->actingAs($this->admin)->get('/katalog/frame')
+            ->assertOk()->assertSee($master->name);
     }
 
-    public function test_edit_page_renders_for_existing_product(): void
+    public function test_edit_endpoint_redirects_to_the_management_page(): void
     {
-        // Regresi PR #50: halaman ubah dulu selalu 500.
+        // A2: GET ubah mengarah ke daftar; dialog ubah per baris
+        // ter-render di sana (regresi PR #50: halaman ubah dulu 500).
         foreach (Product::DETAIL_MODELS as $type => $model) {
             $detail = $model::factory()->create();
-            $this->actingAs($this->admin)->get("/produk/{$type}/{$detail->id}/ubah")->assertOk();
+            $this->actingAs($this->admin)->get("/produk/{$type}/{$detail->id}/ubah")
+                ->assertRedirect(route('products.index', $type));
         }
     }
 
