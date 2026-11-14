@@ -60,6 +60,56 @@
             </section>
 
             @include('platform.partials.billing')
+
+            @if ($aiCredit !== null)
+                <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div class="flex flex-wrap items-baseline justify-between gap-2">
+                        <h3 class="text-sm font-semibold text-slate-700">{{ __('ui.ai_credits.title') }}</h3>
+                        <p class="text-lg font-semibold text-emerald-700">
+                            {{ number_format($aiCredit['balance']) }}
+                            <span class="text-sm font-normal text-slate-500">{{ __('ui.ai_credits.questions') }}</span>
+                        </p>
+                    </div>
+                    <p class="mt-2 text-sm text-slate-600">
+                        {{ __('ui.ai_credits.price_note', ['price' => 'Rp '.number_format($aiCredit['price'], 0, ',', '.')]) }}
+                    </p>
+
+                    @if ($aiCredit['pending'] !== null)
+                        <p class="mt-3 rounded-lg border border-gold/50 bg-gold/10 px-4 py-3 text-sm text-gold-dark">
+                            {{ __('ui.ai_credits.pending_note', ['questions' => number_format($aiCredit['pending']->questions), 'amount' => 'Rp '.number_format($aiCredit['pending']->amount, 0, ',', '.')]) }}
+                        </p>
+                    @else
+                        <form method="POST" action="{{ route('ai-credits.store') }}" class="mt-3 flex flex-wrap items-end gap-2">
+                            @csrf
+                            <div>
+                                <x-input-label for="ai_questions" :value="__('ui.ai_credits.topup_label')" />
+                                <x-text-input id="ai_questions" name="questions" type="number" min="10" max="10000" value="100" class="mt-1 block w-36" required />
+                            </div>
+                            <x-primary-button>{{ __('ui.ai_credits.topup_button') }}</x-primary-button>
+                        </form>
+                        @error('questions')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    @endif
+
+                    @if ($aiCredit['ledger']->isNotEmpty())
+                        <h4 class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('ui.ai_credits.history') }}</h4>
+                        <ul class="mt-2 divide-y divide-slate-100 text-sm">
+                            @foreach ($aiCredit['ledger'] as $entry)
+                                <li class="flex items-center justify-between py-1.5">
+                                    <span class="text-slate-600">
+                                        {{ $entry->created_at->format('d/m/Y H:i') }} —
+                                        {{ $entry->kind === 'topup' ? __('ui.ai_credits.kind_topup') : __('ui.ai_credits.kind_usage') }}
+                                    </span>
+                                    <span class="font-medium {{ $entry->questions_delta > 0 ? 'text-emerald-700' : 'text-slate-700' }}">
+                                        {{ $entry->questions_delta > 0 ? '+' : '' }}{{ $entry->questions_delta }} → {{ number_format($entry->balance_after) }}
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </section>
+            @endif
         @endif
     </div>
 </x-app-layout>

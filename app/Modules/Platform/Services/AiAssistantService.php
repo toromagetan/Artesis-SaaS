@@ -5,6 +5,7 @@ namespace App\Modules\Platform\Services;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Reporting\Services\AnalyticsService;
@@ -26,6 +27,7 @@ class AiAssistantService
         private readonly AnalyticsService $analytics,
         private readonly InventoryService $inventory,
         private readonly AuditLogger $audit,
+        private readonly AiCreditService $credits,
     ) {}
 
     /**
@@ -35,6 +37,17 @@ class AiAssistantService
     {
         if (! $actor->hasRole('Owner')) {
             abort(403);
+        }
+
+        // Bayar per penggunaan (keputusan owner 2026-11-14): aktor
+        // bertenant memakai saldo pertanyaan tenantnya. Saldo kosong
+        // = asisten berhenti SEBELUM penyedia dipanggil. Instalasi
+        // mandiri (tanpa tenant) tidak dimeterai — kuncinya milik
+        // pemilik instalasi sendiri.
+        $tenantContext = TenantContext::for($actor);
+        $tenant = $tenantContext->isValid() ? $tenantContext->tenant() : null;
+        if ($tenant !== null && $this->credits->balance($tenant) < 1) {
+            return ['status' => 'ai_no_credit', 'text' => '', 'basis' => []];
         }
 
         try {
@@ -64,6 +77,13 @@ class AiAssistantService
             'payables_total' => $this->payablesTotal($branchIds, $basis),
             default => ['status' => 'unknown', 'text' => '', 'basis' => $basis],
         };
+
+        // Hanya jawaban berhasil yang dipotong 1 kredit; unknown &
+        // kegagalan penyedia gratis (translate gagal sudah kembali
+        // lebih awal di atas).
+        if ($tenant !== null && $result['status'] === 'ok') {
+            $this->credits->chargeForAnswer($tenant, $actor);
+        }
 
         $this->audit->log(action: 'ai.ask', subjectType: 'ai_question', subjectId: null,
             newValues: ['intent' => $intent, 'status' => $result['status']], actor: $actor);

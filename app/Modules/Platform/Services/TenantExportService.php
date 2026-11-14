@@ -54,6 +54,7 @@ class TenantExportService
 {
     /** @var list<string> */
     private const TENANT_TABLES = [
+        'ai_credit_ledger', 'ai_credit_requests',
         'branches', 'commissions', 'customers', 'doctors', 'fixed_assets',
         'incentive_rules', 'insurances', 'journals', 'membership_levels',
         'payrolls', 'period_locks', 'prescriptions',
@@ -125,8 +126,9 @@ class TenantExportService
         // Data global instalasi / platform.
         'plans', 'plan_features', 'permissions', 'product_categories',
         'qc_point_templates', 'document_counters',
-        // Konfigurasi tingkat instalasi berkredensial terenkripsi
-        // dan konten WA tingkat instalasi (OD-4 belum diputuskan).
+        // Konfigurasi berkredensial terenkripsi: kunci AI platform
+        // dan gateway WA per tenant (OD-4 diputuskan 2026-11-14) —
+        // kredensial tidak pernah meninggalkan sistem.
         'ai_settings', 'wa_gateways', 'wa_campaigns', 'wa_templates',
     ];
 
