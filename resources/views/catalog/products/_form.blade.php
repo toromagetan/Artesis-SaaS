@@ -111,7 +111,7 @@
     <x-input-error :messages="$errors->get('attributes')" class="mt-2" />
     <div>
         <x-input-label for="image" :value="__('ui.products.image')" />
-        @if (! empty($product?->imageUrl()))
+        @if (isset($product) && $product->imageUrl())
             <img src="{{ $product->imageUrl() }}" alt="" class="mt-2 h-24 w-24 rounded object-cover">
             <label class="mt-2 flex items-center gap-2 text-sm text-gray-600">
                 <input type="checkbox" name="image_remove" value="1" class="rounded border-gray-300"> {{ __('ui.products.image_remove') }}

@@ -196,4 +196,40 @@ class ProductManagementTest extends TestCase
     {
         $this->actingAs($this->owner)->get('/katalog/gadget')->assertNotFound();
     }
+
+    /**
+     * Regresi bug 14 Nov 2026: halaman buat produk 500
+     * "Undefined variable $product" dari _form baris 114 —
+     * empty() tidak menekan peringatan variabel tak terdefinisi
+     * bila digabung pemanggilan metode nullsafe. Tidak ada test
+     * yang membuka halaman buat sebelumnya, jadi lolos suite.
+     */
+    public function test_create_page_renders_for_every_product_type(): void
+    {
+        foreach (Product::TYPES as $type) {
+            $this->actingAs($this->owner)
+                ->get(route('products.create', $type))
+                ->assertOk()
+                ->assertSee(route('products.store', $type), false);
+        }
+    }
+
+    public function test_create_page_renders_with_parent_preselected(): void
+    {
+        $product = Product::factory()->create(['type' => 'frame']);
+        $this->assertNotNull($product->parent_id);
+
+        $this->actingAs($this->owner)
+            ->get(route('products.create', ['type' => 'frame', 'induk' => $product->parent_id]))
+            ->assertOk();
+    }
+
+    public function test_edit_page_renders_for_existing_product(): void
+    {
+        $product = Product::factory()->create(['type' => 'frame']);
+
+        $this->actingAs($this->owner)
+            ->get(route('products.edit', $product))
+            ->assertOk();
+    }
 }

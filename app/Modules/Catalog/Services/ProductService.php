@@ -278,15 +278,28 @@ class ProductService
     /**
      * Produk terkunci tipenya bila sudah dirujuk transaksi
      * (sale_items / purchase_order_items / receipt_items). Pemeriksaan
-     * hanya berjalan pada tabel yang sudah ada — aktif otomatis saat
-     * modul transaksinya tiba.
+     * hanya berjalan pada tabel & kolom yang sudah ada — aktif
+     * otomatis saat modul transaksinya tiba. receipt_items tidak
+     * berkolom product_id: rujukannya lewat purchase_order_item_id,
+     * jadi pemeriksaan penerimaan menaut ke item PO-nya (perbaikan
+     * 14 Nov 2026 — sebelumnya halaman ubah produk selalu 500
+     * "Unknown column 'product_id'" begitu tabel receipt_items ada).
      */
     public function typeIsLocked(Product $product): bool
     {
-        foreach (['sale_items', 'purchase_order_items', 'receipt_items'] as $table) {
-            if (Schema::hasTable($table) && DB::table($table)->where('product_id', $product->id)->exists()) {
+        foreach (['sale_items', 'purchase_order_items'] as $table) {
+            if (Schema::hasTable($table) && Schema::hasColumn($table, 'product_id')
+                && DB::table($table)->where('product_id', $product->id)->exists()) {
                 return true;
             }
+        }
+
+        if (Schema::hasTable('receipt_items') && Schema::hasTable('purchase_order_items')
+            && DB::table('receipt_items')
+                ->join('purchase_order_items', 'receipt_items.purchase_order_item_id', '=', 'purchase_order_items.id')
+                ->where('purchase_order_items.product_id', $product->id)
+                ->exists()) {
+            return true;
         }
 
         return false;
