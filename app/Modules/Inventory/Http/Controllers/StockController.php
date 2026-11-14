@@ -4,15 +4,19 @@ namespace App\Modules\Inventory\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Services\LensMatrixService;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Services\FifoService;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
 use App\Support\Money;
+use App\Support\XlsxWriter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Stok per cabang & pergerakan (PRD Detail 7.1/7.2).
@@ -121,6 +125,80 @@ class StockController extends Controller
             ->withQueryString();
 
         return view('inventory.stock.movements', compact('movements', 'branches', 'branchId', 'reason', 'q'));
+    }
+
+    /**
+     * Matriks stok lensa (A3 — persis Artesis): grid rentang
+     * lengkap per master lensa pada satu cabang, saringan
+     * index/coating/sisi mata. Cabang & master terpagar konteks.
+     *
+     * @return array{0: ?Product, 1: int, 2: Collection, 3: Collection}
+     */
+    private function matrixSelection(Request $request, LensMatrixService $matrix): array
+    {
+        $context = BranchContext::current();
+        $branches = $this->visibleBranches($context);
+        $branchId = (int) ($request->query('cabang') ?: ($branches->first()?->id ?? 0));
+        if ($branchId !== 0 && ! $context->allowsBranch($branchId)) {
+            $branchId = (int) ($branches->first()?->id ?? 0);
+        }
+
+        $parents = $matrix->matrixParents();
+        $parent = $parents->firstWhere('id', (int) $request->query('induk', 0)) ?? $parents->first();
+
+        return [$parent, $branchId, $branches, $parents];
+    }
+
+    public function lensMatrix(Request $request, LensMatrixService $matrix): View
+    {
+        [$parent, $branchId, $branches, $parents] = $this->matrixSelection($request, $matrix);
+
+        $index = ($v = (string) $request->query('index', '')) !== '' ? $v : null;
+        $coating = ($v = (string) $request->query('coating', '')) !== '' ? $v : null;
+        $eyeSide = ($v = (string) $request->query('eye_side', '')) !== '' ? $v : null;
+
+        $grid = $parent !== null && $branchId !== 0
+            ? $matrix->gridForParent($parent, $branchId, $index, $coating, $eyeSide)
+            : null;
+        $options = $parent !== null ? $matrix->filterOptions($parent) : ['indexes' => [], 'coatings' => []];
+
+        return view('inventory.stock.lens-matrix', compact(
+            'parent', 'parents', 'branchId', 'branches', 'grid', 'options', 'index', 'coating', 'eyeSide',
+        ) + ['matrix' => $matrix]);
+    }
+
+    public function lensMatrixExport(Request $request, LensMatrixService $matrix): StreamedResponse
+    {
+        [$parent, $branchId] = $this->matrixSelection($request, $matrix);
+        if ($parent === null || $branchId === 0) {
+            abort(404);
+        }
+
+        $index = ($v = (string) $request->query('index', '')) !== '' ? $v : null;
+        $coating = ($v = (string) $request->query('coating', '')) !== '' ? $v : null;
+        $eyeSide = ($v = (string) $request->query('eye_side', '')) !== '' ? $v : null;
+        $grid = $matrix->gridForParent($parent, $branchId, $index, $coating, $eyeSide);
+
+        $branchName = Branch::find($branchId)?->name ?? '';
+        $rows = [[__('ui.matrix.title').' — '.$parent->name.' @ '.$branchName]];
+        $header = ['SPH \\ '.$grid['col_label']];
+        foreach ($grid['cols'] as $col) {
+            $header[] = $matrix->display($col + 0);
+        }
+        $rows[] = $header;
+        foreach ($grid['rows'] as $row) {
+            $line = [$row['label']];
+            foreach ($grid['cols'] as $col) {
+                $cell = $row['cells'][$matrix->colKey($col + 0)] ?? null;
+                $line[] = $cell === null ? '' : $cell['stock'];
+            }
+            $rows[] = $line;
+        }
+        $bytes = XlsxWriter::make([['title' => 'Matriks '.$parent->name, 'rows' => $rows]]);
+
+        return response()->streamDownload(function () use ($bytes) {
+            echo $bytes;
+        }, 'matriks-lensa-'.$parent->id.'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     private function visibleBranches(BranchContext $context)

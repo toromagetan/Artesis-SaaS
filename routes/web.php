@@ -173,6 +173,8 @@ Route::middleware('auth')->group(function () {
     // ---- Stok (M.4) & Transfer (M.7) ----
     Route::get('/stok', [StockController::class, 'index'])->middleware('permission:stock.view')->name('stock.index');
     Route::get('/stok/pergerakan', [StockController::class, 'movements'])->middleware('permission:stock.view')->name('stock.movements');
+    Route::get('/stok/matriks-lensa', [StockController::class, 'lensMatrix'])->middleware('permission:stock.view')->name('stock.lens-matrix');
+    Route::get('/stok/matriks-lensa.xlsx', [StockController::class, 'lensMatrixExport'])->middleware(['permission:stock.view', 'throttle:10,1'])->name('stock.lens-matrix.export');
     Route::get('/transfer', [TransferController::class, 'index'])->middleware('permission:stock.view')->name('transfers.index');
     Route::get('/transfer/baru', [TransferController::class, 'create'])->middleware('permission:stock.transfer')->name('transfers.create');
     Route::post('/transfer', [TransferController::class, 'store'])->middleware('permission:stock.transfer')->name('transfers.store');

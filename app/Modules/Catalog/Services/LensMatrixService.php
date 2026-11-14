@@ -90,7 +90,7 @@ class LensMatrixService
      *
      * @return array{kind: string, cols: list<float>, col_label: string, rows: list<array{label: string, sph: float, eye: ?string, cells: array<string, ?array{product: LensDetail, stock: int}>}>}
      */
-    public function gridForParent(Product $parent, int $branchId, ?string $index = null, ?string $coating = null): array
+    public function gridForParent(Product $parent, int $branchId, ?string $index = null, ?string $coating = null, ?string $eyeSide = null): array
     {
         $kind = $this->kindForParent($parent);
         $balances = $this->inventory->balancesForBranch($branchId);
@@ -101,11 +101,16 @@ class LensMatrixService
             ->with('detailAttributes')
             ->orderBy('sku')
             ->get()
-            ->filter(function (LensDetail $d) use ($index, $coating) {
+            ->filter(function (LensDetail $d) use ($index, $coating, $eyeSide) {
                 if ($index !== null && $index !== '' && $d->index !== $index) {
                     return false;
                 }
                 if ($coating !== null && $coating !== '' && $d->attributeValue('coating') !== $coating) {
+                    return false;
+                }
+                // Saringan sisi mata (A3, pola Artesis): detail
+                // 'Both' lolos untuk kedua sisi.
+                if ($eyeSide !== null && $eyeSide !== '' && $d->eye_side !== null && $d->eye_side !== 'Both' && $d->eye_side !== $eyeSide) {
                     return false;
                 }
 
