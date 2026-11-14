@@ -52,9 +52,9 @@
                             <td class="px-4 py-3 text-gray-600">{{ date('d M Y H:i', $entry['created_at']) }}</td>
                             <td class="px-4 py-3 text-right">
                                 <x-lentera.aksi-baris>
-                                    <x-lentera.menu-item :href="route('backups.download', ['berkas' => $entry['name']])" sm>{{ __('ui.backups.download') }}</x-lentera.menu-item>
+                                    <x-lentera.menu-item :href="route('backups.download', ['berkas' => $entry['name']])" sm icon="download" :title="__('ui.backups.download')"><span class="sr-only">{{ __('ui.backups.download') }}</span></x-lentera.menu-item>
                                     @if ($canRestore)
-                                        <x-lentera.aksi-dialog danger sm :label="__('ui.backups.restore')" :title="__('ui.backups.restore').'?'">
+                                        <x-lentera.aksi-dialog danger sm :label="__('ui.backups.restore')" :title="__('ui.backups.restore').'?'" icon="refresh">
                                             <form method="POST" action="{{ route('backups.restore') }}">
                                                 @csrf
                                                 <input type="hidden" name="berkas" value="{{ $entry['name'] }}">
@@ -76,7 +76,7 @@
                                     <form method="POST" action="{{ route('backups.destroy') }}" onsubmit="return confirm('{{ __('ui.backups.delete_confirm') }}')">
                                         @csrf
                                         <input type="hidden" name="berkas" value="{{ $entry['name'] }}">
-                                        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-red-600 shadow-soft transition duration-150 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-lentera-500">{{ __('ui.backups.delete') }}</button>
+                                        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-red-600 shadow-soft transition duration-150 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-lentera-500" title="{{ __('ui.backups.delete') }}" aria-label="{{ __('ui.backups.delete') }}"><svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg><span class="sr-only">{{ __('ui.backups.delete') }}</span></button>
                                     </form>
                                 </x-lentera.aksi-baris>
                             </td>

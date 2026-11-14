@@ -48,7 +48,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <x-lentera.aksi-baris>
-                                        <x-lentera.menu-item :href="route('assets.show', $asset)" sm>{{ __('ui.detail') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('assets.show', $asset)" sm icon="eye" :title="__('ui.detail')"><span class="sr-only">{{ __('ui.detail') }}</span></x-lentera.menu-item>
                                     </x-lentera.aksi-baris>
                                 </td>
                             </tr>

@@ -70,10 +70,10 @@
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <x-lentera.aksi-baris>
-                                        <x-lentera.menu-item :href="route('sales.show', $sale)" sm>{{ __('ui.sales.detail') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('sales.show', $sale)" sm icon="eye" :title="__('ui.sales.detail')"><span class="sr-only">{{ __('ui.sales.detail') }}</span></x-lentera.menu-item>
                                         @can('sales.pay')
                                             @unless ($sale->isVoid() || $sale->paymentStatus() === 'paid')
-                                                <x-lentera.menu-item :href="route('sales.payment', $sale)" sm>{{ __('ui.sales.add_payment') }}</x-lentera.menu-item>
+                                                <x-lentera.menu-item :href="route('sales.payment', $sale)" sm icon="banknotes" :title="__('ui.sales.add_payment')"><span class="sr-only">{{ __('ui.sales.add_payment') }}</span></x-lentera.menu-item>
                                             @endunless
                                         @endcan
                                     </x-lentera.aksi-baris>
