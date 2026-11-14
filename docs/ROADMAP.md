@@ -136,3 +136,10 @@ Fase 1 ──► Fase 5 (Backup/Ekspor/Recovery) ──► Fase 6 (Kesiapan Prod
 - Mode satu instansi bersama di produksi sebelum Fase 6 menyatakan layak untuk topologi itu.
 
 *Akhir Roadmap SaaS v1.0 — revisi hanya ber-commit dengan persetujuan pemilik proyek.*
+
+## Program Adopsi Produk Persis Artesis (A1–A7, 14 November 2026)
+
+- **Objective:** mengganti model katalog dua tingkat (ADR-015) dengan model produk persis Artesis atas keputusan pemilik proyek ("Produk buat persis Artesis saja", Opsi A), lengkap dengan matriks lensa, impor produk, impor awal pemilik, dan menu cermin Artesis — tanpa mengubah skema FIFO dan dengan isolasi per tenant penuh (OD-2).
+- **Deliverables & status:** A1 skema detail + rujukan-ulang layanan (PR #51) · A2 katalog satu halaman per tipe (PR #52) · A3 halaman matriks stok lensa (PR #53) · A4 impor produk Excel/CSV (PR #54) · A5 impor stok awal XLSX (PR #55) · A6 sidebar cermin Artesis (PR #56) · A7 ADR-023 + penyelarasan dokumen & verifikasi ekspor/backup/seeder (PR #57).
+- **Exit criteria:** ADR-023 tercatat di register Blueprint dan berkas `docs/adr/`; peta rute & klasifikasi tabel Blueprint selaras model detail; ekspor per tenant, backup, dan seeder terverifikasi terhadap model baru; suite penuh hijau per modul.
+- **Status: Selesai** — keputusan & kontrak berjalan kini di ADR-023.
