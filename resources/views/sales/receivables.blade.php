@@ -74,9 +74,9 @@
                                 <td class="px-4 py-3 text-right">
                                     <x-lentera.aksi-baris>
                                         @can('sales.pay')
-                                            <x-lentera.menu-item :href="route('sales.payment', $sale)" sm>{{ __('ui.receivables.receive') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('sales.payment', $sale)" sm icon="banknotes" :title="__('ui.receivables.receive')"><span class="sr-only">{{ __('ui.receivables.receive') }}</span></x-lentera.menu-item>
                                         @endcan
-                                        <x-lentera.menu-item :href="route('sales.show', $sale)" sm>{{ __('ui.receivables.view_sale') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('sales.show', $sale)" sm icon="eye" :title="__('ui.receivables.view_sale')"><span class="sr-only">{{ __('ui.receivables.view_sale') }}</span></x-lentera.menu-item>
                                     </x-lentera.aksi-baris>
                                 </td>
                             </tr>

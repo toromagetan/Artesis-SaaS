@@ -30,7 +30,7 @@
 
                             <form method="POST" action="{{ route('customers.toggle-active', $customer) }}">
                                 @csrf
-                                <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $customer->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $customer->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                                <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $customer->is_active ? 'text-red-600' : 'text-lentera-700' }}" title="{{ $customer->is_active ? __('ui.deactivate') : __('ui.activate') }}" aria-label="{{ $customer->is_active ? __('ui.deactivate') : __('ui.activate') }}"><svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v8" /><path stroke-linecap="round" stroke-linejoin="round" d="M6.34 6.34a8 8 0 1011.32 0" /></svg><span class="sr-only">{{ $customer->is_active ? __('ui.deactivate') : __('ui.activate') }}</span></button>
                             </form>
                         @endcan
                     </x-lentera.aksi-bar>
@@ -86,7 +86,7 @@
                                 <td class="px-4 py-3">{{ $rx->examiner?->name ?: '—' }}</td>
                                 <td class="px-4 py-3 text-right">
                                     <x-lentera.aksi-baris>
-                                        <x-lentera.menu-item :href="route('prescriptions.show', $rx)" sm>{{ __('ui.prescriptions.detail') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('prescriptions.show', $rx)" sm icon="eye" :title="__('ui.prescriptions.detail')"><span class="sr-only">{{ __('ui.prescriptions.detail') }}</span></x-lentera.menu-item>
                                     </x-lentera.aksi-baris>
                                 </td>
                             </tr>
@@ -135,7 +135,7 @@
                                 <td class="px-4 py-3 text-right">
                                     @if ($credit->isActive() && auth()->user()->hasPermission('sales.pay'))
                                         <x-lentera.aksi-baris>
-                                            <x-lentera.menu-item :href="route('customer-credits.apply', $credit)" sm>{{ __('ui.credits.apply') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('customer-credits.apply', $credit)" sm icon="check" :title="__('ui.credits.apply')"><span class="sr-only">{{ __('ui.credits.apply') }}</span></x-lentera.menu-item>
                                         </x-lentera.aksi-baris>
                                     @endif
                                 </td>
