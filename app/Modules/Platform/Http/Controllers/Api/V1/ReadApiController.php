@@ -57,26 +57,41 @@ class ReadApiController extends Controller
         // LNT-004: harga modal hanya untuk token bercakupan products.cost.
         $token = $request->attributes->get('api_token');
         $withCost = $token instanceof ApiToken && $token->allows('products.cost');
-        $products = Product::query()
-            ->where('is_active', true)
-            ->when($request->query('q'), fn ($q, $term) => $q->where(fn ($sub) => $sub
-                ->where('name', 'like', "%{$term}%")->orWhere('sku', 'like', "%{$term}%")))
-            ->orderBy('name')
-            ->paginate(50);
+        // A1: unit katalog = DETAIL (SKU/harga di detail; nama/merek
+        // di master). Kelima tabel detail digabung lalu dipaginasi.
+        $term = (string) $request->query('q', '');
+        $details = collect();
+        foreach (Product::DETAIL_MODELS as $model) {
+            $rows = $model::query()
+                ->with('product')
+                ->where('is_active', true)
+                ->whereHas('product', fn ($q) => $q->where('is_active', true))
+                ->when($term !== '', fn ($q) => $q->where(fn ($sub) => $sub
+                    ->where('sku', 'like', "%{$term}%")
+                    ->orWhereHas('product', fn ($master) => $master->where('name', 'like', "%{$term}%"))))
+                ->get();
+            $details = $details->concat($rows);
+        }
+        $details = $details->sortBy(fn ($d) => $d->product?->name ?? '')->values();
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = 50;
+        $total = $details->count();
+        $pageItems = $details->forPage($page, $perPage);
 
         return response()->json([
-            'data' => collect($products->items())->map(function (Product $p) use ($withCost) {
+            'data' => $pageItems->map(function ($d) use ($withCost) {
                 $row = [
-                    'id' => $p->id, 'sku' => $p->sku, 'barcode' => $p->barcode, 'type' => $p->type,
-                    'name' => $p->name, 'brand' => $p->brand, 'sale_price' => (string) $p->sale_price,
+                    'id' => $d->id, 'detail_id' => $d->id, 'detail_type' => $d::DETAIL_TYPE,
+                    'sku' => $d->sku, 'barcode' => $d->barcode, 'type' => $d::DETAIL_TYPE,
+                    'name' => $d->product?->name, 'brand' => $d->product?->brand, 'sale_price' => (string) $d->sale_price,
                 ];
                 if ($withCost) {
-                    $row['cost_price'] = (string) $p->cost_price;
+                    $row['cost_price'] = (string) $d->cost_price;
                 }
 
                 return $row;
-            })->all(),
-            'meta' => ['current_page' => $products->currentPage(), 'last_page' => $products->lastPage(), 'total' => $products->total()],
+            })->values()->all(),
+            'meta' => ['current_page' => $page, 'last_page' => max(1, (int) ceil($total / $perPage)), 'total' => $total],
         ]);
     }
 
@@ -124,7 +139,7 @@ class ReadApiController extends Controller
                 'customer_id' => $s->customer_id, 'sale_date' => $s->sale_date?->toDateString(),
                 'status' => $s->status, 'total' => (string) $s->total_amount,
                 'items' => $s->items->map(fn ($i) => [
-                    'product_id' => $i->product_id, 'name' => $i->product_name_snapshot,
+                    'detail_id' => $i->detail_id, 'detail_type' => $i->detail_type, 'name' => $i->product_name_snapshot,
                     'qty' => $i->qty, 'line_total' => (string) $i->line_total,
                 ])->all(),
             ])->all(),
@@ -139,7 +154,8 @@ class ReadApiController extends Controller
 
         return response()->json([
             'data' => collect($report)->map(fn ($row) => [
-                'product_id' => $row['product_id'],
+                'detail_id' => $row['detail_id'],
+                'detail_type' => $row['detail_type'],
                 'name' => $row['product_name'],
                 'branch_id' => $row['branch_id'],
                 'qty' => $row['qty'],

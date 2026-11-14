@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Accounting\Models\JournalLine;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\TenantContext;
@@ -39,7 +39,7 @@ class PhaseFourGateTest extends TestCase
 
     private Supplier $supplier;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     private Customer $customer;
 
@@ -53,7 +53,7 @@ class PhaseFourGateTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->supplier = Supplier::create(['name' => 'PT Gerbang Empat', 'is_active' => true]);
-        $this->frame = Product::factory()->ofType('frame')->create([
+        $this->frame = FrameDetail::factory()->create([
             'sku' => 'G4-F1', 'cost_price' => '80000', 'sale_price' => '150000',
         ]);
         $this->customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
@@ -63,7 +63,7 @@ class PhaseFourGateTest extends TestCase
     {
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $this->supplier->id, $this->branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => $qty, 'unit_cost' => $unitCost],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => $qty, 'unit_cost' => $unitCost],
         ]);
         $orders->markSent($this->owner, $po);
 
@@ -77,7 +77,7 @@ class PhaseFourGateTest extends TestCase
         app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => $date,
             'tax_mode' => 'exclusive', 'tax_rate' => '0', 'branch_id' => $this->branch->id,
-        ], [['product_id' => $this->frame->id, 'qty' => $qty]], [
+        ], [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => $qty]], [
             ['method' => 'cash', 'amount' => (string) ($qty * 150000)],
         ]);
     }
@@ -106,7 +106,7 @@ class PhaseFourGateTest extends TestCase
         $opnames = app(OpnameService::class);
         $opname = $opnames->schedule($this->owner, $this->branch->id, '2026-09-20');
         $opnames->startCounting($this->owner, $opname);
-        $item = $opname->items()->where('product_id', $this->frame->id)->firstOrFail();
+        $item = $opname->items()->where('detail_type', 'frame')->where('detail_id', $this->frame->id)->firstOrFail();
         $this->assertSame(6, (int) $item->system_qty);
         $opnames->saveCounts($this->owner, $opname, [$item->id => 5]);
         $opnames->submitReview($this->owner, $opname);
@@ -115,9 +115,9 @@ class PhaseFourGateTest extends TestCase
         // Rekonsiliasi Sept: GL Persediaan == nilai lapisan == laporan stok.
         // 800.000 masuk − 320.000 HPP − 80.000 selisih opname = 400.000.
         $this->assertSame(40_000_000, $this->glInventoryCents());
-        $this->assertSame(40_000_000, $fifo->inventoryValue($this->frame->id, $this->branch->id)->cents());
+        $this->assertSame(40_000_000, $fifo->inventoryValue('frame', $this->frame->id, $this->branch->id)->cents());
         $stockRows = $reports->stockReport([$this->branch->id]);
-        $row = collect($stockRows)->firstWhere('product_id', $this->frame->id);
+        $row = collect($stockRows)->firstWhere('detail_id', $this->frame->id);
         $this->assertSame(5, $row['qty']);
         $this->assertSame(40_000_000, $row['value']->cents());
 
@@ -138,8 +138,8 @@ class PhaseFourGateTest extends TestCase
 
         // Rekonsiliasi Okt: 400.000 + 1.000.000 − 1.100.000 HPP = 300.000 (3 @100rb).
         $this->assertSame(30_000_000, $this->glInventoryCents());
-        $this->assertSame(30_000_000, $fifo->inventoryValue($this->frame->id, $this->branch->id)->cents());
-        $row = collect($reports->stockReport([$this->branch->id]))->firstWhere('product_id', $this->frame->id);
+        $this->assertSame(30_000_000, $fifo->inventoryValue('frame', $this->frame->id, $this->branch->id)->cents());
+        $row = collect($reports->stockReport([$this->branch->id]))->firstWhere('detail_id', $this->frame->id);
         $this->assertSame(3, $row['qty']);
         $this->assertSame(30_000_000, $row['value']->cents());
 

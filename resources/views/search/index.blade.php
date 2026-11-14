@@ -89,9 +89,9 @@
                 <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">{{ __('ui.search_page.products') }}</h2>
                 <div class="mb-6 overflow-hidden rounded-lg bg-white shadow-soft">
                     @foreach ($products as $product)
-                        <a href="{{ route('products.show', $product) }}" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 transition duration-150 last:border-0 hover:bg-lentera-50">
+                        <a href="{{ route('products.show', [$product::DETAIL_TYPE, $product->id]) }}" class="flex items-center justify-between border-b border-gray-100 px-4 py-3 transition duration-150 last:border-0 hover:bg-lentera-50">
                             <span>
-                                <span class="block font-medium text-gray-800">{{ $product->name }}</span>
+                                <span class="block font-medium text-gray-800">{{ $product->product?->name }}</span>
                                 <span class="block text-xs text-gray-400">{{ $product->sku }} · {{ $product->typeLabel() }}</span>
                             </span>
                             <x-lentera.badge :active="$product->is_active" />

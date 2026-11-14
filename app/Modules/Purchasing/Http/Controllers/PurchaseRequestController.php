@@ -13,6 +13,7 @@ use App\Modules\Purchasing\Services\PurchaseRequestService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Middleware;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /** Purchase Request (PRD Detail 6.1). */
@@ -43,7 +44,15 @@ class PurchaseRequestController extends Controller
         $branches = $context->hasGlobalAccess()
             ? Branch::orderBy('name')->get()
             : Branch::whereIn('id', $context->managedBranchIds())->orderBy('name')->get();
-        $products = Product::where('is_active', true)->orderBy('type')->orderBy('name')->get();
+        // A1: pilihan baris PR = DETAIL aktif kelima tipe.
+        $products = collect();
+        foreach (Product::DETAIL_MODELS as $model) {
+            $products = $products->concat(
+                $model::with('product')->where('is_active', true)
+                    ->whereHas('product', fn ($q) => $q->where('is_active', true))->get()
+            );
+        }
+        $products = $products->sortBy(fn ($d) => [$d->product?->name ?? '', $d->sku])->values();
         $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
 
         return view('purchasing.requests.create', compact('branches', 'products', 'suppliers'));
@@ -52,7 +61,14 @@ class PurchaseRequestController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $items = collect((array) $request->input('items', []))
-            ->filter(fn ($row) => is_array($row) && ! empty($row['product_id']) && ! empty($row['qty']))
+            ->filter(fn ($row) => is_array($row) && ! empty($row['detail_key']) && ! empty($row['qty']))
+            ->map(function ($row) {
+                [$type, $id] = array_pad(explode(':', (string) $row['detail_key'], 2), 2, null);
+                $row['detail_type'] = $type;
+                $row['detail_id'] = (int) $id;
+
+                return $row;
+            })
             ->values()
             ->all();
         $request->merge(['items' => $items]);
@@ -61,7 +77,8 @@ class PurchaseRequestController extends Controller
             'cabang_tujuan' => ['required', 'integer'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer'],
+            'items.*.detail_type' => ['required', Rule::in(Product::TYPES)],
+            'items.*.detail_id' => ['required', 'integer'],
             'items.*.qty' => ['required', 'integer', 'min:1'],
             'items.*.estimated_price' => ['nullable', 'numeric', 'min:0'],
             'items.*.supplier_id' => ['nullable', 'integer'],
@@ -71,7 +88,8 @@ class PurchaseRequestController extends Controller
             $request->user(),
             (int) $validated['cabang_tujuan'],
             collect($validated['items'])->map(fn ($row) => [
-                'product_id' => (int) $row['product_id'],
+                'detail_type' => (string) $row['detail_type'],
+                'detail_id' => (int) $row['detail_id'],
                 'qty' => (int) $row['qty'],
                 'estimated_price' => $row['estimated_price'] ?? null,
                 'supplier_id' => $row['supplier_id'] ?? null,
@@ -84,7 +102,7 @@ class PurchaseRequestController extends Controller
 
     public function show(PurchaseRequest $pr): View
     {
-        $pr->load(['requester', 'branch', 'items.product', 'items.supplier', 'items.purchaseOrder']);
+        $pr->load(['requester', 'branch', 'items.detail.product', 'items.supplier', 'items.purchaseOrder']);
         $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
 
         return view('purchasing.requests.show', compact('pr', 'suppliers'));
@@ -107,7 +125,7 @@ class PurchaseRequestController extends Controller
     /** Dokumen cetak PR (audit 23 Okt 2026 B4). */
     public function print(PurchaseRequest $pr): View
     {
-        $pr->load(['branch', 'requester', 'items.product', 'items.supplier', 'sale']);
+        $pr->load(['branch', 'requester', 'items.detail.product', 'items.supplier', 'sale']);
 
         return view('purchasing.requests.print', [
             'pr' => $pr,

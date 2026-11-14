@@ -2,7 +2,8 @@
 
 namespace Tests\Feature\Inventory;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
+use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\Identity\Models\Permission;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -31,9 +32,9 @@ class InitialStockImportTest extends TestCase
 
     private Branch $branch;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
-    private Product $lens;
+    private LensDetail $lens;
 
     protected function setUp(): void
     {
@@ -41,8 +42,8 @@ class InitialStockImportTest extends TestCase
         $this->seed([IdentitySeeder::class, AccountingSeeder::class]);
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
-        $this->frame = Product::factory()->ofType('frame')->create(['sku' => 'FR-IMP-1', 'cost_price' => '100000']);
-        $this->lens = Product::factory()->ofType('lens')->create(['sku' => 'LN-IMP-1', 'cost_price' => '50000']);
+        $this->frame = FrameDetail::factory()->create(['sku' => 'FR-IMP-1', 'cost_price' => '100000']);
+        $this->lens = LensDetail::factory()->create(['sku' => 'LN-IMP-1', 'cost_price' => '50000']);
     }
 
     private function service(): InitialStockImportService
@@ -79,8 +80,8 @@ class InitialStockImportTest extends TestCase
         $this->assertSame([], $clean['errors']);
         $totals = $this->service()->commit($this->owner, $clean['token']);
         $stock = app(InventoryService::class);
-        $this->assertSame(10, $stock->currentStock($this->frame->id, $this->branch->id));
-        $this->assertSame(4, $stock->currentStock($this->lens->id, $branchB->id));
+        $this->assertSame(10, $stock->currentStock('frame', $this->frame->id, $this->branch->id));
+        $this->assertSame(4, $stock->currentStock('lens', $this->lens->id, $branchB->id));
         $this->assertSame('1000000.00', $totals[$this->branch->id]); // 10 × 100.000
         $this->assertSame('200000.00', $totals[$branchB->id]);       // 4 × 50.000
         $this->assertSame(2, StockMovement::where('reference_type', 'initial_stock_import')->count());
@@ -126,7 +127,7 @@ class InitialStockImportTest extends TestCase
         $preview = $this->service()->preview("sku,cabang,qty\nLN-IMP-1,{$this->branch->id},3\n", $this->owner);
         $this->actingAs($this->owner)->post('/stok/impor/komitmen', ['token' => $preview['token']])
             ->assertRedirect(route('stock.index'));
-        $this->assertSame(3, app(InventoryService::class)->currentStock($this->lens->id, $this->branch->id));
+        $this->assertSame(3, app(InventoryService::class)->currentStock('lens', $this->lens->id, $this->branch->id));
     }
 
     public function test_upload_rejects_non_spreadsheet_extension(): void

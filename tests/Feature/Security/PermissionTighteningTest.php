@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Security;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
@@ -71,9 +71,9 @@ class PermissionTighteningTest extends TestCase
 
     public function test_pr_cancel_requires_dedicated_permission(): void
     {
-        $product = Product::factory()->create();
+        $product = FrameDetail::factory()->create();
         $pr = app(PurchaseRequestService::class)->create($this->owner, $this->branch->id, [
-            ['product_id' => $product->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1],
         ]);
         $this->assertInstanceOf(PurchaseRequest::class, $pr);
 

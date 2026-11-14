@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Inventory;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -16,9 +17,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * F4.4 Label barcode: enkoder EAN-13 & Code 128 (SVG murni),
- * halaman pemilih, mode produk (salinan per produk) dan mode
- * batch penerimaan, format barcode per produk, pagar izin.
+ * F4.4 Label barcode (A1: unit label = DETAIL produk): enkoder
+ * EAN-13 & Code 128 (SVG murni), halaman pemilih, mode detail
+ * (salinan per detail, kunci "alias:id") dan mode batch
+ * penerimaan, format barcode per detail, pagar izin.
  */
 class BarcodeLabelTest extends TestCase
 {
@@ -62,17 +64,19 @@ class BarcodeLabelTest extends TestCase
 
     public function test_label_print_by_products_uses_ean13_when_barcode_numeric(): void
     {
-        $ean = Product::factory()->create([
-            'sku' => 'FR-EAN', 'name' => 'Frame EAN', 'barcode' => '5901234123457', 'sale_price' => '150000',
+        $eanMaster = Product::factory()->forType('frame')->create(['name' => 'Frame EAN']);
+        $ean = FrameDetail::factory()->create([
+            'product_id' => $eanMaster->id, 'sku' => 'FR-EAN', 'barcode' => '5901234123457', 'sale_price' => '150000',
         ]);
-        $plain = Product::factory()->create([
-            'sku' => 'FR-PLAIN', 'name' => 'Frame Polos', 'sale_price' => '200000',
+        $plainMaster = Product::factory()->forType('frame')->create(['name' => 'Frame Polos']);
+        $plain = FrameDetail::factory()->create([
+            'product_id' => $plainMaster->id, 'sku' => 'FR-PLAIN', 'sale_price' => '200000',
         ]);
 
         $response = $this->actingAs($this->owner)->post(route('labels.print'), [
             'mode' => 'products',
-            'selected' => [$ean->id, $plain->id],
-            'copies' => [$ean->id => 2, $plain->id => 1],
+            'selected' => ['frame:'.$ean->id, 'frame:'.$plain->id],
+            'copies' => ['frame:'.$ean->id => 2, 'frame:'.$plain->id => 1],
         ]);
         $response->assertOk();
         $html = $response->getContent();
@@ -85,10 +89,13 @@ class BarcodeLabelTest extends TestCase
     public function test_label_print_by_receipt_batch(): void
     {
         $supplier = Supplier::create(['name' => 'PT Label', 'is_active' => true]);
-        $product = Product::factory()->create(['sku' => 'FR-BATCH', 'name' => 'Frame Batch', 'sale_price' => '100000']);
+        $master = Product::factory()->forType('frame')->create(['name' => 'Frame Batch']);
+        $detail = FrameDetail::factory()->create([
+            'product_id' => $master->id, 'sku' => 'FR-BATCH', 'sale_price' => '100000',
+        ]);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $supplier->id, $this->branch->id, [
-            ['product_id' => $product->id, 'qty' => 3, 'unit_cost' => '50000'],
+            ['detail_type' => 'frame', 'detail_id' => $detail->id, 'qty' => 3, 'unit_cost' => '50000'],
         ]);
         $orders->markSent($this->owner, $po);
         $receipt = app(ReceiptService::class)->store($this->owner, $po, [

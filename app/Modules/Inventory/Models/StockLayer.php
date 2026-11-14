@@ -2,12 +2,12 @@
 
 namespace App\Modules\Inventory\Models;
 
-use App\Modules\Catalog\Models\Product;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Purchasing\Models\ReceiptItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * Lapisan harga FIFO (ADR-014, F4.2): satu baris per penerimaan
@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class StockLayer extends Model
 {
     protected $fillable = [
-        'product_id', 'branch_id', 'receipt_item_id', 'source_movement_id',
+        'detail_id', 'detail_type', 'branch_id', 'receipt_item_id', 'source_movement_id',
         'qty_received', 'qty_remaining', 'unit_cost', 'is_opening',
     ];
 
@@ -32,9 +32,9 @@ class StockLayer extends Model
         ];
     }
 
-    public function product(): BelongsTo
+    public function detail(): MorphTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->morphTo();
     }
 
     public function branch(): BelongsTo

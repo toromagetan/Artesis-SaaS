@@ -51,18 +51,8 @@
                                 @include('catalog.products._variant-row', ['product' => $product])
                             @endforeach
                         @empty
-                            @if ($orphans->isEmpty())
-                                <tr><td colspan="{{ $type === 'softlens' ? 7 : 6 }}"><x-lentera.empty-state>{{ __('ui.products.empty') }}</x-lentera.empty-state></td></tr>
-                            @endif
+                            <tr><td colspan="{{ $type === 'softlens' ? 7 : 6 }}"><x-lentera.empty-state>{{ __('ui.products.empty') }}</x-lentera.empty-state></td></tr>
                         @endforelse
-                        @if ($orphans->isNotEmpty())
-                            <tr class="border-b border-gray-100 bg-gray-50">
-                                <td colspan="{{ $type === 'softlens' ? 7 : 6 }}" class="px-4 py-2.5 font-semibold text-gray-600">{{ __('ui.products.no_parent') }}</td>
-                            </tr>
-                            @foreach ($orphans as $product)
-                                @include('catalog.products._variant-row', ['product' => $product])
-                            @endforeach
-                        @endif
                     </tbody>
                 </table>
             </div>

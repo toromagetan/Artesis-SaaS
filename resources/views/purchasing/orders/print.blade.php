@@ -14,7 +14,7 @@
         <tbody>
             @foreach ($po->items as $item)
                 <tr>
-                    <td>{{ $item->product->name }} ({{ $item->product->sku }})</td>
+                    <td>{{ $item->detail->product->name }} ({{ $item->detail->sku }})</td>
                     <td>{{ $item->qty_ordered }}</td>
                     <td>{{ \App\Support\Money::fromDecimal((string) $item->unit_cost)->format() }}</td>
                     <td>{{ \App\Support\Money::fromDecimal((string) $item->line_total)->format() }}</td>

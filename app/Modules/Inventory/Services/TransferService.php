@@ -2,7 +2,7 @@
 
 namespace App\Modules\Inventory\Services;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Models\StockTransfer;
@@ -33,32 +33,42 @@ class TransferService
         private readonly InventoryService $inventory,
     ) {}
 
-    /** Sisa distribusi per produk dari satu PO: diterima − terkirim aktif. */
+    /**
+     * Sisa distribusi per detail dari satu PO: diterima − terkirim
+     * aktif. Berkunci komposit "alias:id" (A1).
+     *
+     * @return array<string, int>
+     */
     public function distributableFromPo(PurchaseOrder $po): array
     {
         $received = [];
         foreach ($po->items as $item) {
-            $received[$item->product_id] = ($received[$item->product_id] ?? 0) + $item->qty_received;
+            $key = $item->detail_type.':'.$item->detail_id;
+            $received[$key] = ($received[$key] ?? 0) + $item->qty_received;
         }
-        $sent = DB::table('stock_transfer_items')
+        $sentRows = DB::table('stock_transfer_items')
             ->join('stock_transfers', 'stock_transfers.id', '=', 'stock_transfer_items.stock_transfer_id')
             ->where('stock_transfers.source_type', 'purchase_order')
             ->where('stock_transfers.source_id', $po->id)
             ->whereIn('stock_transfers.status', ['sent', 'received'])
-            ->groupBy('stock_transfer_items.product_id')
-            ->selectRaw('stock_transfer_items.product_id, SUM(stock_transfer_items.qty) as total')
-            ->pluck('total', 'product_id');
+            ->groupBy('stock_transfer_items.detail_type', 'stock_transfer_items.detail_id')
+            ->selectRaw('stock_transfer_items.detail_type, stock_transfer_items.detail_id, SUM(stock_transfer_items.qty) as total')
+            ->get();
+        $sent = [];
+        foreach ($sentRows as $row) {
+            $sent[$row->detail_type.':'.$row->detail_id] = (int) $row->total;
+        }
 
         $result = [];
-        foreach ($received as $productId => $qty) {
-            $result[$productId] = $qty - (int) ($sent[$productId] ?? 0);
+        foreach ($received as $key => $qty) {
+            $result[$key] = $qty - (int) ($sent[$key] ?? 0);
         }
 
         return $result;
     }
 
     /**
-     * @param  array<int, array{product_id: int, qty: int}>  $lines
+     * @param  array<int, array{detail_type: string, detail_id: int, qty: int}>  $lines
      */
     public function sendFromPo(User $actor, PurchaseOrder $po, int $toBranchId, array $lines, ?string $notes = null): StockTransfer
     {
@@ -66,7 +76,7 @@ class TransferService
     }
 
     /**
-     * @param  array<int, array{product_id: int, qty: int}>  $lines
+     * @param  array<int, array{detail_type: string, detail_id: int, qty: int}>  $lines
      */
     public function sendFromBranchStock(User $actor, int $fromBranchId, int $toBranchId, array $lines, ?string $notes = null): StockTransfer
     {
@@ -74,7 +84,7 @@ class TransferService
     }
 
     /**
-     * @param  array<int, array{product_id: int, qty: int}>  $lines
+     * @param  array<int, array{detail_type: string, detail_id: int, qty: int}>  $lines
      */
     private function send(User $actor, int $fromBranchId, int $toBranchId, array $lines, string $sourceType, ?int $sourceId, ?string $notes): StockTransfer
     {
@@ -106,14 +116,14 @@ class TransferService
                 $available = $this->distributableFromPo($po);
             }
             foreach ($lines as $line) {
-                $productId = (int) $line['product_id'];
+                $key = $line['detail_type'].':'.(int) $line['detail_id'];
                 $limit = $sourceType === 'purchase_order'
-                    ? ($available[$productId] ?? 0)
-                    : $this->inventory->currentStock($productId, $fromBranchId);
+                    ? ($available[$key] ?? 0)
+                    : $this->inventory->currentStock($line['detail_type'], (int) $line['detail_id'], $fromBranchId);
                 if ((int) $line['qty'] > $limit) {
-                    $product = Product::find($productId);
+                    $detail = app(ProductService::class)->findDetail($line['detail_type'], (int) $line['detail_id']);
                     throw ValidationException::withMessages([
-                        'items' => __('ui.transfer.exceeds_available', ['product' => $product?->name ?? '#'.$productId, 'available' => $limit]),
+                        'items' => __('ui.transfer.exceeds_available', ['product' => $detail->product->name, 'available' => $limit]),
                     ]);
                 }
             }
@@ -129,10 +139,10 @@ class TransferService
                 'notes' => $notes,
             ]);
             foreach ($lines as $line) {
-                $product = Product::findOrFail((int) $line['product_id']);
-                $transfer->items()->create(['product_id' => $product->id, 'qty' => (int) $line['qty']]);
+                $detail = app(ProductService::class)->findDetail($line['detail_type'], (int) $line['detail_id']);
+                $transfer->items()->create(['detail_id' => $detail->id, 'detail_type' => $detail::DETAIL_TYPE, 'qty' => (int) $line['qty']]);
                 $this->inventory->recordMovement(
-                    $actor, $product, $from, 'transfer_out',
+                    $actor, $detail, $from, 'transfer_out',
                     -(int) $line['qty'], 'stock_transfer', $transfer->id,
                 );
             }
@@ -153,9 +163,9 @@ class TransferService
                 throw ValidationException::withMessages(['status' => __('ui.transfer.receive_invalid', ['status' => $locked->status])]);
             }
             $to = Branch::findOrFail($locked->to_branch_id);
-            foreach ($locked->items()->with('product')->get() as $item) {
+            foreach ($locked->items()->with('detail')->get() as $item) {
                 $this->inventory->recordMovement(
-                    $actor, $item->product, $to, 'transfer_in',
+                    $actor, $item->detail, $to, 'transfer_in',
                     $item->qty, 'stock_transfer', $locked->id,
                 );
             }
@@ -177,10 +187,10 @@ class TransferService
                 throw ValidationException::withMessages(['status' => __('ui.transfer.cancel_invalid', ['status' => $locked->status])]);
             }
             $from = Branch::findOrFail($locked->from_branch_id);
-            foreach ($locked->items()->with('product')->get() as $item) {
+            foreach ($locked->items()->with('detail')->get() as $item) {
                 // Gerakan penyeimbang: stok kembali masuk ke cabang asal.
                 $this->inventory->recordMovement(
-                    $actor, $item->product, $from, 'transfer_in',
+                    $actor, $item->detail, $from, 'transfer_in',
                     $item->qty, 'stock_transfer', $locked->id,
                 );
             }

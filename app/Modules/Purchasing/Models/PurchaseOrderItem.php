@@ -2,14 +2,14 @@
 
 namespace App\Modules\Purchasing\Models;
 
-use App\Modules\Catalog\Models\Product;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class PurchaseOrderItem extends Model
 {
     protected $fillable = [
-        'purchase_order_id', 'product_id', 'qty_ordered',
+        'purchase_order_id', 'detail_id', 'detail_type', 'qty_ordered',
         'qty_received', 'unit_cost', 'line_total',
     ];
 
@@ -28,9 +28,9 @@ class PurchaseOrderItem extends Model
         return $this->belongsTo(PurchaseOrder::class);
     }
 
-    public function product(): BelongsTo
+    public function detail(): MorphTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->morphTo();
     }
 
     public function remainingQty(): int

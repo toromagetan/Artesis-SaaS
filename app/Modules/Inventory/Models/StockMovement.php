@@ -2,13 +2,13 @@
 
 namespace App\Modules\Inventory\Models;
 
-use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
 use App\Support\Concerns\BranchScoped;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * Gerakan stok (Blueprint B.4). APPEND-ONLY secara struktural:
@@ -31,7 +31,7 @@ class StockMovement extends Model
     public const STRICT_TYPES = ['frame', 'accessory'];
 
     protected $fillable = [
-        'product_id', 'branch_id', 'reason', 'qty', 'unit_cost', 'total_cost',
+        'detail_id', 'detail_type', 'branch_id', 'reason', 'qty', 'unit_cost', 'total_cost',
         'reference_type', 'reference_id', 'balance_after', 'created_by',
     ];
 
@@ -46,9 +46,9 @@ class StockMovement extends Model
         ];
     }
 
-    public function product(): BelongsTo
+    public function detail(): MorphTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->morphTo();
     }
 
     public function branch(): BelongsTo

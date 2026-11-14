@@ -3,8 +3,8 @@
 namespace App\Modules\Purchasing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\Catalog\Models\Product;
-use App\Modules\Catalog\Models\ProductParent;
 use App\Modules\Catalog\Services\LensMatrixService;
 use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Identity\Services\BranchContext;
@@ -20,6 +20,7 @@ use App\Support\XlsxWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Middleware;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -54,7 +55,15 @@ class PurchaseOrderController extends Controller
         $branches = $context->hasGlobalAccess()
             ? Branch::orderBy('name')->get()
             : Branch::whereIn('id', $context->managedBranchIds())->orderBy('name')->get();
-        $products = Product::where('is_active', true)->orderBy('type')->orderBy('name')->get();
+        // A1: pilihan baris PO = DETAIL aktif kelima tipe (unit beli).
+        $products = collect();
+        foreach (Product::DETAIL_MODELS as $model) {
+            $products = $products->concat(
+                $model::with('product')->where('is_active', true)
+                    ->whereHas('product', fn ($q) => $q->where('is_active', true))->get()
+            );
+        }
+        $products = $products->sortBy(fn ($d) => [$d->product?->name ?? '', $d->sku])->values();
         $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
 
         // Alat bantu matriks lensa (bukan menu): grid rentang lengkap
@@ -136,7 +145,12 @@ class PurchaseOrderController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $items = collect((array) $request->input('items', []))
-            ->filter(fn ($row) => is_array($row) && ! empty($row['product_id']) && ! empty($row['qty']))
+            ->filter(fn ($row) => is_array($row) && ! empty($row['detail_key']) && ! empty($row['qty']))
+            ->map(function ($row) {
+                [$type, $id] = array_pad(explode(':', (string) $row['detail_key'], 2), 2, null);
+
+                return ['detail_type' => $type, 'detail_id' => (int) $id, 'qty' => $row['qty'], 'unit_cost' => $row['unit_cost'] ?? null];
+            })
             ->values()
             ->all();
 
@@ -148,9 +162,10 @@ class PurchaseOrderController extends Controller
             $items = [...$items, ...$this->matrixItems($request, $selection)];
         }
         $items = collect($items)
-            ->groupBy(fn ($row) => $row['product_id'].'|'.$row['unit_cost'])
+            ->groupBy(fn ($row) => $row['detail_type'].':'.$row['detail_id'].'|'.$row['unit_cost'])
             ->map(fn ($rows) => [
-                'product_id' => $rows->first()['product_id'],
+                'detail_type' => $rows->first()['detail_type'],
+                'detail_id' => $rows->first()['detail_id'],
                 'qty' => $rows->sum('qty'),
                 'unit_cost' => $rows->first()['unit_cost'],
             ])
@@ -163,7 +178,8 @@ class PurchaseOrderController extends Controller
             'cabang_tujuan' => ['required', 'integer'],
             'order_date' => ['nullable', 'date'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer'],
+            'items.*.detail_type' => ['required', Rule::in(Product::TYPES)],
+            'items.*.detail_id' => ['required', 'integer'],
             'items.*.qty' => ['required', 'integer', 'min:1'],
             'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
         ]);
@@ -173,7 +189,8 @@ class PurchaseOrderController extends Controller
             (int) $validated['supplier_id'],
             (int) $validated['cabang_tujuan'],
             collect($validated['items'])->map(fn ($row) => [
-                'product_id' => (int) $row['product_id'],
+                'detail_type' => (string) $row['detail_type'],
+                'detail_id' => (int) $row['detail_id'],
                 'qty' => (int) $row['qty'],
                 'unit_cost' => (string) $row['unit_cost'],
             ])->all(),
@@ -190,21 +207,20 @@ class PurchaseOrderController extends Controller
      * (validasi langkah 0,25 + rentang per jenis, model Artesis).
      *
      * @param  array<string, mixed>  $selection
-     * @return list<array{product_id: int, qty: int, unit_cost: string}>
+     * @return list<array{detail_type: string, detail_id: int, qty: int, unit_cost: string}>
      */
     private function matrixItems(Request $request, array $selection): array
     {
         $service = app(LensMatrixService::class);
-        $parent = ProductParent::where('is_active', true)
-            ->where('type', 'lens')
-            ->find((int) $request->input('matrix_parent_id', 0));
+        $parent = $service->matrixParents()
+            ->firstWhere('id', (int) $request->input('matrix_parent_id', 0));
         if ($parent === null) {
             throw ValidationException::withMessages([
                 'matrix_selection' => __('ui.matrix.invalid_parent'),
             ]);
         }
         $kind = $service->kindForParent($parent);
-        $sibling = $parent->variants()->where('is_active', true)->orderBy('sku')->first();
+        $sibling = $parent->lensDetails()->where('is_active', true)->orderBy('sku')->first();
         $items = [];
 
         foreach ($selection as $key => $qtyRaw) {
@@ -214,11 +230,11 @@ class PurchaseOrderController extends Controller
             $qty = (int) $qtyRaw;
 
             if (str_starts_with((string) $key, 'p')) {
-                $product = Product::where('is_active', true)
-                    ->where('parent_id', $parent->id)
+                $detail = LensDetail::where('is_active', true)
+                    ->where('product_id', $parent->id)
                     ->find((int) substr((string) $key, 1));
-                if ($product !== null) {
-                    $items[] = ['product_id' => $product->id, 'qty' => $qty, 'unit_cost' => (string) $product->cost_price];
+                if ($detail !== null) {
+                    $items[] = ['detail_type' => 'lens', 'detail_id' => $detail->id, 'qty' => $qty, 'unit_cost' => (string) $detail->cost_price];
                 }
 
                 continue;
@@ -247,26 +263,25 @@ class PurchaseOrderController extends Controller
             }
 
             $isAddKind = $kind !== LensMatrixService::KIND_SV;
-            $attributes = [
-                'lens_kind' => $sibling->attributeValue('lens_kind'),
-                'index' => ($request->input('matrix_index') ?: $sibling->attributeValue('index')),
+            $attributes = array_filter([
                 'coating' => ($request->input('matrix_coating') ?: $sibling->attributeValue('coating')),
                 'diameter' => $sibling->attributeValue('diameter'),
-            ];
-            $product = app(ProductService::class)->create($request->user(), [
-                'parent_id' => $parent->id,
+            ], fn ($v) => $v !== null && $v !== '');
+            $detail = app(ProductService::class)->createDetail($request->user(), 'lens', [
+                'product_id' => $parent->id,
                 'sku' => $this->matrixSku($parent->id, $sph, $second, $isAddKind ? ($kind === LensMatrixService::KIND_PROGRESSIVE ? $eye : null) : null),
-                'type' => 'lens',
                 'name' => $parent->name,
                 'brand' => $parent->brand,
+                'lens_kind' => $sibling->type,
+                'index' => ($request->input('matrix_index') ?: $sibling->index),
                 'sph' => number_format($sph, 2, '.', ''),
                 'cyl' => $isAddKind ? null : number_format($second, 2, '.', ''),
                 'add' => $isAddKind ? number_format($second, 2, '.', '') : null,
                 'eye_side' => $kind === LensMatrixService::KIND_PROGRESSIVE ? $eye : null,
                 'cost_price' => (string) $sibling->cost_price,
                 'sale_price' => (string) $sibling->sale_price,
-            ], array_filter($attributes, fn ($v) => $v !== null && $v !== ''));
-            $items[] = ['product_id' => $product->id, 'qty' => $qty, 'unit_cost' => (string) $product->cost_price];
+            ], $attributes);
+            $items[] = ['detail_type' => 'lens', 'detail_id' => $detail->id, 'qty' => $qty, 'unit_cost' => (string) $detail->cost_price];
         }
 
         return $items;
@@ -285,7 +300,7 @@ class PurchaseOrderController extends Controller
         $base = 'MX'.$parentId.'-'.$fmt($sph).'-'.$fmt($second).($eye !== null ? '-'.$eye : '');
         $sku = $base;
         $n = 2;
-        while (Product::where('sku', $sku)->exists()) {
+        while (LensDetail::withoutGlobalScopes()->where('sku', $sku)->exists()) {
             $sku = $base.'-'.$n++;
         }
 
@@ -294,7 +309,7 @@ class PurchaseOrderController extends Controller
 
     public function show(PurchaseOrder $po): View
     {
-        $po->load(['supplier', 'branch', 'creator', 'items.product', 'receipts.items', 'receipts.allocations']);
+        $po->load(['supplier', 'branch', 'creator', 'items.detail.product', 'receipts.items', 'receipts.allocations']);
 
         // Panel distribusi (M.7): riwayat transfer dari PO ini + sisa
         // yang masih dapat dikirim per produk + pilihan cabang tujuan.
@@ -329,7 +344,7 @@ class PurchaseOrderController extends Controller
 
     public function receiveForm(PurchaseOrder $po): View
     {
-        $po->load(['supplier', 'branch', 'items.product']);
+        $po->load(['supplier', 'branch', 'items.detail.product']);
 
         return view('purchasing.orders.receive', compact('po'));
     }
@@ -366,7 +381,7 @@ class PurchaseOrderController extends Controller
 
     public function print(PurchaseOrder $po): View
     {
-        $po->load(['supplier', 'branch', 'creator', 'items.product']);
+        $po->load(['supplier', 'branch', 'creator', 'items.detail.product']);
 
         return view('purchasing.orders.print', [
             'po' => $po,

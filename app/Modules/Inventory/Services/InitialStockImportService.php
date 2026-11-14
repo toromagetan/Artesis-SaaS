@@ -12,6 +12,8 @@ use App\Modules\Platform\Services\AuditLogger;
 use App\Support\Money;
 use App\Support\TenantCache;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -58,7 +60,7 @@ class InitialStockImportService
     }
 
     /**
-     * @return array{token: string, valid: array<int, array{line: int, sku: string, product_id: int, branch_id: int, branch_name: string, qty: int}>, errors: array<int, array{line: int, message: string}>}
+     * @return array{token: string, valid: array<int, array{line: int, sku: string, detail_id: int, detail_type: string, branch_id: int, branch_name: string, qty: int}>, errors: array<int, array{line: int, message: string}>}
      */
     public function preview(string $csvContent, ?User $actor = null): array
     {
@@ -92,12 +94,12 @@ class InitialStockImportService
         if ($actor !== null) {
             $context = TenantContext::for($actor);
             if ($context->isTenant() && $context->isValid()) {
-                $products = Product::withoutGlobalScopes()
-                    ->where('tenant_id', $actor->tenant_id)->where('is_active', true)->get()->keyBy('sku');
+                $products = $this->detailsBySku(fn (string $model) => $model::withoutGlobalScopes()
+                    ->where('tenant_id', $actor->tenant_id)->where('is_active', true)->get());
                 $branches = Branch::where('tenant_id', $actor->tenant_id)->get();
             } elseif ($context->isStandalone()) {
-                $products = Product::withoutGlobalScopes()
-                    ->whereNull('tenant_id')->where('is_active', true)->get()->keyBy('sku');
+                $products = $this->detailsBySku(fn (string $model) => $model::withoutGlobalScopes()
+                    ->whereNull('tenant_id')->where('is_active', true)->get());
                 $branches = Branch::whereNull('tenant_id')->get();
             } else {
                 throw new AuthorizationException('Aktor tidak berhak membuat pratinjau impor stok awal.');
@@ -105,7 +107,7 @@ class InitialStockImportService
             $branchesById = $branches->keyBy('id');
             $branchesByName = $branches->keyBy(fn (Branch $b) => mb_strtolower(trim($b->name)));
         } else {
-            $products = Product::where('is_active', true)->get()->keyBy('sku');
+            $products = $this->detailsBySku(fn (string $model) => $model::where('is_active', true)->get());
             $branchesById = Branch::all()->keyBy('id');
             $branchesByName = Branch::all()->keyBy(fn (Branch $b) => mb_strtolower(trim($b->name)));
         }
@@ -141,7 +143,7 @@ class InitialStockImportService
 
                 continue;
             }
-            $key = $product->id.':'.$branch->id;
+            $key = $product::DETAIL_TYPE.':'.$product->id.':'.$branch->id;
             if (isset($seen[$key])) {
                 $errors[] = ['line' => $lineNo, 'message' => __('ui.import.duplicate_row', ['sku' => $sku])];
 
@@ -156,7 +158,8 @@ class InitialStockImportService
             $valid[] = [
                 'line' => $lineNo,
                 'sku' => $sku,
-                'product_id' => $product->id,
+                'detail_id' => $product->id,
+                'detail_type' => $product::DETAIL_TYPE,
                 'branch_id' => $branch->id,
                 'branch_name' => $branch->name,
                 'qty' => (int) $qtyCell,
@@ -228,7 +231,8 @@ class InitialStockImportService
             // cukup sebagai bukti kepemilikan.
             $resolved = [];
             foreach ($rows as $i => $row) {
-                $product = Product::withoutGlobalScopes()->find($row['product_id']);
+                $model = Product::DETAIL_MODELS[$row['detail_type']] ?? null;
+                $product = $model !== null ? $model::withoutGlobalScopes()->find($row['detail_id']) : null;
                 $branch = Branch::withoutGlobalScopes()->find($row['branch_id']);
                 if ($product === null || $branch === null
                     || (int) ($product->tenant_id ?? 0) !== (int) ($actor->tenant_id ?? 0)
@@ -288,12 +292,41 @@ class InitialStockImportService
     public function templateCsv(): string
     {
         $branch = Branch::orderBy('id')->first();
-        $product = Product::where('is_active', true)->orderBy('id')->first();
+        $product = null;
+        foreach (Product::DETAIL_MODELS as $model) {
+            $product = $model::where('is_active', true)->orderBy('id')->first();
+            if ($product !== null) {
+                break;
+            }
+        }
         $lines = ['sku,cabang,qty'];
         if ($product !== null && $branch !== null) {
             $lines[] = $product->sku.','.$branch->id.',10';
         }
 
         return implode("\n", $lines)."\n";
+    }
+
+    /**
+     * Peta SKU → model detail dari kelima tabel detail (A1: SKU
+     * hidup pada detail; unik per tenant per tipe — benturan
+     * lintas tipe di dalam satu tenant dimenangkan tipe pertama
+     * menurut urutan DETAIL_MODELS).
+     *
+     * @param  callable(class-string): Collection  $query
+     * @return Collection<string, Model>
+     */
+    private function detailsBySku(callable $query): Collection
+    {
+        $map = collect();
+        foreach (Product::DETAIL_MODELS as $model) {
+            foreach ($query($model) as $detail) {
+                if (! $map->has($detail->sku)) {
+                    $map->put($detail->sku, $detail);
+                }
+            }
+        }
+
+        return $map;
     }
 }

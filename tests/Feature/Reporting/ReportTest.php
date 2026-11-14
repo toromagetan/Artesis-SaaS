@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Reporting;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -40,7 +41,7 @@ class ReportTest extends TestCase
 
     private Branch $branchB;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -49,9 +50,7 @@ class ReportTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->branchB = Branch::create(['name' => 'Cabang Laporan']);
-        $this->frame = Product::factory()->ofType('frame')->create([
-            'name' => 'Frame Laporan', 'cost_price' => '50000', 'sale_price' => '100000',
-        ]);
+        $this->frame = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Laporan'])->id, 'cost_price' => '50000', 'sale_price' => '100000']);
         app(InventoryService::class)->recordMovement($this->owner, $this->frame, $this->branch, 'initial_stock', 50, 'test_seed', 1);
         // Tarif pajak 0 agar angka laporan bulat & tegas.
         Setting::where('key', 'tax.rate_default')->update(['value' => '0']);
@@ -73,7 +72,7 @@ class ReportTest extends TestCase
             'sale_date' => $date,
             'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => $qty, 'unit_price' => '100000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => $qty, 'unit_price' => '100000'],
         ], $pay === '0' ? [] : [['method' => 'cash', 'amount' => $pay]]);
     }
 
@@ -110,7 +109,7 @@ class ReportTest extends TestCase
         $supplier = Supplier::create(['name' => 'PT Laporan', 'is_active' => true]);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $supplier->id, $this->branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => 10, 'unit_cost' => '40000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 10, 'unit_cost' => '40000'],
         ]);
         $orders->markSent($this->owner, $po);
         // Tanggal penerimaan di LUAR bulan laporan lain — utang tetap inklusif.
@@ -138,7 +137,7 @@ class ReportTest extends TestCase
     public function test_stock_report_value_and_in_transit(): void
     {
         app(TransferService::class)->sendFromBranchStock($this->owner, $this->branch->id, $this->branchB->id, [
-            ['product_id' => $this->frame->id, 'qty' => 5],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 5],
         ]);
         $rows = $this->reports()->stockReport([$this->branch->id, $this->branchB->id]);
         $byBranch = collect($rows)->keyBy('branch_id');

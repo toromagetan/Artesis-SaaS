@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Purchasing;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Services\InventoryService;
@@ -34,7 +34,7 @@ class PurchasingFlowTest extends TestCase
 
     private Supplier $supplier;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -43,14 +43,14 @@ class PurchasingFlowTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->supplier = Supplier::create(['name' => 'PT Lensa Uji', 'is_active' => true]);
-        $this->frame = Product::factory()->ofType('frame')->create(['cost_price' => '400000', 'sale_price' => '500000']);
+        $this->frame = FrameDetail::factory()->create(['cost_price' => '400000', 'sale_price' => '500000']);
     }
 
     private function approvedPr(int $qty = 5, ?int $supplierId = null): PurchaseRequest
     {
         $service = app(PurchaseRequestService::class);
         $pr = $service->create($this->owner, $this->branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => $qty, 'estimated_price' => '390000', 'supplier_id' => $supplierId],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => $qty, 'estimated_price' => '390000', 'supplier_id' => $supplierId],
         ], 'Stok menipis');
         $service->submit($this->owner, $pr);
         $service->approve($this->owner, $pr);
@@ -103,7 +103,7 @@ class PurchasingFlowTest extends TestCase
     {
         $service = app(PurchaseRequestService::class);
         $pr = $service->create($this->owner, $this->branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ]);
         // Approve dari draft (belum submit) ditolak.
         $this->expectException(ValidationException::class);
@@ -114,7 +114,7 @@ class PurchasingFlowTest extends TestCase
     {
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $this->supplier->id, $this->branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => 5, 'unit_cost' => '400000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 5, 'unit_cost' => '400000'],
         ]);
         $orders->markSent($this->owner, $po);
         $item = $po->items->first();
@@ -126,7 +126,7 @@ class PurchasingFlowTest extends TestCase
         $this->assertMatchesRegularExpression('/^RCV-\d{6}-0001$/', $r1->number);
         $this->assertSame('partial', $po->refresh()->status);
         $this->assertSame(2, $item->refresh()->qty_received);
-        $this->assertSame(2, app(InventoryService::class)->currentStock($this->frame->id, $this->branch->id));
+        $this->assertSame(2, app(InventoryService::class)->currentStock('frame', $this->frame->id, $this->branch->id));
 
         // Harga aktual berbeda dicatat apa adanya.
         $r2 = $receipts->store($this->owner, $po->refresh(), [
@@ -134,14 +134,14 @@ class PurchasingFlowTest extends TestCase
         ]);
         $this->assertSame('complete', $po->refresh()->status);
         $this->assertSame('1230000.00', $r2->totalAmount()->toDecimalString());
-        $this->assertSame(5, app(InventoryService::class)->currentStock($this->frame->id, $this->branch->id));
+        $this->assertSame(5, app(InventoryService::class)->currentStock('frame', $this->frame->id, $this->branch->id));
     }
 
     public function test_receipt_on_draft_and_over_receive_rules(): void
     {
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $this->supplier->id, $this->branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => 2, 'unit_cost' => '400000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 2, 'unit_cost' => '400000'],
         ]);
         $item = $po->items->first();
         $receipts = app(ReceiptService::class);
@@ -177,7 +177,7 @@ class PurchasingFlowTest extends TestCase
         $gudang->roles()->sync([Role::where('name', 'gudang')->firstOrFail()->id]);
         $gudang->branches()->sync([$this->branch->id]);
         $po2 = $orders->create($this->owner, $this->supplier->id, $this->branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => 1, 'unit_cost' => '400000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_cost' => '400000'],
         ]);
         $orders->markSent($this->owner, $po2);
         $this->expectException(ValidationException::class);
@@ -190,14 +190,14 @@ class PurchasingFlowTest extends TestCase
     {
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $this->supplier->id, $this->branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => 1, 'unit_cost' => '400000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_cost' => '400000'],
         ]);
         $orders->void($this->owner, $po, 'Salah supplier');
         $this->assertSame('void', $po->refresh()->status);
 
         // Sesudah ada penerimaan, void ditolak (koreksi lewat retur).
         $po2 = $orders->create($this->owner, $this->supplier->id, $this->branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => 1, 'unit_cost' => '400000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_cost' => '400000'],
         ]);
         $orders->markSent($this->owner, $po2);
         app(ReceiptService::class)->store($this->owner, $po2, [
@@ -212,7 +212,7 @@ class PurchasingFlowTest extends TestCase
         $this->actingAs($this->owner)->post('/pembelian/pr', [
             'cabang_tujuan' => $this->branch->id,
             'notes' => 'Uji HTTP',
-            'items' => [['product_id' => $this->frame->id, 'qty' => 4, 'estimated_price' => '395000']],
+            'items' => [['detail_key' => 'frame:'.$this->frame->id, 'qty' => 4, 'estimated_price' => '395000']],
         ])->assertRedirect();
         $pr = PurchaseRequest::firstOrFail();
         $this->actingAs($this->owner)->get('/pembelian/pr')->assertOk()->assertSee($pr->number);

@@ -68,7 +68,7 @@ class OpnameController extends Controller
     {
         $actor = $request->user();
         BranchContext::for($actor)->assertCanAccess($opname->branch_id);
-        $opname->load(['branch', 'creator', 'approver', 'items.product.parent']);
+        $opname->load(['branch', 'creator', 'approver', 'items.detail.product']);
 
         // Alat bantu matriks lensa (bukan menu): item lensa/RX
         // berkekuatan dikelompokkan menjadi grid per induk mengikuti

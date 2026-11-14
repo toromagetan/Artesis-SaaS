@@ -2,10 +2,10 @@
 
 namespace App\Modules\Sales\Models;
 
-use App\Modules\Catalog\Models\Product;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * Rencana pengganti satu kasus garansi: sumber stok gudang atau
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WarrantyReplacement extends Model
 {
     protected $fillable = [
-        'warranty_case_id', 'original_sale_item_id', 'replacement_product_id',
+        'warranty_case_id', 'original_sale_item_id', 'replacement_detail_id', 'replacement_detail_type',
         'source', 'quantity', 'original_value', 'replacement_value',
         'customer_charge', 'shipped_movement_id', 'purchase_order_id',
         'status', 'created_by',
@@ -34,9 +34,9 @@ class WarrantyReplacement extends Model
         return $this->belongsTo(WarrantyCase::class);
     }
 
-    public function product(): BelongsTo
+    public function replacementDetail(): MorphTo
     {
-        return $this->belongsTo(Product::class, 'replacement_product_id');
+        return $this->morphTo('replacementDetail', 'replacement_detail_type', 'replacement_detail_id');
     }
 
     public function purchaseOrder(): BelongsTo

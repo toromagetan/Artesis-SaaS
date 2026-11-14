@@ -69,7 +69,7 @@
                     <tbody>
                         @forelse ($brokenPending as $broken)
                             <tr class="border-b border-gray-50 last:border-0">
-                                <td class="px-4 py-3">{{ $broken->product->name }}</td>
+                                <td class="px-4 py-3">{{ $broken->detail->product->name }}</td>
                                 <td class="px-4 py-3">@if ($broken->warrantyCase)<a href="{{ route('warranties.show', $broken->warrantyCase) }}" class="text-lentera-700 hover:underline">{{ $broken->warrantyCase->number }}</a>@else — @endif</td>
                                 <td class="px-4 py-3 tnum">{{ $broken->quantity }}</td>
                                 <td class="px-4 py-3">{{ $broken->status }}</td>

@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Catalog;
 
+use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Models\ProductCategory;
-use App\Modules\Catalog\Models\ProductParent;
 use App\Modules\Identity\Models\User;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -48,14 +48,14 @@ class ProductCategoryTest extends TestCase
         $this->actingAs($this->owner)->post('/katalog/lens/induk', [
             'name' => 'FSV 1.56 Bluecromic',
         ])->assertRedirect();
-        $lens = ProductParent::where('name', 'FSV 1.56 Bluecromic')->firstOrFail();
-        $this->assertSame('lens', $lens->type);
+        $lens = Product::where('name', 'FSV 1.56 Bluecromic')->firstOrFail();
+        $this->assertSame('lens', $lens->typeKey());
         $this->assertSame('Lensa', $lens->category->name);
 
         $this->actingAs($this->owner)->post('/katalog/softlens/induk', [
             'name' => 'X2 N8',
         ])->assertRedirect();
-        $softlens = ProductParent::where('name', 'X2 N8')->firstOrFail();
+        $softlens = Product::where('name', 'X2 N8')->firstOrFail();
         $this->assertSame('Softlens', $softlens->category->name);
 
         // Nama kategori tampil di detail induk.

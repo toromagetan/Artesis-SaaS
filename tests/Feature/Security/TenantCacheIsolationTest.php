@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Security;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
@@ -114,7 +114,7 @@ class TenantCacheIsolationTest extends TestCase
         $service = app(InitialStockImportService::class);
 
         $this->actingAs($ownerA);
-        $productA = Product::factory()->ofType('frame')->create([
+        $productA = FrameDetail::factory()->create([
             'tenant_id' => $tenantA->id, 'sku' => 'FR-C01-A', 'cost_price' => '100000',
         ]);
         $preview = $service->preview("sku,cabang,qty\nFR-C01-A,{$branchA->id},7\n");
@@ -145,7 +145,7 @@ class TenantCacheIsolationTest extends TestCase
         $service->commit($ownerA, $token);
         $this->assertSame(1, StockMovement::where('branch_id', $branchA->id)->count());
         $this->assertSame(0, StockMovement::where('branch_id', $branchB->id)->count());
-        $this->assertSame($productA->id, StockMovement::firstOrFail()->product_id);
+        $this->assertSame($productA->id, StockMovement::firstOrFail()->detail_id);
     }
 
     public function test_commit_with_explicit_actor_mismatching_ambient_session_is_rejected(): void
@@ -159,7 +159,7 @@ class TenantCacheIsolationTest extends TestCase
         $service = app(InitialStockImportService::class);
 
         $this->actingAs($ownerB);
-        Product::factory()->ofType('frame')->create([
+        FrameDetail::factory()->create([
             'tenant_id' => $tenantB->id, 'sku' => 'FR-C01-B', 'cost_price' => '100000',
         ]);
         $previewB = $service->preview("sku,cabang,qty\nFR-C01-B,{$branchB->id},5\n", $ownerB);
@@ -189,11 +189,11 @@ class TenantCacheIsolationTest extends TestCase
         $service = app(InitialStockImportService::class);
 
         $this->actingAs($ownerA);
-        $productA = Product::factory()->ofType('frame')->create([
+        $productA = FrameDetail::factory()->create([
             'tenant_id' => $tenantA->id, 'sku' => 'FR-R2-A', 'cost_price' => '100000',
         ]);
         $this->actingAs($ownerB);
-        Product::factory()->ofType('frame')->create([
+        FrameDetail::factory()->create([
             'tenant_id' => $tenantB->id, 'sku' => 'FR-R2-B', 'cost_price' => '100000',
         ]);
         auth()->logout();
@@ -201,7 +201,7 @@ class TenantCacheIsolationTest extends TestCase
         // Produk & cabang A terbaca penuh atas nama aktor A.
         $preview = $service->preview("sku,cabang,qty\nFR-R2-A,{$branchA->id},9\n", $ownerA);
         $this->assertSame([], $preview['errors']);
-        $this->assertSame($productA->id, $preview['valid'][0]['product_id']);
+        $this->assertSame($productA->id, $preview['valid'][0]['detail_id']);
         $this->assertSame($branchA->id, $preview['valid'][0]['branch_id']);
 
         // SKU & cabang B TIDAK termuat dalam pembacaan aktor A:
@@ -235,7 +235,7 @@ class TenantCacheIsolationTest extends TestCase
         $service = app(InitialStockImportService::class);
 
         $this->actingAs($ownerA);
-        Product::factory()->ofType('frame')->create([
+        FrameDetail::factory()->create([
             'tenant_id' => $tenantA->id, 'sku' => 'FR-C01-S', 'cost_price' => '100000',
         ]);
         auth()->logout();

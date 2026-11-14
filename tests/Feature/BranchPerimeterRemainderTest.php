@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -20,6 +21,7 @@ use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\SaasSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -70,17 +72,13 @@ class BranchPerimeterRemainderTest extends TestCase
         return [$tenant, $admin, $one, $two];
     }
 
-    private function stockAt(User $actor, Tenant $tenant, Branch $branch, int $qty): Product
+    private function stockAt(User $actor, Tenant $tenant, Branch $branch, int $qty): Model
     {
-        $product = Product::create([
-            'type' => 'frame', 'name' => 'Frame '.$tenant->slug, 'brand' => 'Uji',
-            'sku' => 'SKU-'.$tenant->slug, 'cost_price' => 10000, 'sale_price' => 20000,
-            'is_active' => true, 'tenant_id' => $tenant->id,
-        ]);
+        $product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame '.$tenant->slug, 'brand' => 'Uji', 'tenant_id' => $tenant->id])->id, 'sku' => 'SKU-'.$tenant->slug, 'cost_price' => 10000, 'sale_price' => 20000, 'is_active' => true, 'tenant_id' => $tenant->id]);
         $supplier = Supplier::create(['name' => 'Supplier '.$tenant->slug, 'is_active' => true, 'tenant_id' => $tenant->id]);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($actor, $supplier->id, $branch->id, [
-            ['product_id' => $product->id, 'qty' => $qty, 'unit_cost' => '10000'],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => $qty, 'unit_cost' => '10000'],
         ]);
         $orders->markSent($actor, $po);
         app(ReceiptService::class)->store($actor, $po, [
@@ -98,7 +96,7 @@ class BranchPerimeterRemainderTest extends TestCase
 
         try {
             app(TransferService::class)->sendFromBranchStock($adminA, $aOne->id, $bOne->id, [
-                ['product_id' => $product->id, 'qty' => 1],
+                ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1],
             ]);
             $this->fail('Transfer lintas tenant seharusnya ditolak.');
         } catch (ValidationException $e) {
@@ -121,7 +119,7 @@ class BranchPerimeterRemainderTest extends TestCase
         $staff->branches()->attach($aOne);
 
         $transfer = app(TransferService::class)->sendFromBranchStock($staff, $aOne->id, $aTwo->id, [
-            ['product_id' => $product->id, 'qty' => 2],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 2],
         ]);
 
         $this->assertSame($aTwo->id, (int) $transfer->to_branch_id);

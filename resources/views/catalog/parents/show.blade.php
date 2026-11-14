@@ -10,10 +10,10 @@
             @endif
 
             <div class="mb-4 flex items-center justify-between">
-                <a href="{{ route('products.index', $parent->type) }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
+                <a href="{{ route('products.index', $parent->typeKey()) }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 <x-lentera.aksi-bar>
                     @can('products.create')
-                        <x-lentera.menu-item :href="route('products.create', ['type' => $parent->type, 'induk' => $parent->id])">{{ __('ui.products.add_variant') }}</x-lentera.menu-item>
+                        <x-lentera.menu-item :href="route('products.create', ['type' => $parent->typeKey(), 'induk' => $parent->id])">{{ __('ui.products.add_variant') }}</x-lentera.menu-item>
                     @endcan
                     @can('products.update')
                         <x-lentera.menu-item :href="route('products.parents.edit', $parent)">{{ __('ui.edit') }}</x-lentera.menu-item>
@@ -56,7 +56,7 @@
                                 <td class="px-4 py-3">
                                     <span class="flex items-center gap-3">
                                         @if ($variant->imageUrl())<img src="{{ $variant->imageUrl() }}" alt="" class="h-9 w-9 rounded object-cover">@endif
-                                        <a href="{{ route('products.show', $variant) }}" class="font-medium text-lentera-800 underline-offset-2 hover:underline">{{ $variant->sku }}</a>
+                                        <a href="{{ route('products.show', [$variant::DETAIL_TYPE, $variant->id]) }}" class="font-medium text-lentera-800 underline-offset-2 hover:underline">{{ $variant->sku }}</a>
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-gray-600">{{ $variant->detailLabel() ?: '—' }}</td>
@@ -65,9 +65,9 @@
                                 <td class="px-4 py-3"><x-lentera.badge :active="$variant->is_active" /></td>
                                 <td class="px-4 py-3 text-right">
                                     <x-lentera.aksi-baris>
-                                        <x-lentera.menu-item :href="route('products.show', $variant)" sm>{{ __('ui.products.detail') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('products.show', [$variant::DETAIL_TYPE, $variant->id])" sm>{{ __('ui.products.detail') }}</x-lentera.menu-item>
                                         @can('products.update')
-                                            <x-lentera.menu-item :href="route('products.edit', $variant)" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('products.edit', [$variant::DETAIL_TYPE, $variant->id])" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
                                         @endcan
                                     </x-lentera.aksi-baris>
                                 </td>

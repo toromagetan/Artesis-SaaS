@@ -26,7 +26,7 @@ class PurchaseRequestService
     ) {}
 
     /**
-     * @param  array<int, array{product_id: int, qty: int, estimated_price?: string|null, supplier_id?: int|null}>  $items
+     * @param  array<int, array{detail_type: string, detail_id: int, qty: int, estimated_price?: string|null, supplier_id?: int|null}>  $items
      */
     public function create(User $actor, int $branchId, array $items, ?string $notes = null): PurchaseRequest
     {
@@ -48,7 +48,8 @@ class PurchaseRequestService
                     throw ValidationException::withMessages(['items' => __('ui.purchasing.qty_positive')]);
                 }
                 $pr->items()->create([
-                    'product_id' => (int) $line['product_id'],
+                    'detail_type' => (string) $line['detail_type'],
+                    'detail_id' => (int) $line['detail_id'],
                     'qty' => (int) $line['qty'],
                     'estimated_price' => $line['estimated_price'] ?? null,
                     'supplier_id' => $line['supplier_id'] ?? null,
@@ -69,7 +70,7 @@ class PurchaseRequestService
      * submitted dan tertaut ke penjualannya; BUKAN gerbang izin pr.*
      * karena ini perbuatan sistem, bukan pengguna (pola Artesis).
      *
-     * @param  array<int, array{product_id: int, qty: int}>  $items
+     * @param  array<int, array{detail_type: string, detail_id: int, qty: int}>  $items
      */
     public function createAutomatic(User $actor, Sale $sale, array $items): PurchaseRequest
     {
@@ -83,7 +84,8 @@ class PurchaseRequestService
         ]);
         foreach ($items as $line) {
             $pr->items()->create([
-                'product_id' => (int) $line['product_id'],
+                'detail_type' => (string) $line['detail_type'],
+                'detail_id' => (int) $line['detail_id'],
                 'qty' => (int) $line['qty'],
                 // Precal manual item RX penjualan tersalin ke PR (ADR-019).
                 'rx_parameters' => $line['rx_parameters'] ?? null,
@@ -180,9 +182,10 @@ class PurchaseRequestService
                         throw ValidationException::withMessages(['prs' => __('ui.purchasing.convert_supplier_mismatch')]);
                     }
                     $lines[] = [
-                        'product_id' => $item->product_id,
+                        'detail_type' => $item->detail_type,
+                        'detail_id' => $item->detail_id,
                         'qty' => $item->qty,
-                        'unit_cost' => $item->estimated_price ?? $item->product->cost_price,
+                        'unit_cost' => $item->estimated_price ?? $item->detail->cost_price,
                         'pr_item_id' => $item->id,
                     ];
                 }

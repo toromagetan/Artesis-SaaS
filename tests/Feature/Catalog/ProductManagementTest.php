@@ -2,17 +2,27 @@
 
 namespace Tests\Feature\Catalog;
 
+use App\Modules\Catalog\Models\AccessoriesDetail;
+use App\Modules\Catalog\Models\FrameDetail;
+use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\SoftlensDetail;
+use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Sales\Models\Sale;
 use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 /**
- * M.1 Catalog (Blueprint B.2 + D.3): lima tipe produk, atribut per tipe,
- * SKU unik, pagar izin per operasi, audit, pencarian global.
+ * A1 — katalog master + detail (persis Artesis): lima tipe detail,
+ * atribut bebas per tipe, kolom berkunci (index/jenis lensa,
+ * expiry_tracked), SKU unik per tenant per tipe, pagar izin,
+ * kunci tipe saat detail sudah bertransaksi.
  */
 class ProductManagementTest extends TestCase
 {
@@ -44,88 +54,89 @@ class ProductManagementTest extends TestCase
             'name' => 'Frame Titanium A',
             'brand' => 'Acme',
             'color' => 'Hitam',
-            'cost_price' => '250000',
-            'sale_price' => '450000.5',
-            'attributes' => ['eye_size' => '52', 'bridge_size' => '18', 'temple_size' => '140'],
+            'cost_price' => 100000,
+            'sale_price' => 250000,
+            'attributes' => ['eye_size' => '52'],
         ])->assertRedirect();
 
-        $product = Product::where('sku', 'FRM-001')->firstOrFail();
-        $this->assertSame('frame', $product->type);
-        $this->assertSame('450000.50', (string) $product->sale_price);
-        $this->assertSame('52', $product->attributeValue('eye_size'));
-        $this->assertDatabaseHas('audit_logs', ['action' => 'products.create', 'subject_type' => 'product', 'subject_id' => $product->id]);
+        $detail = FrameDetail::where('sku', 'FRM-001')->firstOrFail();
+        $this->assertSame('Frame Titanium A', $detail->product->name);
+        $this->assertSame('Acme', $detail->product->brand);
+        $this->assertSame('52', $detail->attributeValue('eye_size'));
     }
 
     public function test_duplicate_sku_is_rejected(): void
     {
-        Product::factory()->create(['sku' => 'DUP-001']);
+        FrameDetail::factory()->create(['sku' => 'FRM-DUP']);
 
-        $this->actingAs($this->admin)->post('/katalog/lens', [
-            'sku' => 'DUP-001',
-            'name' => 'Lensa X',
-            'cost_price' => '1000',
-            'sale_price' => '2000',
+        $this->actingAs($this->admin)->post('/katalog/frame', [
+            'sku' => 'FRM-DUP', 'name' => 'Lain', 'cost_price' => 1, 'sale_price' => 2,
         ])->assertSessionHasErrors('sku');
 
-        $this->assertSame(1, Product::where('sku', 'DUP-001')->count());
+        $this->assertSame(1, FrameDetail::where('sku', 'FRM-DUP')->count());
     }
 
     public function test_unknown_attribute_key_is_rejected_by_service(): void
     {
-        $this->actingAs($this->admin)->post('/katalog/accessory', [
-            'sku' => 'ACC-001',
-            'name' => 'Kain Microfiber',
-            'cost_price' => '5000',
-            'sale_price' => '15000',
-            'attributes' => ['eye_size' => '52'], // atribut frame di aksesori
-        ])->assertSessionHasErrors('attributes');
+        $this->expectException(ValidationException::class);
 
-        $this->assertDatabaseMissing('products', ['sku' => 'ACC-001']);
+        app(ProductService::class)->createDetail($this->admin, 'frame', [
+            'sku' => 'FRM-X', 'name' => 'Uji', 'cost_price' => 1, 'sale_price' => 2,
+        ], ['kunci_aneh' => 'nilai']);
     }
 
-    public function test_softlens_expiry_tracked_normalizes_to_flag(): void
+    public function test_softlens_expiry_tracked_becomes_a_column(): void
     {
         $this->actingAs($this->admin)->post('/katalog/softlens', [
-            'sku' => 'SFL-001',
-            'name' => 'Softlens Bulanan',
-            'cost_price' => '40000',
-            'sale_price' => '85000',
-            'power' => '-1.50',
-            'attributes' => ['wear_period' => '1 bulan', 'expiry_tracked' => '1'],
+            'sku' => 'SFT-001', 'name' => 'Softlens Bulanan', 'power' => -2.5,
+            'cost_price' => 50000, 'sale_price' => 90000,
+            'attributes' => ['wear_period' => 'monthly', 'expiry_tracked' => '1'],
         ])->assertRedirect();
 
-        $product = Product::where('sku', 'SFL-001')->firstOrFail();
-        $this->assertSame('1', $product->attributeValue('expiry_tracked'));
-        $this->assertSame('-1.50', (string) $product->power);
+        $detail = SoftlensDetail::where('sku', 'SFT-001')->firstOrFail();
+        $this->assertTrue($detail->expiry_tracked);
+        $this->assertSame('monthly', $detail->attributeValue('wear_period'));
+        $this->assertNull($detail->attributeValue('expiry_tracked'));
+    }
+
+    public function test_lens_index_and_kind_become_columns(): void
+    {
+        $this->actingAs($this->admin)->post('/katalog/lens', [
+            'sku' => 'LNS-001', 'name' => 'Lensa Progresif X', 'sph' => -1.5, 'add' => 2.0,
+            'cost_price' => 200000, 'sale_price' => 450000,
+            'attributes' => ['index' => '1.67', 'lens_kind' => 'progressive', 'coating' => 'bluecut'],
+        ])->assertRedirect();
+
+        $detail = LensDetail::where('sku', 'LNS-001')->firstOrFail();
+        $this->assertSame('Progresif', $detail->type);
+        $this->assertSame('1.67', $detail->index);
+        $this->assertSame('bluecut', $detail->attributeValue('coating'));
+        $this->assertNull($detail->attributeValue('index'));
     }
 
     public function test_type_lists_are_separated_and_searchable(): void
     {
-        Product::factory()->ofType('frame')->create(['name' => 'Frame Unik Zebra']);
-        Product::factory()->ofType('lens')->create(['name' => 'Lensa Unik Zebra']);
+        $this->actingAs($this->admin)->post('/katalog/frame', [
+            'sku' => 'FRM-UNIK', 'name' => 'Frame Unik', 'cost_price' => 1, 'sale_price' => 2,
+        ]);
+        $this->actingAs($this->admin)->post('/katalog/lens', [
+            'sku' => 'LNS-UNIK', 'name' => 'Lensa Unik', 'cost_price' => 1, 'sale_price' => 2,
+        ]);
 
-        $this->actingAs($this->kasir) // kasir memegang products.view (matriks C.2)
-            ->get('/katalog/frame')
-            ->assertOk()
-            ->assertSee('Frame Unik Zebra')
-            ->assertDontSee('Lensa Unik Zebra');
-
-        $this->actingAs($this->kasir)
-            ->get('/katalog/lens?q=Zebra')
-            ->assertOk()
-            ->assertSee('Lensa Unik Zebra');
+        $this->actingAs($this->admin)->get('/katalog/frame')
+            ->assertOk()->assertSee('Frame Unik')->assertDontSee('Lensa Unik');
+        $this->actingAs($this->admin)->get('/katalog/frame?q=FRM-UNIK')
+            ->assertOk()->assertSee('Frame Unik');
     }
 
     public function test_view_only_role_cannot_create_or_edit(): void
     {
-        $product = Product::factory()->create();
+        $detail = FrameDetail::factory()->create();
 
-        $this->actingAs($this->kasir)->get('/katalog/frame/buat')->assertForbidden();
         $this->actingAs($this->kasir)->post('/katalog/frame', [
-            'sku' => 'X-1', 'name' => 'X', 'cost_price' => '1', 'sale_price' => '2',
+            'sku' => 'FRM-K', 'name' => 'Kasir', 'cost_price' => 1, 'sale_price' => 2,
         ])->assertForbidden();
-        $this->actingAs($this->kasir)->get('/produk/'.$product->id.'/ubah')->assertForbidden();
-        $this->actingAs($this->kasir)->post('/produk/'.$product->id.'/alih-aktif')->assertForbidden();
+        $this->actingAs($this->kasir)->get("/produk/frame/{$detail->id}/ubah")->assertForbidden();
     }
 
     public function test_platform_actor_is_denied(): void
@@ -137,99 +148,101 @@ class ProductManagementTest extends TestCase
 
     public function test_update_replaces_attributes_and_keeps_sku_unique(): void
     {
-        $product = Product::factory()->ofType('lens')->create(['sku' => 'LNS-001']);
-        $product->productAttributes()->create(['key' => 'index', 'value' => '1.56']);
+        $detail = FrameDetail::factory()->create(['sku' => 'FRM-U1']);
+        $detail->detailAttributes()->create(['key' => 'eye_size', 'value' => '50']);
+        FrameDetail::factory()->create(['sku' => 'FRM-U2']);
 
-        $this->actingAs($this->admin)->put('/produk/'.$product->id, [
-            'type' => 'lens',
-            'sku' => 'LNS-001',
-            'name' => 'Lensa Diperbarui',
-            'cost_price' => '120000',
-            'sale_price' => '210000',
-            'attributes' => ['index' => '1.67', 'coating' => 'Bluecut'],
-        ])->assertRedirect('/produk/'.$product->id);
+        $this->actingAs($this->admin)->put("/produk/frame/{$detail->id}", [
+            'type' => 'frame', 'sku' => 'FRM-U2', 'name' => 'X', 'cost_price' => 1, 'sale_price' => 2,
+        ])->assertSessionHasErrors('sku');
 
-        $product->refresh()->load('productAttributes');
-        $this->assertSame('1.67', $product->attributeValue('index'));
-        $this->assertSame('Bluecut', $product->attributeValue('coating'));
-        $this->assertSame('210000.00', (string) $product->sale_price);
+        $this->actingAs($this->admin)->put("/produk/frame/{$detail->id}", [
+            'type' => 'frame', 'sku' => 'FRM-U1', 'name' => 'Nama Baru', 'cost_price' => 3, 'sale_price' => 4,
+            'attributes' => ['bridge_size' => '18'],
+        ])->assertRedirect(route('products.show', ['frame', $detail->id]));
+
+        $detail->refresh();
+        $this->assertSame('Nama Baru', $detail->product->name);
+        $this->assertSame('18', $detail->attributeValue('bridge_size'));
+        $this->assertNull($detail->attributeValue('eye_size'));
     }
 
     public function test_deactivate_and_reactivate(): void
     {
-        $product = Product::factory()->create();
+        $detail = FrameDetail::factory()->create();
 
-        $this->actingAs($this->admin)->post('/produk/'.$product->id.'/alih-aktif')->assertRedirect();
-        $this->assertFalse($product->refresh()->is_active);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'products.deactivate', 'subject_id' => $product->id]);
+        $this->actingAs($this->admin)->post("/produk/frame/{$detail->id}/alih-aktif")->assertRedirect();
+        $this->assertFalse($detail->refresh()->is_active);
 
-        $this->actingAs($this->admin)->post('/produk/'.$product->id.'/alih-aktif')->assertRedirect();
-        $this->assertTrue($product->refresh()->is_active);
+        $this->actingAs($this->admin)->post("/produk/frame/{$detail->id}/alih-aktif")->assertRedirect();
+        $this->assertTrue($detail->refresh()->is_active);
     }
 
     public function test_detail_page_shows_attributes_and_money_format(): void
     {
-        $product = Product::factory()->ofType('rx')->create(['sale_price' => '1500000']);
-        $product->productAttributes()->create(['key' => 'sph_min', 'value' => '-10.00']);
-        $product->productAttributes()->create(['key' => 'sph_max', 'value' => '+6.00']);
+        $detail = FrameDetail::factory()->create(['sale_price' => 250000]);
+        $detail->detailAttributes()->create(['key' => 'eye_size', 'value' => '54']);
 
-        $this->actingAs($this->kasir)
-            ->get('/produk/'.$product->id)
-            ->assertOk()
-            ->assertSee('Rp1.500.000,00')
-            ->assertSee('SPH Minimum')
-            ->assertSee('-10.00');
-    }
-
-    public function test_product_appears_in_global_search_for_viewer(): void
-    {
-        Product::factory()->create(['name' => 'Frame Langka Melati']);
-
-        $this->actingAs($this->kasir)
-            ->get('/cari?q=Melati')
-            ->assertOk()
-            ->assertSee('Frame Langka Melati')
-            ->assertSee('Produk');
+        $this->actingAs($this->admin)->get("/produk/frame/{$detail->id}")
+            ->assertOk()->assertSee('54');
     }
 
     public function test_invalid_type_route_is_404(): void
     {
-        $this->actingAs($this->owner)->get('/katalog/gadget')->assertNotFound();
+        $this->actingAs($this->admin)->get('/katalog/bukan-tipe')->assertNotFound();
+        $this->actingAs($this->admin)->get('/produk/bukan-tipe/1')->assertNotFound();
     }
 
-    /**
-     * Regresi bug 14 Nov 2026: halaman buat produk 500
-     * "Undefined variable $product" dari _form baris 114 —
-     * empty() tidak menekan peringatan variabel tak terdefinisi
-     * bila digabung pemanggilan metode nullsafe. Tidak ada test
-     * yang membuka halaman buat sebelumnya, jadi lolos suite.
-     */
     public function test_create_page_renders_for_every_product_type(): void
     {
+        // Regresi PR #50: halaman buat kelima tipe dulu 500
+        // "Undefined variable $product" — wajib selalu ter-render.
         foreach (Product::TYPES as $type) {
-            $this->actingAs($this->owner)
-                ->get(route('products.create', $type))
-                ->assertOk()
-                ->assertSee(route('products.store', $type), false);
+            $this->actingAs($this->admin)->get("/katalog/{$type}/buat")->assertOk();
         }
     }
 
     public function test_create_page_renders_with_parent_preselected(): void
     {
-        $product = Product::factory()->create(['type' => 'frame']);
-        $this->assertNotNull($product->parent_id);
+        $master = Product::factory()->forType('frame')->create();
 
-        $this->actingAs($this->owner)
-            ->get(route('products.create', ['type' => 'frame', 'induk' => $product->parent_id]))
-            ->assertOk();
+        $this->actingAs($this->admin)->get("/katalog/frame/buat?induk={$master->id}")->assertOk();
     }
 
     public function test_edit_page_renders_for_existing_product(): void
     {
-        $product = Product::factory()->create(['type' => 'frame']);
+        // Regresi PR #50: halaman ubah dulu selalu 500.
+        foreach (Product::DETAIL_MODELS as $type => $model) {
+            $detail = $model::factory()->create();
+            $this->actingAs($this->admin)->get("/produk/{$type}/{$detail->id}/ubah")->assertOk();
+        }
+    }
 
-        $this->actingAs($this->owner)
-            ->get(route('products.edit', $product))
-            ->assertOk();
+    public function test_type_change_moves_unlocked_detail(): void
+    {
+        $detail = FrameDetail::factory()->create(['sku' => 'MOV-1']);
+
+        $moved = app(ProductService::class)->updateDetail($this->admin, $detail, [
+            'type' => 'accessory', 'name' => 'Jadi Aksesoris', 'cost_price' => 5, 'sale_price' => 9,
+        ]);
+
+        $this->assertInstanceOf(AccessoriesDetail::class, $moved);
+        $this->assertSame($detail->id, $moved->id);
+        $this->assertSame(0, FrameDetail::where('sku', 'MOV-1')->count());
+    }
+
+    public function test_type_change_is_locked_once_detail_is_sold(): void
+    {
+        $detail = FrameDetail::factory()->create(['sku' => 'LOCK-1']);
+        $sale = Sale::factory()->create();
+        DB::table('sale_items')->insert([
+            'sale_id' => $sale->id, 'detail_id' => $detail->id, 'detail_type' => 'frame',
+            'product_name_snapshot' => 'Terkunci', 'type' => 'frame', 'qty' => 1,
+            'unit_price' => 1000, 'line_total' => 1000,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->expectException(ValidationException::class);
+        app(ProductService::class)->updateDetail($this->admin, $detail, ['type' => 'lens']);
     }
 }

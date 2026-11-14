@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Reporting;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\TenantContext;
@@ -35,13 +35,13 @@ class XlsxExportTest extends TestCase
         // Fixture tingkat instalasi: konteks sistem dinyatakan eksplisit
         // (penulisan global tanpa aktor wajib TenantContext::asSystem).
         TenantContext::asSystem(fn () => Setting::set('tax.rate_default', '0'));
-        $frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000', 'sale_price' => '100000']);
+        $frame = FrameDetail::factory()->create(['cost_price' => '50000', 'sale_price' => '100000']);
         app(InventoryService::class)->recordMovement($this->owner, $frame, $branch, 'initial_stock', 5, 'test', 1);
         $customer = Customer::factory()->create(['branch_id' => $branch->id]);
         app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $customer->id, 'branch_id' => $branch->id,
             'sale_date' => now()->format('Y-m-d'), 'tax_mode' => 'inclusive',
-        ], [['product_id' => $frame->id, 'qty' => 1, 'unit_price' => '100000']],
+        ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 1, 'unit_price' => '100000']],
             [['method' => 'cash', 'amount' => '100000']]);
     }
 

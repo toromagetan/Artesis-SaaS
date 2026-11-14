@@ -4,8 +4,8 @@
             @if ($product->imageUrl())
                 <img src="{{ $product->imageUrl() }}" alt="" class="h-9 w-9 rounded object-cover">
             @endif
-            <a href="{{ route('products.show', $product) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $product->name }}</a>
-            @if ($product->type === 'accessory' && $product->is_process_item)
+            <a href="{{ route('products.show', [$product::DETAIL_TYPE, $product->id]) }}" class="text-lentera-800 underline-offset-2 hover:underline">{{ $product->product->name }}</a>
+            @if ($product::DETAIL_TYPE === 'accessory' && $product->is_process_item)
                 <span class="inline-flex items-center rounded-full border border-lentera-200 bg-lentera-50 px-2 py-0.5 text-xs font-semibold text-lentera-700">{{ __('ui.products.process_badge') }}</span>
             @endif
         </span>
@@ -25,13 +25,13 @@
     <td class="px-4 py-3"><x-lentera.badge :active="$product->is_active" /></td>
     <td class="px-4 py-3 text-right">
         <x-lentera.aksi-baris>
-            <x-lentera.menu-item :href="route('products.show', $product)" sm>{{ __('ui.products.detail') }}</x-lentera.menu-item>
+            <x-lentera.menu-item :href="route('products.show', [$product::DETAIL_TYPE, $product->id])" sm>{{ __('ui.products.detail') }}</x-lentera.menu-item>
             @can('products.update')
-                <x-lentera.menu-item :href="route('products.edit', $product)" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
+                <x-lentera.menu-item :href="route('products.edit', [$product::DETAIL_TYPE, $product->id])" sm>{{ __('ui.edit') }}</x-lentera.menu-item>
             @endcan
             @can('products.deactivate')
 
-                <form method="POST" action="{{ route('products.toggle-active', $product) }}">
+                <form method="POST" action="{{ route('products.toggle-active', [$product::DETAIL_TYPE, $product->id]) }}">
                     @csrf
                     <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] font-medium shadow-soft transition duration-150 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $product->is_active ? 'text-red-600' : 'text-lentera-700' }}">{{ $product->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
                 </form>

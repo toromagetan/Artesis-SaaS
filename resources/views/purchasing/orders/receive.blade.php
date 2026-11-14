@@ -29,7 +29,7 @@
                         @foreach ($po->items as $i => $item)
                             <div class="grid grid-cols-12 items-end gap-2">
                                 <div class="col-span-5 text-sm">
-                                    <span class="font-medium text-gray-800">{{ $item->product->name }}</span>
+                                    <span class="font-medium text-gray-800">{{ $item->detail->product->name }}</span>
                                     <span class="block text-xs text-gray-400">{{ __('ui.purchasing.qty_ordered') }}: {{ $item->qty_ordered }} · {{ __('ui.purchasing.qty_received') }}: {{ $item->qty_received }} · {{ __('ui.purchasing.qty_remaining') }}: {{ $item->remainingQty() }}</span>
                                 </div>
                                 <input type="hidden" name="items[{{ $i }}][purchase_order_item_id]" value="{{ $item->id }}">
@@ -41,7 +41,7 @@
                                     <x-input-label :value="__('ui.purchasing.unit_cost_actual')" />
                                     <x-text-input name="items[{{ $i }}][unit_cost_actual]" type="number" step="0.01" min="0" class="mt-1 block w-full tnum" :value="old('items.'.$i.'.unit_cost_actual', (string) $item->unit_cost)" />
                                 </div>
-                                @if ($item->product->type === 'softlens')
+                                @if ($item->detail->expiry_tracked ?? false)
                                     <div class="col-span-3">
                                         <x-input-label :value="__('ui.purchasing.expiry_date')" />
                                         <x-text-input name="items[{{ $i }}][expiry_date]" type="date" class="mt-1 block w-full tnum" :value="old('items.'.$i.'.expiry_date')" />

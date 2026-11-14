@@ -4,7 +4,6 @@ namespace App\Modules\Catalog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
-use App\Modules\Catalog\Models\ProductParent;
 use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Services\InventoryService;
@@ -14,8 +13,9 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
- * Induk produk (ADR-015): detail induk = halaman penuh berisi
- * daftar variannya; perintah sejajar AksiBar (ADR-018).
+ * Master produk (A1 — pengganti induk ADR-015; nama kelas & rute
+ * dipertahankan selama A1, permukaan Artesis penuh di A2):
+ * detail master = halaman penuh berisi daftar detailnya.
  */
 class ProductParentController extends Controller
 {
@@ -37,14 +37,17 @@ class ProductParentController extends Controller
             'brand' => ['nullable', 'string', 'max:80'],
         ]);
 
-        $parent = $this->service->createParent($request->user(), [...$validated, 'type' => $type]);
+        $parent = $this->service->createMaster($request->user(), [...$validated, 'type' => $type]);
 
         return redirect()->route('products.parents.show', $parent)->with('status', __('ui.products.parent_created'));
     }
 
-    public function show(Request $request, ProductParent $parent): View
+    public function show(Request $request, Product $parent): View
     {
-        $parent->load(['category', 'variants' => fn ($q) => $q->orderBy('sku')]);
+        $type = $parent->typeKey() ?? 'frame';
+        $relation = Product::DETAIL_RELATIONS[$type];
+        $parent->load(['category', $relation => fn ($q) => $q->orderBy('sku')]);
+        $parent->setRelation('variants', $parent->getRelation($relation));
 
         $context = BranchContext::for($request->user());
         $branchIds = $context->hasGlobalAccess()
@@ -55,7 +58,7 @@ class ProductParentController extends Controller
         foreach ($parent->variants as $variant) {
             $total = 0;
             foreach ($branchIds as $branchId) {
-                $total += $inventory->currentStock($variant->id, $branchId);
+                $total += $inventory->currentStock($variant::DETAIL_TYPE, $variant->id, $branchId);
             }
             $stockByVariant[$variant->id] = $total;
         }
@@ -63,26 +66,26 @@ class ProductParentController extends Controller
         return view('catalog.parents.show', compact('parent', 'stockByVariant'));
     }
 
-    public function edit(ProductParent $parent): View
+    public function edit(Product $parent): View
     {
         return view('catalog.parents.edit', compact('parent'));
     }
 
-    public function update(Request $request, ProductParent $parent): RedirectResponse
+    public function update(Request $request, Product $parent): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'brand' => ['nullable', 'string', 'max:80'],
         ]);
 
-        $this->service->updateParent($request->user(), $parent, $validated);
+        $this->service->updateMaster($request->user(), $parent, $validated);
 
         return redirect()->route('products.parents.show', $parent)->with('status', __('ui.products.parent_updated'));
     }
 
-    public function toggleActive(Request $request, ProductParent $parent): RedirectResponse
+    public function toggleActive(Request $request, Product $parent): RedirectResponse
     {
-        $this->service->setParentActive($request->user(), $parent, ! $parent->is_active);
+        $this->service->setMasterActive($request->user(), $parent, ! $parent->is_active);
 
         return back()->with('status', $parent->is_active ? __('ui.products.activated') : __('ui.products.deactivated'));
     }

@@ -19,9 +19,9 @@ class ProductCategory extends Model
         return ['is_active' => 'boolean', 'sort_order' => 'integer'];
     }
 
-    public function parents(): HasMany
+    public function products(): HasMany
     {
-        return $this->hasMany(ProductParent::class, 'category_id');
+        return $this->hasMany(Product::class, 'category_id');
     }
 
     public function typeLabel(): string

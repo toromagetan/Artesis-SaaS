@@ -100,18 +100,18 @@ function refreshSnapshotInfo() {
     (s ? s.customers : []).forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name + (c.phone ? ' — ' + c.phone : ''); cust.appendChild(o); });
     const pick = $('productPick'); pick.innerHTML = '';
     const ph = document.createElement('option'); ph.value = ''; ph.textContent = '—'; pick.appendChild(ph);
-    (s ? s.products : []).forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name + ' (' + p.sku + ') · ' + fmt(p.sale_price) + ' · ' + STR.stock_of + ' ' + p.stock; pick.appendChild(o); });
+    (s ? s.products : []).forEach(p => { const o = document.createElement('option'); o.value = p.key; o.textContent = p.name + (p.detail_label ? ' — ' + p.detail_label : '') + ' (' + p.sku + ') · ' + fmt(p.sale_price) + ' · ' + STR.stock_of + ' ' + p.stock; pick.appendChild(o); });
 }
 function renderCart() {
     const body = $('cartBody'); body.innerHTML = '';
     let total = 0, over = [];
     cart.forEach((line, idx) => {
-        const p = (snapshot()?.products || []).find(x => x.id === line.product_id);
+        const p = (snapshot()?.products || []).find(x => x.key === line.detail_key);
         const price = p ? Number(p.sale_price) : 0;
         total += price * line.qty;
         if (p && line.qty > p.stock && (p.type === 'frame' || p.type === 'accessory')) over.push(p.name);
         const tr = document.createElement('tr'); tr.className = 'border-t border-gray-50';
-        tr.innerHTML = '<td class="py-2">' + (p ? p.name : line.product_id) + '</td>' +
+        tr.innerHTML = '<td class="py-2">' + (p ? p.name : line.detail_key) + '</td>' +
             '<td class="py-2 tnum">' + fmt(price) + '</td>' +
             '<td class="py-2"><input type="number" min="1" value="' + line.qty + '" data-idx="' + idx + '" class="qtyInput w-20 rounded-md border-gray-300 text-sm"></td>' +
             '<td class="py-2 tnum">' + fmt(price * line.qty) + '</td>' +
@@ -158,10 +158,10 @@ $('takeSnapshot').addEventListener('click', async () => {
     } catch (e) { alert(STR.sync_failed + ' ' + e.message); }
 });
 $('productPick').addEventListener('change', () => {
-    const id = Number($('productPick').value);
-    if (!id) return;
-    const found = cart.find(l => l.product_id === id);
-    if (found) found.qty += 1; else cart.push({ product_id: id, qty: 1 });
+    const key = $('productPick').value;
+    if (!key) return;
+    const found = cart.find(l => l.detail_key === key);
+    if (found) found.qty += 1; else { const p = (snapshot()?.products || []).find(x => x.key === key); cart.push({ detail_key: key, detail_type: p ? p.detail_type : '', detail_id: p ? p.detail_id : 0, qty: 1 }); }
     $('productPick').value = '';
     renderCart();
 });
@@ -183,7 +183,7 @@ $('queueSale').addEventListener('click', () => {
         offline_at: offlineAt,
         customer_id: customerId,
         tax_mode: 'exclusive',
-        items: cart.map(l => ({ product_id: l.product_id, qty: l.qty })),
+        items: cart.map(l => ({ detail_type: l.detail_type, detail_id: l.detail_id, qty: l.qty })),
         payments: [{ method: 'cash', amount: String(total) }],
         status: 'queued',
     };

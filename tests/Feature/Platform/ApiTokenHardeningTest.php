@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Platform;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Platform\Models\ApiToken;
@@ -38,7 +38,7 @@ class ApiTokenHardeningTest extends TestCase
 
     public function test_cost_price_requires_products_cost_scope(): void
     {
-        Product::factory()->create(['sku' => 'COST-1', 'cost_price' => '75000', 'sale_price' => '150000']);
+        FrameDetail::factory()->create(['sku' => 'COST-1', 'cost_price' => '75000', 'sale_price' => '150000']);
         $service = app(ApiTokenService::class);
 
         $readOnly = $service->issue($this->owner, 'Baca Saja', ['products.read']);
@@ -70,7 +70,7 @@ class ApiTokenHardeningTest extends TestCase
 
     public function test_expired_token_is_rejected_and_unexpired_forms_work(): void
     {
-        Product::factory()->create(['sku' => 'EXP-1']);
+        FrameDetail::factory()->create(['sku' => 'EXP-1']);
         $service = app(ApiTokenService::class);
 
         // Tanpa kedaluwarsa: tetap sah (kompatibilitas token lama).

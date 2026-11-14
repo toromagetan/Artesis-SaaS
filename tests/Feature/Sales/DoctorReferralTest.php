@@ -3,7 +3,7 @@
 namespace Tests\Feature\Sales;
 
 use App\Modules\Accounting\Models\Commission;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -34,7 +34,7 @@ class DoctorReferralTest extends TestCase
 
     private Customer $customer;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     private Doctor $doctor;
 
@@ -50,7 +50,7 @@ class DoctorReferralTest extends TestCase
         $this->kasir->branches()->sync([$branch->id]);
 
         $this->customer = Customer::factory()->create(['branch_id' => $branch->id]);
-        $this->frame = Product::factory()->ofType('frame')->create(['sale_price' => '500000']);
+        $this->frame = FrameDetail::factory()->create(['sale_price' => '500000']);
         $this->doctor = Doctor::create(['name' => 'dr. Maya Kirana, Sp.M', 'commission_rate' => '10', 'is_active' => true]);
         app(InventoryService::class)->recordMovement(
             $this->owner, $this->frame, $branch, 'initial_stock', 5, 'test_seed', 1,
@@ -63,7 +63,7 @@ class DoctorReferralTest extends TestCase
             'customer_id' => $this->customer->id,
             'sale_date' => '2026-10-18',
             'tax_mode' => 'exclusive',
-            'items' => [['product_id' => $this->frame->id, 'qty' => 1]],
+            'items' => [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1]],
             'payments' => [['method' => 'cash', 'amount' => '555000', 'reference' => '']],
         ];
         if ($doctorId !== null) {

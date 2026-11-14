@@ -17,7 +17,7 @@
                         @foreach ($receipt->items as $i => $item)
                             <div class="grid grid-cols-12 items-end gap-2">
                                 <div class="col-span-8 text-sm">
-                                    <span class="font-medium text-gray-800">{{ $item->purchaseOrderItem->product->name }}</span>
+                                    <span class="font-medium text-gray-800">{{ $item->purchaseOrderItem->detail->product->name }}</span>
                                     <span class="block text-xs text-gray-400">{{ __('ui.purchasing.qty') }}: {{ $item->qty }} · sudah diretur: {{ $item->returnedQty() }}</span>
                                 </div>
                                 <input type="hidden" name="items[{{ $i }}][receipt_item_id]" value="{{ $item->id }}">

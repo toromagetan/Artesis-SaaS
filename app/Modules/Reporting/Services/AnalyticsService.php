@@ -2,6 +2,7 @@
 
 namespace App\Modules\Reporting\Services;
 
+use App\Modules\Catalog\Models\Product;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
@@ -133,23 +134,35 @@ class AnalyticsService
             return ['top_products' => [], 'category_margins' => [], 'branch_trend' => [], 'top_customers' => []];
         }
 
-        $topProducts = DB::table('sale_items as si')
+        // A1: nama dari snapshot baris penjualan; SKU dihidrasi
+        // dari detail (maks 10 baris).
+        $topRows = DB::table('sale_items as si')
             ->join('sales as s', 's.id', '=', 'si.sale_id')
-            ->join('products as p', 'p.id', '=', 'si.product_id')
             ->where('s.status', 'active')
             ->whereIn('s.branch_id', $branchIds)
             ->whereBetween('s.sale_date', [$from, $to])
-            ->groupBy('si.product_id', 'p.name', 'p.sku')
+            ->groupBy('si.detail_type', 'si.detail_id', 'si.product_name_snapshot')
             ->orderByDesc(DB::raw('SUM(si.line_total)'))
             ->limit(10)
-            ->get(['si.product_id', 'p.name', 'p.sku', DB::raw('SUM(si.qty) as qty'), DB::raw('SUM(si.line_total) as revenue')])
-            ->map(fn ($row) => [
-                'product_id' => (int) $row->product_id,
-                'name' => $row->name,
-                'sku' => $row->sku,
-                'qty' => (int) $row->qty,
-                'revenue' => Money::fromDecimal((string) $row->revenue),
-            ])->all();
+            ->get(['si.detail_type', 'si.detail_id', 'si.product_name_snapshot as name', DB::raw('SUM(si.qty) as qty'), DB::raw('SUM(si.line_total) as revenue')]);
+        $skuByDetail = [];
+        foreach ($topRows->groupBy('detail_type') as $alias => $rows) {
+            $model = Product::DETAIL_MODELS[$alias] ?? null;
+            if ($model === null) {
+                continue;
+            }
+            foreach ($model::withoutGlobalScopes()->whereIn('id', $rows->pluck('detail_id')->all())->get(['id', 'sku']) as $detail) {
+                $skuByDetail[$alias.':'.$detail->id] = $detail->sku;
+            }
+        }
+        $topProducts = $topRows->map(fn ($row) => [
+            'detail_id' => (int) $row->detail_id,
+            'detail_type' => $row->detail_type,
+            'name' => $row->name,
+            'sku' => $skuByDetail[$row->detail_type.':'.$row->detail_id] ?? null,
+            'qty' => (int) $row->qty,
+            'revenue' => Money::fromDecimal((string) $row->revenue),
+        ])->all();
 
         $revenueByType = DB::table('sale_items as si')
             ->join('sales as s', 's.id', '=', 'si.sale_id')
@@ -161,15 +174,14 @@ class AnalyticsService
             ->mapWithKeys(fn ($row) => [$row->type => Money::fromDecimal((string) $row->revenue)]);
 
         $costByType = DB::table('stock_movements as m')
-            ->join('products as p', 'p.id', '=', 'm.product_id')
             ->join('sales as s', 's.id', '=', 'm.reference_id')
             ->where('m.reason', 'sale')
             ->where('m.reference_type', 'sale')
             ->where('s.status', 'active')
             ->whereIn('m.branch_id', $branchIds)
             ->whereBetween('s.sale_date', [$from, $to])
-            ->groupBy('p.type')
-            ->get(['p.type', DB::raw('SUM(m.total_cost) as cost')])
+            ->groupBy('m.detail_type')
+            ->get(['m.detail_type as type', DB::raw('SUM(m.total_cost) as cost')])
             ->mapWithKeys(fn ($row) => [$row->type => Money::fromDecimal((string) ($row->cost ?? '0'))]);
 
         $categoryMargins = [];

@@ -202,7 +202,7 @@ class IncentiveService
                 }
 
                 [$remainingQty, $remainingFinal] = $this->remainingBasis($item, $returnedQty);
-                $rule = $this->activeRule($role, (string) $sale->sale_date, $item->product_id);
+                $rule = $this->activeRule($role, (string) $sale->sale_date, $item->detail_type, $item->detail_id);
                 if ($rule === null) {
                     $this->createRow($period, $sale, $item, $seller->id, $role, $saleTransaction, null, Money::zero(), IncentiveItem::STATUS_CANCELLED, self::REASON_NO_RULE, $remainingQty, $remainingFinal);
 
@@ -222,7 +222,7 @@ class IncentiveService
                         continue; // Retur penuh/garansi: hanya baris penjual yang cancelled.
                     }
                     [$remainingQty, $remainingFinal] = $this->remainingBasis($item, $returnedQty);
-                    $rule = $this->activeRule('Admin', (string) $sale->sale_date, $item->product_id);
+                    $rule = $this->activeRule('Admin', (string) $sale->sale_date, $item->detail_type, $item->detail_id);
                     if ($rule === null) {
                         $this->createRow($period, $sale, $item, $admin->id, 'Admin', $saleTransaction, null, Money::zero(), IncentiveItem::STATUS_CANCELLED, self::REASON_NO_RULE, $remainingQty, $remainingFinal);
 
@@ -253,7 +253,8 @@ class IncentiveService
             'incentive_period_id' => $period->id,
             'sale_id' => $sale->id,
             'sale_item_id' => $item->id,
-            'product_id' => $item->product_id,
+            'detail_id' => $item->detail_id,
+            'detail_type' => $item->detail_type,
             'product_name' => $item->product_name_snapshot,
             'recipient_user_id' => $recipientId,
             'recipient_role' => $recipientRole,
@@ -283,7 +284,7 @@ class IncentiveService
         return null;
     }
 
-    public function activeRule(string $role, string $saleDate, ?int $productId = null): ?IncentiveRule
+    public function activeRule(string $role, string $saleDate, ?string $detailType = null, ?int $detailId = null): ?IncentiveRule
     {
         $base = IncentiveRule::query()
             ->where('recipient_role', $role)
@@ -293,14 +294,14 @@ class IncentiveService
             ->orderByDesc('effective_from')
             ->orderByDesc('id');
 
-        if ($productId !== null) {
-            $override = (clone $base)->where('product_id', $productId)->first();
+        if ($detailId !== null) {
+            $override = (clone $base)->where('detail_type', $detailType)->where('detail_id', $detailId)->first();
             if ($override !== null) {
                 return $override;
             }
         }
 
-        return (clone $base)->whereNull('product_id')->first();
+        return (clone $base)->whereNull('detail_id')->first();
     }
 
     private function calculate(IncentiveRule $rule, Money $itemFinal, int $quantity): Money

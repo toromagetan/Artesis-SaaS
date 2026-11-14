@@ -103,10 +103,10 @@
                                placeholder="{{ __('ui.sales.search_product_ph') }}" autocomplete="off"
                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
                         <div x-show="productResults.length > 0" class="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-soft">
-                            <template x-for="p in productResults" :key="p.id">
+                            <template x-for="p in productResults" :key="p.key">
                                 <button type="button" @click="addToCart(p)" class="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-lentera-50">
                                     <span>
-                                        <span class="font-medium text-gray-800" x-text="(p.parent_name ? p.parent_name + ' — ' : '') + p.name"></span>
+                                        <span class="font-medium text-gray-800" x-text="p.name + (p.detail_label ? ' — ' + p.detail_label : '')"></span>
                                         <span class="text-gray-500" x-text="' · ' + p.sku + ' · ' + p.type_label"></span>
                                     </span>
                                     <span class="tnum text-gray-600"><span x-text="fmt(p.sale_price)"></span> · {{ __('ui.sales.stock') }} <span x-text="p.stock === null ? '—' : p.stock"></span></span>
@@ -136,7 +136,8 @@
                                         <td class="py-2 pr-2">
                                             <span class="font-medium text-gray-800" x-text="item.name"></span>
                                             <span class="block text-xs text-gray-400" x-text="item.sku + ' · ' + item.type_label"></span>
-                                            <input type="hidden" :name="`items[${idx}][product_id]`" :value="item.product_id">
+                                            <input type="hidden" :name="`items[${idx}][detail_type]`" :value="item.detail_type">
+                                            <input type="hidden" :name="`items[${idx}][detail_id]`" :value="item.detail_id">
                                         </td>
                                         <td class="py-2 pr-2">
                                             <select x-show="item.type === 'rx'" :name="`items[${idx}][prescription_ref]`" x-bind:disabled="item.type !== 'rx'" x-model="item.prescription_ref" class="block w-32 rounded-md border-gray-300 text-sm shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
@@ -349,13 +350,15 @@
                 },
                 addToCart(p) {
                     if (p.type !== 'rx') {
-                        const existing = this.items.find(i => i.product_id === p.id);
+                        const existing = this.items.find(i => i.detail_key === p.key);
                         if (existing) { existing.qty = this.num(existing.qty) + 1; this.productResults = []; return; }
                     }
                     this.items.push({
                         uid: ++this._uid,
-                        product_id: p.id,
-                        name: (p.parent_name ? p.parent_name + ' — ' : '') + p.name,
+                        detail_key: p.key,
+                        detail_type: p.detail_type,
+                        detail_id: p.detail_id,
+                        name: p.name + (p.detail_label ? ' — ' + p.detail_label : ''),
                         sku: p.sku,
                         type: p.type,
                         type_label: p.type_label,

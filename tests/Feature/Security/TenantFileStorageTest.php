@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Security;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Services\ProductService;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -16,6 +16,7 @@ use App\Support\TenantStorage;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\SaasSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -72,11 +73,11 @@ class TenantFileStorageTest extends TestCase
         ] + ($withImage ? ['image' => UploadedFile::fake()->image(strtolower($sku).'.jpg', 400, 300)] : []);
     }
 
-    private function createProductAs(User $actor, string $sku): Product
+    private function createProductAs(User $actor, string $sku): FrameDetail
     {
         $this->actingAs($actor)->post('/katalog/frame', $this->productPayload($sku))->assertRedirect();
 
-        return Product::withoutGlobalScopes()->where('sku', $sku)->firstOrFail();
+        return FrameDetail::withoutGlobalScopes()->where('sku', $sku)->firstOrFail();
     }
 
     public function test_product_images_are_namespaced_per_tenant(): void
@@ -111,7 +112,7 @@ class TenantFileStorageTest extends TestCase
         // berkas yang boleh ditulis sama sekali.
         app()->instance(ProductService::class, new class extends ProductService
         {
-            public function create(User $actor, array $data, array $attributes = []): Product
+            public function createDetail(User $actor, string $type, array $data, array $attributes = []): Model
             {
                 throw new \RuntimeException('ditolak layanan uji');
             }
@@ -131,13 +132,13 @@ class TenantFileStorageTest extends TestCase
 
         app()->instance(ProductService::class, new class extends ProductService
         {
-            public function update(User $actor, Product $product, array $data, array $attributes = []): Product
+            public function updateDetail(User $actor, Model $detail, array $data, array $attributes = []): Model
             {
                 throw new \RuntimeException('gagal uji');
             }
         });
 
-        $this->actingAs($adminA)->put('/produk/'.$product->id, [
+        $this->actingAs($adminA)->put('/produk/frame/'.$product->id, [
             'sku' => 'FR-U1', 'name' => 'Frame FR-U1', 'type' => 'frame',
             'cost_price' => '100000', 'sale_price' => '200000',
             'image' => UploadedFile::fake()->image('baru.jpg', 400, 300),
@@ -154,7 +155,7 @@ class TenantFileStorageTest extends TestCase
         $product = $this->createProductAs($adminA, 'FR-U2');
         $oldPath = $product->image_path;
 
-        $this->actingAs($adminA)->put('/produk/'.$product->id, [
+        $this->actingAs($adminA)->put('/produk/frame/'.$product->id, [
             'sku' => 'FR-U2', 'name' => 'Frame FR-U2', 'type' => 'frame',
             'cost_price' => '100000', 'sale_price' => '200000',
             'image' => UploadedFile::fake()->image('pengganti.jpg', 400, 300),
@@ -270,9 +271,9 @@ class TenantFileStorageTest extends TestCase
 
         // Produk TETAP dibuat (tanpa gambar) dan pengguna tidak
         // menemui 500 pasca-commit (F-01-R2).
-        $product = Product::withoutGlobalScopes()->where('sku', 'FR-DISK')->firstOrFail();
+        $product = FrameDetail::withoutGlobalScopes()->where('sku', 'FR-DISK')->firstOrFail();
         $this->assertNull($product->image_path);
-        $response->assertRedirect(route('products.show', $product));
+        $response->assertRedirect(route('products.show', ['frame', $product->id]));
     }
 
     public function test_product_update_aborts_cleanly_when_disk_fails(): void
@@ -284,7 +285,7 @@ class TenantFileStorageTest extends TestCase
         config(['filesystems.disks.public.root' => '/proc/artesis-tidak-tertulis']);
         Storage::forgetDisk('public');
 
-        $this->actingAs($adminA)->put('/produk/'.$product->id, [
+        $this->actingAs($adminA)->put('/produk/frame/'.$product->id, [
             'sku' => 'FR-DISK2', 'name' => 'Nama Berubah', 'type' => 'frame',
             'cost_price' => '100000', 'sale_price' => '200000',
             'image' => UploadedFile::fake()->image('baru.jpg', 400, 300),
@@ -293,7 +294,7 @@ class TenantFileStorageTest extends TestCase
         // Tidak ada perubahan yang diterapkan sama sekali.
         $fresh = $product->fresh();
         $this->assertSame($oldPath, $fresh->image_path);
-        $this->assertSame('Frame FR-DISK2', $fresh->name);
+        $this->assertSame('Frame FR-DISK2', $fresh->product->name);
     }
 
     /** Logo global (baris tenant_id NULL) + berkasnya di disk. */

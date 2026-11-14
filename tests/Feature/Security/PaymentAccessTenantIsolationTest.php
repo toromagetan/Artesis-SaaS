@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Security;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Identity\Models\Permission;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -19,6 +19,7 @@ use App\Modules\Purchasing\Services\ReceiptService;
 use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\SaasSeeder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -48,7 +49,7 @@ class PaymentAccessTenantIsolationTest extends TestCase
 
     private Supplier $supplierB;
 
-    private Product $productB;
+    private FrameDetail $productB;
 
     private PurchasePayment $paymentA;
 
@@ -95,7 +96,7 @@ class PaymentAccessTenantIsolationTest extends TestCase
     private function makePayment(Tenant $tenant, User $admin, Branch $branch, string $tag): PurchasePayment
     {
         $supplier = Supplier::create(['name' => 'Supplier Bayar '.$tag, 'is_active' => true, 'tenant_id' => $tenant->id]);
-        $product = Product::factory()->ofType('frame')->create(['tenant_id' => $tenant->id, 'cost_price' => '100000']);
+        $product = FrameDetail::factory()->create(['tenant_id' => $tenant->id, 'cost_price' => '100000']);
         if ($tag === 'B') {
             $this->supplierB = $supplier;
             $this->productB = $product;
@@ -106,11 +107,11 @@ class PaymentAccessTenantIsolationTest extends TestCase
         return app(CollectivePaymentService::class)->process($admin, $supplier, '100000', 'transfer');
     }
 
-    private function makeReceipt(User $admin, Supplier $supplier, Branch $branch, Product $product): Receipt
+    private function makeReceipt(User $admin, Supplier $supplier, Branch $branch, Model $product): Receipt
     {
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($admin, $supplier->id, $branch->id, [
-            ['product_id' => $product->id, 'qty' => 1, 'unit_cost' => '100000'],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1, 'unit_cost' => '100000'],
         ]);
         $orders->markSent($admin, $po);
 

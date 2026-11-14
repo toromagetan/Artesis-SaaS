@@ -2,6 +2,8 @@
 
 namespace App\Modules\Purchasing\Services;
 
+use App\Modules\Catalog\Models\AccessoriesDetail;
+use App\Modules\Catalog\Models\SoftlensDetail;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Platform\Services\AuditLogger;
@@ -64,16 +66,18 @@ class ReceiptService
                 if ($qty > $poItem->remainingQty()) {
                     $overReceiving = true;
                 }
-                // F4.3: softlens terlacak WAJIB bertanggal kedaluwarsa.
+                // §193: detail bertanda expiry_tracked (softlens &
+                // cairan softlens/aksesoris) WAJIB bertanggal
+                // kedaluwarsa saat diterima.
                 $expiryDate = $line['expiry_date'] ?? null;
-                $product = $poItem->product;
-                if ($product !== null
-                    && $product->type === 'softlens'
-                    && $product->attributeValue('expiry_tracked') === '1'
+                $detail = $poItem->detail;
+                if ($detail !== null
+                    && ($detail instanceof SoftlensDetail || $detail instanceof AccessoriesDetail)
+                    && $detail->expiry_tracked
                     && ($expiryDate === null || $expiryDate === '')
                 ) {
                     throw ValidationException::withMessages([
-                        'items' => __('ui.purchasing.expiry_required', ['product' => $product->name]),
+                        'items' => __('ui.purchasing.expiry_required', ['product' => $detail->product->name]),
                     ]);
                 }
                 $prepared[] = [
@@ -109,7 +113,7 @@ class ReceiptService
                 ]);
                 $row['item']->increment('qty_received', $row['qty']);
                 $this->inventory->recordMovement(
-                    $actor, $row['item']->product, $branch, 'receipt',
+                    $actor, $row['item']->detail, $branch, 'receipt',
                     $row['qty'], 'receipt', $receipt->id,
                     ['inboundUnitCost' => (string) $row['unit_cost_actual'], 'receiptItemId' => $receiptItem->id],
                 );

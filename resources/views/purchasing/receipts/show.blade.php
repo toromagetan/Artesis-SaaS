@@ -62,7 +62,7 @@
                     <tbody>
                         @foreach ($receipt->items as $item)
                             <tr class="border-b border-gray-50 last:border-0">
-                                <td class="px-4 py-3 font-medium text-gray-800">{{ $item->purchaseOrderItem->product->name }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ $item->purchaseOrderItem->detail->product->name }}</td>
                                 <td class="px-4 py-3 tnum">{{ $item->qty }}</td>
                                 <td class="px-4 py-3 tnum">{{ \App\Support\Money::fromDecimal((string) $item->unit_cost_actual)->format() }}</td>
                                 <td class="px-4 py-3 tnum">{{ \App\Support\Money::fromDecimal((string) $item->unit_cost_actual)->mul($item->qty)->format() }}</td>

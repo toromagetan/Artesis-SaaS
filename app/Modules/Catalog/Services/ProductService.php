@@ -4,143 +4,237 @@ namespace App\Modules\Catalog\Services;
 
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Models\ProductCategory;
-use App\Modules\Catalog\Models\ProductParent;
 use App\Modules\Identity\Models\User;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Platform\Services\PlanGate;
 use App\Support\Money;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Layanan Katalog (Blueprint D.3).
+ * Layanan Katalog (A1 — model master + detail persis Artesis).
  *
- * - SKU unik (ditolak bila duplikat).
- * - Atribut divalidasi terhadap himpunan kunci sah per tipe (B.2).
- * - Produk yang sudah terpakai transaksi TIDAK dapat diubah tipenya
- *   (pemeriksaan aktif otomatis begitu tabel transaksi hadir).
+ * - Master (Product) ringan: kategori, brand, name. Unit jual/stok
+ *   adalah detail per tipe di bawah master; SKU unik per tenant.
+ * - Master ditentukan eksplisit (product_id, wajib setipe) atau
+ *   ditemukan/dibuat dari (kategori tipe, brand, name) dalam
+ *   lingkup tenant aktor — pola Artesis & ADR-015 sebelumnya.
+ * - Atribut bebas divalidasi terhadap himpunan kunci sah per tipe;
+ *   yang di Artesis berbentuk kolom (index & jenis lensa,
+ *   expiry_tracked) dibaca dari kolom detail, bukan atribut.
+ * - Detail yang sudah dirujuk transaksi TIDAK dapat dipindah
+ *   tipenya (typeIsLocked); pemindahan tipe yang sah memindahkan
+ *   baris antar tabel detail dengan id yang sama dan memperbarui
+ *   detail_type seluruh rujukan morph.
  * - Harga dinormalisasi lewat Money (string desimal 2 digit).
  */
 class ProductService
 {
-    /** Himpunan kunci atribut sah per tipe (Blueprint B.2). */
+    /** Atribut BEBAS per tipe (di luar kolom detail). */
     public const ATTRIBUTE_KEYS = [
         'frame' => ['eye_size', 'bridge_size', 'temple_size'],
-        'lens' => ['index', 'coating', 'diameter', 'lens_kind'],
+        'lens' => ['coating', 'diameter'],
         'rx' => ['sph_min', 'sph_max', 'cyl_min', 'cyl_max'],
-        'softlens' => ['wear_period', 'expiry_tracked'],
+        'softlens' => ['wear_period'],
         'accessory' => [],
     ];
 
-    /**
-     * @param  array<string, mixed>  $data  sku, type, name, brand, color, cost_price, sale_price
-     * @param  array<string, string>  $attributes
-     */
-    public function create(User $actor, array $data, array $attributes = []): Product
+    /** @return class-string<Model> */
+    public function detailModel(string $type): string
     {
-        // M4: batas produk paket SaaS (tenant aktor); instalasi mandiri lolos.
+        return Product::DETAIL_MODELS[$type]
+            ?? throw ValidationException::withMessages(['type' => __('ui.products.type_invalid')]);
+    }
+
+    public function findDetail(string $type, int $id): Model
+    {
+        $model = $this->detailModel($type);
+
+        return $model::findOrFail($id);
+    }
+
+    /**
+     * Buat detail baru di bawah master (ditentukan atau otomatis).
+     *
+     * @param  array<string, mixed>  $data  sku, name, brand, cost_price, sale_price + kolom per tipe
+     * @param  array<string, string>  $attributes  atribut bebas per tipe
+     */
+    public function createDetail(User $actor, string $type, array $data, array $attributes = []): Model
+    {
+        // Batas produk paket SaaS dihitung per DETAIL (unit SKU);
+        // instalasi mandiri lolos.
         app(PlanGate::class)->assertWithinLimit($actor, 'products_max');
 
-        $attributes = $this->normalizeAttributes($data['type'], $attributes);
+        $model = $this->detailModel($type);
+        $attributes = $this->normalizeAttributes($type, $attributes);
 
-        return DB::transaction(function () use ($actor, $data, $attributes) {
-            $parent = $this->resolveParent($data, $actor);
+        return DB::transaction(function () use ($actor, $type, $model, $data, $attributes) {
+            $master = $this->resolveMaster($data, $type, $actor);
 
-            $product = Product::create([
-                'parent_id' => $parent->id,
+            $detail = $model::create([
+                ...$this->detailColumns($type, $data, null),
+                'product_id' => $master->id,
                 'sku' => $data['sku'],
-                'barcode' => $data['barcode'] ?? null,
-                'type' => $data['type'],
-                'name' => $data['name'],
-                'brand' => $data['brand'] ?? null,
-                'color' => $data['color'] ?? null,
-                'sph' => $data['sph'] ?? null,
-                'cyl' => $data['cyl'] ?? null,
-                'add' => $data['add'] ?? null,
-                'power' => $data['power'] ?? null,
-                'eye_side' => $data['eye_side'] ?? null,
-                'image_path' => $data['image_path'] ?? null,
-                'cost_price' => Money::fromDecimal((string) $data['cost_price'])->toDecimalString(),
-                'sale_price' => Money::fromDecimal((string) $data['sale_price'])->toDecimalString(),
-                'is_active' => true,
                 'tenant_id' => $actor->tenant_id,
-                // Add-on proses hanya bermakna untuk aksesoris (owner 2026-10-27).
-                'is_process_item' => $data['type'] === 'accessory'
-                    && filter_var($data['is_process_item'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'is_active' => true,
             ]);
 
-            $this->syncAttributes($product, $attributes);
+            $this->syncAttributes($detail, $attributes);
 
             app(AuditLogger::class)->log(
                 action: 'products.create',
-                subjectType: 'product',
-                subjectId: $product->id,
-                newValues: ['sku' => $product->sku, 'type' => $product->type, 'name' => $product->name],
+                subjectType: 'product_detail',
+                subjectId: $detail->id,
+                newValues: ['sku' => $detail->sku, 'type' => $type, 'name' => $master->name],
                 actor: $actor,
             );
 
-            return $product;
+            return $detail;
         });
     }
 
     /**
+     * Ubah detail. Tipe tidak berubah kecuali diminta lewat
+     * $data['type'] dan detail belum dirujuk transaksi.
+     *
      * @param  array<string, mixed>  $data
      * @param  array<string, string>  $attributes
      */
-    public function update(User $actor, Product $product, array $data, array $attributes = []): Product
+    public function updateDetail(User $actor, Model $detail, array $data, array $attributes = []): Model
     {
-        $newType = $data['type'] ?? $product->type;
+        $alias = $detail::DETAIL_TYPE;
+        $newType = $data['type'] ?? $alias;
 
-        if ($newType !== $product->type && $this->typeIsLocked($product)) {
-            throw ValidationException::withMessages([
-                'type' => __('ui.products.type_locked'),
-            ]);
+        if ($newType !== $alias) {
+            if ($this->typeIsLocked($detail)) {
+                throw ValidationException::withMessages([
+                    'type' => __('ui.products.type_locked'),
+                ]);
+            }
+
+            return $this->moveDetailType($actor, $detail, $newType, $data, $attributes);
         }
 
-        $attributes = $this->normalizeAttributes($newType, $attributes);
+        $attributes = $this->normalizeAttributes($alias, $attributes);
 
-        return DB::transaction(function () use ($actor, $product, $data, $attributes, $newType) {
-            $old = [
-                'sku' => $product->sku, 'type' => $product->type, 'name' => $product->name,
-                'sale_price' => (string) $product->sale_price,
-            ];
+        return DB::transaction(function () use ($actor, $detail, $alias, $data, $attributes) {
+            $old = ['sku' => $detail->sku, 'type' => $alias, 'sale_price' => (string) $detail->sale_price];
 
-            $product->update([
-                'parent_id' => array_key_exists('parent_id', $data) && $data['parent_id'] !== null
-                    ? $this->resolveParent([...$data, 'type' => $newType], $actor)->id
-                    : $product->parent_id,
-                'sku' => $data['sku'] ?? $product->sku,
-                'barcode' => $data['barcode'] ?? null,
-                'type' => $newType,
-                'name' => $data['name'] ?? $product->name,
-                'brand' => $data['brand'] ?? null,
-                'color' => $data['color'] ?? null,
-                'sph' => array_key_exists('sph', $data) ? $data['sph'] : $product->sph,
-                'cyl' => array_key_exists('cyl', $data) ? $data['cyl'] : $product->cyl,
-                'add' => array_key_exists('add', $data) ? $data['add'] : $product->add,
-                'power' => array_key_exists('power', $data) ? $data['power'] : $product->power,
-                'eye_side' => array_key_exists('eye_side', $data) ? $data['eye_side'] : $product->eye_side,
-                'image_path' => array_key_exists('image_path', $data) ? $data['image_path'] : $product->image_path,
-                'cost_price' => Money::fromDecimal((string) ($data['cost_price'] ?? $product->cost_price))->toDecimalString(),
-                'sale_price' => Money::fromDecimal((string) ($data['sale_price'] ?? $product->sale_price))->toDecimalString(),
-                'is_process_item' => $newType === 'accessory'
-                    && filter_var($data['is_process_item'] ?? $product->is_process_item, FILTER_VALIDATE_BOOLEAN),
+            $master = array_key_exists('product_id', $data) && $data['product_id'] !== null
+                ? $this->resolveMaster($data, $alias, $actor)
+                : $detail->product;
+
+            $detail->update([
+                ...$this->detailColumns($alias, $data, $detail),
+                'product_id' => $master->id,
+                'sku' => $data['sku'] ?? $detail->sku,
             ]);
 
-            $this->syncAttributes($product, $attributes);
+            if (array_key_exists('name', $data) || array_key_exists('brand', $data)) {
+                $master->update([
+                    'name' => $data['name'] ?? $master->name,
+                    'brand' => array_key_exists('brand', $data) ? $data['brand'] : $master->brand,
+                ]);
+            }
+
+            $this->syncAttributes($detail, $attributes);
 
             app(AuditLogger::class)->log(
                 action: 'products.update',
-                subjectType: 'product',
-                subjectId: $product->id,
+                subjectType: 'product_detail',
+                subjectId: $detail->id,
                 oldValues: $old,
-                newValues: ['sku' => $product->sku, 'type' => $product->type, 'name' => $product->name, 'sale_price' => (string) $product->sale_price],
+                newValues: ['sku' => $detail->sku, 'type' => $alias, 'sale_price' => (string) $detail->sale_price],
                 actor: $actor,
             );
 
-            return $product;
+            return $detail;
         });
+    }
+
+    /**
+     * Pindah tipe detail yang belum terkunci: baris dibuat ulang
+     * pada tabel tipe baru dengan id yang sama, rujukan morph
+     * diperbarui, atribut dipindah.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $attributes
+     */
+    private function moveDetailType(User $actor, Model $detail, string $newType, array $data, array $attributes): Model
+    {
+        $oldAlias = $detail::DETAIL_TYPE;
+        $newModel = $this->detailModel($newType);
+        $attributes = $this->normalizeAttributes($newType, $attributes);
+
+        return DB::transaction(function () use ($actor, $detail, $oldAlias, $newType, $newModel, $data, $attributes) {
+            $master = $this->resolveMaster(
+                [...$data, 'product_id' => $data['target_master_id'] ?? null],
+                $newType,
+                $actor,
+            );
+
+            // Id dipertahankan lintas tabel (bukan kolom isian massal):
+            // rujukan morph menunjuk id yang sama.
+            $moved = new $newModel;
+            $moved->forceFill([
+                ...$this->detailColumns($newType, [...$detail->only(['color', 'sph', 'cyl', 'add', 'power']), ...$data], null),
+                'product_id' => $master->id,
+                'sku' => $data['sku'] ?? $detail->sku,
+                'barcode' => array_key_exists('barcode', $data) ? $data['barcode'] : $detail->barcode,
+                'image_path' => array_key_exists('image_path', $data) ? $data['image_path'] : $detail->image_path,
+                'cost_price' => Money::fromDecimal((string) ($data['cost_price'] ?? $detail->cost_price))->toDecimalString(),
+                'sale_price' => Money::fromDecimal((string) ($data['sale_price'] ?? $detail->sale_price))->toDecimalString(),
+                'tenant_id' => $detail->tenant_id,
+                'is_active' => $detail->is_active,
+            ]);
+            $moved->id = $detail->id;
+            $moved->save();
+
+            $detail->detailAttributes()->delete();
+            $this->syncAttributes($moved, $attributes);
+            $detail->delete();
+
+            foreach (['sale_items', 'purchase_order_items', 'purchase_request_items', 'stock_layers', 'stock_movements', 'stock_opname_items', 'stock_transfer_items', 'broken_stocks', 'incentive_items', 'incentive_rules', 'incentive_adjustments'] as $table) {
+                if (Schema::hasTable($table) && Schema::hasColumn($table, 'detail_type')) {
+                    DB::table($table)
+                        ->where('detail_id', $moved->id)->where('detail_type', $oldAlias)
+                        ->update(['detail_type' => $newType]);
+                }
+            }
+            if (Schema::hasTable('warranty_replacements') && Schema::hasColumn('warranty_replacements', 'replacement_detail_type')) {
+                DB::table('warranty_replacements')
+                    ->where('replacement_detail_id', $moved->id)->where('replacement_detail_type', $oldAlias)
+                    ->update(['replacement_detail_type' => $newType]);
+            }
+
+            app(AuditLogger::class)->log(
+                action: 'products.update',
+                subjectType: 'product_detail',
+                subjectId: $moved->id,
+                oldValues: ['type' => $oldAlias],
+                newValues: ['type' => $newType, 'sku' => $moved->sku],
+                actor: $actor,
+            );
+
+            return $moved;
+        });
+    }
+
+    public function setDetailActive(User $actor, Model $detail, bool $active): Model
+    {
+        $detail->update(['is_active' => $active]);
+
+        app(AuditLogger::class)->log(
+            action: $active ? 'products.activate' : 'products.deactivate',
+            subjectType: 'product_detail',
+            subjectId: $detail->id,
+            newValues: ['is_active' => $active],
+            actor: $actor,
+        );
+
+        return $detail;
     }
 
     /** Kategori bawaan/aktif untuk sebuah tipe sistem. */
@@ -150,34 +244,33 @@ class ProductService
             ->orderBy('sort_order')->orderBy('id')->first();
     }
 
-    /** Buat induk produk (ADR-015). */
-    public function createParent(User $actor, array $data): ProductParent
+    /** Buat master produk (pengganti induk ADR-015). */
+    public function createMaster(User $actor, array $data): Product
     {
         $category = $this->resolveCategory($data, $data['type']);
 
-        $parent = ProductParent::create([
+        $master = Product::create([
             'name' => $data['name'],
             'brand' => $data['brand'] ?? null,
             'category_id' => $category?->id,
-            'type' => $category?->type ?? $data['type'],
             'is_active' => true,
             'tenant_id' => $actor->tenant_id,
         ]);
 
         app(AuditLogger::class)->log(
             action: 'products.parent.create',
-            subjectType: 'product_parent',
-            subjectId: $parent->id,
-            newValues: ['type' => $parent->type, 'name' => $parent->name],
+            subjectType: 'product',
+            subjectId: $master->id,
+            newValues: ['type' => $category?->type ?? $data['type'], 'name' => $master->name],
             actor: $actor,
         );
 
-        return $parent;
+        return $master;
     }
 
     /**
-     * Tentukan kategori induk: category_id eksplisit wajib setipe
-     * dengan induk; tanpa itu pakai kategori bawaan tipenya.
+     * Tentukan kategori: category_id eksplisit wajib setipe;
+     * tanpa itu pakai kategori bawaan tipenya.
      *
      * @param  array<string, mixed>  $data
      */
@@ -194,102 +287,89 @@ class ProductService
             return $category;
         }
 
-        return isset($data['type']) ? $this->defaultCategoryFor($data['type']) : null;
+        $type = $mustType ?? ($data['type'] ?? null);
+
+        return $type !== null ? $this->defaultCategoryFor($type) : null;
     }
 
-    /** Ubah induk produk (ADR-015). Kategori mengikuti tipe induk. */
-    public function updateParent(User $actor, ProductParent $parent, array $data): ProductParent
+    /** Ubah master produk. Kategori mengikuti data atau bawaan tipenya. */
+    public function updateMaster(User $actor, Product $master, array $data): Product
     {
-        $parent->update([
-            'name' => $data['name'] ?? $parent->name,
-            'brand' => array_key_exists('brand', $data) ? $data['brand'] : $parent->brand,
-            'category_id' => $parent->category_id ?? $this->defaultCategoryFor($parent->type)?->id,
+        $master->update([
+            'name' => $data['name'] ?? $master->name,
+            'brand' => array_key_exists('brand', $data) ? $data['brand'] : $master->brand,
+            'category_id' => $data['category_id'] ?? $master->category_id
+                ?? $this->defaultCategoryFor($master->typeKey() ?? 'frame')?->id,
         ]);
 
         app(AuditLogger::class)->log(
             action: 'products.parent.update',
-            subjectType: 'product_parent',
-            subjectId: $parent->id,
-            newValues: ['name' => $parent->name, 'brand' => $parent->brand],
+            subjectType: 'product',
+            subjectId: $master->id,
+            newValues: ['name' => $master->name, 'brand' => $master->brand],
             actor: $actor,
         );
 
-        return $parent;
+        return $master;
     }
 
-    public function setParentActive(User $actor, ProductParent $parent, bool $active): ProductParent
+    public function setMasterActive(User $actor, Product $master, bool $active): Product
     {
-        $parent->update(['is_active' => $active]);
+        $master->update(['is_active' => $active]);
 
         app(AuditLogger::class)->log(
             action: $active ? 'products.parent.activate' : 'products.parent.deactivate',
-            subjectType: 'product_parent',
-            subjectId: $parent->id,
+            subjectType: 'product',
+            subjectId: $master->id,
             newValues: ['is_active' => $active],
             actor: $actor,
         );
 
-        return $parent;
+        return $master;
     }
 
     /**
-     * Tentukan induk sebuah varian (ADR-015): parent_id eksplisit
-     * (wajib setipe) atau temukan/buat dari (type, brand, name).
+     * Tentukan master sebuah detail: product_id eksplisit (wajib
+     * setipe) atau temukan/buat dari (kategori tipe, brand, name)
+     * di lingkup tenant aktor.
      *
      * @param  array<string, mixed>  $data
      */
-    private function resolveParent(array $data, User $actor): ProductParent
+    private function resolveMaster(array $data, string $type, User $actor): Product
     {
-        if (! empty($data['parent_id'])) {
-            // TenantScope membuat induk tenant lain tidak ditemukan.
-            $parent = ProductParent::findOrFail((int) $data['parent_id']);
-            if ($parent->type !== $data['type']) {
+        if (! empty($data['product_id'])) {
+            // TenantScope membuat master tenant lain tidak ditemukan.
+            $master = Product::findOrFail((int) $data['product_id']);
+            if ($master->typeKey() !== $type) {
                 throw ValidationException::withMessages([
                     'parent_id' => __('ui.products.parent_type_mismatch'),
                 ]);
             }
 
-            return $parent;
+            return $master;
         }
 
-        // Induk dicari/dibuat di dalam lingkup tenant aktor (S-02):
-        // nama yang sama pada tenant lain adalah induk yang berbeda.
-        return ProductParent::firstOrCreate(
-            ['type' => $data['type'], 'brand' => $data['brand'] ?? null, 'name' => $data['name'], 'tenant_id' => $actor->tenant_id],
-            ['is_active' => true, 'category_id' => $this->defaultCategoryFor($data['type'])?->id],
+        $category = $this->resolveCategory($data, $type);
+
+        return Product::firstOrCreate(
+            ['category_id' => $category?->id, 'brand' => $data['brand'] ?? null, 'name' => $data['name'], 'tenant_id' => $actor->tenant_id],
+            ['is_active' => true],
         );
-    }
-
-    public function setActive(User $actor, Product $product, bool $active): Product
-    {
-        $product->update(['is_active' => $active]);
-
-        app(AuditLogger::class)->log(
-            action: $active ? 'products.activate' : 'products.deactivate',
-            subjectType: 'product',
-            subjectId: $product->id,
-            newValues: ['is_active' => $active],
-            actor: $actor,
-        );
-
-        return $product;
     }
 
     /**
-     * Produk terkunci tipenya bila sudah dirujuk transaksi
-     * (sale_items / purchase_order_items / receipt_items). Pemeriksaan
-     * hanya berjalan pada tabel & kolom yang sudah ada — aktif
-     * otomatis saat modul transaksinya tiba. receipt_items tidak
-     * berkolom product_id: rujukannya lewat purchase_order_item_id,
-     * jadi pemeriksaan penerimaan menaut ke item PO-nya (perbaikan
-     * 14 Nov 2026 — sebelumnya halaman ubah produk selalu 500
-     * "Unknown column 'product_id'" begitu tabel receipt_items ada).
+     * Detail terkunci tipenya bila sudah dirujuk transaksi
+     * (sale_items / purchase_order_items / receipt_items lewat item
+     * PO) — rujukan morph detail sejak A1. Pemeriksaan hanya
+     * berjalan pada tabel & kolom yang sudah ada.
      */
-    public function typeIsLocked(Product $product): bool
+    public function typeIsLocked(Model $detail): bool
     {
+        $alias = $detail::DETAIL_TYPE;
+
         foreach (['sale_items', 'purchase_order_items'] as $table) {
-            if (Schema::hasTable($table) && Schema::hasColumn($table, 'product_id')
-                && DB::table($table)->where('product_id', $product->id)->exists()) {
+            if (Schema::hasTable($table) && Schema::hasColumn($table, 'detail_id')
+                && DB::table($table)->where('detail_id', $detail->id)->where('detail_type', $alias)->exists()) {
                 return true;
             }
         }
@@ -297,7 +377,8 @@ class ProductService
         if (Schema::hasTable('receipt_items') && Schema::hasTable('purchase_order_items')
             && DB::table('receipt_items')
                 ->join('purchase_order_items', 'receipt_items.purchase_order_item_id', '=', 'purchase_order_items.id')
-                ->where('purchase_order_items.product_id', $product->id)
+                ->where('purchase_order_items.detail_id', $detail->id)
+                ->where('purchase_order_items.detail_type', $alias)
                 ->exists()) {
             return true;
         }
@@ -305,23 +386,95 @@ class ProductService
         return false;
     }
 
-    /** @param array<string, string> $attributes */
-    private function syncAttributes(Product $product, array $attributes): void
+    /**
+     * Petakan data mentah menjadi kolom detail per tipe. Bila
+     * $existing diberikan, kunci yang tidak hadir pada $data
+     * mempertahankan nilai lama (semantik ubah).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function detailColumns(string $type, array $data, ?Model $existing): array
     {
-        $product->productAttributes()->delete();
+        $pick = fn (string $key, mixed $default = null) => array_key_exists($key, $data)
+            ? $data[$key]
+            : ($existing?->getAttribute($key) ?? $default);
+
+        $columns = [
+            'barcode' => $pick('barcode'),
+            'image_path' => $pick('image_path'),
+            'cost_price' => Money::fromDecimal((string) ($data['cost_price'] ?? $existing?->cost_price ?? 0))->toDecimalString(),
+            'sale_price' => Money::fromDecimal((string) ($data['sale_price'] ?? $existing?->sale_price ?? 0))->toDecimalString(),
+        ];
+
+        switch ($type) {
+            case 'frame':
+                $columns['color'] = $pick('color');
+                break;
+            case 'lens':
+                $columns['type'] = $this->lensKind($data, $existing);
+                $columns['index'] = (string) ($data['index'] ?? $existing?->index ?? '');
+                $columns['variant'] = $pick('variant');
+                $columns['eye_side'] = $data['eye_side'] ?? $existing?->eye_side ?? 'Both';
+                $columns['sph'] = $pick('sph');
+                $columns['cyl'] = $pick('cyl');
+                $columns['add'] = $pick('add');
+                break;
+            case 'rx':
+                $columns['type'] = $pick('rx_type');
+                $columns['index'] = $pick('index');
+                $columns['variant'] = $pick('variant');
+                break;
+            case 'softlens':
+                $columns['color'] = $pick('color');
+                $columns['power'] = $pick('power');
+                $columns['expiry_tracked'] = filter_var($data['expiry_tracked'] ?? $existing?->expiry_tracked ?? false, FILTER_VALIDATE_BOOLEAN);
+                break;
+            case 'accessory':
+                $columns['variant'] = $pick('variant');
+                // Add-on proses hanya bermakna untuk aksesoris (owner 2026-10-27).
+                $columns['is_process_item'] = filter_var($data['is_process_item'] ?? $existing?->is_process_item ?? false, FILTER_VALIDATE_BOOLEAN);
+                $columns['expiry_tracked'] = filter_var($data['expiry_tracked'] ?? $existing?->expiry_tracked ?? false, FILTER_VALIDATE_BOOLEAN);
+                break;
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Jenis lensa ternormalisasi (pola LensMatrixService lama):
+     * teks bebas lens_kind → enum Artesis SV/Progresif/Bifocal;
+     * nilai enum yang sudah sah dipertahankan.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function lensKind(array $data, ?Model $existing): string
+    {
+        $raw = strtolower((string) ($data['lens_kind'] ?? $data['lens_type'] ?? $existing?->type ?? ''));
+
+        return match (true) {
+            str_contains($raw, 'prog') => 'Progresif',
+            str_contains($raw, 'bif') => 'Bifocal',
+            default => 'SV',
+        };
+    }
+
+    /** @param array<string, string> $attributes */
+    private function syncAttributes(Model $detail, array $attributes): void
+    {
+        $detail->detailAttributes()->delete();
         foreach ($attributes as $key => $value) {
             if ($value === '' || $value === null) {
                 continue;
             }
-            $product->productAttributes()->create(['key' => $key, 'value' => (string) $value]);
+            $detail->detailAttributes()->create(['key' => $key, 'value' => (string) $value]);
         }
-        $product->load('productAttributes');
+        $detail->load('detailAttributes');
     }
 
     /**
-     * Normalisasi atribut mentah dari formulir/request: kunci di luar
-     * himpunan sah tipe DITOLAK (bukan dibuang diam-diam);
-     * expiry_tracked menjadi '1'/'0' dari keberadaan nilai.
+     * Normalisasi atribut bebas: kunci di luar himpunan sah tipe
+     * DITOLAK (bukan dibuang diam-diam).
      *
      * @param  array<string, mixed>  $raw
      * @return array<string, string>
@@ -333,9 +486,6 @@ class ProductService
         $normalized = [];
         foreach ($raw as $key => $value) {
             $normalized[$key] = (string) $value;
-        }
-        if (in_array('expiry_tracked', self::ATTRIBUTE_KEYS[$type] ?? [], true)) {
-            $normalized['expiry_tracked'] = ! empty($raw['expiry_tracked']) ? '1' : '0';
         }
 
         return $normalized;

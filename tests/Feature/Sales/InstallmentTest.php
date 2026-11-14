@@ -3,7 +3,7 @@
 namespace Tests\Feature\Sales;
 
 use App\Modules\Accounting\Models\JournalLine;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
@@ -38,7 +38,7 @@ class InstallmentTest extends TestCase
 
     private Customer $customer;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -57,7 +57,7 @@ class InstallmentTest extends TestCase
         $this->gudang->branches()->sync([$this->branch->id]);
 
         $this->customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
-        $this->frame = Product::factory()->ofType('frame')->create(['sale_price' => '400000']);
+        $this->frame = FrameDetail::factory()->create(['sale_price' => '400000']);
         app(InventoryService::class)->recordMovement(
             $this->owner, $this->frame, $this->branch, 'initial_stock', 20, 'test_seed', 1,
         );
@@ -74,7 +74,7 @@ class InstallmentTest extends TestCase
         return app(SalesService::class)->createSale($this->owner, array_merge([
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
         ], $extraData), [
-            ['product_id' => $this->frame->id, 'qty' => 1, 'unit_price' => $total],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_price' => $total],
         ], $dp === '0' ? [] : [
             ['method' => 'cash', 'amount' => $dp],
         ]);
@@ -171,7 +171,7 @@ class InstallmentTest extends TestCase
         // Tanpa jadwal: acuan = tanggal penjualan (100 hari lalu) -> d90.
         $noSchedule = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-07-10', 'tax_mode' => 'inclusive',
-        ], [['product_id' => $this->frame->id, 'qty' => 1]]);
+        ], [['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1]]);
         $aging = app(InstallmentService::class)->agingFor($noSchedule);
         $this->assertSame(100, $aging['age_days']);
         $this->assertSame('d90', $aging['bucket']);

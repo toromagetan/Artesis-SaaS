@@ -7,6 +7,7 @@ use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Models\JournalLine;
 use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Accounting\Support\Chart;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
@@ -38,7 +39,7 @@ class JournalPostingTest extends TestCase
 
     private Branch $branch;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -46,9 +47,7 @@ class JournalPostingTest extends TestCase
         $this->seed([IdentitySeeder::class, AccountingSeeder::class]);
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
-        $this->frame = Product::factory()->ofType('frame')->create([
-            'name' => 'Frame Jurnal', 'cost_price' => '60000', 'sale_price' => '100000',
-        ]);
+        $this->frame = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame Jurnal'])->id, 'cost_price' => '60000', 'sale_price' => '100000']);
         app(InventoryService::class)->recordMovement($this->owner, $this->frame, $this->branch, 'initial_stock', 20, 'test_seed', 1);
     }
 
@@ -91,7 +90,7 @@ class JournalPostingTest extends TestCase
             'sale_date' => '2026-10-17',
             'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 2, 'unit_price' => '100000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 2, 'unit_price' => '100000'],
         ], [
             ['method' => 'cash', 'amount' => '200000'],
         ]);
@@ -112,7 +111,7 @@ class JournalPostingTest extends TestCase
             'sale_date' => '2026-10-17',
             'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '100000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1, 'unit_price' => '100000'],
         ], [
             ['method' => 'qris', 'amount' => '50000'],
         ]);
@@ -138,7 +137,7 @@ class JournalPostingTest extends TestCase
         $supplier = Supplier::create(['name' => 'PT Jurnal', 'is_active' => true]);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $supplier->id, $this->branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => 5, 'unit_cost' => '80000'],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 5, 'unit_cost' => '80000'],
         ]);
         $orders->markSent($this->owner, $po);
         $receipt = app(ReceiptService::class)->store($this->owner, $po, [

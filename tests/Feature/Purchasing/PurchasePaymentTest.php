@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Purchasing;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Master\Models\Branch;
@@ -41,7 +41,7 @@ class PurchasePaymentTest extends TestCase
 
     private Supplier $supplier;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -50,7 +50,7 @@ class PurchasePaymentTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->supplier = Supplier::create(['name' => 'PT Bayar Uji', 'is_active' => true]);
-        $this->frame = Product::factory()->ofType('frame')->create(['cost_price' => '100000']);
+        $this->frame = FrameDetail::factory()->create(['cost_price' => '100000']);
     }
 
     /** Buat receipt lunas-belum-bayar senilai $total pada tanggal terima tertentu. */
@@ -58,7 +58,7 @@ class PurchasePaymentTest extends TestCase
     {
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $this->supplier->id, $this->branch->id, [
-            ['product_id' => $this->frame->id, 'qty' => $qty, 'unit_cost' => $unitCost],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => $qty, 'unit_cost' => $unitCost],
         ]);
         $orders->markSent($this->owner, $po);
 
@@ -200,7 +200,7 @@ class PurchasePaymentTest extends TestCase
         $item = $receipt->items->first();
         $service = app(PurchaseReturnService::class);
         $stock = app(InventoryService::class);
-        $this->assertSame(4, $stock->currentStock($this->frame->id, $this->branch->id));
+        $this->assertSame(4, $stock->currentStock('frame', $this->frame->id, $this->branch->id));
 
         // Retur saat belum lunas → reduces_payable + stok keluar.
         $retur = $service->store($this->owner, $receipt, [
@@ -209,7 +209,7 @@ class PurchasePaymentTest extends TestCase
         $this->assertSame('reduces_payable', $retur->credit_status);
         $this->assertSame('100000.00', (string) $retur->total_amount);
         $this->assertSame('300000.00', $receipt->refresh()->remainingAmount()->toDecimalString());
-        $this->assertSame(3, $stock->currentStock($this->frame->id, $this->branch->id));
+        $this->assertSame(3, $stock->currentStock('frame', $this->frame->id, $this->branch->id));
 
         // Qty retur melebihi sisa diterima → ditolak.
         try {
@@ -228,6 +228,6 @@ class PurchasePaymentTest extends TestCase
             ['receipt_item_id' => $item->id, 'qty' => 1],
         ], 'Retur susulan');
         $this->assertSame('supplier_credit', $retur2->credit_status);
-        $this->assertSame(2, $stock->currentStock($this->frame->id, $this->branch->id));
+        $this->assertSame(2, $stock->currentStock('frame', $this->frame->id, $this->branch->id));
     }
 }

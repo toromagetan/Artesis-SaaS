@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Sales;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\AccessoriesDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Services\InventoryService;
@@ -39,7 +39,7 @@ class SaleReturnTest extends TestCase
 
     private function paidSale(int $qty, string $price): Sale
     {
-        $product = Product::factory()->ofType('accessory')->create(['sale_price' => $price]);
+        $product = AccessoriesDetail::factory()->create(['sale_price' => $price]);
 
         // Sejak M.4 penjualan aksesori wajib punya stok.
         app(InventoryService::class)->recordMovement(
@@ -50,7 +50,7 @@ class SaleReturnTest extends TestCase
         return app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $product->id, 'qty' => $qty],
+            ['detail_type' => 'accessory', 'detail_id' => $product->id, 'qty' => $qty],
         ], [
             ['method' => 'cash', 'amount' => (string) ((int) $price * $qty)],
         ]);
@@ -110,7 +110,7 @@ class SaleReturnTest extends TestCase
     public function test_prorata_rounding_half_up(): void
     {
         // line_total 100.000 untuk qty 3 → retur 1 = 33.333,33 (bukan 33.333,34 / float drift)
-        $product = Product::factory()->ofType('accessory')->create(['sale_price' => '33333.33']);
+        $product = AccessoriesDetail::factory()->create(['sale_price' => '33333.33']);
         app(InventoryService::class)->recordMovement(
             $this->owner, $product, Branch::where('name', 'Pusat')->firstOrFail(),
             'initial_stock', 3, 'test_seed', 1,
@@ -118,7 +118,7 @@ class SaleReturnTest extends TestCase
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $product->id, 'qty' => 3],
+            ['detail_type' => 'accessory', 'detail_id' => $product->id, 'qty' => 3],
         ]);
         $item = $sale->items->first();
         $this->assertSame('99999.99', (string) $item->line_total);

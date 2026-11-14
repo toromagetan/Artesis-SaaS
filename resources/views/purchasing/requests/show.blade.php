@@ -81,7 +81,7 @@
                     <tbody>
                         @foreach ($pr->items as $item)
                             <tr class="border-b border-gray-50 last:border-0">
-                                <td class="px-4 py-3 font-medium text-gray-800">{{ $item->product->name }}
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ $item->detail->product->name }}
                                     @if ($item->rx_parameters)
                                         <span class="mt-1 block text-xs font-normal text-gray-500">
                                             {{ __('ui.sales.precal') }}:

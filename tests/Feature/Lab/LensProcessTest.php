@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Lab;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
+use App\Modules\Catalog\Models\LensDetail;
+use App\Modules\Catalog\Models\RxDetail;
 use App\Modules\Clinical\Models\Prescription;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -34,7 +36,7 @@ class LensProcessTest extends TestCase
 
     private Customer $customer;
 
-    private Product $lensRx;
+    private RxDetail $lensRx;
 
     protected function setUp(): void
     {
@@ -43,7 +45,7 @@ class LensProcessTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $this->branch = Branch::where('name', 'Pusat')->firstOrFail();
         $this->customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
-        $this->lensRx = Product::factory()->ofType('rx')->create(['sale_price' => '300000']);
+        $this->lensRx = RxDetail::factory()->create(['sale_price' => '300000']);
     }
 
     private function lensSale(string $date = '2026-10-17')
@@ -55,14 +57,14 @@ class LensProcessTest extends TestCase
             // ADR-019: item RX mewajibkan resep pelanggan yang sama.
             'prescription_id' => Prescription::factory()->create(['customer_id' => $this->customer->id])->id,
         ], [
-            ['product_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
+            ['detail_type' => 'rx', 'detail_id' => $this->lensRx->id, 'qty' => 1, 'prescription_ref' => 'pair'],
         ]);
     }
 
     /** Penjualan lensa STOK yang tersedia di cabang (tanpa PR otomatis). */
     private function stockedLensSale()
     {
-        $lens = Product::factory()->ofType('lens')->create(['sale_price' => '200000']);
+        $lens = LensDetail::factory()->create(['sale_price' => '200000']);
         app(InventoryService::class)->recordMovement(
             $this->owner, $lens, $this->branch, 'initial_stock', 5, 'test_seed', 1,
         );
@@ -72,7 +74,7 @@ class LensProcessTest extends TestCase
             'sale_date' => '2026-10-17',
             'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $lens->id, 'qty' => 1],
+            ['detail_type' => 'lens', 'detail_id' => $lens->id, 'qty' => 1],
         ]);
     }
 
@@ -89,14 +91,14 @@ class LensProcessTest extends TestCase
         $this->assertSame(1, LensProcess::where('sale_id', $sale->id)->count());
 
         // Penjualan frame saja tanpa item lensa: tidak ada proses.
-        $frame = Product::factory()->ofType('frame')->create(['sale_price' => '100000']);
+        $frame = FrameDetail::factory()->create(['sale_price' => '100000']);
         app(InventoryService::class)->recordMovement(
             $this->owner, $frame, $this->branch, 'initial_stock', 3, 'test_seed', 1,
         );
         $frameSale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 1],
         ]);
         $this->assertNull(LensProcess::where('sale_id', $frameSale->id)->first());
     }

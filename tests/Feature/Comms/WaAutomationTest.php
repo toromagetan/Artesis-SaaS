@@ -2,7 +2,8 @@
 
 namespace Tests\Feature\Comms;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
+use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\Comms\Models\WaGateway;
 use App\Modules\Comms\Models\WaMessage;
 use App\Modules\CRM\Models\Customer;
@@ -42,9 +43,9 @@ class WaAutomationTest extends TestCase
 
     private Customer $customer;
 
-    private Product $lens;
+    private LensDetail $lens;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
     protected function setUp(): void
     {
@@ -56,8 +57,8 @@ class WaAutomationTest extends TestCase
         $this->customer = Customer::factory()->create([
             'branch_id' => $this->branch->id, 'name' => 'Sinta Maharani', 'phone' => '0813-9876-5432',
         ]);
-        $this->lens = Product::factory()->ofType('lens')->create(['sale_price' => '350000']);
-        $this->frame = Product::factory()->ofType('frame')->create(['sale_price' => '400000']);
+        $this->lens = LensDetail::factory()->create(['sale_price' => '350000']);
+        $this->frame = FrameDetail::factory()->create(['sale_price' => '400000']);
         $inventory = app(InventoryService::class);
         $inventory->recordMovement($this->owner, $this->lens, $this->branch, 'initial_stock', 5, 'test_seed', 1);
         $inventory->recordMovement($this->owner, $this->frame, $this->branch, 'initial_stock', 5, 'test_seed', 1);
@@ -87,7 +88,7 @@ class WaAutomationTest extends TestCase
         return app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->lens->id, 'qty' => 1],
+            ['detail_type' => 'lens', 'detail_id' => $this->lens->id, 'qty' => 1],
         ], [
             ['method' => 'cash', 'amount' => '350000'],
         ]);
@@ -148,7 +149,7 @@ class WaAutomationTest extends TestCase
         $sale = app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
         ], [
-            ['product_id' => $this->frame->id, 'qty' => 1],
+            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
         ], [
             ['method' => 'cash', 'amount' => '400000'],
         ]);

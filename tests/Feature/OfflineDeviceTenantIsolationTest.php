@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -22,6 +23,7 @@ use App\Modules\Sales\Services\OfflineDeviceService;
 use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\SaasSeeder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -101,17 +103,15 @@ class OfflineDeviceTenantIsolationTest extends TestCase
         return $issued['plain_token'];
     }
 
-    private function stockedProduct(User $admin, Tenant $tenant, Branch $branch, string $tag): Product
+    private function stockedProduct(User $admin, Tenant $tenant, Branch $branch, string $tag): Model
     {
-        $product = Product::factory()->ofType('frame')->create([
-            'sku' => 'FR-'.$tag, 'name' => 'Frame '.$tag,
+        $product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame '.$tag, 'tenant_id' => $tenant->id])->id, 'sku' => 'FR-'.$tag,
             'cost_price' => '50000', 'sale_price' => '100000',
-            'tenant_id' => $tenant->id,
-        ]);
+            'tenant_id' => $tenant->id, ]);
         $supplier = Supplier::create(['name' => 'Supplier '.$tag, 'is_active' => true, 'tenant_id' => $tenant->id]);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($admin, $supplier->id, $branch->id, [
-            ['product_id' => $product->id, 'qty' => 5, 'unit_cost' => '50000'],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 5, 'unit_cost' => '50000'],
         ]);
         $orders->markSent($admin, $po);
         app(ReceiptService::class)->store($admin, $po, [
@@ -129,11 +129,11 @@ class OfflineDeviceTenantIsolationTest extends TestCase
         ]);
     }
 
-    private function intent(string $uuid, Customer $customer, Product $product): array
+    private function intent(string $uuid, Customer $customer, Model $product): array
     {
         return ['client_uuid' => $uuid, 'local_no' => '001', 'offline_at' => '2026-11-11 09:00:00',
             'customer_id' => $customer->id, 'tax_mode' => 'exclusive',
-            'items' => [['product_id' => $product->id, 'qty' => 1]],
+            'items' => [['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1]],
             'payments' => [['method' => 'cash', 'amount' => '100000']]];
     }
 
@@ -150,15 +150,15 @@ class OfflineDeviceTenantIsolationTest extends TestCase
 
         $snapA = $this->withHeader('Authorization', 'Bearer '.$tokenA)
             ->getJson('/api/v1/offline/snapshot')->assertOk();
-        $this->assertContains($productA->id, collect($snapA->json('products'))->pluck('id')->all());
-        $this->assertNotContains($productB->id, collect($snapA->json('products'))->pluck('id')->all());
+        $this->assertContains($productA->id, collect($snapA->json('products'))->pluck('detail_id')->all());
+        $this->assertNotContains($productB->id, collect($snapA->json('products'))->pluck('detail_id')->all());
         $this->assertContains($customerA->id, collect($snapA->json('customers'))->pluck('id')->all());
         $this->assertNotContains($customerB->id, collect($snapA->json('customers'))->pluck('id')->all());
 
         $snapB = $this->withHeader('Authorization', 'Bearer '.$tokenB)
             ->getJson('/api/v1/offline/snapshot')->assertOk();
-        $this->assertContains($productB->id, collect($snapB->json('products'))->pluck('id')->all());
-        $this->assertNotContains($productA->id, collect($snapB->json('products'))->pluck('id')->all());
+        $this->assertContains($productB->id, collect($snapB->json('products'))->pluck('detail_id')->all());
+        $this->assertNotContains($productA->id, collect($snapB->json('products'))->pluck('detail_id')->all());
         $this->assertContains($customerB->id, collect($snapB->json('customers'))->pluck('id')->all());
         $this->assertNotContains($customerA->id, collect($snapB->json('customers'))->pluck('id')->all());
     }

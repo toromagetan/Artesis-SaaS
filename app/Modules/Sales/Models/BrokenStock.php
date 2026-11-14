@@ -2,11 +2,11 @@
 
 namespace App\Modules\Sales\Models;
 
-use App\Modules\Catalog\Models\Product;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * Barang lama garansi yang tiba di gudang menunggu inspeksi.
@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BrokenStock extends Model
 {
     protected $fillable = [
-        'branch_id', 'product_id', 'warranty_case_id', 'quantity',
+        'branch_id', 'detail_id', 'detail_type', 'warranty_case_id', 'quantity',
         'status', 'resolution', 'reason', 'note',
         'created_by', 'resolved_by', 'resolved_at',
     ];
@@ -32,9 +32,9 @@ class BrokenStock extends Model
         return $this->belongsTo(Branch::class);
     }
 
-    public function product(): BelongsTo
+    public function detail(): MorphTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->morphTo();
     }
 
     public function warrantyCase(): BelongsTo

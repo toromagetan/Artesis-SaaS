@@ -3,10 +3,13 @@
 namespace Database\Factories;
 
 use App\Modules\Catalog\Models\Product;
-use App\Modules\Catalog\Models\ProductParent;
+use App\Modules\Catalog\Models\ProductCategory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
+ * Master produk (A1). Detail per tipe dibuat factory detail
+ * masing-masing; factory ini hanya membuat masternya.
+ *
  * @extends Factory<Product>
  */
 class ProductFactory extends Factory
@@ -16,38 +19,24 @@ class ProductFactory extends Factory
     public function definition(): array
     {
         return [
-            'sku' => 'SKU-'.fake()->unique()->numberBetween(1000, 99999),
-            'type' => 'frame',
+            'category_id' => fn () => self::categoryId('frame'),
             'name' => fake()->words(3, true),
             'brand' => fake()->company(),
-            'color' => fake()->safeColorName(),
-            'cost_price' => fake()->numberBetween(50_000, 900_000),
-            'sale_price' => fake()->numberBetween(100_000, 1_500_000),
             'is_active' => true,
         ];
     }
 
-    public function ofType(string $type): static
+    /** Master untuk kategori bertipe tertentu (frame/lens/rx/…). */
+    public function forType(string $type): static
     {
-        return $this->state(fn () => ['type' => $type]);
+        return $this->state(fn () => ['category_id' => self::categoryId($type)]);
     }
 
-    /** Varian di bawah induk yang serumpun (ADR-015). */
-    public function configure(): static
+    public static function categoryId(string $type): ?int
     {
-        return $this->afterCreating(function (Product $product) {
-            if ($product->parent_id === null) {
-                $parent = ProductParent::firstOrCreate(
-                    ['type' => $product->type, 'brand' => $product->brand, 'name' => $product->name],
-                    ['is_active' => true],
-                );
-                $product->update(['parent_id' => $parent->id]);
-            }
-        });
-    }
-
-    public function inactive(): static
-    {
-        return $this->state(fn () => ['is_active' => false]);
+        return ProductCategory::query()
+            ->where('type', $type)->where('is_active', true)
+            ->orderBy('sort_order')->orderBy('id')
+            ->value('id');
     }
 }

@@ -13,8 +13,8 @@
         <tbody>
             @foreach ($transfer->items as $item)
                 <tr>
-                    <td>{{ $item->product->name }}</td>
-                    <td>{{ $item->product->sku }}</td>
+                    <td>{{ $item->detail->product->name }}</td>
+                    <td>{{ $item->detail->sku }}</td>
                     <td>{{ $item->qty }}</td>
                 </tr>
             @endforeach

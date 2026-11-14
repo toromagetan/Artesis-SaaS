@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Security;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Supplier;
@@ -39,11 +39,11 @@ class PaymentStandaloneAccessTest extends TestCase
         $this->owner = User::where('username', 'owner')->firstOrFail();
         $branch = Branch::where('name', 'Pusat')->firstOrFail();
         $supplier = Supplier::create(['name' => 'PT Standalone Uji', 'is_active' => true]);
-        $frame = Product::factory()->ofType('frame')->create(['cost_price' => '100000']);
+        $frame = FrameDetail::factory()->create(['cost_price' => '100000']);
 
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $supplier->id, $branch->id, [
-            ['product_id' => $frame->id, 'qty' => 1, 'unit_cost' => '100000'],
+            ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 1, 'unit_cost' => '100000'],
         ]);
         $orders->markSent($this->owner, $po);
         app(ReceiptService::class)->store($this->owner, $po, [

@@ -43,7 +43,7 @@
                         @forelse ($movements as $movement)
                             <tr class="border-b border-gray-50 last:border-0">
                                 <td class="px-4 py-3">{{ $movement->created_at->format('d/m/Y H:i') }}</td>
-                                <td class="px-4 py-3 font-medium text-gray-800">{{ $movement->product->name }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ $movement->detail->product->name }}</td>
                                 <td class="px-4 py-3">{{ $movement->branch->name }}</td>
                                 <td class="px-4 py-3">{{ __('ui.stock.reasons.'.$movement->reason) }}</td>
                                 <td class="px-4 py-3 tnum font-medium {{ $movement->qty < 0 ? 'text-red-600' : 'text-lentera-700' }}">{{ $movement->qty > 0 ? '+' : '' }}{{ $movement->qty }}</td>

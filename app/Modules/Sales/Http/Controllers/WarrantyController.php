@@ -48,7 +48,7 @@ class WarrantyController extends Controller
         // Antrean stok rusak mengikuti pagar keterlihatan yang sama
         // dengan daftar kasus (audit 23 Okt 2026 A2): aktor non-global
         // hanya melihat baris cabangnya + gudang utama.
-        $brokenQuery = BrokenStock::with(['product', 'warrantyCase'])
+        $brokenQuery = BrokenStock::with(['detail.product', 'warrantyCase'])
             ->whereIn('status', ['pending_inspection', 'at_warehouse']);
         if (! $context->hasGlobalAccess()) {
             $brokenQuery->whereIn('branch_id', [
@@ -69,7 +69,7 @@ class WarrantyController extends Controller
         $sale = null;
         if ($request->filled('invoice')) {
             $context = BranchContext::for($request->user());
-            $sale = Sale::with(['items.product', 'customer'])
+            $sale = Sale::with(['items.detail', 'customer'])
                 ->where('number', $request->string('invoice'))
                 ->first();
             if ($sale !== null) {
@@ -117,13 +117,19 @@ class WarrantyController extends Controller
             ], true)) {
             abort(404);
         }
-        $warranty->load(['sale.customer', 'saleItem.product', 'branch', 'creator',
-            'replacement.product', 'replacement.purchaseOrder', 'brokenStocks', 'payments']);
+        $warranty->load(['sale.customer', 'saleItem.detail.product', 'branch', 'creator',
+            'replacement.replacementDetail.product', 'replacement.purchaseOrder', 'brokenStocks', 'payments']);
 
         return view('sales.warranty.show', [
             'case' => $warranty,
             'ready' => $this->warranty->replacementReady($warranty),
-            'products' => Product::where('is_active', true)->orderBy('name')->limit(300)->get(),
+            // A1: pilihan pengganti = DETAIL aktif (dibatasi 300 baris gabungan).
+            'products' => collect(Product::DETAIL_MODELS)
+                ->flatMap(fn ($model) => $model::with('product')->where('is_active', true)
+                    ->whereHas('product', fn ($q) => $q->where('is_active', true))->limit(100)->get())
+                ->sortBy(fn ($d) => $d->product?->name ?? '')
+                ->take(300)
+                ->values(),
             'suppliers' => Supplier::where('is_active', true)->orderBy('name')->get(),
             // Yang ditampilkan pada halaman kasus = gudang partisi
             // pemilik KASUS (bukan partisi aktor yang membuka).
@@ -173,11 +179,14 @@ class WarrantyController extends Controller
     {
         $validated = $request->validate([
             'source' => ['required', 'in:stock,purchase_order'],
-            'product_id' => ['required', 'integer', 'exists:products,id'],
+            'detail_key' => ['required', 'string'],
             'customer_charge' => ['required', 'numeric', 'min:0'],
         ]);
+        [$detailType, $detailId] = array_pad(explode(':', (string) $validated['detail_key'], 2), 2, null);
+        $detailClass = Product::DETAIL_MODELS[(string) $detailType] ?? null;
+        abort_if($detailClass === null, 422);
         $this->warranty->prepareReplacement($request->user(), $warranty, $validated['source'],
-            Product::findOrFail($validated['product_id']), (string) $validated['customer_charge']);
+            $detailClass::findOrFail((int) $detailId), (string) $validated['customer_charge']);
 
         return back()->with('status', __('ui.warranty.prepared'));
     }

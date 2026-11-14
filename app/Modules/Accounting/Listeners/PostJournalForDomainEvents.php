@@ -34,7 +34,7 @@ class PostJournalForDomainEvents
 
     public function onSaleCompleted(SaleCompleted $event): void
     {
-        $sale = $event->sale->loadMissing(['items.product', 'payments']);
+        $sale = $event->sale->loadMissing(['items.detail', 'payments']);
         $total = Money::fromDecimal((string) $sale->total_amount);
         $tax = Money::fromDecimal((string) $sale->tax_amount);
         $revenue = $total->sub($tax);
@@ -119,7 +119,7 @@ class PostJournalForDomainEvents
     public function onSaleReturned(SaleReturned $event): void
     {
         $return = $event->saleReturn;
-        $sale = Sale::withoutGlobalScopes()->with('items.product')->findOrFail($return->sale_id);
+        $sale = Sale::withoutGlobalScopes()->with('items.detail')->findOrFail($return->sale_id);
         $total = Money::fromDecimal((string) $return->total_amount);
 
         $lines = [];
@@ -237,15 +237,15 @@ class PostJournalForDomainEvents
     {
         $opname = $event->opname;
         $net = Money::zero();
-        foreach ($opname->items()->with(['movement', 'product'])->get() as $item) {
+        foreach ($opname->items()->with(['movement', 'detail'])->get() as $item) {
             if ($item->difference === 0) {
                 continue;
             }
             if ($item->movement !== null && $item->movement->total_cost !== null) {
                 $value = Money::fromDecimal((string) $item->movement->total_cost);
                 $net = $item->difference < 0 ? $net->sub($value) : $net->add($value);
-            } elseif ($item->product !== null) {
-                $net = $net->add(Money::fromDecimal((string) $item->product->cost_price)->mul($item->difference));
+            } elseif ($item->detail !== null) {
+                $net = $net->add(Money::fromDecimal((string) $item->detail->cost_price)->mul($item->difference));
             }
         }
         if ($net->isZero()) {

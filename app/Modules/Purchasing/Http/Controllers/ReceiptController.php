@@ -32,7 +32,7 @@ class ReceiptController extends Controller
         $this->assertVisible($receipt);
         $receipt->load([
             'purchaseOrder.supplier', 'purchaseOrder.branch', 'receiver',
-            'items.purchaseOrderItem.product', 'items.returnItems',
+            'items.purchaseOrderItem.detail.product', 'items.returnItems',
             'allocations.payment', 'returns.items',
         ]);
 
@@ -43,7 +43,7 @@ class ReceiptController extends Controller
     public function print(Receipt $receipt): View
     {
         $this->assertVisible($receipt);
-        $receipt->load(['purchaseOrder.supplier', 'purchaseOrder.branch', 'items.purchaseOrderItem.product', 'receiver']);
+        $receipt->load(['purchaseOrder.supplier', 'purchaseOrder.branch', 'items.purchaseOrderItem.detail.product', 'receiver']);
 
         return view('purchasing.receipts.print', [
             'receipt' => $receipt,
@@ -82,7 +82,7 @@ class ReceiptController extends Controller
     public function returnForm(Receipt $receipt): View
     {
         $this->assertVisible($receipt);
-        $receipt->load(['purchaseOrder.supplier', 'items.purchaseOrderItem.product', 'items.returnItems']);
+        $receipt->load(['purchaseOrder.supplier', 'items.purchaseOrderItem.detail.product', 'items.returnItems']);
 
         return view('purchasing.receipts.return', compact('receipt'));
     }

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Reporting;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\TenantContext;
@@ -56,7 +56,7 @@ class AnalyticsTest extends TestCase
         $this->travelTo(Carbon::parse('2026-10-15 12:00:00'));
         $supplierA = Supplier::create(['name' => 'PT Analitik A', 'is_active' => true]);
         $supplierB = Supplier::create(['name' => 'PT Analitik B', 'is_active' => true]);
-        $frame = Product::factory()->ofType('frame')->create([
+        $frame = FrameDetail::factory()->create([
             'sku' => 'AN-F1', 'cost_price' => '50000', 'sale_price' => '100000',
         ]);
         $orders = app(PurchaseOrderService::class);
@@ -66,7 +66,7 @@ class AnalyticsTest extends TestCase
         $receiptA1 = null;
         foreach ([['2026-09-01', '2026-09-06'], ['2026-09-01', '2026-09-11']] as [$sent, $received]) {
             $po = $orders->create($this->owner, $supplierA->id, $this->branch->id, [
-                ['product_id' => $frame->id, 'qty' => 10, 'unit_cost' => '50000'],
+                ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 10, 'unit_cost' => '50000'],
             ]);
             $orders->markSent($this->owner, $po);
             $po->forceFill(['order_date' => $sent])->save();
@@ -77,7 +77,7 @@ class AnalyticsTest extends TestCase
         }
         // Supplier B: satu PO — lead 2 hari, nilai 400.000.
         $poB = $orders->create($this->owner, $supplierB->id, $this->branch->id, [
-            ['product_id' => $frame->id, 'qty' => 5, 'unit_cost' => '80000'],
+            ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 5, 'unit_cost' => '80000'],
         ]);
         $orders->markSent($this->owner, $poB);
         $poB->forceFill(['order_date' => '2026-09-03'])->save();
@@ -96,11 +96,11 @@ class AnalyticsTest extends TestCase
         $sales->createSale($this->owner, [
             'customer_id' => $customer->id, 'sale_date' => '2026-09-15',
             'tax_mode' => 'exclusive', 'tax_rate' => '0', 'branch_id' => $this->branch->id,
-        ], [['product_id' => $frame->id, 'qty' => 3]], [['method' => 'cash', 'amount' => '300000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 3]], [['method' => 'cash', 'amount' => '300000']]);
         $sales->createSale($this->owner, [
             'customer_id' => $customer->id, 'sale_date' => '2026-10-02',
             'tax_mode' => 'exclusive', 'tax_rate' => '0', 'branch_id' => $this->branch->id,
-        ], [['product_id' => $frame->id, 'qty' => 2]], [['method' => 'cash', 'amount' => '200000']]);
+        ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 2]], [['method' => 'cash', 'amount' => '200000']]);
 
         $analytics = app(AnalyticsService::class);
         $suppliers = $analytics->supplierAnalytics([$this->branch->id], '2026-09-01', '2026-10-31');
@@ -145,14 +145,14 @@ class AnalyticsTest extends TestCase
 
         // Pengayaan visual: halaman analitik memuat grafik SVG
         // (tren cabang + doughnut kategori) dari data yang sama.
-        $frame = Product::factory()->ofType('frame')->create(['cost_price' => '50000', 'sale_price' => '100000']);
+        $frame = FrameDetail::factory()->create(['cost_price' => '50000', 'sale_price' => '100000']);
         app(InventoryService::class)
             ->recordMovement($this->owner, $frame, $this->branch, 'initial_stock', 5, 'test', 1);
         $customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
         app(SalesService::class)->createSale($this->owner, [
             'customer_id' => $customer->id, 'branch_id' => $this->branch->id,
             'sale_date' => '2026-09-15', 'tax_mode' => 'inclusive',
-        ], [['product_id' => $frame->id, 'qty' => 1, 'unit_price' => '100000']],
+        ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 1, 'unit_price' => '100000']],
             [['method' => 'cash', 'amount' => '100000']]);
         $page = $this->actingAs($this->owner)->get(route('reports.analytics', ['dari' => '2026-09-01', 'sampai' => '2026-10-31']));
         $page->assertOk();

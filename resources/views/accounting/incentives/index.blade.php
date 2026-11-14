@@ -94,10 +94,10 @@
                     </label>
                     <label class="text-sm">
                         <span class="mb-1 block text-gray-500">{{ __('ui.incentives.product') }}</span>
-                        <select name="product_id" class="rounded-md border-gray-300 text-sm">
+                        <select name="detail_key" class="rounded-md border-gray-300 text-sm">
                             <option value="">{{ __('ui.incentives.product_all') }}</option>
                             @foreach ($products as $p)
-                                <option value="{{ $p->id }}">{{ $p->sku }} — {{ $p->name }}</option>
+                                <option value="{{ $p::DETAIL_TYPE }}:{{ $p->id }}">{{ $p->sku }} — {{ $p->product?->name }}</option>
                             @endforeach
                         </select>
                     </label>
@@ -139,7 +139,7 @@
                             <tr class="border-b border-gray-50 last:border-0">
                                 <td class="px-4 py-3 font-medium">{{ $rule->name }}</td>
                                 <td class="px-4 py-3">{{ $rule->recipient_role }}</td>
-                                <td class="px-4 py-3">{{ $rule->product?->sku ?? __('ui.incentives.product_all') }}</td>
+                                <td class="px-4 py-3">{{ $rule->detail?->sku ?? __('ui.incentives.product_all') }}</td>
                                 <td class="px-4 py-3">{{ $rule->calculation_type === 'percent' ? $rule->value.'%' : \App\Support\Money::fromDecimal((string) $rule->value)->format() }}</td>
                                 <td class="px-4 py-3 tnum">{{ $rule->effective_from->format('d/m/Y') }}{{ $rule->effective_to ? ' – '.$rule->effective_to->format('d/m/Y') : '' }}</td>
                                 <td class="px-4 py-3">

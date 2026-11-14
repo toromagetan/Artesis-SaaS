@@ -29,7 +29,8 @@ class OfflineSyncController extends Controller
             'intents.*.customer_id' => ['required', 'integer'],
             'intents.*.tax_mode' => ['nullable', 'in:exclusive,inclusive,separate'],
             'intents.*.items' => ['required', 'array', 'min:1'],
-            'intents.*.items.*.product_id' => ['required', 'integer'],
+            'intents.*.items.*.detail_type' => ['required', 'string', 'in:frame,lens,rx,softlens,accessory'],
+            'intents.*.items.*.detail_id' => ['required', 'integer'],
             'intents.*.items.*.qty' => ['required', 'integer', 'min:1'],
             'intents.*.items.*.unit_price' => ['nullable'],
             'intents.*.items.*.discount' => ['nullable'],
@@ -54,13 +55,28 @@ class OfflineSyncController extends Controller
         /** @var OfflineDevice $device */
         $device = $request->attributes->get('offline_device');
         $balances = app(InventoryService::class)->balancesForBranch($device->branch_id);
-        $products = Product::where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'sku', 'name', 'type', 'sale_price'])
-            ->map(fn ($p) => [
-                'id' => $p->id, 'sku' => $p->sku, 'name' => $p->name, 'type' => $p->type,
-                'sale_price' => (string) $p->sale_price, 'stock' => $balances[$p->id] ?? 0,
-            ]);
+        // A1: snapshot berisi DETAIL aktif (unit jual); kunci klien
+        // adalah "alias:id" karena id hanya unik per tabel detail.
+        $products = collect();
+        foreach (Product::DETAIL_MODELS as $model) {
+            $found = $model::with('product')
+                ->where('is_active', true)
+                ->whereHas('product', fn ($p) => $p->where('is_active', true))
+                ->get()
+                ->map(fn ($d) => [
+                    'key' => $d::DETAIL_TYPE.':'.$d->id,
+                    'detail_type' => $d::DETAIL_TYPE,
+                    'detail_id' => $d->id,
+                    'sku' => $d->sku,
+                    'name' => $d->product?->name,
+                    'detail_label' => $d->detailLabel(),
+                    'type' => $d::DETAIL_TYPE,
+                    'sale_price' => (string) $d->sale_price,
+                    'stock' => $balances[$d::DETAIL_TYPE.':'.$d->id] ?? 0,
+                ]);
+            $products = $products->concat($found);
+        }
+        $products = $products->sortBy(fn ($p) => [$p['name'] ?? '', $p['sku']])->values();
         $customers = Customer::orderBy('name')
             ->limit(2000)->get(['id', 'name', 'phone'])
             ->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'phone' => $c->phone]);

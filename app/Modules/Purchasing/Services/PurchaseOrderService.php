@@ -25,7 +25,7 @@ class PurchaseOrderService
     /**
      * Buat PO manual (langsung, tanpa PR).
      *
-     * @param  array<int, array{product_id: int, qty: int, unit_cost: string}>  $lines
+     * @param  array<int, array{detail_type: string, detail_id: int, qty: int, unit_cost: string}>  $lines
      */
     public function create(User $actor, int $supplierId, int $branchId, array $lines, ?string $orderDate = null): PurchaseOrder
     {
@@ -38,7 +38,7 @@ class PurchaseOrderService
      * Inti pembuatan PO (dipakai create() dan konversi PR — pemanggil
      * bertanggung jawab atas transaksi luarnya).
      *
-     * @param  array<int, array{product_id: int, qty: int, unit_cost: string|null}>  $lines
+     * @param  array<int, array{detail_type: string, detail_id: int, qty: int, unit_cost: string|null}>  $lines
      */
     public function createFromLines(User $actor, int $supplierId, int $branchId, array $lines, ?string $orderDate = null): PurchaseOrder
     {
@@ -64,7 +64,8 @@ class PurchaseOrderService
             $lineTotal = $unitCost->mul($qty);
             $total = $total->add($lineTotal);
             $prepared[] = [
-                'product_id' => (int) $line['product_id'],
+                'detail_type' => (string) $line['detail_type'],
+                'detail_id' => (int) $line['detail_id'],
                 'qty_ordered' => $qty,
                 'qty_received' => 0,
                 'unit_cost' => $unitCost->toDecimalString(),

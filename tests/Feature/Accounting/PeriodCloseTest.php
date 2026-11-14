@@ -5,7 +5,7 @@ namespace Tests\Feature\Accounting;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Journal;
 use App\Modules\Accounting\Services\PostingService;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Permission;
 use App\Modules\Identity\Models\Role;
@@ -108,12 +108,12 @@ class PeriodCloseTest extends TestCase
 
         // (1) PENJUALAN: penjualan bertanggal 2026-08-15 harus gagal total.
         $customer = Customer::factory()->create(['branch_id' => $this->branch->id]);
-        $frame = Product::factory()->ofType('frame')->create(['sale_price' => '500000']);
+        $frame = FrameDetail::factory()->create(['sale_price' => '500000']);
         app(InventoryService::class)->recordMovement($this->owner, $frame, $this->branch, 'initial_stock', 5, 'test_seed', 1);
         try {
             app(SalesService::class)->createSale($this->owner, [
                 'customer_id' => $customer->id, 'sale_date' => '2026-08-15', 'tax_mode' => 'exclusive',
-            ], [['product_id' => $frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '555000']]);
+            ], [['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 1]], [['method' => 'cash', 'amount' => '555000']]);
             $this->fail('Penjualan ke periode terkunci harus ditolak.');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('period', $e->errors());
@@ -124,7 +124,7 @@ class PeriodCloseTest extends TestCase
         $supplier = Supplier::create(['name' => 'PT Uji F15', 'is_active' => true]);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($this->owner, $supplier->id, $this->branch->id, [
-            ['product_id' => $frame->id, 'qty' => 3, 'unit_cost' => '400000'],
+            ['detail_type' => 'frame', 'detail_id' => $frame->id, 'qty' => 3, 'unit_cost' => '400000'],
         ]);
         $orders->markSent($this->owner, $po);
         $item = $po->items->first();
@@ -137,7 +137,7 @@ class PeriodCloseTest extends TestCase
             $this->assertArrayHasKey('period', $e->errors());
         }
         $this->assertSame(0, $item->refresh()->qty_received);
-        $this->assertSame(5, app(InventoryService::class)->currentStock($frame->id, $this->branch->id));
+        $this->assertSame(5, app(InventoryService::class)->currentStock('frame', $frame->id, $this->branch->id));
 
         // (3) JURNAL MANUAL lewat HTTP.
         $kas = Account::where('code', '1-1100')->firstOrFail();

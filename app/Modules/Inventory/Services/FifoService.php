@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Services;
 
+use App\Modules\Catalog\Models\Product;
 use App\Modules\Inventory\Models\StockLayer;
 use App\Modules\Inventory\Models\StockLayerConsumption;
 use App\Modules\Inventory\Models\StockMovement;
@@ -62,7 +63,7 @@ class FifoService
     private function applyPlainInbound(StockMovement $movement, array $context): void
     {
         $unit = $context['inboundUnitCost']
-            ?? (string) $movement->product->cost_price;
+            ?? (string) $movement->detail->cost_price;
         $layer = $this->createLayer(
             $movement, (int) $movement->qty, $unit, $context['receiptItemId'] ?? null,
         );
@@ -77,7 +78,8 @@ class FifoService
             ->where('reference_type', $movement->reference_type)
             ->where('reference_id', $movement->reference_id)
             ->where('reason', 'sale')
-            ->where('product_id', $movement->product_id)
+            ->where('detail_id', $movement->detail_id)
+            ->where('detail_type', $movement->detail_type)
             ->where('branch_id', $movement->branch_id)
             ->where('id', '<', $movement->id)
             ->whereHas('consumptions')
@@ -101,7 +103,8 @@ class FifoService
                 ->where('reference_type', $movement->reference_type)
                 ->where('reference_id', $movement->reference_id)
                 ->where('reason', 'transfer_out')
-                ->where('product_id', $movement->product_id)
+                ->where('detail_id', $movement->detail_id)
+                ->where('detail_type', $movement->detail_type)
                 ->where('id', '<', $movement->id)
                 ->orderBy('id')
                 ->first();
@@ -124,7 +127,7 @@ class FifoService
         }
         $remaining = (int) $movement->qty - $coveredQty;
         if ($remaining > 0) {
-            $unit = $mirror->unit_cost !== null ? (string) $mirror->unit_cost : (string) $movement->product->cost_price;
+            $unit = $mirror->unit_cost !== null ? (string) $mirror->unit_cost : (string) $movement->detail->cost_price;
             $this->createLayer($movement, $remaining, $unit, null);
             $total = $total->add(Money::fromDecimal($unit)->mul($remaining));
         }
@@ -137,7 +140,8 @@ class FifoService
     public function createLayer(StockMovement $source, int $qty, string $unitCost, ?int $receiptItemId = null, bool $isOpening = false): StockLayer
     {
         return StockLayer::create([
-            'product_id' => $source->product_id,
+            'detail_id' => $source->detail_id,
+            'detail_type' => $source->detail_type,
             'branch_id' => $source->branch_id,
             'receipt_item_id' => $receiptItemId,
             'source_movement_id' => $source->id,
@@ -156,7 +160,8 @@ class FifoService
      */
     public function consume(StockMovement $movement, int $qty, ?int $preferReceiptItemId = null): Money
     {
-        $layers = StockLayer::where('product_id', $movement->product_id)
+        $layers = StockLayer::where('detail_id', $movement->detail_id)
+            ->where('detail_type', $movement->detail_type)
             ->where('branch_id', $movement->branch_id)
             ->where('qty_remaining', '>', 0)
             ->when($preferReceiptItemId !== null, function ($q) use ($preferReceiptItemId) {
@@ -210,11 +215,12 @@ class FifoService
     }
 
     /** Qty lapisan yang masih layak jual (belum kedaluwarsa) satu produk-cabang (F4.3). */
-    public function sellableQty(int $productId, int $branchId): int
+    public function sellableQty(string $detailType, int $detailId, int $branchId): int
     {
         return (int) DB::table('stock_layers as l')
             ->leftJoin('receipt_items as ri', 'ri.id', '=', 'l.receipt_item_id')
-            ->where('l.product_id', $productId)
+            ->where('l.detail_type', $detailType)
+            ->where('l.detail_id', $detailId)
             ->where('l.branch_id', $branchId)
             ->where('l.qty_remaining', '>', 0)
             ->where(function ($q) {
@@ -225,11 +231,12 @@ class FifoService
     }
 
     /** Qty lapisan yang SUDAH kedaluwarsa satu produk-cabang (F4.3). */
-    public function expiredQty(int $productId, int $branchId): int
+    public function expiredQty(string $detailType, int $detailId, int $branchId): int
     {
         return (int) DB::table('stock_layers as l')
             ->join('receipt_items as ri', 'ri.id', '=', 'l.receipt_item_id')
-            ->where('l.product_id', $productId)
+            ->where('l.detail_type', $detailType)
+            ->where('l.detail_id', $detailId)
             ->where('l.branch_id', $branchId)
             ->where('l.qty_remaining', '>', 0)
             ->where('ri.expiry_date', '<', now()->toDateString())
@@ -239,7 +246,8 @@ class FifoService
     /**
      * Lapisan yang kedaluwarsa atau akan kedaluwarsa dalam
      * $withinDays hari (termasuk yang sudah lewat), untuk
-     * peringatan dashboard & daftar (PRD 4.4, F4.3).
+     * peringatan dashboard & daftar (PRD 4.4, F4.3). Nama & SKU
+     * dihidrasi dari model detail per tipe (A1: lapisan bermorph).
      *
      * @param  int[]  $branchIds
      * @return array<int, array<string, mixed>>
@@ -252,55 +260,72 @@ class FifoService
         $today = now()->toDateString();
         $limit = now()->addDays($withinDays)->toDateString();
 
-        return DB::table('stock_layers as l')
+        $rows = DB::table('stock_layers as l')
             ->join('receipt_items as ri', 'ri.id', '=', 'l.receipt_item_id')
-            ->join('products as p', 'p.id', '=', 'l.product_id')
             ->join('branches as b', 'b.id', '=', 'l.branch_id')
             ->whereIn('l.branch_id', $branchIds)
             ->where('l.qty_remaining', '>', 0)
             ->where('ri.expiry_date', '<=', $limit)
             ->orderBy('ri.expiry_date')
-            ->get(['l.product_id', 'p.name as product_name', 'p.sku', 'l.branch_id', 'b.name as branch_name', 'ri.expiry_date', 'l.qty_remaining'])
-            ->map(fn ($row) => [
-                'product_id' => (int) $row->product_id,
-                'product_name' => $row->product_name,
-                'sku' => $row->sku,
+            ->get(['l.detail_id', 'l.detail_type', 'l.branch_id', 'b.name as branch_name', 'ri.expiry_date', 'l.qty_remaining']);
+
+        $details = [];
+        foreach ($rows->groupBy('detail_type') as $type => $group) {
+            $model = Product::DETAIL_MODELS[$type] ?? null;
+            if ($model === null) {
+                continue;
+            }
+            foreach ($model::with('product')->whereIn('id', $group->pluck('detail_id')->unique()->all())->get() as $detail) {
+                $details[$type.':'.$detail->id] = $detail;
+            }
+        }
+
+        return $rows->map(function ($row) use ($details, $today) {
+            $detail = $details[$row->detail_type.':'.$row->detail_id] ?? null;
+
+            return [
+                'detail_id' => (int) $row->detail_id,
+                'detail_type' => (string) $row->detail_type,
+                'product_name' => $detail?->product?->name ?? '',
+                'sku' => $detail?->sku ?? '',
                 'branch_id' => (int) $row->branch_id,
                 'branch_name' => $row->branch_name,
                 'expiry_date' => (string) $row->expiry_date,
                 'qty' => (int) $row->qty_remaining,
                 'expired' => (string) $row->expiry_date < $today,
-            ])->all();
+            ];
+        })->all();
     }
 
     /**
-     * Tanggal kedaluwarsa terdekat per produk (lapisan bersisa),
+     * Tanggal kedaluwarsa terdekat per detail (lapisan bersisa),
      * untuk kolom daftar softlens (PRD 4.4).
      *
-     * @param  int[]  $productIds
+     * @param  int[]  $detailIds
      * @param  int[]  $branchIds
      * @return array<int, array{date: string, expired: bool, soon: bool}>
      */
-    public function nearestExpiries(array $productIds, array $branchIds): array
+    public function nearestExpiries(string $detailType, array $detailIds, array $branchIds): array
     {
-        if ($productIds === [] || $branchIds === []) {
+        if ($detailIds === [] || $branchIds === []) {
             return [];
         }
         $today = now()->toDateString();
         $soonLimit = now()->addDays(90)->toDateString();
         $rows = DB::table('stock_layers as l')
             ->join('receipt_items as ri', 'ri.id', '=', 'l.receipt_item_id')
-            ->whereIn('l.product_id', $productIds)
+            ->where('l.detail_type', $detailType)
+            ->whereIn('l.detail_id', $detailIds)
             ->whereIn('l.branch_id', $branchIds)
             ->where('l.qty_remaining', '>', 0)
             ->whereNotNull('ri.expiry_date')
-            ->groupBy('l.product_id')
-            ->selectRaw('l.product_id, MIN(ri.expiry_date) as nearest')
+            ->groupBy('l.detail_id')
+            ->selectRaw('l.detail_id, MIN(ri.expiry_date) as nearest')
             ->get();
         $map = [];
         foreach ($rows as $row) {
             $date = (string) $row->nearest;
-            $map[(int) $row->product_id] = [
+            $map[(int) $row->detail_id] = [
                 'date' => $date,
                 'expired' => $date < $today,
                 'soon' => $date >= $today && $date <= $soonLimit,
@@ -341,7 +366,8 @@ class FifoService
             return $total;
         }
         $candidates = StockMovement::withoutGlobalScopes()
-            ->where('product_id', $layer->product_id)
+            ->where('detail_id', $layer->detail_id)
+            ->where('detail_type', $layer->detail_type)
             ->where('branch_id', $layer->branch_id)
             ->where('qty', '<', 0)
             ->where('id', '<', $layer->source_movement_id)
@@ -401,10 +427,11 @@ class FifoService
     }
 
     /** Nilai persediaan FIFO satu produk-cabang = Σ lapisan tersisa. */
-    public function inventoryValue(int $productId, int $branchId): Money
+    public function inventoryValue(string $detailType, int $detailId, int $branchId): Money
     {
         $value = DB::table('stock_layers')
-            ->where('product_id', $productId)
+            ->where('detail_type', $detailType)
+            ->where('detail_id', $detailId)
             ->where('branch_id', $branchId)
             ->selectRaw('SUM(qty_remaining * unit_cost) as value')
             ->value('value');
@@ -425,12 +452,12 @@ class FifoService
         }
         $rows = DB::table('stock_layers')
             ->whereIn('branch_id', $branchIds)
-            ->groupBy('branch_id', 'product_id')
-            ->selectRaw('branch_id, product_id, SUM(qty_remaining * unit_cost) as value')
+            ->groupBy('branch_id', 'detail_type', 'detail_id')
+            ->selectRaw('branch_id, detail_type, detail_id, SUM(qty_remaining * unit_cost) as value')
             ->get();
         $map = [];
         foreach ($rows as $row) {
-            $map[$row->branch_id.':'.$row->product_id] = Money::fromDecimal((string) ($row->value ?? '0'));
+            $map[$row->branch_id.':'.$row->detail_type.':'.$row->detail_id] = Money::fromDecimal((string) ($row->value ?? '0'));
         }
 
         return $map;
@@ -440,14 +467,15 @@ class FifoService
      * Harga satuan rata-rata tertimbang konsumsi gerakan penjualan
      * satu produk (untuk lapisan retur penjualan pada biaya asal).
      */
-    public function saleMovementUnitCost(int $saleId, int $productId): ?string
+    public function saleMovementUnitCost(int $saleId, string $detailType, int $detailId): ?string
     {
         $row = DB::table('stock_layer_consumptions as c')
             ->join('stock_movements as m', 'm.id', '=', 'c.movement_id')
             ->where('m.reference_type', 'sale')
             ->where('m.reference_id', $saleId)
             ->where('m.reason', 'sale')
-            ->where('m.product_id', $productId)
+            ->where('m.detail_type', $detailType)
+            ->where('m.detail_id', $detailId)
             ->selectRaw('SUM(c.qty) as qty, SUM(c.qty * c.unit_cost) as value')
             ->first();
         if ($row === null || (int) ($row->qty ?? 0) <= 0) {
@@ -493,15 +521,15 @@ class FifoService
 
         $receiptQueues = [];
         $returnQueues = [];
-        $movements = StockMovement::withoutGlobalScopes()->with('product')->orderBy('id')->get();
+        $movements = StockMovement::withoutGlobalScopes()->with('detail')->orderBy('id')->get();
         foreach ($movements as $movement) {
             $context = [];
             if ($movement->reason === 'receipt') {
-                $key = $movement->reference_id.':'.$movement->product_id;
+                $key = $movement->reference_id.':'.$movement->detail_type.':'.$movement->detail_id;
                 if (! isset($receiptQueues[$key])) {
                     $receiptQueues[$key] = ReceiptItem::query()
                         ->whereHas('receipt', fn ($q) => $q->where('id', $movement->reference_id))
-                        ->whereHas('purchaseOrderItem', fn ($q) => $q->where('product_id', $movement->product_id))
+                        ->whereHas('purchaseOrderItem', fn ($q) => $q->where('detail_id', $movement->detail_id)->where('detail_type', $movement->detail_type))
                         ->orderBy('id')->get()->all();
                 }
                 $item = array_shift($receiptQueues[$key]);
@@ -509,11 +537,11 @@ class FifoService
                     $context = ['inboundUnitCost' => (string) $item->unit_cost_actual, 'receiptItemId' => $item->id];
                 }
             } elseif ($movement->reason === 'purchase_return') {
-                $key = $movement->reference_id.':'.$movement->product_id;
+                $key = $movement->reference_id.':'.$movement->detail_type.':'.$movement->detail_id;
                 if (! isset($returnQueues[$key])) {
                     $returnQueues[$key] = PurchaseReturnItem::query()
                         ->where('purchase_return_id', $movement->reference_id)
-                        ->whereHas('receiptItem.purchaseOrderItem', fn ($q) => $q->where('product_id', $movement->product_id))
+                        ->whereHas('receiptItem.purchaseOrderItem', fn ($q) => $q->where('detail_id', $movement->detail_id)->where('detail_type', $movement->detail_type))
                         ->orderBy('id')->get()->all();
                 }
                 $item = array_shift($returnQueues[$key]);
@@ -523,7 +551,7 @@ class FifoService
             } elseif ($movement->reason === 'sale_return') {
                 $return = DB::table('sale_returns')->where('id', $movement->reference_id)->first();
                 if ($return !== null) {
-                    $unit = $this->saleMovementUnitCost((int) $return->sale_id, (int) $movement->product_id);
+                    $unit = $this->saleMovementUnitCost((int) $return->sale_id, (string) $movement->detail_type, (int) $movement->detail_id);
                     if ($unit !== null) {
                         $context = ['inboundUnitCost' => $unit];
                     }

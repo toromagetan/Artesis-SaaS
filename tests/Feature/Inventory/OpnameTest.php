@@ -3,7 +3,8 @@
 namespace Tests\Feature\Inventory;
 
 use App\Modules\Accounting\Models\Journal;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\FrameDetail;
+use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
@@ -37,9 +38,9 @@ class OpnameTest extends TestCase
 
     private Branch $branch;
 
-    private Product $frame;
+    private FrameDetail $frame;
 
-    private Product $lens;
+    private LensDetail $lens;
 
     protected function setUp(): void
     {
@@ -52,11 +53,11 @@ class OpnameTest extends TestCase
         $this->gudang = $this->userWithRole('Gudang');
         $this->kasir = $this->userWithRole('Kasir');
 
-        $this->frame = Product::factory()->ofType('frame')->create([
+        $this->frame = FrameDetail::factory()->create([
             'sku' => 'FR-OPN-1', 'cost_price' => '50000',
         ]);
-        $this->lens = Product::factory()->ofType('lens')->create([
-            'sku' => 'LN-OPN-1', 'cost_price' => '10000',
+        $this->lens = LensDetail::factory()->create([
+            'sku' => 'LN-OPN-1', 'cost_price' => '10000', 'sph' => null,
         ]);
 
         $inventory = app(InventoryService::class);
@@ -81,12 +82,12 @@ class OpnameTest extends TestCase
 
         $opname = $service->startCounting($this->gudang, $opname);
         $this->assertSame('counting', $opname->status);
-        $items = $opname->items()->get()->keyBy('product_id');
-        $this->assertSame(10, $items[$this->frame->id]->system_qty);
-        $this->assertSame(5, $items[$this->lens->id]->system_qty);
+        $items = $opname->items()->get()->keyBy(fn ($i) => $i->detail_type.':'.$i->detail_id);
+        $this->assertSame(10, $items['frame:'.$this->frame->id]->system_qty);
+        $this->assertSame(5, $items['lens:'.$this->lens->id]->system_qty);
 
         // Review ditolak selama ada baris belum terhitung.
-        $service->saveCounts($this->gudang, $opname, [$items[$this->frame->id]->id => 8]);
+        $service->saveCounts($this->gudang, $opname, [$items['frame:'.$this->frame->id]->id => 8]);
         try {
             $service->submitReview($this->gudang, $opname);
             $this->fail('Review seharusnya ditolak: satu baris belum terhitung.');
@@ -94,7 +95,7 @@ class OpnameTest extends TestCase
             $this->addToAssertionCount(1);
         }
 
-        $service->saveCounts($this->gudang, $opname, [$items[$this->lens->id]->id => 7]);
+        $service->saveCounts($this->gudang, $opname, [$items['lens:'.$this->lens->id]->id => 7]);
         $opname = $service->submitReview($this->gudang, $opname);
         $this->assertSame('review', $opname->status);
 
@@ -106,14 +107,14 @@ class OpnameTest extends TestCase
             ->where('reason', 'opname')
             ->where('reference_type', 'stock_opname')
             ->where('reference_id', $opname->id)
-            ->get()->keyBy('product_id');
+            ->get()->keyBy(fn ($m) => $m->detail_type.':'.$m->detail_id);
         $this->assertCount(2, $movements);
-        $this->assertSame(-2, $movements[$this->frame->id]->qty);
-        $this->assertSame(2, $movements[$this->lens->id]->qty);
+        $this->assertSame(-2, $movements['frame:'.$this->frame->id]->qty);
+        $this->assertSame(2, $movements['lens:'.$this->lens->id]->qty);
 
         $inventory = app(InventoryService::class);
-        $this->assertSame(8, $inventory->currentStock($this->frame->id, $this->branch->id));
-        $this->assertSame(7, $inventory->currentStock($this->lens->id, $this->branch->id));
+        $this->assertSame(8, $inventory->currentStock('frame', $this->frame->id, $this->branch->id));
+        $this->assertSame(7, $inventory->currentStock('lens', $this->lens->id, $this->branch->id));
 
         // Neto: −2 × 50.000 + 2 × 10.000 = −80.000 →
         // Dr Beban Selisih Opname 80.000 / Cr Persediaan 80.000.

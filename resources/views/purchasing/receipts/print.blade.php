@@ -26,7 +26,7 @@
             @foreach ($receipt->items as $item)
                 @php $line = $item->qty * (float) $item->unit_cost_actual; $total += $line; @endphp
                 <tr>
-                    <td>{{ $item->purchaseOrderItem->product->name }}</td>
+                    <td>{{ $item->purchaseOrderItem->detail->product->name }}</td>
                     <td>{{ $item->purchaseOrderItem->qty }}</td>
                     <td>{{ $item->qty }}</td>
                     <td>{{ \App\Support\Money::fromDecimal((string) $item->unit_cost_actual)->format() }}</td>

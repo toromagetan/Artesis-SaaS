@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Concurrency;
 
+use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\Role;
@@ -20,6 +21,7 @@ use App\Modules\Sales\Services\OfflineDeviceService;
 use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\SaasSeeder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Tests\Concurrency\ConcurrencyDatabase;
@@ -155,17 +157,15 @@ class OfflineSyncRaceTest extends TestCase
         return $issued['device']->id;
     }
 
-    private function stockedProduct(User $admin, Tenant $tenant, Branch $branch, string $tag): Product
+    private function stockedProduct(User $admin, Tenant $tenant, Branch $branch, string $tag): Model
     {
-        $product = Product::factory()->ofType('frame')->create([
-            'sku' => 'FR-'.$tag, 'name' => 'Frame '.$tag,
+        $product = FrameDetail::factory()->create(['product_id' => Product::factory()->forType('frame')->create(['name' => 'Frame '.$tag, 'tenant_id' => $tenant->id])->id, 'sku' => 'FR-'.$tag,
             'cost_price' => '50000', 'sale_price' => '100000',
-            'tenant_id' => $tenant->id,
-        ]);
+            'tenant_id' => $tenant->id, ]);
         $supplier = Supplier::create(['name' => 'Supplier '.$tag, 'is_active' => true, 'tenant_id' => $tenant->id]);
         $orders = app(PurchaseOrderService::class);
         $po = $orders->create($admin, $supplier->id, $branch->id, [
-            ['product_id' => $product->id, 'qty' => 10, 'unit_cost' => '50000'],
+            ['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 10, 'unit_cost' => '50000'],
         ]);
         $orders->markSent($admin, $po);
         app(ReceiptService::class)->store($admin, $po, [
@@ -175,11 +175,11 @@ class OfflineSyncRaceTest extends TestCase
         return $product;
     }
 
-    private function intent(string $uuid, Customer $customer, Product $product): array
+    private function intent(string $uuid, Customer $customer, Model $product): array
     {
         return ['client_uuid' => $uuid, 'local_no' => '001', 'offline_at' => '2026-11-11 09:00:00',
             'customer_id' => $customer->id, 'tax_mode' => 'exclusive',
-            'items' => [['product_id' => $product->id, 'qty' => 1]],
+            'items' => [['detail_type' => 'frame', 'detail_id' => $product->id, 'qty' => 1]],
             'payments' => [['method' => 'cash', 'amount' => '100000']]];
     }
 
