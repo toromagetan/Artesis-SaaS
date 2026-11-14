@@ -44,7 +44,7 @@
                                 <td class="px-4 py-3 text-right">
                                     @if ($role->isEditableBy(auth()->user()))
                                         <x-lentera.aksi-baris>
-                                            <x-lentera.menu-item :href="route('roles.edit', $role)" sm>{{ __('ui.roles.edit') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('roles.edit', $role)" sm icon="pencil" :title="__('ui.roles.edit')"><span class="sr-only">{{ __('ui.roles.edit') }}</span></x-lentera.menu-item>
                                         </x-lentera.aksi-baris>
                                     @endif
                                 </td>

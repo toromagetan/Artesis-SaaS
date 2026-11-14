@@ -37,7 +37,7 @@
                                 <td class="px-4 py-3">{{ $customer->branch?->name }}</td>
                                 <td class="px-4 py-3 text-right">
                                     <x-lentera.aksi-bar>
-                                        <x-lentera.menu-item :href="route('prescriptions.create', $customer)" primary sm>{{ __('ui.prescriptions.create') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('prescriptions.create', $customer)" primary sm icon="plus" :title="__('ui.prescriptions.create')"><span class="sr-only">{{ __('ui.prescriptions.create') }}</span></x-lentera.menu-item>
                                     </x-lentera.aksi-bar>
                                 </td>
                             </tr>

@@ -4,7 +4,7 @@
             <h1 class="text-xl font-bold text-lentera-950">{{ $tenant->name }}</h1>
             <form method="POST" action="{{ route('platform.tenants.toggle', $tenant) }}">
                 @csrf
-                <button type="submit" class="rounded-lg px-4 py-2 text-sm font-semibold ring-1 {{ $tenant->is_active ? 'bg-white text-danger ring-red-200 hover:bg-red-50' : 'bg-lentera-800 text-white ring-lentera-800 hover:bg-lentera-700' }}">{{ $tenant->is_active ? __('ui.deactivate') : __('ui.activate') }}</button>
+                <button type="submit" class="rounded-lg px-4 py-2 text-sm font-semibold ring-1 {{ $tenant->is_active ? 'bg-white text-danger ring-red-200 hover:bg-red-50' : 'bg-lentera-800 text-white ring-lentera-800 hover:bg-lentera-700' }}" title="{{ $tenant->is_active ? __('ui.deactivate') : __('ui.activate') }}" aria-label="{{ $tenant->is_active ? __('ui.deactivate') : __('ui.activate') }}"><svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v8" /><path stroke-linecap="round" stroke-linejoin="round" d="M6.34 6.34a8 8 0 1011.32 0" /></svg><span class="sr-only">{{ $tenant->is_active ? __('ui.deactivate') : __('ui.activate') }}</span></button>
             </form>
         </div>
     </x-slot>
