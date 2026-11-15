@@ -18,8 +18,10 @@
                 <a href="{{ route('journals.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 <div class="flex items-center gap-2">
                 <x-lentera.aksi-bar>
-                    <x-lentera.menu-item :href="route('journals.print', $journal)" target="_blank" print>{{ __('ui.print') }}</x-lentera.menu-item>
-                    <x-lentera.menu-item :href="route('journals.download', $journal)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
+                    <x-lentera.cetak-dropdown :label="__('ui.print_doc.journal')">
+                        <x-lentera.cetak-item :href="route('journals.print', $journal)" target="_blank">{{ __('ui.print_a5') }}</x-lentera.cetak-item>
+                        <x-lentera.cetak-item :href="route('journals.download', $journal)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.cetak-item>
+                    </x-lentera.cetak-dropdown>
                 </x-lentera.aksi-bar>
                 @if ($reversal === null && $journal->source_type !== 'reversal')
                     @can('journals.reverse')

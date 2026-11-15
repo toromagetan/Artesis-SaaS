@@ -26,7 +26,7 @@ class GeneralSettingsController extends Controller
     /** @var list<string> */
     private const KEYS = [
         'store.name', 'store.address', 'store.phone', 'store.logo_path',
-        'tax.rate_default', 'tax.mode',
+        'tax.enabled', 'tax.rate_default', 'tax.mode',
         'sales.discount_threshold_percent', 'lab.technician_commission_rate',
     ];
 
@@ -38,6 +38,7 @@ class GeneralSettingsController extends Controller
         }
         $values['store.name'] = $values['store.name'] !== '' ? $values['store.name'] : 'Artesis';
         $values['tax.mode'] = $values['tax.mode'] !== '' ? $values['tax.mode'] : 'exclusive';
+        $values['tax.enabled'] = $values['tax.enabled'] !== '' ? $values['tax.enabled'] : '1';
 
         return view('settings.general', ['values' => $values]);
     }
@@ -48,6 +49,7 @@ class GeneralSettingsController extends Controller
             'store_name' => ['required', 'string', 'max:120'],
             'store_address' => ['nullable', 'string', 'max:300'],
             'store_phone' => ['nullable', 'string', 'max:30'],
+            'tax_enabled' => ['sometimes', Rule::in(['0', '1'])],
             'tax_rate_default' => ['required', 'numeric', 'min:0', 'max:100'],
             'tax_mode' => ['required', Rule::in(['inclusive', 'exclusive'])],
             'discount_threshold' => ['required', 'numeric', 'min:0', 'max:100'],
@@ -65,6 +67,12 @@ class GeneralSettingsController extends Controller
             'sales.discount_threshold_percent' => (string) $validated['discount_threshold'],
             'lab.technician_commission_rate' => (string) $validated['technician_commission_rate'],
         ];
+        // Saklar PPN: formulir pengaturan selalu mengirimnya; bila
+        // field tidak dikirim (pemanggil lama), nilai tersimpan
+        // tidak diubah.
+        if (array_key_exists('tax_enabled', $validated)) {
+            $map['tax.enabled'] = $validated['tax_enabled'];
+        }
         foreach ($map as $key => $value) {
             Setting::set($key, $value);
         }

@@ -26,7 +26,9 @@
         <tfoot>
             <tr><td colspan="4" style="text-align:right;">{{ __('ui.sales.subtotal') }}</td><td>{{ \App\Support\Money::fromDecimal((string) $sale->subtotal_amount)->format() }}</td></tr>
             <tr><td colspan="4" style="text-align:right;">{{ __('ui.sales.discount') }}</td><td>−{{ \App\Support\Money::fromDecimal((string) $sale->discount_amount)->format() }}</td></tr>
+            @if ((float) $sale->tax_amount > 0)
             <tr><td colspan="4" style="text-align:right;">{{ __('ui.sales.tax') }}</td><td>{{ \App\Support\Money::fromDecimal((string) $sale->tax_amount)->format() }}</td></tr>
+            @endif
             <tr><td colspan="4" style="text-align:right;"><strong>{{ __('ui.sales.total') }}</strong></td><td><strong>{{ \App\Support\Money::fromDecimal((string) $sale->total_amount)->format() }}</strong></td></tr>
             <tr><td colspan="4" style="text-align:right;">{{ __('ui.sales.paid') }}</td><td>{{ \App\Support\Money::fromDecimal((string) $sale->paid_amount)->format() }}</td></tr>
             <tr><td colspan="4" style="text-align:right;">{{ __('ui.sales.remaining') }}</td><td>{{ $sale->remaining()->format() }}</td></tr>

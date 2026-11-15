@@ -13,8 +13,10 @@
                 <a href="{{ route('users.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 <div class="flex items-center gap-2">
                     <x-lentera.aksi-bar>
-                        <x-lentera.menu-item :href="route('users.print-profile', $user)" target="_blank" print>{{ __('ui.print_doc.user_profile') }}</x-lentera.menu-item>
-                        <x-lentera.menu-item :href="route('users.print')" target="_blank" print>{{ __('ui.print_doc.user_list') }}</x-lentera.menu-item>
+                        <x-lentera.cetak-dropdown :label="__('ui.print')">
+                            <x-lentera.cetak-item :href="route('users.print-profile', $user)" target="_blank">{{ __('ui.print_doc.user_profile') }}</x-lentera.cetak-item>
+                            <x-lentera.cetak-item :href="route('users.print')" target="_blank">{{ __('ui.print_doc.user_list') }}</x-lentera.cetak-item>
+                        </x-lentera.cetak-dropdown>
                     </x-lentera.aksi-bar>
                     <x-lentera.aksi-bar>
                         <x-lentera.menu-item :href="route('users.create')">{{ __('ui.users.create') }}</x-lentera.menu-item>

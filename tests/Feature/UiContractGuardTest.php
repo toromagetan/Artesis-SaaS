@@ -10,7 +10,10 @@ use Tests\TestCase;
  * memindai berkas view secara statis agar pelanggaran kontrak
  * gagal di CI sebelum sempat tampil:
  *  - komponen dropdown perintah tidak boleh kembali (ADR-018) —
- *    x-dropdown hanya sah di layouts (menu pengguna & bahasa);
+ *    x-dropdown hanya sah di layouts (menu pengguna & bahasa) dan
+ *    di komponen cetak-dropdown (keputusan owner 15 Nov 2026: SATU
+ *    dropdown per dokumen khusus untuk pilihan cetak menurut
+ *    ukuran kertas + unduh PDF; perintah lain tetap tombol tampak);
  *  - judul tepat satu kali: maksimal satu <h1> per berkas view;
  *  - warna hex hanya dari token desain yang terdaftar — hex baru
  *    di luar daftar ini berarti warna di luar token (Blueprint
@@ -49,6 +52,11 @@ class UiContractGuardTest extends TestCase
     {
         foreach ($this->bladeFiles() as $path) {
             if (str_contains($path, '/layouts/')) {
+                continue;
+            }
+            // Satu-satunya pengecualian sah (keputusan owner
+            // 15 Nov 2026): pembungkus dropdown cetak/unduh dokumen.
+            if (str_ends_with($path, '/components/lentera/cetak-dropdown.blade.php')) {
                 continue;
             }
             $this->assertStringNotContainsString('<x-dropdown', file_get_contents($path), $path);

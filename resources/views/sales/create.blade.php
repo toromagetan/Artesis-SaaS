@@ -14,6 +14,7 @@
             prescriptions: @json($prescriptionData),
             taxMode: @json($taxMode),
             taxRate: {{ (float) $taxRate }},
+            taxEnabled: @json($taxEnabled),
             urls: {
                 products: @json(route('sales.search-products')),
                 customers: @json(route('sales.search-customers')),
@@ -85,7 +86,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div>
+                            <div x-show="taxEnabled">
                                 <x-input-label :value="__('ui.sales.tax_mode')" />
                                 <select name="tax_mode" x-model="taxMode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
                                     <option value="inclusive">{{ __('ui.sales.tax_inclusive') }}</option>
@@ -272,7 +273,7 @@
                     <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
                         <span class="text-gray-500">{{ __('ui.sales.subtotal') }} <span class="tnum font-medium text-gray-800" x-text="fmt(subtotal())"></span></span>
                         <span class="text-gray-500">{{ __('ui.sales.discount_transaction') }} <span class="tnum font-medium text-gray-800" x-text="fmt(num(txnDiscount))"></span></span>
-                        <span class="text-gray-500">{{ __('ui.sales.tax') }} <span class="tnum font-medium text-gray-800" x-text="fmt(taxAmount())"></span></span>
+                        <span x-show="taxEnabled" class="text-gray-500">{{ __('ui.sales.tax') }} <span class="tnum font-medium text-gray-800" x-text="fmt(taxAmount())"></span></span>
                         <span class="text-base">{{ __('ui.sales.total') }} <span class="tnum font-bold text-lentera-950" x-text="fmt(grandTotal())"></span></span>
                         <span class="text-gray-500">{{ __('ui.sales.paid') }} <span class="tnum font-medium text-gray-800" x-text="fmt(paidTotal())"></span></span>
                         <span class="text-gray-500">{{ __('ui.sales.remaining') }} <span class="tnum font-medium text-gray-800" x-text="fmt(Math.max(0, grandTotal() - paidTotal()))"></span></span>
@@ -308,7 +309,8 @@
                 insuranceId: '',
                 claimAmount: '',
                 taxMode: init.taxMode || 'inclusive',
-                taxRate: init.taxRate || 11,
+                taxEnabled: init.taxEnabled !== false,
+                taxRate: init.taxEnabled === false ? 0 : (init.taxRate || 11),
                 _uid: 0,
 
                 num(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; },

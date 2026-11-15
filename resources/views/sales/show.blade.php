@@ -18,15 +18,21 @@
                 <a href="{{ route('sales.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 <div class="ms-auto flex flex-wrap items-center gap-2">
                     <x-lentera.aksi-bar>
-                        <x-lentera.menu-item :href="route('sales.print-order', $sale)" target="_blank" print>{{ __('ui.sales.print_order') }}</x-lentera.menu-item>
-                        <x-lentera.menu-item :href="route('sales.download-order', $sale)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
-                        <x-lentera.menu-item :href="route('sales.print-invoice', $sale)" target="_blank" print>{{ __('ui.sales.print_invoice') }}</x-lentera.menu-item>
-                        <x-lentera.menu-item :href="route('sales.download-invoice', $sale)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
-                        <x-lentera.menu-item :href="route('sales.print-receipt', $sale)" target="_blank" print>{{ __('ui.sales.print_receipt_80') }}</x-lentera.menu-item>
-                        <x-lentera.menu-item :href="route('sales.print-receipt', [$sale, 'lebar' => 58])" target="_blank" print>{{ __('ui.sales.print_receipt_58') }}</x-lentera.menu-item>
+                        <x-lentera.cetak-dropdown :label="__('ui.sales.print_order')">
+                            <x-lentera.cetak-item :href="route('sales.print-order', $sale)" target="_blank">{{ __('ui.print_a5') }}</x-lentera.cetak-item>
+                            <x-lentera.cetak-item :href="route('sales.download-order', $sale)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.cetak-item>
+                        </x-lentera.cetak-dropdown>
+                        <x-lentera.cetak-dropdown :label="__('ui.sales.print_invoice')">
+                            <x-lentera.cetak-item :href="route('sales.print-invoice', $sale)" target="_blank">{{ __('ui.print_a5') }}</x-lentera.cetak-item>
+                            <x-lentera.cetak-item :href="route('sales.print-receipt', $sale)" target="_blank">{{ __('ui.sales.print_receipt_80') }}</x-lentera.cetak-item>
+                            <x-lentera.cetak-item :href="route('sales.print-receipt', [$sale, 'lebar' => 58])" target="_blank">{{ __('ui.sales.print_receipt_58') }}</x-lentera.cetak-item>
+                            <x-lentera.cetak-item :href="route('sales.download-invoice', $sale)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.cetak-item>
+                        </x-lentera.cetak-dropdown>
                         @if ($sale->prescription_snapshot)
-                            <x-lentera.menu-item :href="route('sales.print-prescription', $sale)" target="_blank" print>{{ __('ui.sales.print_prescription') }}</x-lentera.menu-item>
-                            <x-lentera.menu-item :href="route('sales.download-prescription', $sale)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
+                            <x-lentera.cetak-dropdown :label="__('ui.sales.print_prescription')">
+                                <x-lentera.cetak-item :href="route('sales.print-prescription', $sale)" target="_blank">{{ __('ui.print_a5') }}</x-lentera.cetak-item>
+                                <x-lentera.cetak-item :href="route('sales.download-prescription', $sale)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.cetak-item>
+                            </x-lentera.cetak-dropdown>
                         @endif
                     </x-lentera.aksi-bar>
                     @unless ($sale->isVoid())
@@ -150,10 +156,12 @@
                             <td colspan="4" class="px-4 py-2 text-right text-gray-500">{{ __('ui.sales.discount') }}</td>
                             <td class="px-4 py-2 tnum font-medium">−{{ \App\Support\Money::fromDecimal((string) $sale->discount_amount)->format() }}</td>
                         </tr>
+                        @if ((float) $sale->tax_amount > 0)
                         <tr class="text-sm">
                             <td colspan="4" class="px-4 py-2 text-right text-gray-500">{{ __('ui.sales.tax') }} ({{ $sale->tax_mode }})</td>
                             <td class="px-4 py-2 tnum font-medium">{{ \App\Support\Money::fromDecimal((string) $sale->tax_amount)->format() }}</td>
                         </tr>
+                        @endif
                         <tr class="text-sm font-semibold">
                             <td colspan="4" class="px-4 py-2 text-right">{{ __('ui.sales.total') }}</td>
                             <td class="px-4 py-2 tnum">{{ \App\Support\Money::fromDecimal((string) $sale->total_amount)->format() }}</td>

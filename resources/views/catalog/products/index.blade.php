@@ -9,6 +9,12 @@
                 <div class="mb-4 rounded-lg border border-lentera-200 bg-lentera-50 px-4 py-3 text-sm text-lentera-800">{{ session('status') }}</div>
             @endif
 
+            <nav class="mb-4 flex items-center gap-1 overflow-x-auto border-b border-gray-200" aria-label="{{ __('ui.products.category_nav') }}">
+                @foreach (['frame', 'lens', 'rx', 'softlens', 'accessory'] as $tabType)
+                    <a href="{{ route('products.index', $tabType) }}" class="inline-flex items-center whitespace-nowrap px-4 py-2.5 text-sm transition duration-150 focus:outline-none focus:ring-2 focus:ring-lentera-500 {{ $type === $tabType ? 'border-b-2 border-lentera-600 bg-lentera-50 font-semibold text-lentera-800' : 'border-b-2 border-transparent font-medium text-gray-500 hover:border-lentera-200 hover:bg-gray-50 hover:text-gray-800' }}" @if ($type === $tabType) aria-current="page" @endif>{{ __('ui.products.types.'.$tabType) }}</a>
+                @endforeach
+            </nav>
+
             <div class="mb-4 flex items-center justify-between">
                 <form method="GET" class="flex gap-2">
                     <x-text-input name="q" :value="$q" :placeholder="__('ui.products.search_placeholder')" class="w-72" />
