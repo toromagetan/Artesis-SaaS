@@ -15,6 +15,7 @@
                     <x-lentera.aksi-bar>
                         @can('prescriptions.print')
                             <x-lentera.menu-item :href="route('prescriptions.print', $prescription)" target="_blank" print>{{ __('ui.prescriptions.print') }}</x-lentera.menu-item>
+                            <x-lentera.menu-item :href="route('prescriptions.download', $prescription)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
                         @endcan
                     </x-lentera.aksi-bar>
                     @if (auth()->user()->hasPermission('prescriptions.create'))

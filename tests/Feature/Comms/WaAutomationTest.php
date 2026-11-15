@@ -17,7 +17,6 @@ use App\Modules\Lab\Services\QcCheckService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\SalesService;
-use App\Support\Money;
 use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\QcPointTemplateSeeder;
@@ -29,9 +28,13 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
- * F3.5 Otomasi pesan: invoice dari transaksi, pengingat pengambilan
- * sesudah Complete, purnajual H+7 & ulang tahun terjadwal — semua
- * tercatat di log; kegagalan gateway tidak menggagalkan transaksi.
+ * F3.5 Otomasi pesan: purnajual H+7 & ulang tahun terjadwal lewat
+ * perintah `lentera:wa-otomatis` — semua tercatat di log.
+ *
+ * Sejak keputusan owner 15 Nov 2026 (skema Kirim WA wa.me), listener
+ * invoice & pengingat pengambilan TIDAK lagi didaftarkan: penjualan
+ * dan penyelesaian lab tidak mengantrekan pesan API apa pun, walau
+ * ada gateway aktif. Test di bawah mengunci kontrak baru itu.
  */
 class WaAutomationTest extends TestCase
 {
@@ -116,61 +119,32 @@ class WaAutomationTest extends TestCase
         return $process->refresh();
     }
 
-    public function test_invoice_message_is_logged_for_every_sale(): void
+    public function test_sale_completion_no_longer_queues_an_invoice_message(): void
     {
         $sale = $this->lensSale();
 
-        $message = WaMessage::where('template_key', 'invoice')->where('customer_id', $this->customer->id)->first();
-        $this->assertNotNull($message, 'setiap penjualan harus mengantrekan invoice WA');
-        $this->assertSame('invoice', $message->trigger);
-        $this->assertSame('queued', $message->status); // belum ada gateway aktif
-        $this->assertStringContainsString($sale->number, $message->body);
-        $this->assertStringContainsString('Sinta Maharani', $message->body);
-        $this->assertStringContainsString(Money::fromDecimal('350000')->format(), $message->body);
+        $this->assertSame('paid', $sale->paymentStatus());
+        $this->assertSame(0, WaMessage::count(), 'penjualan selesai tidak boleh mengantrekan pesan WA API');
     }
 
-    public function test_invoice_is_sent_when_gateway_active(): void
+    public function test_active_gateway_also_stays_silent_on_sale(): void
     {
         $this->activeGateway();
         Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.AUTO1']]], 200)]);
 
         $this->lensSale();
 
-        $message = WaMessage::where('template_key', 'invoice')->firstOrFail();
-        $this->assertSame('sent', $message->fresh()->status);
-        $this->assertSame('wamid.AUTO1', $message->fresh()->provider_message_id);
+        $this->assertSame(0, WaMessage::count());
+        Http::assertNothingSent();
     }
 
-    public function test_gateway_failure_never_blocks_the_sale(): void
-    {
-        $this->activeGateway();
-        Http::fake(['graph.facebook.com/*' => Http::response(['error' => ['message' => 'down']], 503)]);
-
-        $sale = app(SalesService::class)->createSale($this->owner, [
-            'customer_id' => $this->customer->id, 'sale_date' => '2026-10-18', 'tax_mode' => 'inclusive',
-        ], [
-            ['detail_type' => 'frame', 'detail_id' => $this->frame->id, 'qty' => 1],
-        ], [
-            ['method' => 'cash', 'amount' => '400000'],
-        ]);
-
-        $this->assertSame('paid', $sale->paymentStatus());
-        $message = WaMessage::where('template_key', 'invoice')->where('customer_id', $this->customer->id)->first();
-        $this->assertNotNull($message);
-        $this->assertSame('failed', $message->fresh()->status);
-    }
-
-    public function test_pickup_reminder_fires_on_completion(): void
+    public function test_lab_completion_no_longer_queues_a_pickup_reminder(): void
     {
         $sale = $this->lensSale();
-        $this->assertSame(0, WaMessage::where('template_key', 'pickup_reminder')->count());
-
         $this->completeProcess($sale);
 
-        $message = WaMessage::where('template_key', 'pickup_reminder')->where('customer_id', $this->customer->id)->first();
-        $this->assertNotNull($message, 'Complete harus memicu pengingat pengambilan');
-        $this->assertSame('reminder', $message->trigger);
-        $this->assertStringContainsString($sale->number, $message->body);
+        $this->assertSame(0, WaMessage::where('template_key', 'pickup_reminder')->count());
+        $this->assertSame(0, WaMessage::count());
     }
 
     public function test_after_service_command_sends_once_at_h_plus_7(): void

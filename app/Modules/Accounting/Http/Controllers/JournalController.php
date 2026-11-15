@@ -10,10 +10,12 @@ use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
+use App\Support\DocumentPdf;
 use App\Support\Money;
 use App\Support\XlsxWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -96,6 +98,18 @@ class JournalController extends Controller
             'storeName' => Setting::value('store.name', 'Artesis'),
             'printedBy' => auth()->user(),
         ]);
+    }
+
+    /** Unduh PDF jurnal (lampiran WhatsApp dsb.). */
+    public function download(Journal $journal): Response
+    {
+        $journal->load(['lines.account', 'lines.branch', 'creator']);
+
+        return DocumentPdf::download('accounting.journals.print', [
+            'journal' => $journal,
+            'storeName' => Setting::value('store.name', 'Artesis'),
+            'printedBy' => auth()->user(),
+        ], 'jurnal-'.$journal->number.'.pdf');
     }
 
     public function reverse(Request $request, Journal $journal, PostingService $posting): RedirectResponse

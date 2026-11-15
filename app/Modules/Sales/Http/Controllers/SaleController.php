@@ -4,8 +4,6 @@ namespace App\Modules\Sales\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
-use App\Modules\Comms\Models\WaMessage;
-use App\Modules\Comms\Services\WaAutomationService;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Services\InventoryService;
@@ -21,9 +19,12 @@ use App\Modules\Sales\Models\SaleReturn;
 use App\Modules\Sales\Services\InstallmentService;
 use App\Modules\Sales\Services\SaleReturnService;
 use App\Modules\Sales\Services\SalesService;
+use App\Support\DocumentPdf;
+use App\Support\WaLink;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -297,9 +298,9 @@ class SaleController extends Controller
 
         // Aksi simpan terminal POS (PRD-DETAIL §2.2; audit 23 Okt
         // 2026 B5): cetak = buka orderan tercetak dari halaman
-        // detail; WA = pastikan invoice terantre (otomasi
-        // SaleCompleted biasanya sudah mengantrekannya — maksud
-        // kasir tidak pernah mengirim ganda).
+        // detail; WA = buka aplikasi WhatsApp dari halaman detail
+        // dengan teks invoice terisi (skema wa.me, keputusan owner
+        // 15 Nov 2026 — menggantikan antrean pesan API).
         $intent = $request->input('intent');
         if ($intent === 'print') {
             return redirect()->route('sales.show', $sale)
@@ -307,24 +308,13 @@ class SaleController extends Controller
                 ->with('open_print', route('sales.print-order', $sale));
         }
         if ($intent === 'wa') {
-            $queued = WaMessage::query()
-                ->where('template_key', 'invoice')
-                ->where('trigger', 'invoice')
-                ->where('customer_id', $sale->customer_id)
-                ->where('body', 'like', '%'.$sale->number.'%')
-                ->exists();
-            if (! $queued) {
-                app(WaAutomationService::class)
-                    ->sendInvoiceForSale($sale->load('customer', 'branch'));
-                $queued = WaMessage::query()
-                    ->where('template_key', 'invoice')
-                    ->where('trigger', 'invoice')
-                    ->where('customer_id', $sale->customer_id)
-                    ->where('body', 'like', '%'.$sale->number.'%')
-                    ->exists();
-            }
+            $sale->load('customer', 'branch');
+            $waUrl = WaLink::forCustomer($sale->customer, WaLink::saleInvoiceText($sale));
 
-            return redirect()->route('sales.show', $sale)->with('status', __('ui.sales.created').' '.($queued ? __('ui.sales.wa_invoice_queued') : __('ui.sales.wa_invoice_unavailable')));
+            $redirect = redirect()->route('sales.show', $sale)
+                ->with('status', __('ui.sales.created'));
+
+            return $waUrl !== null ? $redirect->with('open_wa', $waUrl) : $redirect;
         }
 
         return redirect()->route('sales.show', $sale)->with('status', __('ui.sales.created'));
@@ -480,5 +470,49 @@ class SaleController extends Controller
             'snapshot' => $sale->prescription_snapshot,
             'storeName' => Setting::value('store.name', 'Artesis'),
         ]);
+    }
+
+    // ---- Unduh PDF (lampiran WhatsApp dsb.) ----
+
+    public function downloadOrder(Sale $sale): Response
+    {
+        $sale->load(['customer', 'branch', 'cashier', 'items']);
+
+        return DocumentPdf::download('sales.print-order', [
+            'sale' => $sale,
+            'storeName' => Setting::value('store.name', 'Artesis'),
+        ], 'orderan-'.$sale->number.'.pdf');
+    }
+
+    public function downloadInvoice(Sale $sale): Response
+    {
+        $sale->load(['customer', 'branch', 'cashier', 'items', 'payments']);
+
+        return DocumentPdf::download('sales.print-invoice', [
+            'sale' => $sale,
+            'storeName' => Setting::value('store.name', 'Artesis'),
+        ], 'invoice-'.$sale->number.'.pdf');
+    }
+
+    public function downloadReturn(SaleReturn $return): Response
+    {
+        $return->load(['sale.customer', 'sale.branch', 'items', 'creator']);
+
+        return DocumentPdf::download('sales.print-return', [
+            'return' => $return,
+            'storeName' => Setting::value('store.name', 'Artesis'),
+            'printedBy' => auth()->user(),
+        ], 'retur-'.$return->number.'.pdf');
+    }
+
+    public function downloadPrescription(Sale $sale): Response
+    {
+        $sale->load(['customer', 'branch']);
+
+        return DocumentPdf::download('sales.print-prescription', [
+            'sale' => $sale,
+            'snapshot' => $sale->prescription_snapshot,
+            'storeName' => Setting::value('store.name', 'Artesis'),
+        ], 'resep-'.$sale->number.'.pdf');
     }
 }

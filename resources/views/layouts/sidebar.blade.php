@@ -10,6 +10,11 @@
 @php
     $u = Auth::user();
     $can = fn (string $p) => $u->hasPermission($p);
+    // Permukaan WA API hanya untuk platform & instalasi mandiri;
+    // tenant memakai tombol Kirim WA (wa.me) — keputusan owner
+    // 15 Nov 2026, sejajar middleware wa.api pada rutenya.
+    $waContext = \App\Modules\Identity\Services\TenantContext::for($u);
+    $waApiEnabled = $waContext->isPlatform() || $waContext->isStandalone();
     $item = 'relative flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-lentera-100/80 transition duration-150 hover:bg-white/5 hover:text-white';
     $itemActive = 'bg-lentera-800 font-semibold text-white';
     $sub = 'flex items-center gap-2 rounded-lg py-1.5 pl-11 pr-3 text-[13px] text-lentera-100/60 transition duration-150 hover:bg-white/5 hover:text-white';
@@ -241,7 +246,7 @@
                     {{ __('ui.nav.transfers') }}
                 </a>
             @endif
-            @if ($can('wa.send') || $can('wa.templates') || $can('wa.inbox') || $can('wa.campaigns'))
+            @if ($waApiEnabled && ($can('wa.send') || $can('wa.templates') || $can('wa.inbox') || $can('wa.campaigns')))
                 @php $act = request()->routeIs('wa-inbox.*', 'wa-campaigns.*', 'wa-log.*', 'wa-templates.*'); @endphp
                 <div x-data="{ open: {{ $act ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" class="{{ $item }} {{ $act ? $itemActive : '' }}">
@@ -436,11 +441,13 @@
                     {{ __('ui.nav.my_plan') }}
                 </a>
             @endunless
-            <a href="{{ route('wa-gateway.edit') }}" class="{{ $item }} {{ request()->routeIs('wa-gateway.*') ? $itemActive : '' }}">
-                @if (request()->routeIs('wa-gateway.*')) {!! $goldBar !!} @endif
-                <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg>
-                {{ __('ui.nav.wa_gateway') }}
-            </a>
+            @if ($waApiEnabled)
+                <a href="{{ route('wa-gateway.edit') }}" class="{{ $item }} {{ request()->routeIs('wa-gateway.*') ? $itemActive : '' }}">
+                    @if (request()->routeIs('wa-gateway.*')) {!! $goldBar !!} @endif
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg>
+                    {{ __('ui.nav.wa_gateway') }}
+                </a>
+            @endif
             <a href="{{ route('ai-setting.edit') }}" class="{{ $item }} {{ request()->routeIs('ai-setting.*') ? $itemActive : '' }}">
                 @if (request()->routeIs('ai-setting.*')) {!! $goldBar !!} @endif
                 <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>

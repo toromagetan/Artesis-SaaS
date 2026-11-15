@@ -10,8 +10,10 @@ use App\Modules\Inventory\Services\TransferService;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Purchasing\Models\PurchaseOrder;
+use App\Support\DocumentPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -126,6 +128,18 @@ class TransferController extends Controller
             'transfer' => $transfer,
             'storeName' => Setting::value('store.name', 'Artesis'),
         ]);
+    }
+
+    /** Unduh PDF transfer (lampiran WhatsApp dsb.). */
+    public function download(StockTransfer $transfer): Response
+    {
+        $this->assertVisible($transfer);
+        $transfer->load(['fromBranch', 'toBranch', 'sender', 'items.detail.product']);
+
+        return DocumentPdf::download('inventory.transfers.print', [
+            'transfer' => $transfer,
+            'storeName' => Setting::value('store.name', 'Artesis'),
+        ], 'transfer-'.$transfer->number.'.pdf');
     }
 
     private function validateSend(Request $request, bool $fromPo = false): array

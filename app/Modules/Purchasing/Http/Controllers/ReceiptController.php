@@ -9,8 +9,10 @@ use App\Modules\Purchasing\Models\PurchasePayment;
 use App\Modules\Purchasing\Models\Receipt;
 use App\Modules\Purchasing\Services\PurchasePaymentService;
 use App\Modules\Purchasing\Services\PurchaseReturnService;
+use App\Support\DocumentPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\View\View;
 
@@ -50,6 +52,19 @@ class ReceiptController extends Controller
             'storeName' => Setting::value('store.name', 'Artesis'),
             'printedBy' => auth()->user(),
         ]);
+    }
+
+    /** Unduh PDF penerimaan (lampiran WhatsApp dsb.). */
+    public function download(Receipt $receipt): Response
+    {
+        $this->assertVisible($receipt);
+        $receipt->load(['purchaseOrder.supplier', 'purchaseOrder.branch', 'items.purchaseOrderItem.detail.product', 'receiver']);
+
+        return DocumentPdf::download('purchasing.receipts.print', [
+            'receipt' => $receipt,
+            'storeName' => Setting::value('store.name', 'Artesis'),
+            'printedBy' => auth()->user(),
+        ], 'penerimaan-'.$receipt->number.'.pdf');
     }
 
     public function payForm(Receipt $receipt): View

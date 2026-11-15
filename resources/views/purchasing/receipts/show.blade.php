@@ -18,6 +18,7 @@
                 <a href="{{ route('po.show', $receipt->purchaseOrder) }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }} — {{ $receipt->purchaseOrder->number }}</a>
                 <x-lentera.aksi-bar>
                     <x-lentera.menu-item :href="route('receipts.print', $receipt)" target="_blank" print>{{ __('ui.print') }}</x-lentera.menu-item>
+                    <x-lentera.menu-item :href="route('receipts.download', $receipt)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
                     @can('payments.create')
                         @if ($receipt->paymentStatus() !== 'paid')
                             <x-lentera.menu-item :href="route('receipts.pay', $receipt)">{{ __('ui.purchasing.pay') }}</x-lentera.menu-item>
@@ -93,6 +94,7 @@
                                 <td class="px-4 py-3">
                                     <x-lentera.aksi-baris>
                                         <x-lentera.menu-item :href="route('payments.print', $allocation->payment)" target="_blank" print>{{ __('ui.print') }}</x-lentera.menu-item>
+                                        <x-lentera.menu-item :href="route('payments.download', $allocation->payment)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
                                     </x-lentera.aksi-baris>
                                 </td>
                             </tr>

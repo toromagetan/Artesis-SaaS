@@ -9,8 +9,6 @@ use App\Modules\Catalog\Models\FrameDetail;
 use App\Modules\Catalog\Models\LensDetail;
 use App\Modules\Catalog\Models\RxDetail;
 use App\Modules\Catalog\Models\SoftlensDetail;
-use App\Modules\Comms\Listeners\SendPickupReminderMessage;
-use App\Modules\Comms\Listeners\SendSaleInvoiceMessage;
 use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Policies\UserPolicy;
 use App\Modules\Inventory\Events\InitialStockImported;
@@ -99,12 +97,14 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(SaleCompleted::class, [AccrueCommissions::class, 'onSaleCompleted']);
         Event::listen(SaleVoided::class, [AccrueCommissions::class, 'onSaleVoided']);
         Event::listen(LensProcessCompleted::class, [AccrueCommissions::class, 'onLensProcessCompleted']);
-        // Otomasi WhatsApp (F3.5): invoice & pengingat pengambilan.
-        // Kegagalan gateway tidak pernah menggagalkan transaksi pemicu:
-        // pengiriman asinkron lewat antrean (ADR-009) dan layanan
-        // otomasi menelan semua galat pengiriman.
-        Event::listen(SaleCompleted::class, [SendSaleInvoiceMessage::class, 'onSaleCompleted']);
-        Event::listen(LensProcessCompleted::class, [SendPickupReminderMessage::class, 'onLensProcessCompleted']);
+        // Otomasi WhatsApp API (F3.5) DINONAKTIFKAN untuk tenant
+        // (keputusan owner 15 Nov 2026): skema tenant kini tombol
+        // Kirim WA (wa.me) manual dari halaman transaksi, sehingga
+        // listener invoice/pengingat TIDAK lagi didaftarkan dan tidak
+        // ada pesan yang mengantre otomatis. Kelas listener, layanan
+        // otomasi, dan gateway tetap di repo untuk aktor platform
+        // dan instalasi mandiri (rute WA API dijaga middleware
+        // wa.api) dan dapat dihidupkan kembali bila arah berubah.
         // Membership & poin (F3.6): earn/reversal mengikuti penjualan.
         Event::listen(SaleCompleted::class, [SyncPointsWithSales::class, 'onSaleCompleted']);
         Event::listen(SaleVoided::class, [SyncPointsWithSales::class, 'onSaleVoided']);

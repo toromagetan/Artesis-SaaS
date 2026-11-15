@@ -21,14 +21,14 @@ use Tests\TestCase;
 
 /**
  * D-02 GAP-5 — Permukaan komunikasi (WhatsApp) lintas tenant.
- * Tiga permukaan dibuktikan: (1) inbox — daftar, halaman percakapan,
- * dan aksi balas untuk pelanggan tenant lain tidak boleh dapat
- * dijangkau aktor tenant sebelah; (2) audiens kampanye — resolusi
- * penerima dan pengiriman hanya menjangkau pelanggan tenant pemilik
- * kampanye, termasuk saat segmen menunjuk cabang tenant lain;
+ * Tiga permukaan dibuktikan: (1) inbox — sejak skema wa.me (keputusan
+ * owner 15 Nov 2026) seluruh permukaan WA API tertutup untuk aktor
+ * tenant, dan data percakapan tetap teratribusi per tenant;
+ * (2) audiens kampanye — resolusi penerima dan pengiriman di tingkat
+ * layanan hanya menjangkau pelanggan tenant pemilik kampanye,
+ * termasuk saat segmen menunjuk cabang tenant lain;
  * (3) otomasi — perintah terjadwal menyapa setiap pelanggan atas
- * nama tenantnya sendiri tanpa atribusi silang. Percakapan dan
- * kampanye tenant sendiri tetap bekerja (kontrol positif).
+ * nama tenantnya sendiri tanpa atribusi silang.
  */
 class CommsTenantIsolationTest extends TestCase
 {
@@ -99,19 +99,22 @@ class CommsTenantIsolationTest extends TestCase
         return [$tenant, $admin, $branch];
     }
 
-    public function test_inbox_list_shows_only_own_tenant_conversations(): void
+    public function test_inbox_is_closed_for_tenants_and_messages_stay_attributed(): void
     {
+        // Skema wa.me (keputusan owner 15 Nov 2026): Inbox WA API ditutup
+        // untuk aktor tenant — tidak ada daftar percakapan yang dapat
+        // dijangkau aktor tenant mana pun.
         $this->actingAs($this->adminA)->get('/wa/inbox')
-            ->assertOk()
-            ->assertSee('Pelanggan WA Alpha')
-            ->assertDontSee('Pelanggan WA Beta')
+            ->assertForbidden()
             ->assertDontSee('Pesan rahasia tenant Beta');
 
         $this->actingAs($this->adminB)->get('/wa/inbox')
-            ->assertOk()
-            ->assertSee('Pelanggan WA Beta')
-            ->assertDontSee('Pelanggan WA Alpha')
+            ->assertForbidden()
             ->assertDontSee('Pesan rahasia tenant Alpha');
+
+        // Data percakapan tetap teratribusi ke tenant pemiliknya.
+        $this->assertSame(1, WaMessage::where('customer_id', $this->customerA->id)->count());
+        $this->assertSame(1, WaMessage::where('customer_id', $this->customerB->id)->count());
     }
 
     public function test_conversation_view_and_reply_denied_for_other_tenant(): void
@@ -132,11 +135,14 @@ class CommsTenantIsolationTest extends TestCase
         );
     }
 
-    public function test_own_conversation_view_works_control(): void
+    public function test_own_conversation_view_is_also_closed_for_tenants(): void
     {
+        // Kontrol terbalik sejak skema wa.me (15 Nov 2026): bahkan
+        // percakapan tenant sendiri tidak lagi dapat dibuka aktor tenant
+        // lewat permukaan WA API — penutupan berlaku untuk semua tenant.
         $this->actingAs($this->adminA)->get('/wa/inbox/'.$this->customerA->id)
-            ->assertOk()
-            ->assertSee('Pesan rahasia tenant Alpha');
+            ->assertForbidden()
+            ->assertDontSee('Pesan rahasia tenant Alpha');
     }
 
     public function test_campaign_audience_and_send_never_reach_other_tenant(): void
@@ -161,12 +167,19 @@ class CommsTenantIsolationTest extends TestCase
         $this->assertFalse($foreignRecipients->contains('id', $this->customerB->id));
         $this->assertCount(0, $foreignRecipients);
 
-        // Pengiriman penuh: pesan kampanye hanya dibuat untuk
-        // pelanggan tenant pemilik kampanye.
+        // Pengiriman penuh di tingkat layanan: pesan kampanye hanya
+        // dibuat untuk pelanggan tenant pemilik kampanye.
         $service->approve($this->adminA, $campaign);
-        $template->update(['body' => 'Halo {nama}! Ada promo khusus bulan ini di {cabang}.']);
-        $this->actingAs($this->adminA)->post('/wa/template/'.$template->id.'/setujui')->assertRedirect();
-        $this->actingAs($this->adminA)->post('/wa/kampanye/'.$campaign->id.'/kirim')->assertRedirect();
+        $template->update([
+            'body' => 'Halo {nama}! Ada promo khusus bulan ini di {cabang}.',
+            'approved_by' => $this->adminA->id,
+        ]);
+        $service->requestSend($this->adminA, $campaign);
+        $service->deliver($campaign);
+
+        // Permukaan HTTP kampanye tertutup untuk aktor tenant sejak
+        // skema wa.me (keputusan owner 15 Nov 2026).
+        $this->actingAs($this->adminA)->post('/wa/kampanye/'.$campaign->id.'/kirim')->assertForbidden();
 
         $messages = WaMessage::where('trigger', 'campaign')->where('campaign_id', $campaign->id)->get();
         $this->assertCount(1, $messages);

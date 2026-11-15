@@ -2194,4 +2194,14 @@ return [
         'sub_expired' => '已到期',
         'sub_cancelled' => '已取消',
     ],
+    'download_pdf' => '下载 PDF',
+    'wa_link' => [
+        'send' => '发送 WhatsApp',
+        'greeting' => '您好 :name，我们是 :store。请问有什么可以帮您？',
+        'sale_invoice' => "您好 :customer，感谢您在 :store 购物。\n\n发票 :number\n总计：:total\n已付：:paid\n剩余：:remaining\n付款状态：:status\n\n发票已随本消息附上。谢谢。",
+        'pickup_ready' => '您好 :customer，来自 :store 的好消息。您的订单（:number）已完成，可在 :branch 门店取货。谢谢。',
+        'process_progress' => '您好 :customer，我们是 :store，通知您订单（:number）仍在制作中。预计完成时间：:estimate。我们会再次通知您何时可取。感谢您的耐心等待。',
+        'process_progress_no_estimate' => '您好 :customer，我们是 :store，通知您订单（:number）仍在制作中。我们会再次通知您何时可取。感谢您的耐心等待。',
+        'po_order' => '您好 :supplier，我们是 :store，现发送采购订单 :number（见附件）。请确认货物供应情况及预计交货时间。谢谢。',
+    ],
 ];

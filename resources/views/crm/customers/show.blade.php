@@ -14,8 +14,12 @@
 
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('customers.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
-                @if (auth()->user()->hasPermission('customers.create') || auth()->user()->hasPermission('prescriptions.create') || auth()->user()->hasPermission('customers.update') || auth()->user()->hasPermission('customers.deactivate'))
+                @php $waCustomerUrl = \App\Support\WaLink::forCustomer($customer, \App\Support\WaLink::greetingText($customer)); @endphp
+                @if (auth()->user()->hasPermission('customers.create') || auth()->user()->hasPermission('prescriptions.create') || auth()->user()->hasPermission('customers.update') || auth()->user()->hasPermission('customers.deactivate') || $waCustomerUrl)
                     <x-lentera.aksi-bar>
+                        @if ($waCustomerUrl)
+                            <x-lentera.menu-item :href="$waCustomerUrl" target="_blank" icon="chat">{{ __('ui.wa_link.send') }}</x-lentera.menu-item>
+                        @endif
                         @can('customers.create')
                             <x-lentera.menu-item :href="route('customers.create')">{{ __('ui.customers.create') }}</x-lentera.menu-item>
                         @endcan

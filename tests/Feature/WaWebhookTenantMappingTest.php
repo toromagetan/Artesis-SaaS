@@ -158,7 +158,7 @@ class WaWebhookTenantMappingTest extends TestCase
         $this->assertSame(0, WaMessage::where('direction', 'in')->count());
     }
 
-    public function test_inbox_is_isolated_per_tenant(): void
+    public function test_inbox_is_closed_for_tenants_and_messages_stay_attributed(): void
     {
         [$tenantA, $adminA, $branchA] = $this->tenantAdmin('a');
         [$tenantB, , $branchB] = $this->tenantAdmin('b');
@@ -179,10 +179,15 @@ class WaWebhookTenantMappingTest extends TestCase
             'body' => 'PESAN-YATIM', 'provider_message_id' => 'wamid.IY',
         ]);
 
-        $response = $this->actingAs($adminA)->get(route('wa-inbox.index'));
-        $response->assertOk();
-        $response->assertSee('PESAN-RAHASIA-A');
-        $response->assertDontSee('PESAN-RAHASIA-B');
-        $response->assertDontSee('PESAN-YATIM');
+        // Skema wa.me (keputusan owner 15 Nov 2026): inbox API
+        // tertutup bagi aktor tenant sama sekali (middleware
+        // wa.api) — isolasi antar-tenant kini ditegakkan oleh
+        // penolakan akses itu sendiri, lebih kuat dari penyaringan
+        // tampilan sebelumnya.
+        $this->actingAs($adminA)->get(route('wa-inbox.index'))->assertForbidden();
+
+        // Atribusi pesan per tenant di lapisan data tidak berubah.
+        $this->assertSame($customerA->id, WaMessage::where('body', 'PESAN-RAHASIA-A')->firstOrFail()->customer_id);
+        $this->assertSame($customerB->id, WaMessage::where('body', 'PESAN-RAHASIA-B')->firstOrFail()->customer_id);
     }
 }

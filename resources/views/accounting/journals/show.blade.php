@@ -19,6 +19,7 @@
                 <div class="flex items-center gap-2">
                 <x-lentera.aksi-bar>
                     <x-lentera.menu-item :href="route('journals.print', $journal)" target="_blank" print>{{ __('ui.print') }}</x-lentera.menu-item>
+                    <x-lentera.menu-item :href="route('journals.download', $journal)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
                 </x-lentera.aksi-bar>
                 @if ($reversal === null && $journal->source_type !== 'reversal')
                     @can('journals.reverse')

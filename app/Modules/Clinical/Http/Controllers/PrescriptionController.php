@@ -10,8 +10,10 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Master\Models\Setting;
+use App\Support\DocumentPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -144,6 +146,17 @@ class PrescriptionController extends Controller
             'prescription' => $prescription,
             'storeName' => Setting::value('store.name', 'Artesis'),
         ]);
+    }
+
+    /** Unduh PDF resep (lampiran WhatsApp dsb.). */
+    public function download(Prescription $prescription): Response
+    {
+        $prescription->load(['customer', 'branch', 'examiner']);
+
+        return DocumentPdf::download('clinical.prescriptions.print', [
+            'prescription' => $prescription,
+            'storeName' => Setting::value('store.name', 'Artesis'),
+        ], 'resep-'.$prescription->id.'.pdf');
     }
 
     /** @return array<string, mixed> */

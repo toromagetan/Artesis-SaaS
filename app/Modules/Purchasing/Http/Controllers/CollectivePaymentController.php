@@ -8,8 +8,10 @@ use App\Modules\Master\Models\Setting;
 use App\Modules\Master\Models\Supplier;
 use App\Modules\Purchasing\Models\PurchasePayment;
 use App\Modules\Purchasing\Services\CollectivePaymentService;
+use App\Support\DocumentPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -121,6 +123,20 @@ class CollectivePaymentController extends Controller
             'storeName' => Setting::value('store.name', 'Artesis'),
             'printedBy' => auth()->user(),
         ]);
+    }
+
+    /** Unduh PDF bukti pembayaran (lampiran WhatsApp dsb.). */
+    public function downloadPayment(PurchasePayment $payment): Response
+    {
+        $this->assertPaymentAccessible($payment);
+
+        $payment->load(['supplier', 'allocations.receipt.purchaseOrder', 'payer']);
+
+        return DocumentPdf::download('purchasing.payments.print', [
+            'payment' => $payment,
+            'storeName' => Setting::value('store.name', 'Artesis'),
+            'printedBy' => auth()->user(),
+        ], 'pembayaran-'.$payment->number.'.pdf');
     }
 
     public function result(PurchasePayment $payment): View

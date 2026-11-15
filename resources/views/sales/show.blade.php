@@ -19,15 +19,21 @@
                 <div class="ms-auto flex flex-wrap items-center gap-2">
                     <x-lentera.aksi-bar>
                         <x-lentera.menu-item :href="route('sales.print-order', $sale)" target="_blank" print>{{ __('ui.sales.print_order') }}</x-lentera.menu-item>
+                        <x-lentera.menu-item :href="route('sales.download-order', $sale)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
                         <x-lentera.menu-item :href="route('sales.print-invoice', $sale)" target="_blank" print>{{ __('ui.sales.print_invoice') }}</x-lentera.menu-item>
+                        <x-lentera.menu-item :href="route('sales.download-invoice', $sale)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
                         <x-lentera.menu-item :href="route('sales.print-receipt', $sale)" target="_blank" print>{{ __('ui.sales.print_receipt_80') }}</x-lentera.menu-item>
                         <x-lentera.menu-item :href="route('sales.print-receipt', [$sale, 'lebar' => 58])" target="_blank" print>{{ __('ui.sales.print_receipt_58') }}</x-lentera.menu-item>
                         @if ($sale->prescription_snapshot)
                             <x-lentera.menu-item :href="route('sales.print-prescription', $sale)" target="_blank" print>{{ __('ui.sales.print_prescription') }}</x-lentera.menu-item>
+                            <x-lentera.menu-item :href="route('sales.download-prescription', $sale)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
                         @endif
                     </x-lentera.aksi-bar>
                     @unless ($sale->isVoid())
                         <x-lentera.aksi-bar>
+                            @if ($waSaleUrl = \App\Support\WaLink::forCustomer($sale->customer, \App\Support\WaLink::saleInvoiceText($sale)))
+                                <x-lentera.menu-item :href="$waSaleUrl" target="_blank" icon="chat">{{ __('ui.wa_link.send') }}</x-lentera.menu-item>
+                            @endif
                             @can('sales.create')
                                 <x-lentera.menu-item :href="route('sales.create', ['pelanggan' => $sale->customer_id])">{{ __('ui.sales.create') }}</x-lentera.menu-item>
                             @endcan
@@ -296,6 +302,7 @@
                                     <td class="px-4 py-3">
                                         <x-lentera.aksi-baris>
                                             <x-lentera.menu-item :href="route('sales.returns.print', $return)" target="_blank" print>{{ __('ui.sales.print_return') }}</x-lentera.menu-item>
+                                            <x-lentera.menu-item :href="route('sales.returns.download', $return)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
                                         </x-lentera.aksi-baris>
                                     </td>
                                 </tr>
@@ -308,5 +315,8 @@
     </div>
     @if (session('open_print'))
         <script>window.open(@json(session('open_print')), '_blank');</script>
+    @endif
+    @if (session('open_wa'))
+        <script>window.open(@json(session('open_wa')), '_blank');</script>
     @endif
 </x-app-layout>

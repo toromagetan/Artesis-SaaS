@@ -19,9 +19,13 @@
                 <div class="flex items-center gap-2">
                     <x-lentera.aksi-bar>
                         <x-lentera.menu-item :href="route('po.print', $po)" target="_blank" print>{{ __('ui.purchasing.po_print') }}</x-lentera.menu-item>
+                        <x-lentera.menu-item :href="route('po.download', $po)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
                     </x-lentera.aksi-bar>
                     @unless ($po->isVoid())
                         <x-lentera.aksi-bar>
+                            @if ($waPoUrl = \App\Support\WaLink::url($po->supplier->phone, \App\Support\WaLink::purchaseOrderText($po)))
+                                <x-lentera.menu-item :href="$waPoUrl" target="_blank" icon="chat">{{ __('ui.wa_link.send') }}</x-lentera.menu-item>
+                            @endif
                             @can('po.create')
                                 <x-lentera.menu-item :href="route('po.create')">{{ __('ui.purchasing.po_create') }}</x-lentera.menu-item>
                             @endcan
