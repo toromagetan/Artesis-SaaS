@@ -112,7 +112,7 @@ class PaygCreditTest extends TestCase
 
         $payg = Plan::where('key', 'payg')->firstOrFail();
         $this->assertSame(0, (int) $payg->price_monthly);
-        $this->assertSame(89000, (int) $payg->extra_branch_price);
+        $this->assertSame(0, (int) $payg->extra_branch_price);
 
         $this->assertFalse($plans->featureEnabled($tenant, 'accounting_full'));
         foreach (['reports_advanced', 'roles_permissions', 'crm_members', 'purchasing_full', 'whatsapp', 'api_access', 'ai_assistant'] as $key) {

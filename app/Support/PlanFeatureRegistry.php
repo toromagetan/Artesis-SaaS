@@ -135,7 +135,7 @@ class PlanFeatureRegistry
             'payg' => [
                 'name' => 'PAYG',
                 'price_monthly' => 0,
-                'extra_branch_price' => 89000,
+                'extra_branch_price' => 0,
                 'sort_order' => 5,
                 'features' => array_merge($off, [
                     'reports_advanced' => 1, 'roles_permissions' => 1,

@@ -56,7 +56,7 @@ class SaasPlatformTest extends TestCase
         // PAYG (owner 2026-11-15): tanpa harga bulanan; cabang
         // tambahan Rp89 rb; fitur semua terbuka kecuali accounting.
         $this->assertSame(0, $payg->price_monthly);
-        $this->assertSame(89000, $payg->extra_branch_price);
+        $this->assertSame(0, $payg->extra_branch_price);
 
         $tenant = Tenant::create(['name' => 'Uji', 'slug' => 'uji']);
         // Tanpa langganan: bawaan Free — produk maks 500, WA mati.
