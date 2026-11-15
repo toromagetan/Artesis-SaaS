@@ -126,6 +126,26 @@ class PlanFeatureRegistry
                     'branches_max' => null, 'report_history_days' => null,
                 ]),
             ],
+            // PAYG murni (keputusan owner 2026-11-15): tanpa langganan
+            // bulanan — tenant membayar per transaksi penjualan
+            // (PaygCreditService). Fitur dibuka semua KECUALI
+            // accounting (ketetapan owner), batas angka tanpa batas.
+            // Harga paket mencakup 1 cabang; cabang tambahan dikenai
+            // extra_branch_price (pola Best Offer, ketetapan owner).
+            'payg' => [
+                'name' => 'PAYG',
+                'price_monthly' => 0,
+                'extra_branch_price' => 89000,
+                'sort_order' => 5,
+                'features' => array_merge($off, [
+                    'reports_advanced' => 1, 'roles_permissions' => 1,
+                    'crm_members' => 1, 'purchasing_full' => 1,
+                    'whatsapp' => 1,
+                    'api_access' => 1, 'ai_assistant' => 1,
+                    'products_max' => null, 'users_max' => null,
+                    'branches_max' => null, 'report_history_days' => null,
+                ]),
+            ],
         ];
     }
 }

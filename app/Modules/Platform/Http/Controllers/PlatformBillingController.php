@@ -5,9 +5,11 @@ namespace App\Modules\Platform\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Models\AiCreditRequest;
+use App\Modules\Platform\Models\PaygCreditRequest;
 use App\Modules\Platform\Models\TenantBillingRequest;
 use App\Modules\Platform\Services\AiCreditService;
 use App\Modules\Platform\Services\BillingService;
+use App\Modules\Platform\Services\PaygCreditService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -36,10 +38,18 @@ class PlatformBillingController extends Controller
             ->limit(100)
             ->get();
 
+        $paygRequests = PaygCreditRequest::with('tenant')
+            ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
+            ->latest()
+            ->limit(100)
+            ->get();
+
         return view('platform.billing.index', [
             'requests' => $requests,
             'aiRequests' => $aiRequests,
+            'paygRequests' => $paygRequests,
             'aiPrice' => app(AiCreditService::class)->pricePerQuestion(),
+            'paygPrice' => app(PaygCreditService::class)->pricePerTransaction(),
             'bankName' => Setting::value('billing_bank_name'),
             'bankAccount' => Setting::value('billing_bank_account'),
             'accountName' => Setting::value('billing_account_name'),
@@ -53,6 +63,7 @@ class PlatformBillingController extends Controller
             'billing_bank_account' => ['nullable', 'string', 'max:50'],
             'billing_account_name' => ['nullable', 'string', 'max:100'],
             'ai_price_per_question' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            'payg_price_per_transaction' => ['nullable', 'integer', 'min:1', 'max:1000000'],
         ]);
 
         foreach ($data as $key => $value) {

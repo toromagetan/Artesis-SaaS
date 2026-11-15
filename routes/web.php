@@ -49,9 +49,11 @@ use App\Modules\Platform\Http\Controllers\BillingController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Platform\Http\Controllers\GeneralSettingsController;
 use App\Modules\Platform\Http\Controllers\MyPlanController;
+use App\Modules\Platform\Http\Controllers\PaygCreditController;
 use App\Modules\Platform\Http\Controllers\PlanController;
 use App\Modules\Platform\Http\Controllers\PlatformAiCreditController;
 use App\Modules\Platform\Http\Controllers\PlatformBillingController;
+use App\Modules\Platform\Http\Controllers\PlatformPaygCreditController;
 use App\Modules\Platform\Http\Controllers\SignupController;
 use App\Modules\Platform\Http\Controllers\TenantController;
 use App\Modules\Platform\Http\Controllers\TenantExportController;
@@ -449,6 +451,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/paket-saya', [MyPlanController::class, 'index'])->middleware('permission:settings.manage')->name('plans.my');
     Route::post('/paket-saya/tagihan', [BillingController::class, 'store'])->middleware('permission:settings.manage')->name('billing.store');
     Route::post('/paket-saya/ai/isi-ulang', [AiCreditController::class, 'store'])->middleware('permission:settings.manage')->name('ai-credits.store');
+    Route::post('/paket-saya/payg/isi-ulang', [PaygCreditController::class, 'store'])->middleware('permission:settings.manage')->name('payg-credits.store');
 
     // Panel SaaS (M3): khusus aktor platform — gerbang ganda middleware
     // 'platform' (is_platform) + izin grup platform.
@@ -470,6 +473,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/platform/penagihan/{billingRequest}/tolak', [PlatformBillingController::class, 'reject'])->name('platform.billing.reject');
         Route::post('/platform/penagihan/ai/{aiCreditRequest}/konfirmasi', [PlatformAiCreditController::class, 'confirm'])->name('platform.ai-credits.confirm');
         Route::post('/platform/penagihan/ai/{aiCreditRequest}/tolak', [PlatformAiCreditController::class, 'reject'])->name('platform.ai-credits.reject');
+        Route::post('/platform/penagihan/payg/{paygCreditRequest}/konfirmasi', [PlatformPaygCreditController::class, 'confirm'])->name('platform.payg-credits.confirm');
+        Route::post('/platform/penagihan/payg/{paygCreditRequest}/tolak', [PlatformPaygCreditController::class, 'reject'])->name('platform.payg-credits.reject');
     });
 });
 

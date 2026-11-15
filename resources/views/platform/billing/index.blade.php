@@ -29,6 +29,10 @@
                     <x-input-label for="ai_price_per_question" :value="__('ui.ai_credits.price_label')" />
                     <x-text-input id="ai_price_per_question" name="ai_price_per_question" type="number" min="1" class="mt-1 block w-full" :value="old('ai_price_per_question', $aiPrice)" />
                 </div>
+                <div>
+                    <x-input-label for="payg_price_per_transaction" :value="__('ui.payg_credits.price_label')" />
+                    <x-text-input id="payg_price_per_transaction" name="payg_price_per_transaction" type="number" min="1" class="mt-1 block w-full" :value="old('payg_price_per_transaction', $paygPrice)" />
+                </div>
                 <div class="sm:col-span-3">
                     <x-primary-button>{{ __('ui.billing.save') }}</x-primary-button>
                 </div>
@@ -117,6 +121,55 @@
                                                 <button type="submit" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500">{{ __('ui.billing.confirm') }}</button>
                                             </form>
                                             <form method="POST" action="{{ route('platform.ai-credits.reject', $aiCreditRequest) }}">
+                                                @csrf
+                                                <button type="submit" class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200">{{ __('ui.billing.reject') }}</button>
+                                            </form>
+                                        </div>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="py-4">
+                                    <x-lentera.empty-state :message="__('ui.empty')" />
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 class="text-sm font-semibold text-slate-700">{{ __('ui.payg_credits.requests_title') }}</h3>
+            <div class="mt-3 overflow-x-auto">
+                <table class="w-full min-w-[640px] text-left text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-200 text-slate-500">
+                            <th class="py-2 pr-3 font-medium">{{ __('ui.billing.tenant') }}</th>
+                            <th class="py-2 pr-3 font-medium">{{ __('ui.payg_credits.transactions') }}</th>
+                            <th class="py-2 pr-3 font-medium">{{ __('ui.billing.amount') }}</th>
+                            <th class="py-2 pr-3 font-medium">{{ __('ui.billing.status') }}</th>
+                            <th class="py-2 pr-3 font-medium">{{ __('ui.billing.created_at') }}</th>
+                            <th class="py-2 font-medium">{{ __('ui.billing.actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($paygRequests as $paygCreditRequest)
+                            <tr class="border-b border-slate-100">
+                                <td class="py-2 pr-3 font-medium text-slate-800">{{ $paygCreditRequest->tenant?->name }}</td>
+                                <td class="py-2 pr-3">{{ number_format($paygCreditRequest->credits) }}</td>
+                                <td class="py-2 pr-3 font-medium">Rp {{ number_format($paygCreditRequest->amount, 0, ',', '.') }}</td>
+                                <td class="py-2 pr-3">{{ __('ui.billing.status_'.$paygCreditRequest->status) }}</td>
+                                <td class="py-2 pr-3 text-slate-500">{{ $paygCreditRequest->created_at?->format('d/m/Y H:i') }}</td>
+                                <td class="py-2">
+                                    @if ($paygCreditRequest->isPending())
+                                        <div class="flex gap-2">
+                                            <form method="POST" action="{{ route('platform.payg-credits.confirm', $paygCreditRequest) }}">
+                                                @csrf
+                                                <button type="submit" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500">{{ __('ui.billing.confirm') }}</button>
+                                            </form>
+                                            <form method="POST" action="{{ route('platform.payg-credits.reject', $paygCreditRequest) }}">
                                                 @csrf
                                                 <button type="submit" class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200">{{ __('ui.billing.reject') }}</button>
                                             </form>

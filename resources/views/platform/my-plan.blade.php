@@ -110,6 +110,65 @@
                     @endif
                 </section>
             @endif
+
+            @if ($paygCredit !== null)
+                <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div class="flex flex-wrap items-baseline justify-between gap-2">
+                        <h3 class="text-sm font-semibold text-slate-700">{{ __('ui.payg_credits.title') }}</h3>
+                        <p class="text-lg font-semibold text-emerald-700">
+                            {{ number_format($paygCredit['balance']) }}
+                            <span class="text-sm font-normal text-slate-500">{{ __('ui.payg_credits.transactions') }}</span>
+                        </p>
+                    </div>
+                    <p class="mt-2 text-sm text-slate-600">
+                        {{ __('ui.payg_credits.price_note', ['price' => 'Rp '.number_format($paygCredit['price'], 0, ',', '.')]) }}
+                    </p>
+                    @if ($paygCredit['balance'] > 0)
+                        <p class="mt-1 text-sm text-slate-600">
+                            {{ __('ui.payg_credits.balance_value', ['amount' => 'Rp '.number_format($paygCredit['value'], 0, ',', '.')]) }}
+                        </p>
+                    @elseif ($paygCredit['balance'] < 0)
+                        <p class="mt-3 rounded-lg border border-gold/50 bg-gold/10 px-4 py-3 text-sm text-gold-dark">
+                            {{ __('ui.payg_credits.arrears_note', ['count' => number_format(abs($paygCredit['balance'])), 'amount' => 'Rp '.number_format(abs($paygCredit['value']), 0, ',', '.')]) }}
+                        </p>
+                    @endif
+
+                    @if ($paygCredit['pending'] !== null)
+                        <p class="mt-3 rounded-lg border border-gold/50 bg-gold/10 px-4 py-3 text-sm text-gold-dark">
+                            {{ __('ui.payg_credits.pending_note', ['credits' => number_format($paygCredit['pending']->credits), 'amount' => 'Rp '.number_format($paygCredit['pending']->amount, 0, ',', '.')]) }}
+                        </p>
+                    @else
+                        <form method="POST" action="{{ route('payg-credits.store') }}" class="mt-3 flex flex-wrap items-end gap-2">
+                            @csrf
+                            <div>
+                                <x-input-label for="payg_credits" :value="__('ui.payg_credits.topup_label')" />
+                                <x-text-input id="payg_credits" name="credits" type="number" min="10" max="10000" value="100" class="mt-1 block w-36" required />
+                            </div>
+                            <x-primary-button>{{ __('ui.payg_credits.topup_button') }}</x-primary-button>
+                        </form>
+                        @error('credits')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    @endif
+
+                    @if ($paygCredit['ledger']->isNotEmpty())
+                        <h4 class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('ui.payg_credits.history') }}</h4>
+                        <ul class="mt-2 divide-y divide-slate-100 text-sm">
+                            @foreach ($paygCredit['ledger'] as $entry)
+                                <li class="flex items-center justify-between py-1.5">
+                                    <span class="text-slate-600">
+                                        {{ $entry->created_at->format('d/m/Y H:i') }} —
+                                        {{ __('ui.payg_credits.kind_'.$entry->kind) }}
+                                    </span>
+                                    <span class="font-medium {{ $entry->credits_delta > 0 ? 'text-emerald-700' : 'text-slate-700' }}">
+                                        {{ $entry->credits_delta > 0 ? '+' : '' }}{{ $entry->credits_delta }} → {{ number_format($entry->balance_after) }}
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </section>
+            @endif
         @endif
     </div>
 </x-app-layout>
