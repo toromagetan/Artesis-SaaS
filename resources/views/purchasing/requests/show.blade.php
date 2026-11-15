@@ -17,8 +17,10 @@
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('pr.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 <x-lentera.aksi-bar>
-                    <x-lentera.menu-item :href="route('pr.print', $pr)" target="_blank" print>{{ __('ui.print') }}</x-lentera.menu-item>
-                    <x-lentera.menu-item :href="route('pr.download', $pr)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
+                    <x-lentera.cetak-dropdown :label="__('ui.print_doc.pr')">
+                        <x-lentera.cetak-item :href="route('pr.print', $pr)" target="_blank">{{ __('ui.print_a5') }}</x-lentera.cetak-item>
+                        <x-lentera.cetak-item :href="route('pr.download', $pr)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.cetak-item>
+                    </x-lentera.cetak-dropdown>
                     @can('pr.create')
                         <x-lentera.menu-item :href="route('pr.create')">{{ __('ui.purchasing.pr_create') }}</x-lentera.menu-item>
                     @endcan

@@ -50,6 +50,15 @@
 
                     <h2 class="mt-8 text-sm font-semibold text-lentera-950">{{ __('ui.settings_general.tax_section') }}</h2>
                     <div class="mt-3 grid gap-4 sm:grid-cols-2">
+                        <div class="sm:col-span-2">
+                            <x-input-label for="tax_enabled" :value="__('ui.settings_general.tax_enabled')" />
+                            <select id="tax_enabled" name="tax_enabled" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lentera-500 focus:ring-lentera-500">
+                                <option value="1" @selected(old('tax_enabled', $values['tax.enabled']) === '1')>{{ __('ui.settings_general.tax_enabled_on') }}</option>
+                                <option value="0" @selected(old('tax_enabled', $values['tax.enabled']) === '0')>{{ __('ui.settings_general.tax_enabled_off') }}</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">{{ __('ui.settings_general.tax_enabled_hint') }}</p>
+                            <x-input-error :messages="$errors->get('tax_enabled')" class="mt-2" />
+                        </div>
                         <div>
                             <x-input-label for="tax_rate_default" :value="__('ui.settings_general.tax_rate')" />
                             <x-text-input id="tax_rate_default" name="tax_rate_default" type="number" min="0" max="100" step="0.01" class="block mt-1 w-full tnum" :value="old('tax_rate_default', $values['tax.rate_default'])" required />

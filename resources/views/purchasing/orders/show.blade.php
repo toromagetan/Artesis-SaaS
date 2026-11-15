@@ -18,8 +18,10 @@
                 <a href="{{ route('po.index') }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }}</a>
                 <div class="flex items-center gap-2">
                     <x-lentera.aksi-bar>
-                        <x-lentera.menu-item :href="route('po.print', $po)" target="_blank" print>{{ __('ui.purchasing.po_print') }}</x-lentera.menu-item>
-                        <x-lentera.menu-item :href="route('po.download', $po)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
+                        <x-lentera.cetak-dropdown :label="__('ui.purchasing.po_print')">
+                            <x-lentera.cetak-item :href="route('po.print', $po)" target="_blank">{{ __('ui.print_a5') }}</x-lentera.cetak-item>
+                            <x-lentera.cetak-item :href="route('po.download', $po)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.cetak-item>
+                        </x-lentera.cetak-dropdown>
                     </x-lentera.aksi-bar>
                     @unless ($po->isVoid())
                         <x-lentera.aksi-bar>

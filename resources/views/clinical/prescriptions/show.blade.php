@@ -14,8 +14,10 @@
                 <div class="flex items-center gap-2">
                     <x-lentera.aksi-bar>
                         @can('prescriptions.print')
-                            <x-lentera.menu-item :href="route('prescriptions.print', $prescription)" target="_blank" print>{{ __('ui.prescriptions.print') }}</x-lentera.menu-item>
-                            <x-lentera.menu-item :href="route('prescriptions.download', $prescription)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
+                            <x-lentera.cetak-dropdown :label="__('ui.prescriptions.print')">
+                                <x-lentera.cetak-item :href="route('prescriptions.print', $prescription)" target="_blank">{{ __('ui.print_a5') }}</x-lentera.cetak-item>
+                                <x-lentera.cetak-item :href="route('prescriptions.download', $prescription)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.cetak-item>
+                            </x-lentera.cetak-dropdown>
                         @endcan
                     </x-lentera.aksi-bar>
                     @if (auth()->user()->hasPermission('prescriptions.create'))

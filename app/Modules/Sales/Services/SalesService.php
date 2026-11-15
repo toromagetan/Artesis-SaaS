@@ -241,6 +241,12 @@ class SalesService
 
             $taxMode = $data['tax_mode'] ?? (string) Setting::value('tax.mode', 'inclusive');
             $rate = (string) Setting::value('tax.rate_default', '11');
+            // PPN dimatikan pemilik (toko belum PKP, keputusan owner
+            // 15 Nov 2026): tarif dipaksa nol — penjualan tanpa pajak,
+            // total = subtotal − diskon, jurnal tanpa baris PPN Keluaran.
+            if ((string) Setting::value('tax.enabled', '1') === '0') {
+                $rate = '0';
+            }
             $taxableBase = $subtotal->sub($discount);
             if ($taxMode === 'exclusive') {
                 $tax = $taxableBase->percent($rate);

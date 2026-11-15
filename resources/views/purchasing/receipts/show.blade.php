@@ -17,8 +17,10 @@
             <div class="mb-4 flex items-center justify-between">
                 <a href="{{ route('po.show', $receipt->purchaseOrder) }}" class="text-sm text-gray-600 underline">{{ __('ui.back') }} — {{ $receipt->purchaseOrder->number }}</a>
                 <x-lentera.aksi-bar>
-                    <x-lentera.menu-item :href="route('receipts.print', $receipt)" target="_blank" print>{{ __('ui.print') }}</x-lentera.menu-item>
-                    <x-lentera.menu-item :href="route('receipts.download', $receipt)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.menu-item>
+                    <x-lentera.cetak-dropdown :label="__('ui.print_doc.receipt')">
+                        <x-lentera.cetak-item :href="route('receipts.print', $receipt)" target="_blank">{{ __('ui.print_a5') }}</x-lentera.cetak-item>
+                        <x-lentera.cetak-item :href="route('receipts.download', $receipt)" icon="download">{{ __('ui.download_pdf') }}</x-lentera.cetak-item>
+                    </x-lentera.cetak-dropdown>
                     @can('payments.create')
                         @if ($receipt->paymentStatus() !== 'paid')
                             <x-lentera.menu-item :href="route('receipts.pay', $receipt)">{{ __('ui.purchasing.pay') }}</x-lentera.menu-item>

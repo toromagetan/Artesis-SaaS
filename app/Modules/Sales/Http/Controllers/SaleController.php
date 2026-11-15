@@ -117,6 +117,7 @@ class SaleController extends Controller
             'insurances' => Insurance::where('is_active', true)->orderBy('name')->get(),
             'taxMode' => (string) Setting::value('tax.mode', 'inclusive'),
             'taxRate' => (string) Setting::value('tax.rate_default', '11'),
+            'taxEnabled' => (string) Setting::value('tax.enabled', '1') !== '0',
         ]);
     }
 
