@@ -15,7 +15,9 @@ use App\Modules\Master\Models\Doctor;
 use App\Modules\Master\Models\Insurance;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Membership\Services\PointsService;
+use App\Modules\Platform\Models\Tenant;
 use App\Modules\Platform\Services\AuditLogger;
+use App\Modules\Platform\Services\PaygCreditService;
 use App\Modules\Purchasing\Models\PurchaseRequestItem;
 use App\Modules\Purchasing\Services\PurchaseRequestService;
 use App\Modules\Sales\Events\SaleCompleted;
@@ -373,6 +375,14 @@ class SalesService
                 app(PrescriptionService::class)->markUsed($prescription);
             }
 
+            // PAYG: tenant berpaket PAYG dipotong 1 kredit transaksi
+            // per penjualan tersimpan (idempoten per penjualan;
+            // saldo boleh negatif — penjualan tidak pernah ditahan).
+            $paygTenant = $this->paygTenantForSale($sale, $actor);
+            if ($paygTenant !== null) {
+                app(PaygCreditService::class)->chargeForSale($paygTenant, $sale, $actor);
+            }
+
             app(AuditLogger::class)->log(
                 action: 'sales.create',
                 subjectType: 'sale',
@@ -632,6 +642,13 @@ class SalesService
             // Jadwal cicilan adalah rencana atas piutang — ikut batal.
             app(InstallmentService::class)->removeForVoidedSale($sale);
 
+            // PAYG: void penuh membalikkan potongan transaksi
+            // penjualan ini (tepat satu kali per penjualan).
+            $paygTenant = $this->paygTenantForSale($sale, $actor);
+            if ($paygTenant !== null) {
+                app(PaygCreditService::class)->reverseForSale($paygTenant, $sale, $actor);
+            }
+
             SaleVoided::dispatch($sale);
 
             return $sale;
@@ -639,6 +656,28 @@ class SalesService
     }
 
     /** @param array<int, array<string, mixed>> $lines */
+    /**
+     * Tenant pemilik penjualan untuk penagihan PAYG: dari cabang
+     * transaksi (penjualan tidak berkolom tenant_id), cadangan dari
+     * tenant aktor. Null bila instalasi mandiri/platform (tanpa
+     * tenant) atau paket tenant bukan PAYG — keduanya dilewati
+     * diam-diam tanpa potongan apa pun.
+     */
+    private function paygTenantForSale(Sale $sale, User $actor): ?Tenant
+    {
+        $tenantId = $sale->branch?->tenant_id ?? $actor->tenant_id;
+        if ($tenantId === null) {
+            return null;
+        }
+
+        $tenant = Tenant::find((int) $tenantId);
+        if ($tenant === null || $tenant->currentPlan()?->key !== 'payg') {
+            return null;
+        }
+
+        return $tenant;
+    }
+
     private function assertDiscountPermission(User $actor, Money $subtotal, Money $saleDiscount, array $lines): void
     {
         if ($subtotal->isZero()) {

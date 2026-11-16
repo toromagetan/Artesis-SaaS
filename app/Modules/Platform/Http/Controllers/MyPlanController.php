@@ -5,10 +5,12 @@ namespace App\Modules\Platform\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Master\Models\Setting;
 use App\Modules\Platform\Models\AiCreditRequest;
+use App\Modules\Platform\Models\PaygCreditRequest;
 use App\Modules\Platform\Models\Plan;
 use App\Modules\Platform\Models\TenantBillingRequest;
 use App\Modules\Platform\Services\AiCreditService;
 use App\Modules\Platform\Services\BillingService;
+use App\Modules\Platform\Services\PaygCreditService;
 use App\Modules\Platform\Services\PlanGate;
 use App\Modules\Platform\Services\PlanService;
 use App\Support\PlanFeatureRegistry;
@@ -27,6 +29,7 @@ class MyPlanController extends Controller
         private readonly PlanService $plans,
         private readonly BillingService $billing,
         private readonly AiCreditService $aiCredits,
+        private readonly PaygCreditService $paygCredits,
     ) {}
 
     public function index(Request $request): View
@@ -76,6 +79,24 @@ class MyPlanController extends Controller
             ];
         }
 
+        // PAYG (bayar per transaksi penjualan): blok saldo hanya
+        // untuk tenant yang paket efektifnya PAYG.
+        $paygCredit = null;
+        if ($tenant !== null && $tenant->currentPlan()?->key === 'payg') {
+            $paygBalance = $this->paygCredits->balance($tenant);
+            $paygPrice = $this->paygCredits->pricePerTransaction();
+            $paygCredit = [
+                'balance' => $paygBalance,
+                'price' => $paygPrice,
+                'value' => $paygBalance * $paygPrice,
+                'pending' => $tenant->paygCreditRequests()
+                    ->where('status', PaygCreditRequest::STATUS_PENDING)
+                    ->latest()
+                    ->first(),
+                'ledger' => $tenant->paygCreditLedger()->orderByDesc('id')->limit(10)->get(),
+            ];
+        }
+
         return view('platform.my-plan', [
             'tenant' => $tenant,
             'subscription' => $subscription,
@@ -88,6 +109,7 @@ class MyPlanController extends Controller
             'monthlyTotals' => $monthlyTotals,
             'pendingRequest' => $pendingRequest,
             'aiCredit' => $aiCredit,
+            'paygCredit' => $paygCredit,
             'bankName' => Setting::value('billing_bank_name'),
             'bankAccount' => Setting::value('billing_bank_account'),
             'accountName' => Setting::value('billing_account_name'),

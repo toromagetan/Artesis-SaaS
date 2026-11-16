@@ -40,18 +40,23 @@ class SaasPlatformTest extends TestCase
 
     public function test_default_plans_match_ceo_pricing_and_limits(): void
     {
-        $this->assertSame(4, Plan::count());
+        $this->assertSame(5, Plan::count());
 
         $free = Plan::where('key', 'free')->firstOrFail();
         $solo = Plan::where('key', 'solo')->firstOrFail();
         $team = Plan::where('key', 'team')->firstOrFail();
         $best = Plan::where('key', 'best_offer')->firstOrFail();
+        $payg = Plan::where('key', 'payg')->firstOrFail();
 
         $this->assertSame(0, $free->price_monthly);
         $this->assertSame(49000, $solo->price_monthly);
         $this->assertSame(129000, $team->price_monthly);
         $this->assertSame(199000, $best->price_monthly);
         $this->assertSame(99000, $best->extra_branch_price);
+        // PAYG (owner 2026-11-15): tanpa harga bulanan; cabang
+        // tambahan Rp89 rb; fitur semua terbuka kecuali accounting.
+        $this->assertSame(0, $payg->price_monthly);
+        $this->assertSame(0, $payg->extra_branch_price);
 
         $tenant = Tenant::create(['name' => 'Uji', 'slug' => 'uji']);
         // Tanpa langganan: bawaan Free — produk maks 500, WA mati.

@@ -46,6 +46,16 @@ class Tenant extends Model
         return $this->hasMany(AiCreditLedger::class);
     }
 
+    public function paygCreditRequests(): HasMany
+    {
+        return $this->hasMany(PaygCreditRequest::class);
+    }
+
+    public function paygCreditLedger(): HasMany
+    {
+        return $this->hasMany(PaygCreditLedger::class);
+    }
+
     public function billingRequests(): HasMany
     {
         return $this->hasMany(TenantBillingRequest::class);

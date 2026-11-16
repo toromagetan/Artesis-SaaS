@@ -57,6 +57,7 @@ class TenantExportService
         'ai_credit_ledger', 'ai_credit_requests',
         'branches', 'commissions', 'customers', 'doctors', 'fixed_assets',
         'incentive_rules', 'insurances', 'journals', 'membership_levels',
+        'payg_credit_ledger', 'payg_credit_requests',
         'payrolls', 'period_locks', 'prescriptions',
         'products', 'roles', 'settings', 'suppliers', 'tenant_billing_requests',
         'tenant_feature_overrides', 'tenant_subscriptions', 'users',

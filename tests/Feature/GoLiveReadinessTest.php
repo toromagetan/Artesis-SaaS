@@ -23,9 +23,10 @@ class GoLiveReadinessTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertSame(4, Plan::count());
+        $this->assertSame(5, Plan::count());
         $this->assertNotNull(Plan::where('key', 'free')->first());
         $this->assertNotNull(Plan::where('key', 'best_offer')->first());
+        $this->assertNotNull(Plan::where('key', 'payg')->first());
 
         $platform = User::where('username', 'platform')->firstOrFail();
         $this->assertTrue($platform->is_platform);
