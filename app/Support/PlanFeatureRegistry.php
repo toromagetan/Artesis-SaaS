@@ -96,26 +96,26 @@ class PlanFeatureRegistry
                 'sort_order' => 2,
                 'features' => array_merge($off, [
                     'reports_advanced' => 1,
-                    'products_max' => null, 'users_max' => 2,
+                    'products_max' => null, 'users_max' => 4,
                     'branches_max' => 1, 'report_history_days' => null,
                 ]),
             ],
             'team' => [
                 'name' => 'Team',
                 'price_monthly' => 129000,
-                'extra_branch_price' => 0,
+                'extra_branch_price' => 89000,
                 'sort_order' => 3,
                 'features' => array_merge($off, [
                     'reports_advanced' => 1, 'roles_permissions' => 1,
                     'crm_members' => 1, 'purchasing_full' => 1, 'ai_assistant' => 1,
-                    'products_max' => null, 'users_max' => 7,
-                    'branches_max' => 1, 'report_history_days' => null,
+                    'products_max' => null, 'users_max' => null,
+                    'branches_max' => null, 'report_history_days' => null,
                 ]),
             ],
             'best_offer' => [
                 'name' => 'Best Offer',
                 'price_monthly' => 199000,
-                'extra_branch_price' => 99000,
+                'extra_branch_price' => 89000,
                 'sort_order' => 4,
                 'features' => array_merge($off, [
                     'reports_advanced' => 1, 'roles_permissions' => 1,
