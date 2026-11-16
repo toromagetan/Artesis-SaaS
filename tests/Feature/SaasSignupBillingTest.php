@@ -141,13 +141,14 @@ class SaasSignupBillingTest extends TestCase
         $billing = app(BillingService::class);
         $best = Plan::where('key', 'best_offer')->firstOrFail();
 
-        // 199.000 + 2 cabang tambahan × 99.000 = 397.000 per bulan.
-        $this->assertSame(397000, $billing->monthlyTotal($best, 3));
+        // 199.000 + 2 cabang tambahan × 89.000 = 377.000 per bulan
+        // (harga cabang tambahan Best Offer, owner 2026-11-15).
+        $this->assertSame(377000, $billing->monthlyTotal($best, 3));
         $this->assertSame(199000, $billing->monthlyTotal($best, 1));
 
         $request = $billing->createRequest($tenant, $best, 3, 'Transfer BCA 123', $admin);
         $this->assertSame(2, $request->extra_branches);
-        $this->assertSame(1191000, $request->amount);
+        $this->assertSame(1131000, $request->amount);
         $this->assertTrue($request->isPending());
     }
 

@@ -52,7 +52,10 @@ class SaasPlatformTest extends TestCase
         $this->assertSame(49000, $solo->price_monthly);
         $this->assertSame(129000, $team->price_monthly);
         $this->assertSame(199000, $best->price_monthly);
-        $this->assertSame(99000, $best->extra_branch_price);
+        $this->assertSame(89000, $best->extra_branch_price);
+        // Team (owner 2026-11-15): cabang tambahan Rp89 rb juga,
+        // akun dan cabang tanpa batas.
+        $this->assertSame(89000, $team->extra_branch_price);
         // PAYG (owner 2026-11-15, accounting dibuka 2026-11-16):
         // tanpa harga bulanan, tanpa biaya cabang tambahan; fitur
         // semua terbuka termasuk accounting.
@@ -65,10 +68,15 @@ class SaasPlatformTest extends TestCase
         $this->assertFalse($this->plans->featureEnabled($tenant, 'whatsapp'));
 
         $this->plans->assignPlan($tenant, $solo, null, $this->platform);
-        $this->assertSame(2, $this->plans->featureLimit($tenant, 'users_max'));
+        $this->assertSame(4, $this->plans->featureLimit($tenant, 'users_max'));
         $this->assertNull($this->plans->featureLimit($tenant, 'products_max'));
         $this->assertTrue($this->plans->featureEnabled($tenant, 'reports_advanced'));
         $this->assertFalse($this->plans->featureEnabled($tenant, 'crm_members'));
+
+        // Team: akun dan cabang tanpa batas (owner 2026-11-15).
+        $this->plans->assignPlan($tenant, $team, null, $this->platform);
+        $this->assertNull($this->plans->featureLimit($tenant, 'users_max'));
+        $this->assertNull($this->plans->featureLimit($tenant, 'branches_max'));
 
         $this->plans->assignPlan($tenant, $best, null, $this->platform);
         $this->assertTrue($this->plans->featureEnabled($tenant, 'whatsapp'));
