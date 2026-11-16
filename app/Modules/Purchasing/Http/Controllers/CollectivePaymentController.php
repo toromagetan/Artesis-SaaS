@@ -22,8 +22,12 @@ use Illuminate\View\View;
  * receipt belum lunas FIFO → satu jumlah bayar → alokasi FIFO dalam
  * SATU transaksi. Kegagalan apa pun menjadi pesan ramah, TIDAK PERNAH
  * halaman error mentah (kontrak D.7 butir 4).
+ *
+ * Menu dan gerbang paketnya mengikuti Akuntansi (keputusan owner
+ * 2026-11-16): membayar utang supplier adalah fungsi akuntansi,
+ * jadi fitur penegaknya accounting_full, bukan purchasing_full.
  */
-#[Middleware('plan.feature:purchasing_full')]
+#[Middleware('plan.feature:accounting_full')]
 class CollectivePaymentController extends Controller
 {
     public function __construct(private readonly CollectivePaymentService $collective) {}

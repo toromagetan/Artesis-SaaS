@@ -105,7 +105,7 @@ class PaygCreditTest extends TestCase
         ]);
     }
 
-    public function test_payg_plan_feature_map_opens_everything_except_accounting(): void
+    public function test_payg_plan_feature_map_opens_all_features_including_accounting(): void
     {
         [$tenant] = $this->tenantOwner('a');
         $plans = app(PlanService::class);
@@ -114,8 +114,9 @@ class PaygCreditTest extends TestCase
         $this->assertSame(0, (int) $payg->price_monthly);
         $this->assertSame(0, (int) $payg->extra_branch_price);
 
-        $this->assertFalse($plans->featureEnabled($tenant, 'accounting_full'));
-        foreach (['reports_advanced', 'roles_permissions', 'crm_members', 'purchasing_full', 'whatsapp', 'api_access', 'ai_assistant'] as $key) {
+        // Accounting ikut dibuka untuk PAYG (keputusan owner
+        // 2026-11-16) agar paket PAYG lebih menarik.
+        foreach (['reports_advanced', 'roles_permissions', 'crm_members', 'purchasing_full', 'accounting_full', 'whatsapp', 'api_access', 'ai_assistant'] as $key) {
             $this->assertTrue($plans->featureEnabled($tenant, $key), $key);
         }
         foreach (['products_max', 'users_max', 'branches_max', 'report_history_days'] as $key) {
