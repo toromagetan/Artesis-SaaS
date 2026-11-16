@@ -15,6 +15,20 @@
     // 15 Nov 2026, sejajar middleware wa.api pada rutenya.
     $waContext = \App\Modules\Identity\Services\TenantContext::for($u);
     $waApiEnabled = $waContext->isPlatform() || $waContext->isStandalone();
+    // Tanda gembok paket (keputusan owner 2026-11-15 §215): item yang
+    // fitur paketnya terkunci untuk tenant tampil ber-gembok & tidak
+    // bisa diklik — BUKAN disembunyikan. Ini lapisan UX saja; gerbang
+    // server 'plan.feature'/PlanGate tetap penegak aslinya. Hanya
+    // aktor TENANT yang bisa terkunci; standalone/platform tidak.
+    $planGate = app(\App\Modules\Platform\Services\PlanGate::class);
+    $planLock = fn (string $f) => $waContext->isTenant() && ! $planGate->enabled($u, $f);
+    $lockAccounting = $planLock('accounting_full');
+    $lockAi = $planLock('ai_assistant');
+    $lockMembers = $planLock('crm_members');
+    $lockPurchasing = $planLock('purchasing_full');
+    $lockApi = $planLock('api_access');
+    $lockRoles = $planLock('roles_permissions');
+    $lockIco = '<svg class="ml-auto h-4 w-4 shrink-0 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>';
     $item = 'relative flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-lentera-100/80 transition duration-150 hover:bg-white/5 hover:text-white';
     $itemActive = 'bg-lentera-800 font-semibold text-white';
     $sub = 'flex items-center gap-2 rounded-lg py-1.5 pl-11 pr-3 text-[13px] text-lentera-100/60 transition duration-150 hover:bg-white/5 hover:text-white';
@@ -56,11 +70,19 @@
             {{ __('ui.nav.dashboard') }}
         </a>
         @if ($u->hasRole('Owner'))
-            <a href="{{ route('assistant.index') }}" class="{{ $item }} {{ request()->routeIs('assistant.*') ? $itemActive : '' }}">
-                @if (request()->routeIs('assistant.*')) {!! $goldBar !!} @endif
-                <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/></svg>
-                {{ __('ui.nav.assistant') }}
-            </a>
+            @if ($lockAi)
+                <span class="{{ $item }} cursor-not-allowed opacity-50" data-plan-locked="ai_assistant" aria-disabled="true" title="{{ __('ui.plans.locked') }}">
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/></svg>
+                    {{ __('ui.nav.assistant') }}
+                    {!! $lockIco !!}
+                </span>
+            @else
+                <a href="{{ route('assistant.index') }}" class="{{ $item }} {{ request()->routeIs('assistant.*') ? $itemActive : '' }}">
+                    @if (request()->routeIs('assistant.*')) {!! $goldBar !!} @endif
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/></svg>
+                    {{ __('ui.nav.assistant') }}
+                </a>
+            @endif
         @endif
 
         {{-- MASTER (cermin Artesis — A6) --}}
@@ -94,10 +116,19 @@
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
                     <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
-                        <a href="{{ route('members.index') }}" class="{{ $sub }} {{ request()->routeIs('members.index') ? $subActive : '' }}">@if (request()->routeIs('members.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.members_list') }}</a>
-                        <a href="{{ route('members.follow-up') }}" class="{{ $sub }} {{ request()->routeIs('members.follow-up') ? $subActive : '' }}">@if (request()->routeIs('members.follow-up')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.follow_up') }}</a>
+                        @if ($lockMembers)
+                            <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="crm_members" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.nav.members_list') }}{!! $lockIco !!}</span>
+                            <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="crm_members" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.nav.follow_up') }}{!! $lockIco !!}</span>
+                        @else
+                            <a href="{{ route('members.index') }}" class="{{ $sub }} {{ request()->routeIs('members.index') ? $subActive : '' }}">@if (request()->routeIs('members.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.members_list') }}</a>
+                            <a href="{{ route('members.follow-up') }}" class="{{ $sub }} {{ request()->routeIs('members.follow-up') ? $subActive : '' }}">@if (request()->routeIs('members.follow-up')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.follow_up') }}</a>
+                        @endif
                         @if ($can('members.manage'))
-                            <a href="{{ route('members.levels') }}" class="{{ $sub }} {{ request()->routeIs('members.levels*') ? $subActive : '' }}">@if (request()->routeIs('members.levels*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.member_levels') }}</a>
+                            @if ($lockMembers)
+                                <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="crm_members" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.nav.member_levels') }}{!! $lockIco !!}</span>
+                            @else
+                                <a href="{{ route('members.levels') }}" class="{{ $sub }} {{ request()->routeIs('members.levels*') ? $subActive : '' }}">@if (request()->routeIs('members.levels*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.member_levels') }}</a>
+                            @endif
                         @endif
                     </div>
                 </div>
@@ -143,11 +174,19 @@
                 </a>
             @endif
             @if ($can('roles.manage'))
-                <a href="{{ route('roles.index') }}" class="{{ $item }} {{ request()->routeIs('roles.*') ? $itemActive : '' }}">
-                    @if (request()->routeIs('roles.*')) {!! $goldBar !!} @endif
-                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 4.5 3.4 7.7 8 9 4.6-1.3 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
-                    {{ __('ui.nav.roles') }}
-                </a>
+                @if ($lockRoles)
+                    <span class="{{ $item }} cursor-not-allowed opacity-50" data-plan-locked="roles_permissions" aria-disabled="true" title="{{ __('ui.plans.locked') }}">
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 4.5 3.4 7.7 8 9 4.6-1.3 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+                        {{ __('ui.nav.roles') }}
+                        {!! $lockIco !!}
+                    </span>
+                @else
+                    <a href="{{ route('roles.index') }}" class="{{ $item }} {{ request()->routeIs('roles.*') ? $itemActive : '' }}">
+                        @if (request()->routeIs('roles.*')) {!! $goldBar !!} @endif
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 4.5 3.4 7.7 8 9 4.6-1.3 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+                        {{ __('ui.nav.roles') }}
+                    </a>
+                @endif
             @endif
             @if ($can('insurances.manage'))
                 <a href="{{ route('insurances.index') }}" class="{{ $item }} {{ request()->routeIs('insurances.*') ? $itemActive : '' }}">
@@ -207,11 +246,19 @@
                 </div>
             @endif
             @if ($can('pr.view'))
-                <a href="{{ route('pr.index') }}" class="{{ $item }} {{ request()->routeIs('pr.*') ? $itemActive : '' }}">
-                    @if (request()->routeIs('pr.*')) {!! $goldBar !!} @endif
-                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6"/><path d="M9 14h6"/><path d="M9 17h4"/></svg>
-                    {{ __('ui.purchasing.pr_title') }}
-                </a>
+                @if ($lockPurchasing)
+                    <span class="{{ $item }} cursor-not-allowed opacity-50" data-plan-locked="purchasing_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6"/><path d="M9 14h6"/><path d="M9 17h4"/></svg>
+                        {{ __('ui.purchasing.pr_title') }}
+                        {!! $lockIco !!}
+                    </span>
+                @else
+                    <a href="{{ route('pr.index') }}" class="{{ $item }} {{ request()->routeIs('pr.*') ? $itemActive : '' }}">
+                        @if (request()->routeIs('pr.*')) {!! $goldBar !!} @endif
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6"/><path d="M9 14h6"/><path d="M9 17h4"/></svg>
+                        {{ __('ui.purchasing.pr_title') }}
+                    </a>
+                @endif
             @endif
             @if ($can('po.view') || $can('payments.collective'))
                 @php $act = request()->routeIs('po.*') || request()->routeIs('receipts.*') || request()->routeIs('payments.*'); @endphp
@@ -224,10 +271,18 @@
                     </button>
                     <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
                         @if ($can('po.view'))
-                            <a href="{{ route('po.index') }}" class="{{ $sub }} {{ request()->routeIs('po.*') || request()->routeIs('receipts.*') ? $subActive : '' }}">@if (request()->routeIs('po.*') || request()->routeIs('receipts.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.purchasing.po_title') }}</a>
+                            @if ($lockPurchasing)
+                                <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="purchasing_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.purchasing.po_title') }}{!! $lockIco !!}</span>
+                            @else
+                                <a href="{{ route('po.index') }}" class="{{ $sub }} {{ request()->routeIs('po.*') || request()->routeIs('receipts.*') ? $subActive : '' }}">@if (request()->routeIs('po.*') || request()->routeIs('receipts.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.purchasing.po_title') }}</a>
+                            @endif
                         @endif
                         @if ($can('payments.collective'))
-                            <a href="{{ route('payments.collective') }}" class="{{ $sub }} {{ request()->routeIs('payments.*') ? $subActive : '' }}">@if (request()->routeIs('payments.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.purchasing.collective') }}</a>
+                            @if ($lockPurchasing)
+                                <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="purchasing_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.purchasing.collective') }}{!! $lockIco !!}</span>
+                            @else
+                                <a href="{{ route('payments.collective') }}" class="{{ $sub }} {{ request()->routeIs('payments.*') ? $subActive : '' }}">@if (request()->routeIs('payments.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.purchasing.collective') }}</a>
+                            @endif
                         @endif
                     </div>
                 </div>
@@ -351,9 +406,15 @@
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
                     <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
-                        <a href="{{ route('financial.balance-sheet') }}" class="{{ $sub }} {{ request()->routeIs('financial.balance-sheet') ? $subActive : '' }}">@if (request()->routeIs('financial.balance-sheet')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.fin_balance') }}</a>
-                        <a href="{{ route('financial.income') }}" class="{{ $sub }} {{ request()->routeIs('financial.income') ? $subActive : '' }}">@if (request()->routeIs('financial.income')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.fin_income') }}</a>
-                        <a href="{{ route('financial.cash-flow') }}" class="{{ $sub }} {{ request()->routeIs('financial.cash-flow') ? $subActive : '' }}">@if (request()->routeIs('financial.cash-flow')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.fin_cashflow') }}</a>
+                        @if ($lockAccounting)
+                            <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="accounting_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.nav.fin_balance') }}{!! $lockIco !!}</span>
+                            <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="accounting_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.nav.fin_income') }}{!! $lockIco !!}</span>
+                            <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="accounting_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.nav.fin_cashflow') }}{!! $lockIco !!}</span>
+                        @else
+                            <a href="{{ route('financial.balance-sheet') }}" class="{{ $sub }} {{ request()->routeIs('financial.balance-sheet') ? $subActive : '' }}">@if (request()->routeIs('financial.balance-sheet')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.fin_balance') }}</a>
+                            <a href="{{ route('financial.income') }}" class="{{ $sub }} {{ request()->routeIs('financial.income') ? $subActive : '' }}">@if (request()->routeIs('financial.income')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.fin_income') }}</a>
+                            <a href="{{ route('financial.cash-flow') }}" class="{{ $sub }} {{ request()->routeIs('financial.cash-flow') ? $subActive : '' }}">@if (request()->routeIs('financial.cash-flow')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.fin_cashflow') }}</a>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -372,32 +433,62 @@
                         <svg :class="open ? 'rotate-180' : ''" class="{{ $chev }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
                     </button>
                     <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @if (! $act) style="display: none;" @endif class="mt-0.5 space-y-0.5">
-                        <a href="{{ route('journals.index') }}" class="{{ $sub }} {{ request()->routeIs('journals.index') ? $subActive : '' }}">@if (request()->routeIs('journals.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.journals_list') }}</a>
-                        <a href="{{ route('journals.create') }}" class="{{ $sub }} {{ request()->routeIs('journals.create') ? $subActive : '' }}">@if (request()->routeIs('journals.create')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.journal_manual') }}</a>
-                        <a href="{{ route('ledger.index') }}" class="{{ $sub }} {{ request()->routeIs('ledger.*') ? $subActive : '' }}">@if (request()->routeIs('ledger.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.ledger') }}</a>
+                        @if ($lockAccounting)
+                            <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="accounting_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.nav.journals_list') }}{!! $lockIco !!}</span>
+                            <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="accounting_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.nav.journal_manual') }}{!! $lockIco !!}</span>
+                            <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="accounting_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.nav.ledger') }}{!! $lockIco !!}</span>
+                        @else
+                            <a href="{{ route('journals.index') }}" class="{{ $sub }} {{ request()->routeIs('journals.index') ? $subActive : '' }}">@if (request()->routeIs('journals.index')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.journals_list') }}</a>
+                            <a href="{{ route('journals.create') }}" class="{{ $sub }} {{ request()->routeIs('journals.create') ? $subActive : '' }}">@if (request()->routeIs('journals.create')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.journal_manual') }}</a>
+                            <a href="{{ route('ledger.index') }}" class="{{ $sub }} {{ request()->routeIs('ledger.*') ? $subActive : '' }}">@if (request()->routeIs('ledger.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.nav.ledger') }}</a>
+                        @endif
                     </div>
                 </div>
             @endif
             @if ($can('accounts.view'))
-                <a href="{{ route('accounts.index') }}" class="{{ $item }} {{ request()->routeIs('accounts.*') ? $itemActive : '' }}">
-                    @if (request()->routeIs('accounts.*')) {!! $goldBar !!} @endif
-                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h12"/></svg>
-                    {{ __('ui.accounting.accounts') }}
-                </a>
+                @if ($lockAccounting)
+                    <span class="{{ $item }} cursor-not-allowed opacity-50" data-plan-locked="accounting_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h12"/></svg>
+                        {{ __('ui.accounting.accounts') }}
+                        {!! $lockIco !!}
+                    </span>
+                @else
+                    <a href="{{ route('accounts.index') }}" class="{{ $item }} {{ request()->routeIs('accounts.*') ? $itemActive : '' }}">
+                        @if (request()->routeIs('accounts.*')) {!! $goldBar !!} @endif
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h12"/></svg>
+                        {{ __('ui.accounting.accounts') }}
+                    </a>
+                @endif
             @endif
             @if ($can('assets.manage'))
-                <a href="{{ route('assets.index') }}" class="{{ $item }} {{ request()->routeIs('assets.*') ? $itemActive : '' }}">
-                    @if (request()->routeIs('assets.*')) {!! $goldBar !!} @endif
-                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    {{ __('ui.nav.assets') }}
-                </a>
+                @if ($lockAccounting)
+                    <span class="{{ $item }} cursor-not-allowed opacity-50" data-plan-locked="accounting_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        {{ __('ui.nav.assets') }}
+                        {!! $lockIco !!}
+                    </span>
+                @else
+                    <a href="{{ route('assets.index') }}" class="{{ $item }} {{ request()->routeIs('assets.*') ? $itemActive : '' }}">
+                        @if (request()->routeIs('assets.*')) {!! $goldBar !!} @endif
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        {{ __('ui.nav.assets') }}
+                    </a>
+                @endif
             @endif
             @if ($can('periods.lock'))
-                <a href="{{ route('periods.index') }}" class="{{ $item }} {{ request()->routeIs('periods.*') ? $itemActive : '' }}">
-                    @if (request()->routeIs('periods.*')) {!! $goldBar !!} @endif
-                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-                    {{ __('ui.nav.periods') }}
-                </a>
+                @if ($lockAccounting)
+                    <span class="{{ $item }} cursor-not-allowed opacity-50" data-plan-locked="accounting_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                        {{ __('ui.nav.periods') }}
+                        {!! $lockIco !!}
+                    </span>
+                @else
+                    <a href="{{ route('periods.index') }}" class="{{ $item }} {{ request()->routeIs('periods.*') ? $itemActive : '' }}">
+                        @if (request()->routeIs('periods.*')) {!! $goldBar !!} @endif
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                        {{ __('ui.nav.periods') }}
+                    </a>
+                @endif
             @endif
             @if ($can('payroll.manage'))
                 @php $act = request()->routeIs('payroll.*') || request()->routeIs('commissions.*') || request()->routeIs('incentives.*'); @endphp
@@ -469,11 +560,19 @@
             @endif
         @endif
         @if ($can('api_tokens.manage'))
-            <a href="{{ route('api-tokens.index') }}" class="{{ $item }} {{ request()->routeIs('api-tokens.*') ? $itemActive : '' }}">
-                @if (request()->routeIs('api-tokens.*')) {!! $goldBar !!} @endif
-                <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9"/><path d="M16 5l3 3"/></svg>
-                {{ __('ui.nav.api_tokens') }}
-            </a>
+            @if ($lockApi)
+                <span class="{{ $item }} cursor-not-allowed opacity-50" data-plan-locked="api_access" aria-disabled="true" title="{{ __('ui.plans.locked') }}">
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9"/><path d="M16 5l3 3"/></svg>
+                    {{ __('ui.nav.api_tokens') }}
+                    {!! $lockIco !!}
+                </span>
+            @else
+                <a href="{{ route('api-tokens.index') }}" class="{{ $item }} {{ request()->routeIs('api-tokens.*') ? $itemActive : '' }}">
+                    @if (request()->routeIs('api-tokens.*')) {!! $goldBar !!} @endif
+                    <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9"/><path d="M16 5l3 3"/></svg>
+                    {{ __('ui.nav.api_tokens') }}
+                </a>
+            @endif
             <a href="{{ route('offline-devices.index') }}" class="{{ $item }} {{ request()->routeIs('offline-devices.*') ? $itemActive : '' }}">
                 @if (request()->routeIs('offline-devices.*')) {!! $goldBar !!} @endif
                 <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>
