@@ -60,28 +60,55 @@ class SidebarPlanLockTest extends TestCase
         return $this->actingAs($user)->get(route('dashboard'))->assertOk()->getContent();
     }
 
-    public function test_payg_tenant_only_accounting_items_are_locked(): void
+    public function test_payg_tenant_has_no_locked_items(): void
     {
+        // Accounting ikut dibuka untuk PAYG (keputusan owner
+        // 2026-11-16): PAYG kini membuka SEMUA fitur, jadi tidak
+        // ada satu pun item sidebar yang ber-gembok.
         [, $owner] = $this->tenantOwner('payg', 'payg');
         $html = $this->dashboardHtml($owner);
 
-        // Accounting terkunci: span ber-gembok, tanpa href ke halamannya.
-        $this->assertStringContainsString('data-plan-locked="accounting_full"', $html);
-        $this->assertStringNotContainsString('href="'.route('accounts.index').'"', $html);
-        $this->assertStringNotContainsString('href="'.route('financial.balance-sheet').'"', $html);
-        $this->assertStringNotContainsString('href="'.route('journals.index').'"', $html);
-
-        // Fitur lain PAYG terbuka semua: tidak ada gembok untuk mereka,
-        // dan itemnya tetap tautan normal.
-        foreach (['ai_assistant', 'crm_members', 'purchasing_full', 'api_access', 'roles_permissions'] as $feature) {
-            $this->assertStringNotContainsString('data-plan-locked="'.$feature.'"', $html, "PAYG tidak boleh mengunci {$feature}.");
-        }
+        $this->assertStringNotContainsString('data-plan-locked', $html);
+        $this->assertStringContainsString('href="'.route('accounts.index').'"', $html);
+        $this->assertStringContainsString('href="'.route('financial.balance-sheet').'"', $html);
+        $this->assertStringContainsString('href="'.route('journals.index').'"', $html);
         $this->assertStringContainsString('href="'.route('assistant.index').'"', $html);
         $this->assertStringContainsString('href="'.route('members.index').'"', $html);
         $this->assertStringContainsString('href="'.route('pr.index').'"', $html);
         $this->assertStringContainsString('href="'.route('po.index').'"', $html);
+        $this->assertStringContainsString('href="'.route('payments.collective').'"', $html);
         $this->assertStringContainsString('href="'.route('api-tokens.index').'"', $html);
         $this->assertStringContainsString('href="'.route('roles.index').'"', $html);
+    }
+
+    public function test_collective_payment_menu_lives_in_accounting_group(): void
+    {
+        // Pembayaran kolektif supplier masuk grup Akuntansi
+        // (keputusan owner 2026-11-16): itemnya tampil SESUDAH
+        // judul grup Akuntansi dan TIDAK lagi di grup Transaksi.
+        [, $owner] = $this->tenantOwner('best', 'best_offer');
+        $html = $this->dashboardHtml($owner);
+
+        $accountingPos = strpos($html, __('ui.nav.accounting'));
+        $collectivePos = strpos($html, 'href="'.route('payments.collective').'"');
+        $settingsPos = strpos($html, __('ui.nav.settings'));
+        $this->assertNotFalse($accountingPos);
+        $this->assertNotFalse($collectivePos);
+        $this->assertNotFalse($settingsPos);
+        $this->assertGreaterThan($accountingPos, $collectivePos);
+        $this->assertLessThan($settingsPos, $collectivePos);
+    }
+
+    public function test_collective_payment_server_gate_follows_accounting(): void
+    {
+        // Gerbang server pembayaran kolektif = accounting_full:
+        // Team (purchasing menyala, accounting mati) ditolak 403;
+        // PAYG (accounting menyala) diterima.
+        [, $teamOwner] = $this->tenantOwner('team', 'team');
+        $this->actingAs($teamOwner)->get(route('payments.collective'))->assertForbidden();
+
+        [, $paygOwner] = $this->tenantOwner('payg', 'payg');
+        $this->actingAs($paygOwner)->get(route('payments.collective'))->assertOk();
     }
 
     public function test_free_tenant_all_mapped_features_are_locked(): void
@@ -95,6 +122,9 @@ class SidebarPlanLockTest extends TestCase
         $this->assertStringNotContainsString('href="'.route('accounts.index').'"', $html);
         $this->assertStringNotContainsString('href="'.route('assistant.index').'"', $html);
         $this->assertStringNotContainsString('href="'.route('members.index').'"', $html);
+        // Pembayaran kolektif kini mengikuti accounting: untuk Free
+        // ia tampil ber-gembok accounting, bukan purchasing.
+        $this->assertStringNotContainsString('href="'.route('payments.collective').'"', $html);
     }
 
     public function test_best_offer_tenant_has_no_locked_items(): void

@@ -53,8 +53,9 @@ class SaasPlatformTest extends TestCase
         $this->assertSame(129000, $team->price_monthly);
         $this->assertSame(199000, $best->price_monthly);
         $this->assertSame(99000, $best->extra_branch_price);
-        // PAYG (owner 2026-11-15): tanpa harga bulanan; cabang
-        // tambahan Rp89 rb; fitur semua terbuka kecuali accounting.
+        // PAYG (owner 2026-11-15, accounting dibuka 2026-11-16):
+        // tanpa harga bulanan, tanpa biaya cabang tambahan; fitur
+        // semua terbuka termasuk accounting.
         $this->assertSame(0, $payg->price_monthly);
         $this->assertSame(0, $payg->extra_branch_price);
 

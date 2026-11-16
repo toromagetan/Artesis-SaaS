@@ -205,7 +205,7 @@
         @endif
 
         {{-- TRANSAKSI (cermin Artesis — A6) --}}
-        @if ($can('sales.view') || $can('lab.view') || $can('pr.view') || $can('po.view') || $can('payments.collective') || $can('stock.view') || $can('wa.send') || $can('wa.templates') || $can('wa.inbox') || $can('wa.campaigns'))
+        @if ($can('sales.view') || $can('lab.view') || $can('pr.view') || $can('po.view') || $can('stock.view') || $can('wa.send') || $can('wa.templates') || $can('wa.inbox') || $can('wa.campaigns'))
             <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70">{{ __('ui.nav.group_transactions') }}</p>
             @if ($can('sales.view'))
                 <a href="{{ route('sales.create') }}" class="{{ $item }} {{ request()->routeIs('sales.create') ? $itemActive : '' }}">
@@ -260,8 +260,8 @@
                     </a>
                 @endif
             @endif
-            @if ($can('po.view') || $can('payments.collective'))
-                @php $act = request()->routeIs('po.*') || request()->routeIs('receipts.*') || request()->routeIs('payments.*'); @endphp
+            @if ($can('po.view'))
+                @php $act = request()->routeIs('po.*') || request()->routeIs('receipts.*'); @endphp
                 <div x-data="{ open: {{ $act ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" class="{{ $item }} {{ $act ? $itemActive : '' }}">
                         @if ($act) {!! $goldBar !!} @endif
@@ -275,13 +275,6 @@
                                 <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="purchasing_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.purchasing.po_title') }}{!! $lockIco !!}</span>
                             @else
                                 <a href="{{ route('po.index') }}" class="{{ $sub }} {{ request()->routeIs('po.*') || request()->routeIs('receipts.*') ? $subActive : '' }}">@if (request()->routeIs('po.*') || request()->routeIs('receipts.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.purchasing.po_title') }}</a>
-                            @endif
-                        @endif
-                        @if ($can('payments.collective'))
-                            @if ($lockPurchasing)
-                                <span class="{{ $sub }} cursor-not-allowed opacity-50" data-plan-locked="purchasing_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">{!! $dot !!}{{ __('ui.purchasing.collective') }}{!! $lockIco !!}</span>
-                            @else
-                                <a href="{{ route('payments.collective') }}" class="{{ $sub }} {{ request()->routeIs('payments.*') ? $subActive : '' }}">@if (request()->routeIs('payments.*')) {!! $dotActive !!} @else {!! $dot !!} @endif{{ __('ui.purchasing.collective') }}</a>
                             @endif
                         @endif
                     </div>
@@ -421,7 +414,7 @@
         @endif
 
         {{-- AKUNTANSI (menu utama sendiri — §191) --}}
-        @if ($can('journals.view') || $can('accounts.view') || $can('assets.manage') || $can('periods.lock') || $can('payroll.manage'))
+        @if ($can('journals.view') || $can('accounts.view') || $can('assets.manage') || $can('periods.lock') || $can('payroll.manage') || $can('payments.collective'))
             <p class="px-3 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-lentera-300/70">{{ __('ui.nav.accounting') }}</p>
             @if ($can('journals.view'))
                 @php $act = request()->routeIs('journals.*') || request()->routeIs('ledger.*'); @endphp
@@ -457,6 +450,21 @@
                         @if (request()->routeIs('accounts.*')) {!! $goldBar !!} @endif
                         <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h12"/></svg>
                         {{ __('ui.accounting.accounts') }}
+                    </a>
+                @endif
+            @endif
+            @if ($can('payments.collective'))
+                @if ($lockAccounting)
+                    <span class="{{ $item }} cursor-not-allowed opacity-50" data-plan-locked="accounting_full" aria-disabled="true" title="{{ __('ui.plans.locked') }}">
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                        {{ __('ui.purchasing.collective') }}
+                        {!! $lockIco !!}
+                    </span>
+                @else
+                    <a href="{{ route('payments.collective') }}" class="{{ $item }} {{ request()->routeIs('payments.*') ? $itemActive : '' }}">
+                        @if (request()->routeIs('payments.*')) {!! $goldBar !!} @endif
+                        <svg class="{{ $ico }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                        {{ __('ui.purchasing.collective') }}
                     </a>
                 @endif
             @endif
