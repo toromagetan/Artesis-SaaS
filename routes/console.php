@@ -72,11 +72,24 @@ Schedule::command('lentera:wa-otomatis')->dailyAt('08:00');
  * gateway) — didispatch ulang BILA gateway aktif. Kesehatan
  * antrean (job gagal / pesan menggantung > 24 jam) dicatat ke
  * log aktivitas sebagai wa.queue.health agar terlihat di UI.
+ * Pesan queued berumur > 24 jam kedaluwarsa (keputusan owner
+ * 17 Nov 2026, audit lanjutan WA2-2 opsi B) dan tidak didispatch.
  */
 Artisan::command('lentera:wa-sapu', function () {
     // Konteks sistem eksplisit (audit lanjutan temuan 8): perintah
     // terjadwal/operator bekerja lintas tenant secara terpercaya.
     return TenantContext::asSystem(function () {
+        // Kedaluwarsa massal (keputusan owner 17 Nov 2026, audit
+        // lanjutan WA2-2 opsi B): pesan queued melewati batas umur
+        // ditandai gagal di tempat — berlaku juga saat belum ada
+        // gateway aktif sama sekali, agar tidak menggantung
+        // selamanya. Job pengiriman menegakkan aturan yang sama
+        // pada setiap dispatch.
+        $expired = WaMessage::where('direction', 'out')
+            ->where('status', 'queued')
+            ->where('created_at', '<=', now()->subHours(SendWhatsAppMessage::EXPIRY_HOURS))
+            ->update(['status' => 'failed', 'error' => 'expired']);
+
         $stale = WaMessage::where('direction', 'out')
             ->where('status', 'queued')
             ->where('created_at', '<=', now()->subMinutes(15));
@@ -108,7 +121,7 @@ Artisan::command('lentera:wa-sapu', function () {
                 newValues: ['stuck_over_24h' => $stuck24h, 'failed_jobs' => $failedJobs, 'redispatched' => $redispatched],
             );
         }
-        $this->info("Sapu WA: {$redispatched} didispatch ulang; menggantung >24 jam: {$stuck24h}; job gagal: {$failedJobs}.");
+        $this->info("Sapu WA: {$expired} kedaluwarsa; {$redispatched} didispatch ulang; menggantung >24 jam: {$stuck24h}; job gagal: {$failedJobs}.");
 
         return 0;
     });
