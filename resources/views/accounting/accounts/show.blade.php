@@ -83,9 +83,11 @@
                     <tbody>
                         @forelse ($recentLines as $line)
                             <tr class="border-b border-gray-50 last:border-0">
-                                <td class="px-2 py-2">{{ $line->journal->journal_date->format('d/m/Y') }}</td>
+                                <td class="px-2 py-2">{{ $line->journal?->journal_date?->format('d/m/Y') }}</td>
                                 <td class="px-2 py-2">
-                                    <a href="{{ route('journals.show', $line->journal) }}" class="text-lentera-800 underline-offset-2 hover:underline tnum">{{ $line->journal->number }}</a>
+                                    @if ($line->journal)
+                                        <a href="{{ route('journals.show', $line->journal) }}" class="text-lentera-800 underline-offset-2 hover:underline tnum">{{ $line->journal->number }}</a>
+                                    @endif
                                 </td>
                                 <td class="px-2 py-2 text-right tnum">{{ \App\Support\Money::fromDecimal((string) $line->debit)->format() }}</td>
                                 <td class="px-2 py-2 text-right tnum">{{ \App\Support\Money::fromDecimal((string) $line->credit)->format() }}</td>
