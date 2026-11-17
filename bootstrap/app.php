@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureEmailVerified;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsurePlanFeature;
 use App\Http\Middleware\EnsurePlatformUser;
+use App\Http\Middleware\EnsureQcTemplateManagement;
 use App\Http\Middleware\EnsureTenantIsActive;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureWaApiAccess;
@@ -33,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'device.token' => AuthenticateOfflineDevice::class,
             'wa.api' => EnsureWaApiAccess::class,
             'wa.template-admin' => EnsureWaTemplateManagement::class,
+            'qc.template-admin' => EnsureQcTemplateManagement::class,
         ]);
         $middleware->web(append: [
             SetLocale::class,
