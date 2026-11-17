@@ -4,7 +4,9 @@ namespace App\Modules\Inventory\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Identity\Services\BranchContext;
 use App\Modules\Inventory\Services\LabelService;
+use App\Modules\Master\Models\Branch;
 use App\Modules\Purchasing\Models\Receipt;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -43,8 +45,17 @@ class LabelController extends Controller
             $page,
             ['path' => $request->url(), 'query' => $request->query()],
         );
+        // Pagar cabang aktor (audit 17 Nov 2026 F-2): daftar hanya
+        // memuat penerimaan dari cabang yang boleh diakses aktor —
+        // pola yang sama dengan OpnameController. Receipt tidak
+        // ber-scope, jadi pagarnya harus eksplisit di sini.
+        $context = BranchContext::current();
+        $branchIds = $context->hasGlobalAccess()
+            ? Branch::query()->pluck('id')->all()
+            : $context->managedBranchIds();
         $receipts = Receipt::withoutGlobalScopes()
             ->with('purchaseOrder')
+            ->whereHas('purchaseOrder', fn ($q) => $q->withoutGlobalScopes()->whereIn('branch_id', $branchIds))
             ->orderByDesc('id')
             ->limit(50)
             ->get();
@@ -66,6 +77,12 @@ class LabelController extends Controller
 
         if ($validated['mode'] === 'receipt') {
             $receipt = Receipt::withoutGlobalScopes()->findOrFail((int) ($validated['receipt_id'] ?? 0));
+            // Pagar yang sama dengan ReceiptController::assertVisible
+            // (audit 17 Nov 2026 F-2): cabang PO harus dalam wilayah
+            // aktor, selain itu 404 — termasuk lintas tenant/cabang.
+            $context = BranchContext::current();
+            $branchId = $receipt->purchaseOrder()->withoutGlobalScopes()->value('branch_id');
+            abort_unless($branchId !== null && $context->allowsBranch((int) $branchId), 404);
             $labels = $this->labels->forReceipt($receipt, (int) ($validated['multiplier'] ?? 1));
         } else {
             $copies = [];

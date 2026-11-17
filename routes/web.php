@@ -210,11 +210,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/stok/impor/komitmen', [InitialStockImportController::class, 'commit'])->name('stock.import.commit');
 
     // ---- Akuntansi (M.9) ----
-    Route::get('/jurnal', [JournalController::class, 'index'])->middleware('permission:journals.view')->name('journals.index');
-    Route::get('/jurnal/ekspor', [JournalController::class, 'export'])->middleware('permission:journals.view')->name('journals.export');
+    Route::get('/jurnal', [JournalController::class, 'index'])->middleware(['permission:journals.view', 'plan.feature:accounting_full'])->name('journals.index');
+    Route::get('/jurnal/ekspor', [JournalController::class, 'export'])->middleware(['permission:journals.view', 'plan.feature:accounting_full'])->name('journals.export');
     Route::get('/jurnal/buat', [JournalController::class, 'create'])->middleware(['permission:journals.manual', 'plan.feature:accounting_full'])->name('journals.create');
     Route::post('/jurnal', [JournalController::class, 'store'])->middleware(['permission:journals.manual', 'plan.feature:accounting_full'])->name('journals.store');
-    Route::get('/buku-besar', [LedgerController::class, 'index'])->middleware('permission:journals.view')->name('ledger.index');
+    Route::get('/buku-besar', [LedgerController::class, 'index'])->middleware(['permission:journals.view', 'plan.feature:accounting_full'])->name('ledger.index');
     Route::get('/aset-tetap', [FixedAssetController::class, 'index'])->middleware('permission:assets.manage')->name('assets.index');
     Route::get('/aset-tetap/buat', [FixedAssetController::class, 'create'])->middleware('permission:assets.manage')->name('assets.create');
     Route::post('/aset-tetap', [FixedAssetController::class, 'store'])->middleware('permission:assets.manage')->name('assets.store');
@@ -240,14 +240,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/komisi/ekspor', [CommissionController::class, 'export'])->middleware('permission:payroll.manage')->name('commissions.export');
     Route::post('/komisi/posting', [CommissionController::class, 'post'])->middleware('permission:payroll.manage')->name('commissions.post');
     Route::post('/komisi/bayar', [CommissionController::class, 'pay'])->middleware('permission:payroll.manage')->name('commissions.pay');
-    Route::get('/jurnal/{journal}', [JournalController::class, 'show'])->middleware('permission:journals.view')->name('journals.show');
-    Route::get('/jurnal/{journal}/cetak', [JournalController::class, 'print'])->middleware('permission:journals.view')->name('journals.print');
-    Route::get('/jurnal/{journal}/unduh', [JournalController::class, 'download'])->middleware('permission:journals.view')->name('journals.download');
-    Route::post('/jurnal/{journal}/balik', [JournalController::class, 'reverse'])->middleware('permission:journals.reverse')->name('journals.reverse');
-    Route::get('/akun', [AccountController::class, 'index'])->middleware('permission:accounts.view')->name('accounts.index');
+    Route::get('/jurnal/{journal}', [JournalController::class, 'show'])->middleware(['permission:journals.view', 'plan.feature:accounting_full'])->name('journals.show');
+    Route::get('/jurnal/{journal}/cetak', [JournalController::class, 'print'])->middleware(['permission:journals.view', 'plan.feature:accounting_full'])->name('journals.print');
+    Route::get('/jurnal/{journal}/unduh', [JournalController::class, 'download'])->middleware(['permission:journals.view', 'plan.feature:accounting_full'])->name('journals.download');
+    Route::post('/jurnal/{journal}/balik', [JournalController::class, 'reverse'])->middleware(['permission:journals.reverse', 'plan.feature:accounting_full'])->name('journals.reverse');
+    Route::get('/akun', [AccountController::class, 'index'])->middleware(['permission:accounts.view', 'plan.feature:accounting_full'])->name('accounts.index');
     Route::get('/akun/buat', [AccountController::class, 'create'])->middleware(['permission:accounts.manage', 'plan.feature:accounting_full'])->name('accounts.create');
     Route::post('/akun', [AccountController::class, 'store'])->middleware(['permission:accounts.manage', 'plan.feature:accounting_full'])->name('accounts.store');
-    Route::get('/akun/{account}', [AccountController::class, 'show'])->middleware('permission:accounts.view')->name('accounts.show');
+    Route::get('/akun/{account}', [AccountController::class, 'show'])->middleware(['permission:accounts.view', 'plan.feature:accounting_full'])->name('accounts.show');
     Route::get('/akun/{account}/ubah', [AccountController::class, 'edit'])->middleware(['permission:accounts.manage', 'plan.feature:accounting_full'])->name('accounts.edit');
     Route::put('/akun/{account}', [AccountController::class, 'update'])->middleware(['permission:accounts.manage', 'plan.feature:accounting_full'])->name('accounts.update');
     Route::post('/akun/{account}/aktif', [AccountController::class, 'toggleActive'])->middleware(['permission:accounts.manage', 'plan.feature:accounting_full'])->name('accounts.toggle-active');
