@@ -6,6 +6,7 @@ use App\Modules\Comms\Exceptions\GatewayException;
 use App\Modules\Comms\Models\WaMessage;
 use App\Modules\Comms\Services\GatewayFactory;
 use App\Modules\Identity\Services\TenantContext;
+use App\Modules\Platform\Models\Tenant;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -47,6 +48,15 @@ class SendWhatsAppMessage implements ShouldQueue
     {
         $message = WaMessage::find($this->messageId);
         if ($message === null || $message->direction !== 'out' || $message->status !== 'queued') {
+            return;
+        }
+
+        // Audit W-01 W1-4: pesan milik tenant NONAKTIF (tersuspensi)
+        // tidak dikirim — tetap 'queued' sampai tenant aktif lagi.
+        // Antrean tidak melewati middleware HTTP, jadi penegakan
+        // suspensi harus hidup di sini juga.
+        if ($message->tenant_id !== null
+            && ! Tenant::whereKey($message->tenant_id)->value('is_active')) {
             return;
         }
 

@@ -4,12 +4,19 @@ namespace App\Modules\Comms\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Comms\Models\WaMessage;
+use App\Modules\Identity\Services\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
- * Log kirim WhatsApp (F3.4): semua pesan keluar & masuk dengan
- * statusnya. Terpagar wa.send. Filter status/pemicu + cari nomor/nama.
+ * Log kirim WhatsApp (F3.4): pesan keluar & masuk dengan statusnya.
+ * Terpagar wa.send. Filter status/pemicu + cari nomor/nama.
+ *
+ * Isolasi tenant (audit W-01 W1-2): daftar diemberkan mengikuti
+ * konteks aktor lewat constrainByTenant — tenant hanya melihat
+ * pesannya sendiri, instalasi mandiri ember NULL, platform
+ * mengawasi semua. Sebelumnya query tanpa ember menampilkan log
+ * seluruh instalasi kepada siapa pun yang lolos gerbang rute.
  */
 class WaLogController extends Controller
 {
@@ -19,7 +26,8 @@ class WaLogController extends Controller
         $status = (string) $request->query('status', '');
         $trigger = (string) $request->query('pemicu', '');
 
-        $messages = WaMessage::with(['customer', 'sender'])
+        $messages = TenantContext::for($request->user())
+            ->constrainByTenant(WaMessage::with(['customer', 'sender']))
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($sub) use ($q) {
                     $sub->where('phone', 'like', "%{$q}%")

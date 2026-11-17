@@ -206,12 +206,18 @@ class WaAutomationService
      * M4: WhatsApp adalah fitur paket — tenant cabang tanpa fitur
      * whatsapp tidak menerima kiriman otomatis apa pun. Cabang tanpa
      * tenant (instalasi mandiri) selalu diizinkan.
+     *
+     * Audit W-01 W1-4: tenant NONAKTIF (tersuspensi) juga tidak
+     * menerima kiriman otomatis — suspensi adalah batas penegakan
+     * langganan, dan jalur terjadwal tidak melewati middleware HTTP
+     * yang biasanya menahannya.
      */
     private function whatsappAllowed(?Branch $branch): bool
     {
         $tenant = $branch?->tenant;
 
         return $tenant === null
-            || app(PlanService::class)->featureEnabled($tenant, 'whatsapp');
+            || ($tenant->is_active
+                && app(PlanService::class)->featureEnabled($tenant, 'whatsapp'));
     }
 }

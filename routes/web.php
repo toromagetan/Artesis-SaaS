@@ -368,7 +368,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/wa/kampanye/{campaign}/setujui', [WaCampaignController::class, 'approve'])->middleware(['permission:wa.campaigns.approve', 'wa.api'])->name('wa-campaigns.approve');
     Route::post('/wa/kampanye/{campaign}/kirim', [WaCampaignController::class, 'send'])->middleware(['permission:wa.campaigns', 'wa.api'])->name('wa-campaigns.send');
     Route::post('/wa/kampanye/{campaign}/batalkan', [WaCampaignController::class, 'cancel'])->middleware(['permission:wa.campaigns', 'wa.api'])->name('wa-campaigns.cancel');
-    Route::post('/wa/template/{template}/setujui', [WaTemplateController::class, 'approve'])->middleware(['permission:wa.campaigns.approve', 'wa.api'])->name('wa-templates.approve');
+    Route::post('/wa/template/{template}/setujui', [WaTemplateController::class, 'approve'])->middleware(['permission:wa.campaigns.approve', 'wa.api', 'wa.template-admin'])->name('wa-templates.approve');
 
     // ---- Komunikasi WhatsApp (F3.4) ----
     Route::get('/pengaturan/umum', [GeneralSettingsController::class, 'edit'])->middleware('permission:settings.manage')->name('settings.general.edit');
@@ -401,8 +401,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/pengaturan/perangkat-offline', [OfflineDeviceController::class, 'store'])->middleware('permission:api_tokens.manage')->name('offline-devices.store');
     Route::post('/pengaturan/perangkat-offline/{device}/cabut', [OfflineDeviceController::class, 'revoke'])->middleware('permission:api_tokens.manage')->name('offline-devices.revoke');
     Route::get('/wa/template', [WaTemplateController::class, 'index'])->middleware(['permission:wa.templates', 'wa.api'])->name('wa-templates.index');
-    Route::get('/wa/template/{template}/ubah', [WaTemplateController::class, 'edit'])->middleware(['permission:wa.templates', 'wa.api'])->name('wa-templates.edit');
-    Route::put('/wa/template/{template}', [WaTemplateController::class, 'update'])->middleware(['permission:wa.templates', 'wa.api'])->name('wa-templates.update');
+    Route::get('/wa/template/{template}/ubah', [WaTemplateController::class, 'edit'])->middleware(['permission:wa.templates', 'wa.api', 'wa.template-admin'])->name('wa-templates.edit');
+    Route::put('/wa/template/{template}', [WaTemplateController::class, 'update'])->middleware(['permission:wa.templates', 'wa.api', 'wa.template-admin'])->name('wa-templates.update');
     Route::get('/wa/log', [WaLogController::class, 'index'])->middleware(['permission:wa.send', 'wa.api'])->name('wa-log.index');
 
     Route::middleware('permission:branches.manage')->group(function () {
