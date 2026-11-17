@@ -7,6 +7,7 @@ use App\Modules\Comms\Models\WaCampaign;
 use App\Modules\Comms\Models\WaMessage;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
@@ -35,7 +36,14 @@ class CampaignService
     /** @param  array<string, mixed>  $segment */
     public function create(User $actor, string $name, int $templateId, array $segment): WaCampaign
     {
+        // Kepemilikan kampanye dicap dari aktor pembuat (audit W-01
+        // W1-1): aktor tenant -> kampanye milik tenantnya; platform &
+        // instalasi mandiri -> NULL (jangkauan se-instalasi by design).
+        $context = TenantContext::for($actor);
+        $tenantId = $context->isValid() ? $context->tenantId() : null;
+
         $campaign = WaCampaign::create([
+            'tenant_id' => $tenantId,
             'name' => $name,
             'segment' => $segment,
             'template_id' => $templateId,
@@ -55,6 +63,15 @@ class CampaignService
 
         return Customer::where('is_active', true)
             ->whereNotNull('phone')->where('phone', '!=', '')
+            // Ember tenant EKSPLISIT dari kepemilikan kampanye (audit
+            // W-01 W1-1): job pengiriman berjalan dalam konteks sistem
+            // di mana TenantScope tidak menyaring, jadi pagar ini —
+            // bukan konteks ambien — yang menjamin kampanye tenant
+            // hanya menjangkau pelanggannya sendiri di konteks apa
+            // pun. Segmen cabang/level tenant lain dengan sendirinya
+            // menghasilkan nol penerima. Kampanye NULL (platform /
+            // mandiri) tetap se-instalasi secara desain.
+            ->when($campaign->tenant_id !== null, fn ($q) => $q->where('tenant_id', $campaign->tenant_id))
             ->when($type === 'level', fn ($q) => $q->where('membership_level_id', (int) ($segment['level_id'] ?? 0)))
             ->when($type === 'branch', fn ($q) => $q->where('branch_id', (int) ($segment['branch_id'] ?? 0)))
             ->orderBy('id')
