@@ -4,8 +4,8 @@ use App\Modules\Accounting\Services\FixedAssetService;
 use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Accounting\Support\Chart;
 use App\Modules\Comms\Jobs\SendWhatsAppMessage;
+use App\Modules\Comms\Models\WaGateway;
 use App\Modules\Comms\Models\WaMessage;
-use App\Modules\Comms\Services\GatewayFactory;
 use App\Modules\Comms\Services\WaAutomationService;
 use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Inventory\Services\FifoService;
@@ -77,13 +77,17 @@ Artisan::command('lentera:wa-sapu', function () {
     // Konteks sistem eksplisit (audit lanjutan temuan 8): perintah
     // terjadwal/operator bekerja lintas tenant secara terpercaya.
     return TenantContext::asSystem(function () {
-        $factory = app(GatewayFactory::class);
         $stale = WaMessage::where('direction', 'out')
             ->where('status', 'queued')
             ->where('created_at', '<=', now()->subMinutes(15));
 
         $redispatched = 0;
-        if ($factory->active() !== null) {
+        // Audit W-01 W1-6: gerbang dispatch ulang adalah keberadaan
+        // gateway aktif MILIK SIAPA PUN — bukan gateway global saja.
+        // Sebelumnya instalasi multi-tenant tanpa gateway global
+        // tidak pernah mendispatch ulang pesan tenantnya; keputusan
+        // kirim per pesan tetap di job (gateway pemilik pesan).
+        if (WaGateway::where('is_active', true)->exists()) {
             $ids = (clone $stale)->orderBy('id')->limit(500)->pluck('id');
             foreach ($ids as $id) {
                 SendWhatsAppMessage::dispatch($id);
