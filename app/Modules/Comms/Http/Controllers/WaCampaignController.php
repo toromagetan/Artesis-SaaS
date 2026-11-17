@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Comms\Models\WaCampaign;
 use App\Modules\Comms\Models\WaTemplate;
 use App\Modules\Comms\Services\CampaignService;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
 use App\Modules\Membership\Models\MembershipLevel;
 use Illuminate\Http\RedirectResponse;
@@ -23,15 +24,40 @@ class WaCampaignController extends Controller
 {
     public function __construct(private readonly CampaignService $campaigns) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        // Daftar terpagar ember aktor (audit W-01 W1-1): platform
+        // mengawasi semua; aktor lain hanya kampanye embernya sendiri
+        // (tenant: miliknya; mandiri: ember NULL).
+        $context = TenantContext::for($request->user());
+        $bucket = $context->isValid() ? $context->tenantId() : null;
+
         $campaigns = WaCampaign::with(['template', 'approver', 'creator'])
+            ->when(! $context->isPlatform(), fn ($q) => $q->where('tenant_id', $bucket))
             ->orderByDesc('id')->paginate(25);
         $templates = WaTemplate::orderBy('key')->get();
         $levels = MembershipLevel::orderBy('min_accumulation')->get();
-        $branches = Branch::orderBy('name')->get();
+        $branches = Branch::when(! $context->isPlatform(), fn ($q) => $q->where('tenant_id', $bucket))
+            ->orderBy('name')->get();
 
         return view('comms/wa-campaigns', compact('campaigns', 'templates', 'levels', 'branches'));
+    }
+
+    /**
+     * Pagar kepemilikan kampanye (audit W-01 W1-1): aktor non-platform
+     * hanya boleh melihat & mengelola kampanye embernya sendiri;
+     * selain itu 404 (pola pagar sumber daya lain di aplikasi ini).
+     */
+    private function assertCampaignVisible(Request $request, WaCampaign $campaign): void
+    {
+        $context = TenantContext::for($request->user());
+        if ($context->isPlatform()) {
+            return;
+        }
+        $bucket = $context->isValid() ? $context->tenantId() : null;
+        if ($campaign->tenant_id !== $bucket) {
+            abort(404);
+        }
     }
 
     public function store(Request $request): RedirectResponse
@@ -57,8 +83,9 @@ class WaCampaignController extends Controller
         return redirect()->route('wa-campaigns.index')->with('status', __('ui.campaigns.created'));
     }
 
-    public function show(WaCampaign $campaign): View
+    public function show(Request $request, WaCampaign $campaign): View
     {
+        $this->assertCampaignVisible($request, $campaign);
         $campaign->load(['template', 'approver', 'creator']);
         $messages = $campaign->messages()->with('customer')->orderByDesc('id')->paginate(25);
         $previewCount = $this->campaigns->resolveRecipients($campaign)->count();
@@ -68,6 +95,7 @@ class WaCampaignController extends Controller
 
     public function approve(Request $request, WaCampaign $campaign): RedirectResponse
     {
+        $this->assertCampaignVisible($request, $campaign);
         $this->campaigns->approve($request->user(), $campaign);
 
         return redirect()->route('wa-campaigns.show', $campaign)->with('status', __('ui.campaigns.approved'));
@@ -75,6 +103,7 @@ class WaCampaignController extends Controller
 
     public function send(Request $request, WaCampaign $campaign): RedirectResponse
     {
+        $this->assertCampaignVisible($request, $campaign);
         $this->campaigns->requestSend($request->user(), $campaign);
 
         return redirect()->route('wa-campaigns.show', $campaign)->with('status', __('ui.campaigns.sending'));
@@ -82,6 +111,7 @@ class WaCampaignController extends Controller
 
     public function cancel(Request $request, WaCampaign $campaign): RedirectResponse
     {
+        $this->assertCampaignVisible($request, $campaign);
         $this->campaigns->cancel($request->user(), $campaign);
 
         return redirect()->route('wa-campaigns.index')->with('status', __('ui.campaigns.cancelled'));

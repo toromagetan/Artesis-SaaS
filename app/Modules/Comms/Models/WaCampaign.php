@@ -3,6 +3,7 @@
 namespace App\Modules\Comms\Models;
 
 use App\Modules\Identity\Models\User;
+use App\Modules\Platform\Models\Tenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,11 +12,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Kampanye WA (F3.8). Alur status: draft -> approved -> sending ->
  * done (atau cancelled dari draft/approved). Pengiriman menolak
  * kampanye tanpa approved_by dan template tanpa approved_by.
+ *
+ * Kepemilikan per tenant (audit W-01 W1-1): tenant_id = tenant
+ * pembuat; NULL = kampanye platform / instalasi mandiri yang
+ * berjangkauan se-instalasi secara desain. Resolusi penerima
+ * diemberkan dari kolom ini, bukan dari konteks ambien.
  */
 class WaCampaign extends Model
 {
     protected $fillable = [
-        'name', 'segment', 'template_id', 'recipient_count', 'approved_by', 'status', 'created_by',
+        'tenant_id', 'name', 'segment', 'template_id', 'recipient_count', 'approved_by', 'status', 'created_by',
     ];
 
     protected function casts(): array
@@ -24,6 +30,11 @@ class WaCampaign extends Model
             'segment' => 'array',
             'recipient_count' => 'integer',
         ];
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     public function template(): BelongsTo

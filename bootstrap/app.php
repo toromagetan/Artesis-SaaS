@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsurePlatformUser;
 use App\Http\Middleware\EnsureTenantIsActive;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureWaApiAccess;
+use App\Http\Middleware\EnsureWaTemplateManagement;
 use App\Http\Middleware\MarkGuestRequest;
 use App\Http\Middleware\SetLocale;
 use App\Modules\Sales\Http\Middleware\AuthenticateOfflineDevice;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.token' => AuthenticateApiToken::class,
             'device.token' => AuthenticateOfflineDevice::class,
             'wa.api' => EnsureWaApiAccess::class,
+            'wa.template-admin' => EnsureWaTemplateManagement::class,
         ]);
         $middleware->web(append: [
             SetLocale::class,
