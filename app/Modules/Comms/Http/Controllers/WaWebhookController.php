@@ -89,7 +89,7 @@ class WaWebhookController extends Controller
 
             foreach ($values as $value) {
                 foreach ((array) ($value['statuses'] ?? []) as $status) {
-                    $this->applyStatus((array) $status);
+                    $this->applyStatus((array) $status, $owner);
                 }
                 foreach ((array) ($value['messages'] ?? []) as $incoming) {
                     $this->storeIncoming((array) $incoming, $owner);
@@ -111,7 +111,7 @@ class WaWebhookController extends Controller
     }
 
     /** @param array<string, mixed> $status */
-    private function applyStatus(array $status): void
+    private function applyStatus(array $status, ?WaGateway $owner): void
     {
         $providerId = (string) ($status['id'] ?? '');
         $state = (string) ($status['status'] ?? '');
@@ -120,6 +120,11 @@ class WaWebhookController extends Controller
         }
         WaMessage::where('provider_message_id', $providerId)
             ->where('status', 'sent')
+            // Audit W-01 W1-5: pembaruan status hanya menyentuh pesan
+            // ember gateway pemilik callback ini (tanda tangannya
+            // sudah terverifikasi) — ID pesan milik tenant lain yang
+            // menyusup ke kelompok payload ini tidak berubah status.
+            ->when($owner !== null, fn ($q) => $q->where('tenant_id', $owner->tenant_id))
             ->update(['status' => 'delivered']);
     }
 
