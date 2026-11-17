@@ -67,7 +67,11 @@ class PlanService
             ? $plan->featuresMap()
             : $this->defaultFeatureMap('free');
 
-        foreach ($tenant->overrides()->currentlyValid()->get() as $override) {
+        // Override diterapkan tertua → terbaru agar override valid
+        // TERBARU yang menang (relasi overrides() terurut latest('id')
+        // untuk tampilan; tanpa pengurutan ini yang menang justru
+        // override terlama — temuan audit 17 Nov 2026 F-1).
+        foreach ($tenant->overrides()->currentlyValid()->get()->sortBy('id') as $override) {
             $kind = PlanFeatureRegistry::kind($override->feature_key);
             $map[$override->feature_key] = $kind === 'boolean'
                 ? ['enabled' => $override->enabled, 'limit' => null]

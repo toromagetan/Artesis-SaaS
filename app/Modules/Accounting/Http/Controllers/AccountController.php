@@ -5,6 +5,7 @@ namespace App\Modules\Accounting\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Services\AccountService;
+use App\Modules\Identity\Services\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -28,10 +29,18 @@ class AccountController extends Controller
     public function show(Account $account): View
     {
         $account->load(['parent', 'children']);
-        $totals = $account->lines()
+        // Bagan akun bersifat global (referensi bersama), tetapi baris
+        // jurnalnya data per tenant: agregat dan baris terbaru WAJIB
+        // terpagar ember aktor lewat jurnal induknya — tanpa pagar ini
+        // total menjumlah semua tenant dan baris asing membuat relasi
+        // journal null di view (audit 17 Nov 2026 F-3).
+        $context = TenantContext::current();
+        $lines = fn () => $account->lines()
+            ->whereHas('journal', fn ($q) => $context->constrainByTenant($q));
+        $totals = $lines()
             ->selectRaw('COALESCE(SUM(debit),0) as total_debit, COALESCE(SUM(credit),0) as total_credit, COUNT(*) as line_count')
             ->first();
-        $recentLines = $account->lines()->with('journal')->orderByDesc('id')->limit(10)->get();
+        $recentLines = $lines()->with('journal')->orderByDesc('id')->limit(10)->get();
 
         return view('accounting.accounts.show', compact('account', 'totals', 'recentLines'));
     }
