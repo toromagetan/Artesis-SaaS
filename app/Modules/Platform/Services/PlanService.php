@@ -102,6 +102,11 @@ class PlanService
     public function assignPlan(Tenant $tenant, Plan $plan, ?Carbon $expiresAt, User $actor): TenantSubscription
     {
         return DB::transaction(function () use ($tenant, $plan, $expiresAt, $actor) {
+            // Kunci baris tenant lebih dulu (pola BillingService::confirm):
+            // dua penetapan bersamaan untuk tenant yang sama harus
+            // antre, bukan sama-sama membaca langganan lama lalu
+            // menyisakan dua langganan ACTIVE (audit 17 Nov 2026 F-5).
+            Tenant::query()->whereKey($tenant->id)->lockForUpdate()->firstOrFail();
             $previous = $tenant->currentSubscription();
             if ($previous !== null) {
                 $previous->update(['status' => TenantSubscription::STATUS_EXPIRED]);

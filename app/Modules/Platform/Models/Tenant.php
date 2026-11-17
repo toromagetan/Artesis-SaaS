@@ -72,6 +72,9 @@ class Tenant extends Model
         return $this->subscriptions()
             ->where('status', 'active')
             ->where(fn ($q) => $q->whereNull('expires_at')->orWhereDate('expires_at', '>=', today()))
+            // Terbaru menang bila data warisan menyisakan lebih dari
+            // satu langganan aktif (audit 17 Nov 2026 F-5).
+            ->orderByDesc('id')
             ->first();
     }
 
