@@ -20,8 +20,11 @@ class PaygCreditController extends Controller
 {
     public function store(Request $request, PaygCreditService $credits, AuditLogger $audit): RedirectResponse
     {
+        // Rentang mengikuti konstanta service — satu sumber aturan
+        // (audit 17 Nov 2026 F-6: controller sempat 1–100000 sementara
+        // service menegakkan 10–10000).
         $validated = $request->validate([
-            'credits' => ['required', 'integer', 'min:1', 'max:100000'],
+            'credits' => ['required', 'integer', 'min:'.PaygCreditService::MIN_TOPUP, 'max:'.PaygCreditService::MAX_TOPUP],
         ]);
 
         $tenant = $request->user()->tenant;
