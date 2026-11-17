@@ -20,10 +20,19 @@ use Illuminate\Queue\SerializesModels;
  * kolom error setiap percobaan; sesudah percobaan terakhir status
  * menjadi 'failed'. Pekerjaan ini tidak pernah menggagalkan transaksi
  * pemicu: ia berjalan di antrean database (ADR-009).
+ *
+ * Kedaluwarsa antrean (keputusan owner 17 Nov 2026, audit lanjutan
+ * WA2-2 opsi B): pesan yang masih 'queued' sesudah EXPIRY_HOURS jam
+ * ditandai 'failed' dengan error 'expired' dan TIDAK dikirim —
+ * termasuk pesan yang tertahan selama tenant ditangguhkan lalu
+ * aktif lagi, dan pesan yang menunggu konfigurasi gateway.
  */
 class SendWhatsAppMessage implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    /** Batas umur pesan 'queued' sebelum kedaluwarsa (jam). */
+    public const EXPIRY_HOURS = 24;
 
     public int $tries = 3;
 
@@ -48,6 +57,15 @@ class SendWhatsAppMessage implements ShouldQueue
     {
         $message = WaMessage::find($this->messageId);
         if ($message === null || $message->direction !== 'out' || $message->status !== 'queued') {
+            return;
+        }
+
+        // Kedaluwarsa didahulukan dari semua penahanan lain: pesan
+        // yang sudah melewati batas umur tidak boleh terkirim hanya
+        // karena tenant aktif lagi atau gateway baru terpasang.
+        if ($message->created_at->lte(now()->subHours(self::EXPIRY_HOURS))) {
+            $message->update(['status' => 'failed', 'error' => 'expired']);
+
             return;
         }
 
