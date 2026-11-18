@@ -164,11 +164,11 @@ Route::middleware('auth')->group(function () {
     // ---- Lab (M.5) ----
     // Template QC (F2.1) — SEBELUM /lab/{process} agar tidak tertangkap wildcard.
     Route::get('/lab/template-qc', [QcTemplateController::class, 'index'])->middleware('permission:lab.view')->name('qc-templates.index');
-    Route::get('/lab/template-qc/buat', [QcTemplateController::class, 'create'])->middleware('permission:lab.templates.manage')->name('qc-templates.create');
-    Route::post('/lab/template-qc', [QcTemplateController::class, 'store'])->middleware('permission:lab.templates.manage')->name('qc-templates.store');
-    Route::get('/lab/template-qc/{template}/ubah', [QcTemplateController::class, 'edit'])->middleware('permission:lab.templates.manage')->name('qc-templates.edit');
-    Route::put('/lab/template-qc/{template}', [QcTemplateController::class, 'update'])->middleware('permission:lab.templates.manage')->name('qc-templates.update');
-    Route::post('/lab/template-qc/{template}/aktif', [QcTemplateController::class, 'toggleActive'])->middleware('permission:lab.templates.manage')->name('qc-templates.toggle');
+    Route::get('/lab/template-qc/buat', [QcTemplateController::class, 'create'])->middleware(['permission:lab.templates.manage', 'qc.template-admin'])->name('qc-templates.create');
+    Route::post('/lab/template-qc', [QcTemplateController::class, 'store'])->middleware(['permission:lab.templates.manage', 'qc.template-admin'])->name('qc-templates.store');
+    Route::get('/lab/template-qc/{template}/ubah', [QcTemplateController::class, 'edit'])->middleware(['permission:lab.templates.manage', 'qc.template-admin'])->name('qc-templates.edit');
+    Route::put('/lab/template-qc/{template}', [QcTemplateController::class, 'update'])->middleware(['permission:lab.templates.manage', 'qc.template-admin'])->name('qc-templates.update');
+    Route::post('/lab/template-qc/{template}/aktif', [QcTemplateController::class, 'toggleActive'])->middleware(['permission:lab.templates.manage', 'qc.template-admin'])->name('qc-templates.toggle');
 
     // Order lab (F2.3) — juga sebelum /lab/{process}.
 
