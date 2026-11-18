@@ -4,7 +4,9 @@ namespace App\Support;
 
 use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Master\Models\Branch;
+use App\Modules\Platform\Models\Tenant;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 /**
  * Penomoran dokumen (Blueprint E.4): PREFIX-YYYYMM-NNNN, urut per
@@ -29,6 +31,16 @@ use Illuminate\Support\Facades\DB;
  * nextForBranch); tanpa penanda eksplisit, ember diturunkan dari
  * konteks tenant ambient (aktor terautentikasi) — jalur sistem
  * tanpa aktor tidak boleh mengandalkan penurunan ini.
+ *
+ * Gagal-tertutup (verifikasi audit independen 18 Nov 2026 temuan
+ * D): penurunan ambient hanya sah bila konteks membuktikan tenant
+ * (mode TENANT tervalidasi) ATAU instalasi benar-benar mandiri
+ * (belum ada tenant sama sekali, ember NULL adalah satu-satunya
+ * ember). Pada instalasi bertenant, pemanggilan yang tidak dapat
+ * membuktikan embernya DITOLAK — bukan diam-diam diarahkan ke
+ * ember global. Seluruh titik panggil produksi saat ini eksplisit,
+ * jadi jalur ambient yang tertolak selalu berarti kekeliruan
+ * pemanggil baru.
  */
 class Numbering
 {
@@ -37,8 +49,7 @@ class Numbering
         $period = ($date ?? now())->format('Ym');
 
         if (! $tenantSet) {
-            $context = TenantContext::current();
-            $tenantId = $context->isValid() ? $context->tenantId() : null;
+            $tenantId = static::ambientTenantId();
         }
 
         $now = now();
@@ -65,16 +76,56 @@ class Numbering
     }
 
     /**
+     * Ember dari konteks ambient, gagal-tertutup: konteks TENANT
+     * tervalidasi membuktikan embernya; instalasi tanpa tenant sama
+     * sekali membuktikan ember NULL; selain itu ember tidak dapat
+     * dibuktikan dan pemanggilan ditolak.
+     */
+    private static function ambientTenantId(): ?int
+    {
+        $context = TenantContext::current();
+        if ($context->isValid()) {
+            return $context->tenantId();
+        }
+
+        if (Tenant::count() === 0) {
+            return null;
+        }
+
+        throw new RuntimeException(
+            'Numbering: ember tenant tidak dapat dibuktikan dari konteks ambient '
+            .'pada instalasi bertenant — teruskan tenant dokumen secara eksplisit.'
+        );
+    }
+
+    /**
      * Nomor untuk dokumen bercabang: ember diturunkan dari tenant
      * pemilik cabang (cabang adalah bukti kepemilikan yang sah),
      * bukan dari aktor — jalur sistem tanpa aktor tetap benar.
+     * Gagal-tertutup: cabang yang diberikan tetapi tidak ditemukan
+     * DITOLAK (sebelumnya jatuh diam-diam ke ember global), dan
+     * cabang null hanya sah pada instalasi mandiri murni.
      */
     public static function nextForBranch(string $prefix, ?int $branchId, ?\DateTimeInterface $date = null): string
     {
-        $tenantId = $branchId === null
-            ? null
-            : Branch::whereKey($branchId)->value('tenant_id');
+        if ($branchId === null) {
+            if (Tenant::count() > 0) {
+                throw new RuntimeException(
+                    'Numbering: nomor dokumen bercabang diminta tanpa cabang '
+                    .'pada instalasi bertenant — ember tidak dapat dibuktikan.'
+                );
+            }
 
-        return static::next($prefix, $date, $tenantId !== null ? (int) $tenantId : null, true);
+            return static::next($prefix, $date, null, true);
+        }
+
+        $branch = Branch::whereKey($branchId)->first();
+        if ($branch === null) {
+            throw new RuntimeException(
+                "Numbering: cabang {$branchId} tidak ditemukan — ember dokumen tidak dapat dibuktikan."
+            );
+        }
+
+        return static::next($prefix, $date, $branch->tenant_id !== null ? (int) $branch->tenant_id : null, true);
     }
 }
