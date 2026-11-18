@@ -5,16 +5,20 @@ namespace App\Modules\Accounting\Services;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Identity\Models\User;
 use App\Modules\Platform\Services\AuditLogger;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
  * Kelola bagan akun (F1.1, Blueprint D.9).
- * - Kode unik; kode/kelompok/induk TERKUNCI sesudah akun memiliki
- *   baris jurnal (mengubahnya akan merusak laporan historis) — yang
- *   masih boleh diubah hanya nama.
- * - Induk wajib sekelompok dan tidak boleh berinduk lagi (maksimal
- *   dua tingkat) — mencegah siklus & hierarki tak berujung.
+ * - Ember per tenant (ISO-2): akun dibuat di ember aktor; mengubah
+ *   dan menonaktifkan hanya akun ember sendiri — akun tenant lain
+ *   dan templat platform tidak dapat disentuh aktor tenant.
+ * - Kode unik per ember; kode/kelompok/induk TERKUNCI sesudah akun
+ *   memiliki baris jurnal (mengubahnya akan merusak laporan
+ *   historis) — yang masih boleh diubah hanya nama.
+ * - Induk wajib sekelompok, SEEMBER, dan tidak boleh berinduk lagi
+ *   (maksimal dua tingkat) — mencegah siklus & hierarki tak berujung.
  * - Tidak ada hapus: hanya nonaktifkan. Menonaktifkan akun yang
  *   masih memiliki anak aktif DITOLAK.
  */
@@ -25,8 +29,10 @@ class AccountService
     /** @param array<string, mixed> $data */
     public function create(User $actor, array $data): Account
     {
-        return DB::transaction(function () use ($actor, $data) {
-            $this->assertParentValid($data['parent_id'] ?? null, $data['group'], null);
+        $bucket = Account::bucketOf($actor);
+
+        return DB::transaction(function () use ($actor, $data, $bucket) {
+            $this->assertParentValid($data['parent_id'] ?? null, $data['group'], null, $bucket);
 
             $account = Account::create([
                 'code' => $data['code'],
@@ -34,6 +40,7 @@ class AccountService
                 'group' => $data['group'],
                 'parent_id' => $data['parent_id'] ?? null,
                 'is_active' => true,
+                'tenant_id' => $bucket,
             ]);
 
             $this->audit->log(action: 'accounts.create', subjectType: 'account', subjectId: $account->id,
@@ -46,6 +53,8 @@ class AccountService
     /** @param array<string, mixed> $data */
     public function update(User $actor, Account $account, array $data): Account
     {
+        $this->assertOwnBucket($actor, $account);
+
         return DB::transaction(function () use ($actor, $account, $data) {
             $hasLines = $account->lines()->exists();
             $old = ['code' => $account->code, 'name' => $account->name, 'group' => $account->group];
@@ -57,7 +66,7 @@ class AccountService
                     }
                 }
             } else {
-                $this->assertParentValid($data['parent_id'] ?? $account->parent_id, $data['group'] ?? $account->group, $account->id);
+                $this->assertParentValid($data['parent_id'] ?? $account->parent_id, $data['group'] ?? $account->group, $account->id, $account->tenant_id);
                 $account->code = $data['code'] ?? $account->code;
                 $account->group = $data['group'] ?? $account->group;
                 $account->parent_id = $data['parent_id'] ?? $account->parent_id;
@@ -75,6 +84,8 @@ class AccountService
 
     public function setActive(User $actor, Account $account, bool $active): Account
     {
+        $this->assertOwnBucket($actor, $account);
+
         if (! $active && $account->children()->where('is_active', true)->exists()) {
             throw ValidationException::withMessages(['account' => __('ui.accounting.account_has_active_children')]);
         }
@@ -87,7 +98,15 @@ class AccountService
         return $account;
     }
 
-    private function assertParentValid(?int $parentId, string $group, ?int $selfId): void
+    /** Akun di luar ember aktor tidak boleh diubah aktor itu (ISO-2). */
+    private function assertOwnBucket(User $actor, Account $account): void
+    {
+        if ($account->tenant_id !== Account::bucketOf($actor)) {
+            throw new AuthorizationException('Akun berada di luar bagan aktor.');
+        }
+    }
+
+    private function assertParentValid(?int $parentId, string $group, ?int $selfId, ?int $bucket): void
     {
         if ($parentId === null) {
             return;
@@ -96,7 +115,8 @@ class AccountService
             throw ValidationException::withMessages(['parent_id' => __('ui.accounting.parent_invalid')]);
         }
         $parent = Account::find($parentId);
-        if ($parent === null || $parent->group !== $group || $parent->parent_id !== null) {
+        if ($parent === null || $parent->group !== $group || $parent->parent_id !== null
+            || $parent->tenant_id !== $bucket) {
             throw ValidationException::withMessages(['parent_id' => __('ui.accounting.parent_invalid')]);
         }
     }

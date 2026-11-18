@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Support\Chart;
+use App\Modules\Master\Models\Branch;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
@@ -129,7 +130,8 @@ class FinancialReportService
      */
     public function cashFlow(string $from, string $to, ?int $tenantId = null): array
     {
-        $cashAccountIds = Account::whereIn('code', [Chart::KAS, Chart::BANK])->pluck('id');
+        // Akun kas diselesaikan di ember tenant laporan (ISO-2).
+        $cashAccountIds = Account::whereIn('code', [Chart::KAS, Chart::BANK])->inBucket($tenantId)->pluck('id');
 
         $signed = fn ($query) => $query
             ->selectRaw('COALESCE(SUM(journal_lines.debit),0) as d, COALESCE(SUM(journal_lines.credit),0) as c')
@@ -170,7 +172,15 @@ class FinancialReportService
      */
     public function cashPosition(?array $branchIds = null): Money
     {
-        $cashAccountIds = Account::whereIn('code', [Chart::KAS, Chart::BANK])->pluck('id');
+        // Bila cabang diberikan, akun kas diselesaikan di ember
+        // tenant pemilik cabang pertama (ISO-2); tanpa cabang
+        // (konteks tepercaya/konsol) semua ember ikut serta.
+        $cashAccountIds = Account::whereIn('code', [Chart::KAS, Chart::BANK])
+            ->when($branchIds !== null && $branchIds !== [], function ($q) use ($branchIds) {
+                $tenantId = Branch::whereKey((int) $branchIds[0])->value('tenant_id');
+                $q->inBucket($tenantId !== null ? (int) $tenantId : null);
+            })
+            ->pluck('id');
         $row = DB::table('journal_lines')
             ->join('journals', 'journals.id', '=', 'journal_lines.journal_id')
             ->whereIn('journal_lines.account_id', $cashAccountIds)
@@ -209,7 +219,7 @@ class FinancialReportService
             ->keyBy('aid');
 
         $result = [];
-        $accounts = Account::where('group', $group)->orderBy('code')->get();
+        $accounts = Account::where('group', $group)->inBucket($tenantId)->orderBy('code')->get();
         foreach ($accounts as $account) {
             $row = $rows->get($account->id);
             if ($row === null) {

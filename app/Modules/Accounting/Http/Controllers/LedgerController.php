@@ -19,7 +19,9 @@ class LedgerController extends Controller
 
     public function index(Request $request): View
     {
-        $accounts = Account::orderBy('code')->get();
+        // Hanya akun ember aktor (ISO-2): buku besar tidak pernah
+        // menawarkan akun tenant lain.
+        $accounts = Account::inBucket(Account::bucketOf($request->user()))->orderBy('code')->get();
         $branchContext = BranchContext::for($request->user());
         $branches = $branchContext->hasGlobalAccess()
             ? Branch::orderBy('name')->get()

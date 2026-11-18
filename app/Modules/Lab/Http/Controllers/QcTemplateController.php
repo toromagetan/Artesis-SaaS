@@ -3,6 +3,7 @@
 namespace App\Modules\Lab\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Lab\Models\QcPointTemplate;
 use App\Modules\Lab\Services\QcTemplateService;
 use Illuminate\Http\RedirectResponse;
@@ -11,7 +12,9 @@ use Illuminate\View\View;
 
 /**
  * UI kelola template titik QC (F2.1). Melihat: izin lab.view.
- * Mengelola: Owner/Admin — ditegakkan QcTemplateService.
+ * Mengelola: hanya aktor platform/instalasi mandiri (gerbang rute
+ * qc.template-admin + QcTemplateService) — template bersama
+ * se-instalasi tidak pernah dikelola aktor tenant (ISO-3).
  */
 class QcTemplateController extends Controller
 {
@@ -87,10 +90,22 @@ class QcTemplateController extends Controller
     {
         $user = auth()->user();
 
-        // Izin khusus (audit 23 Okt 2026 A3) — sebelumnya peran
-        // Owner/Admin secara keras; kini satu-satunya sumber kebenaran
-        // adalah izin lab.templates.manage (Owner '*' + Admin).
-        return $user !== null && $user->hasPermission('lab.templates.manage');
+        if ($user === null) {
+            return false;
+        }
+
+        // Konteks dulu (ISO-3): aktor tenant tidak pernah mengelola
+        // template bersama, sekalipun memegang izinnya — tombol
+        // kelola tidak ditawarkan kepada mereka.
+        $context = TenantContext::for($user);
+
+        if (! $context->isPlatform() && ! $context->isStandalone()) {
+            return false;
+        }
+
+        // Izin khusus (audit 23 Okt 2026 A3): sumber kebenaran izin
+        // adalah lab.templates.manage (Owner '*' + Admin).
+        return $user->hasPermission('lab.templates.manage');
     }
 
     private function guardManagePage(): void

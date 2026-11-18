@@ -3,6 +3,7 @@
 namespace App\Modules\Lab\Services;
 
 use App\Modules\Identity\Models\User;
+use App\Modules\Identity\Services\TenantContext;
 use App\Modules\Lab\Models\QcPointTemplate;
 use App\Modules\Platform\Services\AuditLogger;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -10,10 +11,14 @@ use Illuminate\Auth\Access\AuthorizationException;
 /**
  * Kelola template titik QC (F2.1, Blueprint B.6 + PRD Detail 5.2).
  *
- * Template adalah konfigurasi: hanya Owner/Admin yang boleh mengelola
- * (Blueprint: "dapat dikelola Admin") — ditegakkan di service agar
- * semua jalur (UI maupun pemanggil lain) sama-sama tertolak. Tanpa
- * hapus: titik dinonaktifkan lewat is_active (aturan tanpa-hapus).
+ * Template adalah konfigurasi BERSAMA se-instalasi: sejak audit
+ * isolasi menyeluruh 18 Nov 2026 (ISO-3) pengelolaannya hanya untuk
+ * aktor platform dan instalasi mandiri — aktor tenant tidak pernah
+ * boleh mengubah daftar periksa yang dipakai tenant lain. Pada
+ * instalasi mandiri, pengelola tetap Owner/Admin. Ditegakkan di
+ * service agar semua jalur (UI maupun pemanggil lain) sama-sama
+ * tertolak, sejajar gerbang rute qc.template-admin. Tanpa hapus:
+ * titik dinonaktifkan lewat is_active (aturan tanpa-hapus).
  */
 class QcTemplateService
 {
@@ -21,7 +26,14 @@ class QcTemplateService
 
     private function assertManager(User $actor): void
     {
-        if (! $actor->hasRole('Owner') && ! $actor->hasRole('Admin')) {
+        $mode = TenantContext::for($actor)->mode();
+
+        if ($mode === TenantContext::MODE_PLATFORM) {
+            return;
+        }
+
+        if ($mode !== TenantContext::MODE_STANDALONE
+            || (! $actor->hasRole('Owner') && ! $actor->hasRole('Admin'))) {
             throw new AuthorizationException(__('ui.qc.manager_only'));
         }
     }
