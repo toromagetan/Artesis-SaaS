@@ -121,12 +121,12 @@ class JournalController extends Controller
     }
 
     /** Formulir jurnal manual (F1.2, izin journals.manual). */
-    public function create(): View
+    public function create(Request $request): View
     {
         $branchContext = BranchContext::current();
 
         return view('accounting.journals.create', [
-            'accounts' => Account::where('is_active', true)->orderBy('code')->get(),
+            'accounts' => Account::inBucket(Account::bucketOf($request->user()))->where('is_active', true)->orderBy('code')->get(),
             'branches' => $branchContext->hasGlobalAccess()
                 ? Branch::orderBy('name')->get()
                 : Branch::whereIn('id', $branchContext->companyBranchIds())->orderBy('name')->get(),

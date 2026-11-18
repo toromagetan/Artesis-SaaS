@@ -2,6 +2,7 @@
 
 namespace App\Modules\Platform\Models;
 
+use App\Modules\Accounting\Services\ChartService;
 use App\Modules\Identity\Models\User;
 use App\Modules\Master\Models\Branch;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Tenant extends Model
 {
     protected $fillable = ['name', 'slug', 'email', 'phone', 'is_active'];
+
+    protected static function booted(): void
+    {
+        // ISO-2: setiap tenant baru langsung menerima salinan bagan
+        // akunnya sendiri (ember tenant_id = tenant ini) dari templat
+        // kanonis ChartService — berlaku untuk semua jalur pembuatan
+        // tenant (pendaftaran publik, panel platform, pabrik uji).
+        static::created(function (Tenant $tenant): void {
+            app(ChartService::class)->seedForTenant($tenant->id);
+        });
+    }
 
     protected function casts(): array
     {

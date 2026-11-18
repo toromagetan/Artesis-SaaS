@@ -38,7 +38,9 @@ class ManualJournalService
                 throw ValidationException::withMessages(["lines.{$i}.branch_id" => __('ui.accounting.branch_outside_company')]);
             }
             $account = Account::find((int) $line['account_id']);
-            if ($account === null) {
+            // Akun ember lain diperlakukan tidak ada (ISO-2): jurnal
+            // manual hanya boleh menunjuk akun bagan aktor sendiri.
+            if ($account === null || $account->tenant_id !== Account::bucketOf($actor)) {
                 throw ValidationException::withMessages(["lines.{$i}.account_id" => __('ui.accounting.account_missing', ['code' => (string) $line['account_id']])]);
             }
             if ($account->isSummary()) {

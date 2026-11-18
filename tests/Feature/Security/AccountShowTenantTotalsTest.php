@@ -19,8 +19,12 @@ use Tests\TestCase;
  * Audit keamanan 17 Nov 2026, temuan F-3: halaman detail akun sempat
  * menjumlah baris jurnal SEMUA tenant (relasi lines() tak terfilter)
  * dan crash 500 bila baris terbaru milik tenant lain (relasi journal
- * null di view). Bagan akunnya sendiri global secara desain; angka
- * dan barisnya wajib terpagar ember aktor.
+ * null di view). Angka dan barisnya wajib terpagar ember aktor.
+ *
+ * Sesudah ISO-2 (18 Nov 2026) bagan akun bukan lagi global: setiap
+ * tenant memiliki akunnya sendiri, jadi fixture di sini memakai
+ * akun per tenant berkode sama — pagar F-3 di controller (total dan
+ * baris disaring lewat jurnal ember aktor) tetap diuji apa adanya.
  */
 class AccountShowTenantTotalsTest extends TestCase
 {
@@ -59,11 +63,12 @@ class AccountShowTenantTotalsTest extends TestCase
         return [$tenant, $owner, $branch];
     }
 
-    private function account(): Account
+    private function accountFor(int $tenantId): Account
     {
         $id = DB::table('accounts')->insertGetId([
             'code' => '8-8888', 'name' => 'Akun Uji Audit', 'group' => 'expense',
-            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+            'is_active' => true, 'tenant_id' => $tenantId,
+            'created_at' => now(), 'updated_at' => now(),
         ]);
 
         return Account::findOrFail($id);
@@ -86,7 +91,7 @@ class AccountShowTenantTotalsTest extends TestCase
     public function test_owner_sees_own_total(): void
     {
         [$tenantB, $ownerB, $branchB] = $this->tenantOwner('asa');
-        $account = $this->account();
+        $account = $this->accountFor($tenantB->id);
         $this->journalLine($tenantB->id, $branchB->id, $account->id, 'JU-ASA-1', 123456789, 'Memo tenant B');
 
         $response = $this->actingAs($ownerB)->get(route('accounts.show', $account));
@@ -98,13 +103,14 @@ class AccountShowTenantTotalsTest extends TestCase
     {
         [$tenantA, $ownerA, $branchA] = $this->tenantOwner('ata');
         [$tenantB, , $branchB] = $this->tenantOwner('atb');
-        $account = $this->account();
-        $this->journalLine($tenantB->id, $branchB->id, $account->id, 'JU-ATB-1', 123456789, 'Memo rahasia tenant B');
+        $accountA = $this->accountFor($tenantA->id);
+        $accountB = $this->accountFor($tenantB->id);
+        $this->journalLine($tenantB->id, $branchB->id, $accountB->id, 'JU-ATB-1', 123456789, 'Memo rahasia tenant B');
         for ($i = 0; $i < 10; $i++) {
-            $this->journalLine($tenantA->id, $branchA->id, $account->id, 'JU-ATA-'.$i, 100, 'Baris tenant A '.$i);
+            $this->journalLine($tenantA->id, $branchA->id, $accountA->id, 'JU-ATA-'.$i, 100, 'Baris tenant A '.$i);
         }
 
-        $response = $this->actingAs($ownerA)->get(route('accounts.show', $account));
+        $response = $this->actingAs($ownerA)->get(route('accounts.show', $accountA));
         $response->assertOk();
         // Total tenant A hanya 1.000; angka gabungan dan angka tenant B tidak boleh muncul.
         foreach (['123.457.789', '123457789', '123.456.789'] as $leak) {
@@ -117,13 +123,14 @@ class AccountShowTenantTotalsTest extends TestCase
     {
         [$tenantA, , $branchA] = $this->tenantOwner('aca');
         [$tenantB, $ownerB, $branchB] = $this->tenantOwner('acb');
-        $account = $this->account();
-        $this->journalLine($tenantB->id, $branchB->id, $account->id, 'JU-ACB-1', 500, 'Baris tenant B');
+        $accountA = $this->accountFor($tenantA->id);
+        $accountB = $this->accountFor($tenantB->id);
+        $this->journalLine($tenantB->id, $branchB->id, $accountB->id, 'JU-ACB-1', 500, 'Baris tenant B');
         for ($i = 0; $i < 10; $i++) {
-            $this->journalLine($tenantA->id, $branchA->id, $account->id, 'JU-ACA-'.$i, 100, 'Baris asing '.$i);
+            $this->journalLine($tenantA->id, $branchA->id, $accountA->id, 'JU-ACA-'.$i, 100, 'Baris asing '.$i);
         }
 
-        $response = $this->actingAs($ownerB)->get(route('accounts.show', $account));
+        $response = $this->actingAs($ownerB)->get(route('accounts.show', $accountB));
         $response->assertOk();
     }
 }

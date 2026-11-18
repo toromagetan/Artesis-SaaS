@@ -54,7 +54,7 @@ class TenantExportService
 {
     /** @var list<string> */
     private const TENANT_TABLES = [
-        'ai_credit_ledger', 'ai_credit_requests',
+        'accounts', 'ai_credit_ledger', 'ai_credit_requests',
         'branches', 'commissions', 'customers', 'doctors', 'fixed_assets',
         'incentive_rules', 'insurances', 'journals', 'membership_levels',
         'payg_credit_ledger', 'payg_credit_requests',
@@ -65,7 +65,7 @@ class TenantExportService
 
     /** @var list<string> */
     private const BRANCH_TABLES = [
-        'accounts', 'broken_stocks', 'customer_credits',
+        'broken_stocks', 'customer_credits',
         'fitting_measurements', 'incentive_periods', 'insurance_usages',
         'journal_lines',
         'offline_devices', 'offline_exceptions', 'purchase_orders',
