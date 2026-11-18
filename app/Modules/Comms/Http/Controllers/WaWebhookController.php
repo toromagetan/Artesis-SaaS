@@ -8,6 +8,7 @@ use App\Modules\Comms\Models\WaMessage;
 use App\Modules\Comms\Services\MessagingService;
 use App\Modules\CRM\Models\Customer;
 use App\Modules\Identity\Services\TenantContext;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -162,18 +163,27 @@ class WaWebhookController extends Controller
             $customer = $matches->count() === 1 ? $matches->first() : null;
         }
 
-        WaMessage::create([
-            'tenant_id' => $tenantId,
-            'customer_id' => $customer?->id,
-            'phone' => $phone,
-            'template_key' => null,
-            'body' => (string) ($incoming['text']['body'] ?? ''),
-            'direction' => 'in',
-            'status' => 'delivered',
-            'trigger' => 'inbox',
-            'sent_by' => null,
-            'provider_message_id' => $providerId,
-            'sent_at' => now(),
-        ]);
+        try {
+            WaMessage::create([
+                'tenant_id' => $tenantId,
+                'customer_id' => $customer?->id,
+                'phone' => $phone,
+                'template_key' => null,
+                'body' => (string) ($incoming['text']['body'] ?? ''),
+                'direction' => 'in',
+                'status' => 'delivered',
+                'trigger' => 'inbox',
+                'sent_by' => null,
+                'provider_message_id' => $providerId,
+                'sent_at' => now(),
+            ]);
+        } catch (QueryException) {
+            // Balapan callback identik: pemeriksaan exists() di atas
+            // lolos bersamaan, unique index incoming_provider_key
+            // (migrasi 000068) menolak sisipan kedua. Yang kalah
+            // balapan adalah duplikat — abaikan tanpa menggagalkan
+            // kelompok callback ini.
+            return;
+        }
     }
 }
