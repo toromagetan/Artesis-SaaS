@@ -71,7 +71,7 @@ class SaleReturnService
             }
 
             $return = new SaleReturn([
-                'number' => Numbering::next('SR', now()),
+                'number' => Numbering::nextForBranch('SR', $sale->branch_id),
                 'sale_id' => $sale->id,
                 'reason' => trim($reason),
                 'refund_method' => $refundMethod,

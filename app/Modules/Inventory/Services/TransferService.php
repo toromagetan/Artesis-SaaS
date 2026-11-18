@@ -129,7 +129,7 @@ class TransferService
             }
 
             $transfer = StockTransfer::create([
-                'number' => Numbering::next('TRF', now()),
+                'number' => Numbering::nextForBranch('TRF', $fromBranchId),
                 'from_branch_id' => $fromBranchId,
                 'to_branch_id' => $toBranchId,
                 'source_type' => $sourceType,

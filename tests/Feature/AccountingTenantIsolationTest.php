@@ -85,9 +85,11 @@ class AccountingTenantIsolationTest extends TestCase
 
         $this->assertSame($tenantA->id, (int) $journalA->tenant_id);
 
+        // Penanda kebocoran = deskripsi khas A: sejak ISO-1 nomor
+        // jurnal kedua tenant sama-sama JU-…-0001 secara sah.
         $this->actingAs($adminB)->get(route('journals.index'))
             ->assertOk()
-            ->assertDontSee($journalA->number);
+            ->assertDontSee($journalA->description);
 
         $this->actingAs($adminB)->get(route('journals.show', $journalA))
             ->assertNotFound();

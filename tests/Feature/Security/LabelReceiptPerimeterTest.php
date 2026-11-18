@@ -95,7 +95,10 @@ class LabelReceiptPerimeterTest extends TestCase
         $response = $this->actingAs($ownerA)->get(route('labels.index'));
         $response->assertOk();
         $response->assertSee($receiptA->number);
-        $response->assertDontSee($receiptB->number);
+        // Penanda kebocoran = id penerimaan B pada opsi dropdown:
+        // sejak ISO-1 nomor penerimaan kedua tenant sama-sama
+        // RCV-…-0001 secara sah.
+        $response->assertDontSee('value="'.$receiptB->id.'"', false);
     }
 
     public function test_label_print_rejects_other_tenant_receipt(): void
