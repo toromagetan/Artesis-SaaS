@@ -158,10 +158,33 @@ class PaygCreditService
     }
 
     /**
+     * Nilai rupiah pemakaian bersih tenant: jumlah amount baris
+     * usage dikurangi baris reversal. Karena setiap baris mematok
+     * harga saat kejadiannya, angka ini adalah dasar rekonsiliasi
+     * yang dapat dibuktikan per transaksi — perubahan tarif platform
+     * tidak mengubah nilai pemakaian masa lalu.
+     */
+    public function consumedAmount(Tenant $tenant): int
+    {
+        $usage = (int) PaygCreditLedger::where('tenant_id', $tenant->id)
+            ->where('kind', 'usage')->sum('amount');
+        $reversal = (int) PaygCreditLedger::where('tenant_id', $tenant->id)
+            ->where('kind', 'reversal')->sum('amount');
+
+        return $usage - $reversal;
+    }
+
+    /**
      * Potong 1 kredit untuk satu penjualan yang berhasil tersimpan.
      * Idempoten: penjualan yang sudah punya baris usage tidak
      * dipotong lagi (sinkronisasi offline ganda aman). Saldo boleh
      * menjadi negatif — fungsi ini TIDAK pernah menolak penjualan.
+     *
+     * Harga DIPATOK pada baris (keputusan owner 2026-11-18):
+     * unit_price adalah tarif yang berlaku pada saat penjualan
+     * terjadi, sehingga nilai rupiah setiap pemakaian — termasuk
+     * tunggakan saldo negatif — dapat direkonsiliasi per transaksi
+     * walau tarif platform berubah sesudahnya.
      */
     public function chargeForSale(Tenant $tenant, Sale $sale, User $actor): void
     {
@@ -176,11 +199,15 @@ class PaygCreditService
                 return;
             }
 
+            $price = $this->pricePerTransaction();
+
             PaygCreditLedger::create([
                 'tenant_id' => $tenant->id,
                 'kind' => 'usage',
                 'credits_delta' => -1,
                 'balance_after' => $this->balance($tenant) - 1,
+                'unit_price' => $price,
+                'amount' => $price,
                 'sale_id' => $sale->id,
                 'actor_id' => $actor->id,
             ]);
@@ -190,29 +217,42 @@ class PaygCreditService
     /**
      * Balikkan potongan penjualan yang di-void penuh: tepat satu
      * baris reversal per penjualan, dan hanya bila potongannya ada.
+     * Harga baris reversal MENCERMINKAN harga terpatok baris usage
+     * asal — bukan tarif berjalan — agar nilai rupiah yang dibalik
+     * tepat sama dengan yang dipotong, kapan pun void terjadi.
      */
     public function reverseForSale(Tenant $tenant, Sale $sale, User $actor): void
     {
         DB::transaction(function () use ($tenant, $sale, $actor) {
             Tenant::whereKey($tenant->id)->lockForUpdate()->firstOrFail();
 
-            $charged = PaygCreditLedger::where('tenant_id', $tenant->id)
+            $usage = PaygCreditLedger::where('tenant_id', $tenant->id)
                 ->where('kind', 'usage')
                 ->where('sale_id', $sale->id)
-                ->exists();
+                ->first();
             $reversed = PaygCreditLedger::where('tenant_id', $tenant->id)
                 ->where('kind', 'reversal')
                 ->where('sale_id', $sale->id)
                 ->exists();
-            if (! $charged || $reversed) {
+            if ($usage === null || $reversed) {
                 return;
             }
+
+            // Baris usage lama (sebelum patok harga diberlakukan)
+            // dapat ber-unit_price NULL; untuk itu tarif berjalan
+            // adalah satu-satunya patokan yang tersedia.
+            $price = $usage->unit_price !== null
+                ? (int) $usage->unit_price
+                : $this->pricePerTransaction();
+            $amount = $usage->amount !== null ? (int) $usage->amount : $price;
 
             PaygCreditLedger::create([
                 'tenant_id' => $tenant->id,
                 'kind' => 'reversal',
                 'credits_delta' => 1,
                 'balance_after' => $this->balance($tenant) + 1,
+                'unit_price' => $price,
+                'amount' => $amount,
                 'sale_id' => $sale->id,
                 'actor_id' => $actor->id,
             ]);
