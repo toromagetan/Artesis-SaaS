@@ -101,6 +101,8 @@ npm ci && npm run build      # atau unggah public/build dari mesin build
 php artisan view:clear       # JANGAN optimize/config:cache/route:cache di server produksi proyek ini
 ```
 
+**Peringatan seeder:** `db:seed` di atas hanya untuk pemasangan segar. **Jangan jalankan ulang seeder pada instalasi yang sudah berjalan** — `PlanService::seedDefaultPlans` menimpa definisi Plan yang sudah diatur dari panel platform. Prosedur update (Bagian 8) memang tidak menjalankan seeder; pertahankan begitu.
+
 Kepemilikan berkas: direktori `storage/` dan `bootstrap/cache/`
 harus dapat ditulis oleh pengguna web server (mis. `www-data`).
 
@@ -193,6 +195,7 @@ git fetch origin && git checkout main && git pull
 composer install --no-dev --optimize-autoloader
 php artisan migrate --force   # (2) migrasi selalu sesudah kode
 php artisan view:clear        # tanpa optimize/cache konfigurasi (aturan deploy proyek ini)
+# (tanpa db:seed — seeder hanya untuk pemasangan segar, lihat Bagian 3)
 sudo systemctl restart artesis-queue
 ```
 
@@ -258,8 +261,7 @@ Item berikut BUKAN bagian deploy teknis dan menunggu keputusan/
 input pemilik:
 
 - Server/VPS produksi dibeli & domain diarahkan (DNS) + TLS aktif.
-- Kredensial WhatsApp Business (WABA) untuk fitur WhatsApp paket
-  Best Offer — tanpa ini, fitur WA tidak dapat dinyalakan.
+- Kredensial WhatsApp Business (WABA) per tenant — hanya diperlukan bila WA API diaktifkan kembali untuk tenant (keputusan terpisah pemilik proyek); skema tenant saat ini adalah tombol Kirim WA (wa.me) yang tidak membutuhkan WABA.
 - Rekening tujuan transfer penagihan diisi di panel Penagihan.
 - Tinjauan penutur asli untuk paket bahasa Melayu & Mandarin
   sebelum promosi publik ke wilayah tersebut.

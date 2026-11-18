@@ -15,7 +15,7 @@ Satu basis kode yang sama juga dapat dipasang sebagai **instalasi individual** (
 ```
 Platform (dikelola Platform Superadmin)
 └── Tenant (perusahaan optik pelanggan)
-    ├── Subscription → Plan (Free / Solo / Team / Best Offer)
+    ├── Subscription → Plan (Free / Solo / Team / Best Offer / PAYG)
     ├── Branch (satu atau lebih cabang, sesuai Plan)
     └── User (Tenant Owner & pengguna operasional: Admin, Kasir, Gudang, dst.)
 ```
@@ -33,9 +33,9 @@ Platform (dikelola Platform Superadmin)
 - **Stok:** ledger `stock_movements` single-writer, costing FIFO per cabang, transfer antar cabang, opname, impor stok awal bergerbang policy, matriks lensa untuk PO & opname.
 - **Akuntansi:** jurnal otomatis event-driven, buku besar, laporan keuangan (neraca, laba rugi total & per cabang, arus kas), aset & penyusutan, tutup buku per periode, payroll & insentif.
 - **Pelanggan:** master pelanggan & resep, membership & poin (tercatat sebagai liabilitas), portal member ber-token, kredit toko dari refund.
-- **Komunikasi:** WhatsApp (Meta Cloud API) — invoice, pengingat pengambilan/after-service/ulang tahun, inbox dua arah, kampanye berpagar persetujuan.
+- **Komunikasi:** WhatsApp — untuk tenant: tombol Kirim WA (wa.me) pada dokumen + opsi unduh PDF agar dokumen dapat dilampirkan manual (semua paket). WA API (Meta Cloud API) dengan gateway per tenant tersedia di kode (invoice, pengingat pengambilan/after-service/ulang tahun, inbox dua arah, kampanye berpagar persetujuan), tetapi **dinonaktifkan dari sisi tenant** atas keputusan pemilik proyek 2026-11-15 — menu & pengiriman otomatis tertutup bagi tenant; kode tetap di repo dan dapat dihidupkan lagi lewat keputusan terpisah.
 - **Platform SaaS:** pendaftaran mandiri (`/daftar`), panel Platform Superadmin (tenant, paket, penagihan), halaman **Paket Saya** untuk tenant, penagihan transfer manual dengan konfirmasi platform.
-- **Lainnya:** API baca-saja ber-token, mode kasir offline, Asisten AI bisnis (khusus Owner), Fitting AI, audit log mutasi.
+- **Lainnya:** API baca-saja ber-token, mode kasir offline, Asisten AI bisnis bayar per penggunaan (khusus Owner; kredit prabayar — satu jawaban berhasil memotong satu kredit), Fitting AI, audit log mutasi.
 
 Status implementasi per fitur — termasuk yang **belum** selesai — dicatat apa adanya di [docs/PRD.md](docs/PRD.md). Dokumen itu, bukan README ini, adalah acuan status.
 
@@ -57,7 +57,7 @@ php artisan migrate --seed
 php artisan serve   # pengembangan lokal
 ```
 
-Seeder bawaan menanam peran & izin, bagan akun, titik QC, **dan lapisan SaaS** (Plan + peran Platform) — instalasi segar langsung utuh. **WAJIB sesudah instalasi:** ganti kata sandi bawaan akun `owner` dan `platform` (keduanya `password` dari seeder) sebelum instalasi dibuka ke siapa pun, dan set `APP_DEBUG=false` di produksi. Prosedur pemasangan produksi — dengan asumsi teknis server bersama (topologi produksi final menunggu keputusan OD-1), nginx, cron, queue worker, backup, dan smoke test 12 poin — ada di [docs/DEPLOY-RUNBOOK.md](docs/DEPLOY-RUNBOOK.md).
+Seeder bawaan menanam peran & izin, bagan akun, titik QC, **dan lapisan SaaS** (Plan + peran Platform) — instalasi segar langsung utuh. **Jangan jalankan ulang `db:seed` pada instalasi yang sudah berjalan:** penanaman ulang menimpa definisi Plan yang diatur dari panel platform (`PlanService::seedDefaultPlans`) — seeder hanya untuk pemasangan segar. **WAJIB sesudah instalasi:** ganti kata sandi bawaan akun `owner` dan `platform` (keduanya `password` dari seeder) sebelum instalasi dibuka ke siapa pun, dan set `APP_DEBUG=false` di produksi. Prosedur pemasangan produksi — dengan asumsi teknis server bersama (topologi produksi final menunggu keputusan OD-1), nginx, cron, queue worker, backup, dan smoke test 12 poin — ada di [docs/DEPLOY-RUNBOOK.md](docs/DEPLOY-RUNBOOK.md).
 
 Gambaran konfigurasi `.env` (nama kunci saja; nilai rahasia tidak pernah masuk repositori): aplikasi (`APP_NAME, APP_ENV, APP_KEY, APP_DEBUG, APP_URL`), database (`DB_*`), sesi (`SESSION_*`), antrean & cache (`QUEUE_CONNECTION, CACHE_STORE`), surat (`MAIL_*`). Kredensial gateway WhatsApp dan AI **tidak** diatur dari `.env` — keduanya diatur dari UI Pengaturan dan tersimpan terenkripsi.
 
@@ -94,7 +94,7 @@ Migrasi `2026_10_23_000045` memasang indeks unik pada `journals.reversal_of_id`.
 php artisan test
 ```
 
-Suite berjalan terhadap MySQL nyata (database uji `lentera_test`; test konkurensi membuat database unik per run berpola `lentera_conc_<pid>_<acak>` dan hanya menghapus buatannya sendiri — lihat `.env.testing` setempat). Cakupan relevan SaaS: `SaasEnforcementTest` (penegakan Plan), `SaasSignupBillingTest` (pendaftaran & penagihan), `UserTenantIsolationTest` (isolasi pengelolaan pengguna), `TenantProvisioningTest` (penyediaan tenant dari panel), `GoLiveReadinessTest`, matriks isolasi tenant Fase 0 (konteks, pagar master/transaksi/akuntansi, gudang garansi), dan `TenantExportIsolationTest` (ekspor per tenant). CI menjalankan Pint, pemindaian pola terlarang (`tools/scan-forbidden.sh`), unit, feature + matriks keamanan, dan build aset pada setiap PR; `main` terproteksi (PR wajib, CI hijau wajib).
+Suite berjalan terhadap MySQL nyata (database uji `lentera_test`; test konkurensi membuat database unik per run berpola `lentera_conc_<pid>_<acak>` dan hanya menghapus buatannya sendiri — lihat `.env.testing` setempat). Cakupan relevan SaaS: `SaasEnforcementTest` (penegakan Plan), `SaasSignupBillingTest` (pendaftaran & penagihan), `UserTenantIsolationTest` (isolasi pengelolaan pengguna), `TenantProvisioningTest` (penyediaan tenant dari panel), `GoLiveReadinessTest`, matriks isolasi tenant Fase 0 (konteks, pagar master/transaksi/akuntansi, gudang garansi), `TenantExportIsolationTest` (ekspor per tenant), `CoaPerTenantIsolationTest` (bagan akun per tenant), `DocumentNumberingPerTenantTest` + `DocumentNumberingRaceTest` (nomor dokumen per tenant + balapan dua proses), `QcTemplateTenantGateTest` (template QC khusus platform), `PaygCreditTest` & `AiCreditTest` (kredit prabayar), dan `SidebarPlanLockTest` (gembok menu paket). CI menjalankan Pint, pemindaian pola terlarang (`tools/scan-forbidden.sh`), unit, feature + matriks keamanan, dan build aset pada setiap PR; `main` terproteksi (PR wajib, CI hijau wajib).
 
 ## Dokumentasi utama
 
@@ -106,10 +106,11 @@ Suite berjalan terhadap MySQL nyata (database uji `lentera_test`; test konkurens
 
 ## Status proyek & batasan produksi yang masih terbuka
 
-**Aplikasi ini belum dinyatakan production-ready untuk mode SaaS satu instansi bersama** — penilaian kesiapan produksi menyeluruh (Roadmap Fase 6) belum dilakukan. Keadaan terbukti saat ini (baseline `main` @ `43db5b54`, 2026-11-12):
+**Aplikasi ini belum dinyatakan production-ready untuk mode SaaS satu instansi bersama** — penilaian kesiapan produksi menyeluruh (Roadmap Fase 6) belum dilakukan. Keadaan terbukti saat ini (baseline `main` @ `a44d9311`, 2026-11-18):
 
 - Lapisan platform SaaS (tenant, Plan, Subscription, Billing, pendaftaran, panel) **sudah terbangun dan teruji**.
 - Seluruh fitur bisnis optik **sudah terbangun**.
 - **Isolasi data bisnis antar-tenant di dalam satu instansi SUDAH terbangun** (Fase 0, PR #23–#35): seluruh data bisnis — termasuk master pelanggan, resep, dan produk — adalah milik tenant (keputusan OD-2: per tenant penuh; "global" pada ADR-012 kini berarti global **di dalam tenant**, lintas cabang satu tenant), terpagar konteks tenant + cabang, dan penegakan `tenants.is_active` berlaku pada login & akses. Batas kepercayaan baca in-process diatur [ADR-022](docs/adr/ADR-022-batas-kepercayaan-in-process.md).
 - Keputusan topologi produksi (**OD-1**) masih **terbuka** di pemilik proyek — isolasi tidak lagi menjadi penghalang teknis mode satu instansi bersama, tetapi pilihan topologi dan penilaian kesiapan produksi tetap keputusan & gerbang tersendiri.
-- Yang masih terbuka: pendaftaran publik belum memakai CAPTCHA/verifikasi email (anti-penyalahgunaan), backup offsite belum terimplementasi, awalan cache per tenant belum dikerjakan, angka kapasitas terukur belum ada.
+- **Audit isolasi menyeluruh 2026-11-18 selesai dan perbaikannya ter-merge** (PR #81–#83): template QC hanya dapat dikelola platform/instalasi mandiri, bagan akun (COA) per tenant, dan nomor dokumen per tenant — tidak ada lagi data konfigurasi bersama yang dapat diubah tenant. Audit keamanan menyeluruh 2026-11-17 (F-1 s.d. F-6) dan audit WhatsApp (W-01 + kedaluwarsa pesan 24 jam) juga sudah tertutup di `main`.
+- Yang masih terbuka: backup offsite belum terimplementasi, angka kapasitas terukur belum ada, penilaian kesiapan produksi formal (Roadmap Fase 6 / E-01) belum dilakukan, dan keputusan topologi produksi (OD-1) serta retensi offboarding (OD-5) masih di pemilik proyek.

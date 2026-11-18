@@ -4,7 +4,7 @@
 |---|---|
 | Dokumen | PRD Detail (pendamping PRD utama v2.0 di `docs/PRD.md`) |
 | Produk | **Artesis** — SaaS POS Optik & Operational Management (multi-tenant); dokumen ini ditulis pada era nama lama produk (Lentera, model kepemilikan penuh) dan **framing-nya diselaraskan pada D-01 (2026-11-12)** — spesifikasi perilaku per menu di dalamnya tidak diubah |
-| Versi | 1.0 — 17 Oktober 2026 (framing diselaraskan 2026-11-12) |
+| Versi | 1.0 — 17 Oktober 2026 (framing diselaraskan 2026-11-12; **diselaraskan D-02 pada 2026-11-18**: peta navigasi sidebar cermin Artesis, katalog model detail ADR-023, template QC khusus platform, COA per tenant, skema WhatsApp tenant wa.me, Asisten AI bayar per penggunaan, dan menu SaaS — perilaku per menu lain tidak diubah) |
 | Status | Disetujui owner & terbangun penuh (2026-10-18; diperbarui s.d. 2026-10-23) |
 
 **Konteks tenant (baca sebelum memakai dokumen ini).** Spesifikasi per menu di bawah ditulis untuk satu bisnis optik. Pada produk saat ini, setiap menu beroperasi **di dalam tenant aktor**: seluruh peran yang disebut (Owner, Admin, Kasir, Gudang, Cabang, Refraksionis, Teknisi) adalah peran **di dalam satu tenant**; "seluruh cabang" berarti seluruh cabang **tenant itu**; master pelanggan/resep/produk bersifat global **di dalam tenant** (ADR-012 sebagaimana dikualifikasi OD-2), tidak pernah lintas tenant; aktor platform bukan pelaku bisnis pada menu mana pun. Kontrak otorisasi lengkapnya ada di `docs/POLA-POLICY.md`; persyaratan produknya di `docs/PRD.md`.
@@ -13,8 +13,8 @@
 
 **Peran:** Owner (pemilik, seluruh cabang) · Admin (pengelola, izin eksplisit) · Kasir · Gudang · Cabang (staf cabang) · Refraksionis · Teknisi Lab. Prinsip tetap: akses diberikan per peran + pagar cabang di server; platform/pemilik teknis tidak otomatis menjadi pelaku bisnis.
 
-**Peta navigasi (sidebar):**
-Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & Resep (Pelanggan, Resep) · Katalog (Frame, Lensa, Lensa RX, Softlens, Aksesori) · Lab (Antrean Proses, QC Faset) · Pembelian (Purchase Request, Purchase Order, Penerimaan, Pembayaran, Pembayaran Kolektif, Retur, Supplier) · Stok (Stok Cabang, Pergerakan, Transfer Distribusi, Opname, Impor Stok Awal, Label Barcode) · Akuntansi (Chart of Accounts, Jurnal, Buku Besar, Utang & Piutang, Laporan Keuangan, Aset Tetap, Tutup Buku, Payroll & Komisi) · Membership (Member, Poin, Follow-up, Portal Member) · Laporan (Penjualan, Pembelian, Stok, Supplier Analytics, Sales Analytics) · Komunikasi (Template, Inbox, Kampanye, Log Kirim) · Pengaturan (Cabang, Pengguna & Peran, Asuransi, Dokter Perujuk, Umum & Pajak, Gateway WA, Asisten AI, Backup & Restore, Ekspor Data, Log Aktivitas, Token API, Perangkat Offline).
+**Peta navigasi (sidebar cermin Artesis — keputusan pemilik proyek 2026-11-14, modul A6):**
+Dashboard · **Master** (Pelanggan, Resep, Pemasok, Produk ▸ Frame/Lensa/Lensa RX/Softlens/Aksesoris, Cabang/Optik, Pengguna, Asuransi) · **Transaksi** (POS Kasir, Penjualan, Permintaan Barang, Purchase Order, Retur, Refund & Kredit Pelanggan, Warranty & After Sales, Transfer Barang) · Stok Gudang · Lens Matrix · Log Aktivitas · **Laporan** (Ringkasan, Penjualan, Analisis Lensa, Pemeriksaan, Pemakaian Asuransi, Mutasi Stok, Pembelian, Stok, Laba Rugi, Insentif, Accounting) · **Akuntansi** (menu utama berdiri sendiri: Chart of Accounts, Jurnal, Buku Besar, Utang & Piutang, Laporan Keuangan, Aset Tetap, Tutup Buku, Payroll & Komisi, **Pembayaran Kolektif** — pindah ke grup ini 2026-11-16) · **Pengaturan** (Profil, Ganti Password, Pengaturan Aplikasi, Backup History). Fitur khas SaaS tanpa padanan Artesis masuk ke grup yang paling sesuai (Paket Saya, Member, Asisten AI, Token API, Perangkat Offline, Ekspor Data); item menu yang fiturnya terkunci paket tampil **bertanda gembok dan tidak dapat diklik** (keputusan 2026-11-15). Menu Komunikasi WA API hanya tampil untuk platform/instalasi mandiri (lihat Bagian 11).
 
 ---
 
@@ -23,7 +23,7 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 - **Bahasa visual:** bersih (banyak ruang lega, sedikit garis, tanpa ornamen berlebihan), modern (tipografi sans masa kini — Plus Jakarta Sans; sudut membulat halus; bayangan sangat tipis; ikon garis yang konsisten), elegan (palet Artesis: emerald pekat sebagai warna utama, emas hanya sebagai aksen terbatas pada tombol utama & penanda aktif, latar netral terang dominan). Angka uang memakai angka tabular agar rapi sejajar.
 - **Detail BUKAN model preview:** setiap layar "Detail" (transaksi, pelanggan, PO, PR, produk, jurnal, transfer, opname, member) adalah **halaman penuh tersendiri dengan rutenya sendiri**, memuat seluruh isi dan aksinya. **Dilarang** menyajikan detail sebagai modal, drawer/slide-over, quick-view, kartu melayang, atau pratinjau ringkas — mengklik baris/nomor di daftar selalu menavigasi ke halaman detail penuh. Satu-satunya pengecualian: dialog konfirmasi singkat untuk aksi berbahaya (itu dialog keputusan, bukan detail).
 - **Dokumen cetak** dibuka sebagai dokumen penuh di tab baru (bukan thumbnail/pratinjau mini).
-- **Tombol sejajar — seluruh perintah selalu terlihat (keputusan owner 2026-10-22, ADR-018; menggantikan model dropdown 2026-10-17):** dalam satu layar, seluruh perintah dirender sebagai **tombol tersendiri yang terlihat sejajar dalam satu kelompok** (bukan disembunyikan di dropdown "Aksi"/"Cetak"), dan seluruh pilihan dokumen sebagai tombol dokumen berikon printer di kelompok yang sama. Yang boleh berdiri di luar kelompok hanya navigasi murni (Kembali, paginasi, tautan ke halaman detail). Di daftar, aksi per baris berupa deretan tombol kecil sejajar per baris. Tombol "Baru/Buat" pada daftar menjadi tombol primer pertama kelompok itu. Item berbahaya (void, nonaktif, hapus) ditaruh di urutan terakhir kelompok dengan warna merah + tetap wajib konfirmasi dan alasan. Karena itu, semua "Aksi" yang tercantum per menu dalam dokumen ini **dibaca sebagai tombol yang terlihat**, bukan item menu tersembunyi.
+- **Tombol sejajar — seluruh perintah selalu terlihat (keputusan owner 2026-10-22, ADR-018; menggantikan model dropdown 2026-10-17):** dalam satu layar, seluruh perintah dirender sebagai **tombol tersendiri yang terlihat sejajar dalam satu kelompok** (bukan disembunyikan di dropdown "Aksi"/"Cetak"), dan seluruh pilihan dokumen sebagai tombol dokumen berikon printer di kelompok yang sama. Yang boleh berdiri di luar kelompok hanya navigasi murni (Kembali, paginasi, tautan ke halaman detail). Di daftar, aksi per baris berupa deretan tombol kecil sejajar per baris — **sejak 2026-11-14 berupa tombol ikon-saja** (label menjadi tooltip + teks sr-only) di semua modul; tombol kepala halaman & perintah utama tetap berlabel teks. Tombol "Baru/Buat" pada daftar menjadi tombol primer pertama kelompok itu. Item berbahaya (void, nonaktif, hapus) ditaruh di urutan terakhir kelompok dengan warna merah + tetap wajib konfirmasi dan alasan. Karena itu, semua "Aksi" yang tercantum per menu dalam dokumen ini **dibaca sebagai tombol yang terlihat**, bukan item menu tersembunyi.
 - **Judul tidak ganda (keputusan owner 2026-10-17):** judul halaman tampil **tepat satu kali** — tidak boleh muncul bersamaan di topbar dan di body. Tata letak resmi adalah **SIDEBAR** (keputusan owner 2026-10-18, ADR-013 di Blueprint, menggantikan Varian A header ramping pilihan 2026-10-17): navigasi di sidebar kiri dengan menu terklasifikasi 6 kelompok + submenu; judul tinggal di topbar, body langsung berisi konten tanpa mengulang judul; pencarian global selalu di topbar. Pratinjau yang disetujui: `docs/preview/pratinjau-sidebar.html`.
 - **Pencarian global selalu di atas (keputusan owner 2026-10-17):** **global search wajib selalu tersedia di header** pada setiap halaman. Cakupannya lintas modul: pelanggan, produk, nomor transaksi, nomor PR/PO — selalu menghormati izin peran, pagar tenant, dan — untuk data transaksional — pagar cabang (pelanggan & produk adalah master global di dalam tenant, ADR-012/OD-2 — digerbang izin + pagar tenant); hasil dikelompokkan per jenis dengan tautan ke halaman detail penuh.
 - Kepadatan informasi seimbang — tidak sesak; mode terang adalah bawaan; tampilan tetap rapi di tablet kasir maupun desktop.
@@ -89,9 +89,10 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 - **Aturan kunci (MUTLAK):** **PDR/PDL tidak boleh muncul di precal dalam bentuk apa pun** — keduanya hanya hidup di resep (3.3). Item Lensa RX mewajibkan resep pelanggan yang sama pada penjualannya.
 
 ## 4. KATALOG PRODUK
+**Struktur katalog (ADR-023, 2026-11-14):** kategori → **produk** (master ringan: kategori, merek, nama) → **detail per tipe** (Frame/Lensa/Lensa RX/Softlens/Aksesori — masing-masing ber-id sendiri). SKU milik **detail** dan unik per (tenant, SKU); unit jual & stok adalah detail. Halaman katalog per tipe menampilkan detail tipe itu beserta produk induknya. Impor produk dari Excel/CSV dan impor awal oleh pemilik tenant tersedia sebagai modul tersendiri (Bagian 14).
 ### 4.1 Frame — MVP
-- **Daftar:** Kode/SKU, Nama, Merek, Warna, Harga Jual, Stok Total (semua cabang), Status (Aktif/Nonaktif). Filter: merek, status; pencarian nama/SKU.
-- **Formulir:** SKU (unik), nama, merek, warna, ukuran (eye/bridge/temple), harga modal, harga jual, foto (opsional).
+- **Daftar:** Kode/SKU (detail), Nama, Merek, Warna, Harga Jual, Stok Total (semua cabang), Status (Aktif/Nonaktif). Filter: merek, status; pencarian nama/SKU.
+- **Formulir:** produk induk (kategori Frame, merek, nama) + detail: SKU (unik per tenant), warna, ukuran (eye/bridge/temple), harga modal, harga jual, foto (opsional).
 - **Aksi:** Baru/Edit; Aktif/Nonaktif (toggle ⏻ — master tidak dihapus); Lihat Stok per Cabang; Cetak Label (F4).
 
 ### 4.2 Lensa — MVP
@@ -118,7 +119,7 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 
 ### 5.2 QC Faset — F2
 - **Tujuan:** checklist mutu pemotongan/pemasangan lensa (faset) titik demi titik.
-- **Isi:** daftar titik QC yang **dapat dikonfigurasi** (bawaan 13 titik, contoh: kesesuaian ukuran resep, centring/PD, axis, ketebalan tepi, kerapian edging, kebersihan, kesesuaian frame, dsb.); setiap titik: Lulus/Gagal + catatan teknis + nama teknisi + cap waktu.
+- **Isi:** daftar titik QC dari template (bawaan 13 titik, contoh: kesesuaian ukuran resep, centring/PD, axis, ketebalan tepi, kerapian edging, kebersihan, kesesuaian frame, dsb.); setiap titik: Lulus/Gagal + catatan teknis + nama teknisi + cap waktu. **Template titik QC dikelola platform/instalasi mandiri saja** (sejak 2026-11-18, PR #81): halaman template bagi aktor tenant bersifat hanya-baca.
 - **Aksi:** Simpan pemeriksaan; Ulangi titik gagal (riwayat percobaan tersimpan, tidak ditimpa).
 - **Aturan kunci:** transaksi tidak dapat di-Complete sebelum semua titik wajib Lulus; titik gagal wajib ber-catatan.
 
@@ -195,7 +196,7 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 ### 8.1 Chart of Accounts (CoA) — F1 (fondasi jurnal otomatis sudah di MVP)
 - **Daftar:** Kode Akun, Nama, Kelompok (Aset/Liabilitas/Ekuitas/Pendapatan/Beban), Saldo Berjalan, Status.
 - **Formulir:** kode (dengan **pemetaan kode selaras Coretax DJP**), nama, kelompok, akun induk.
-- **Aturan kunci:** akun yang sudah dipakai jurnal tidak dapat dihapus (nonaktif saja); struktur mengikuti standar akuntansi Indonesia.
+- **Aturan kunci:** akun yang sudah dipakai jurnal tidak dapat dihapus (nonaktif saja); struktur mengikuti standar akuntansi Indonesia. **Bagan akun adalah milik tenant** (sejak 2026-11-18, PR #82): kode unik per tenant; tenant baru menerima salinan templat bagan (24 akun) saat dibuat; akun tenant lain tidak terlihat dan menjawab 404.
 
 ### 8.2 Jurnal Umum — MVP (otomatis) + F1 (manual berpagar)
 - **Daftar:** Tanggal, Nomor Jurnal, Sumber (Penjualan/Pembelian/Pembayaran/Manual), Keterangan, Total Debit = Kredit, Status (Terbit/Balik).
@@ -258,6 +259,7 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 - **Aturan kunci (semua laporan):** pagar cabang berlaku penuh; angka laporan harus rekonsiliasi dengan sumbernya (transaksi/jurnal/pergerakan) pada periode yang sama; ekspor menghormati filter yang sedang aktif.
 
 ## 11. KOMUNIKASI (WHATSAPP) — F3
+**Status skema (2026-11-15 s.d. 2026-11-18):** gateway & kredensial kini **per tenant** (PR #59). Untuk tenant, skema komunikasi yang berjalan adalah **tombol Kirim WA (wa.me)** pada dokumen & konteks pelanggan + opsi unduh PDF pada setiap dokumen — menu pada Bagian 11 ini (Gateway, Template, Inbox, Kampanye, Log Kirim) adalah permukaan **WA API** dan hanya terbuka untuk platform/instalasi mandiri; bagi tenant menu & rutenya tertutup dan pengiriman otomatis berhenti, kode tetap di repo. Pesan antrean yang berumur lebih dari **24 jam kedaluwarsa** dan tidak dikirim (PR #80).
 ### 11.1 Pengaturan Gateway
 - **Isi:** penyedia gateway resmi, kredensial (tersimpan aman, tidak pernah tampil penuh), nomor pengirim, status koneksi & tombol uji kirim.
 ### 11.2 Template Pesan
@@ -296,11 +298,18 @@ Dashboard · Penjualan (Transaksi, Pembayaran & Cicilan, Retur) · Pelanggan & R
 - **Aturan kunci:** API tidak pernah dapat menulis; token dicabut berlaku seketika.
 
 ## 13. FITUR LANJUT (terbangun di F5 — ringkas; rincian di PRD utama & Blueprint)
-- **Asisten AI Bisnis:** tanya-jawab bahasa alami atas data toko, khusus Owner (pagar peran di controller + service), hanya baca lewat daftar-putih maksud, setiap jawaban menyertakan dasar datanya, kredensial AI milik pemilik diatur di Pengaturan (terenkripsi); data toko tidak dikirim ke penyedia.
+- **Asisten AI Bisnis:** tanya-jawab bahasa alami atas data toko, khusus Owner (pagar peran di controller + service), hanya baca lewat daftar-putih maksud, setiap jawaban menyertakan dasar datanya, kredensial AI milik pemilik diatur di Pengaturan (terenkripsi); data toko tidak dikirim ke penyedia. **Bayar per penggunaan (sejak 2026-11-14):** saldo kredit prabayar per tenant — satu jawaban berhasil memotong satu kredit, jawaban gagal/tidak dikenal gratis, saldo kosong menghentikan sebelum penyedia dipanggil; isi ulang diajukan tenant dari Paket Saya dan dikonfirmasi platform; harga per pertanyaan adalah pengaturan platform (bawaan Rp250).
 - **Fitting AI:** ukur PD/dimensi wajah dari kamera perangkat (pemrosesan di perangkat), ranking frame dari stok cabang, rekaman fitting pada data klinis pelanggan (teraudit); hasil ukur wajib dikonfirmasi manual sebelum dipakai.
 - **Mode Offline Kasir:** antrean transaksi lokal saat internet mati dengan sinkronisasi & konflik stok yang aman (pengecualian sinkron ditinjau dari antrean, teraudit saat dibuang).
 - **Garansi & Stok Rusak (selaras Artesis):** klaim garansi per item penjualan dengan penyelesaian dari stok atau PO, inspeksi stok rusak menjadi penyesuaian stok; daftar & detail terpagar cabang penjualan asal.
 - **Insentif (selaras Artesis, ADR-017):** basis per item atas penjualan Lunas, penerima staf cabang + kepala optik, persetujuan periode, clawback otomatis periode berikutnya, ekspor Excel; tanpa jurnal akuntansi.
+
+## 14. MENU SAAS (di luar peta Artesis)
+- **Paket Saya (tenant):** ringkasan Plan & pemakaian (produk/akun/cabang), pengajuan penagihan langganan (1/3/6/12 bulan), isi ulang kredit PAYG, dan isi ulang kredit Asisten AI — semua pengajuan menunggu konfirmasi platform; riwayat pengajuan tampil di halaman yang sama.
+- **Panel Platform (aktor platform saja):** kelola Plan & fitur, kelola tenant, override fitur per tenant (beralasan & teraudit), penagihan (konfirmasi/tolak langganan, PAYG, dan AI; rekening tujuan), backup tingkat instalasi.
+- **Lens Matrix:** matriks ketersediaan stok lensa per rentang kekuatan (SPH/CYL) per cabang — untuk pemeriksaan cepat sebelum PO & saat opname.
+- **Impor Produk & Impor Awal:** impor katalog dari Excel/CSV (pratinjau → validasi → commit; baris salah ditolak dengan daftar kesalahan) dan impor awal stok yang dapat dikerjakan pemilik tenant sendiri dari templat XLSX resmi.
+- **Model PAYG:** tenant pada Plan PAYG tidak membayar langganan; setiap invoice penjualan berhasil memotong satu kredit (tarif pengaturan platform, bawaan Rp500/transaksi); saldo boleh minus (tunggakan — kasir tidak dihentikan); void penuh mengembalikan kredit.
 
 ---
 *Akhir PRD Detail v1.0. Perubahan atas dokumen ini mengikuti gerbang yang sama: keputusan owner → revisi dokumen → commit baru di repositori ini (`toromagetan/Artesis-SaaS`).*

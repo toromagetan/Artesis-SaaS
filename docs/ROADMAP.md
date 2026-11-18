@@ -4,7 +4,7 @@
 |---|---|
 | Dokumen | Roadmap SaaS (dokumen kendali urutan) — menggantikan Roadmap pembangunan pra-SaaS (kini arsip di Blueprint Bagian H) |
 | Produk | **Artesis** — SaaS POS Optik & Operational Management (multi-tenant) |
-| Baseline | `main` @ `43db5b54` (2026-11-12, penyelarasan D-01), repositori `toromagetan/Artesis-SaaS` |
+| Baseline | `main` @ `a44d9311` (2026-11-18, penyelarasan D-02), repositori `toromagetan/Artesis-SaaS` |
 | Relasi | PRD (`docs/PRD.md`) menentukan *apa & statusnya* · Blueprint (`docs/BLUEPRINT.md`, terutama Bagian J) menentukan *arsitektur aktual & target* · **Roadmap ini menentukan *urutan, dependensi, dan gerbang keluar*** |
 | Aturan status | Status hanya berubah dengan bukti (test/CI/commit yang dikutip). **Tidak ada fase yang dinyatakan Completed tanpa bukti.** |
 
@@ -14,6 +14,7 @@
 - **Lapisan platform SaaS** (Fase 1 SaaS, 2026-10-29): rebrand Artesis, 4 bahasa, model Plan/Subscription/override, penegakan server `PlanGate`, pendaftaran mandiri + penagihan transfer manual, paket go-live (runbook) — ter-merge s.d. `855a0c16`, suite 475 test hijau, CI 5/5.
 - **Isolasi pengelolaan pengguna per tenant** + provisioning tenant dari panel (2026-10-30, s.d. `a96f757`).
 - **Pembaruan 2026-11-12 (Fase 0 master-roadmap):** isolasi data bisnis antar-tenant dalam satu instansi **sudah terbangun** (PR #23–#33, merge s.d. `c4af9c87`), penegakan suspensi **sudah ada** (S-01), partisi gudang garansi per tenant (B-02, PR #34), dan ekspor data per tenant **sudah ada** (B-03, PR #35, merge `43db5b54`). Restore per tenant diputuskan tidak dibangun. Status tiap fase di bawah diperbarui pada D-01 sesuai bukti merge tersebut.
+- **Pembaruan 2026-11-18 (D-02):** sesudah D-01 terbangun & ter-merge: program adopsi produk persis Artesis A1–A7 (PR #51–#57, ADR-023); skema WA wa.me + PDF (PR #61) dan gateway WA per tenant (PR #59); Asisten AI bayar per penggunaan (PR #60); model PAYG murni Rp500/transaksi (PR #64); gembok menu paket (PR #65); pembayaran kolektif pindah ke Akuntansi (PR #66); aturan langganan final (PR #67 — Solo 4 akun, Team/Best Offer cabang tambahan Rp89 rb); perbaikan audit keamanan menyeluruh F-1 s.d. F-6 (PR #68–#73); audit WhatsApp W-01 (PR #74–#79) + kedaluwarsa pesan 24 jam (PR #80); dan **audit isolasi menyeluruh 2026-11-18** yang menutup tiga gap terakhir lewat PR #81 (template QC khusus platform), #82 (COA per tenant), #83 (nomor dokumen per tenant) — merge final `a44d9311`, CI main 5/5.
 
 **Keputusan yang menggerbang roadmap ini:** OD-1 (topologi produksi) masih terbuka; **OD-2 (nasib ADR-012) DIPUTUSKAN 10 Nov 2026: isolasi per tenant penuh** (ADR-012 berlaku di dalam tenant). Fase 0–1 berjalan pada kedua topologi; Fase 2–3 wajib hanya untuk topologi satu instansi bersama, dan tetap bernilai sebagai pertahanan berlapis pada topologi instalasi-per-tenant.
 
@@ -78,7 +79,7 @@ Fase 1 ──► Fase 5 (Backup/Ekspor/Recovery) ──► Fase 6 (Kesiapan Prod
 - **Test requirements:** per kelompok: test positif intra-tenant + negatif antar-tenant (baca, tulis, ekspor); regresi penuh + konkurensi di gerbang fase.
 - **Risks:** master yang selama ini global dipakai bersama oleh data historis campuran (instalasi individual lama) → migrasi pengisian harus memetakan kepemilikan dari cabang asal & menyediakan laporan pengecualian; risiko performa scope pada laporan berat → indeks `(tenant_id, …)` per tabel panas.
 - **Exit criteria:** seluruh kelompok lulus AC-ISO-01 dengan ID run CI dikutip; ADR-012 direvisi statusnya sesuai hasil.
-- **Status: Selesai (Fase 0 master-roadmap)** — pagar tenant per kelompok ter-merge: master (S-02, PR #28), pagar cabang/tenant transaksi (PR #29), dokter & membership (PR #30), akuntansi inti (PR #31) & satelitnya (PR #32), penutupan temuan lintas modul (PR #33), partisi gudang garansi (B-02, PR #34). ADR-012 disesuaikan OD-2 (global di dalam tenant). **Satu pengecualian yang dicatat jujur:** `document_counters` tetap per instalasi (nomor dokumen global; kandidat modul tersendiri, bukan penahan fase ini).
+- **Status: Selesai (Fase 0 master-roadmap)** — pagar tenant per kelompok ter-merge: master (S-02, PR #28), pagar cabang/tenant transaksi (PR #29), dokter & membership (PR #30), akuntansi inti (PR #31) & satelitnya (PR #32), penutupan temuan lintas modul (PR #33), partisi gudang garansi (B-02, PR #34). ADR-012 disesuaikan OD-2 (global di dalam tenant). **Satu pengecualian yang dicatat jujur pada D-01:** `document_counters` tetap per instalasi (nomor dokumen global; kandidat modul tersendiri, bukan penahan fase ini). **Pengecualian itu ditutup 2026-11-18** — nomor dokumen per tenant terbangun (ISO-1, PR #83, migrasi 000066) sesudah audit isolasi menyeluruh menemukannya sebagai celah kebocoran volume antar-tenant.
 
 ## Fase 3 — Identity & Configuration Isolation
 
@@ -90,19 +91,19 @@ Fase 1 ──► Fase 5 (Backup/Ekspor/Recovery) ──► Fase 6 (Kesiapan Prod
 - **Test requirements:** test negatif konfigurasi antar-tenant; test provisioning; regresi penuh.
 - **Risks:** tenant lama yang terlanjur berbagi baris peran — perubahan perilaku sesudah kloning → mitigasi: kloning menyalin keadaan efektif saat migrasi, bukan templat bawaan.
 - **Exit criteria:** acceptance lulus; tidak ada lagi baris konfigurasi bersama yang dapat diubah tenant pada instansi bersama.
-- **Status: Selesai sebagian besar (Fase 0 master-roadmap)** — isolasi pengelolaan pengguna (2026-10-30); role kustom per tenant + role bawaan templat + settings per tenant (S-03, PR #27); token API & perangkat offline terikat ember tenant (PR #33); pembacaan audit log terpagar tenant (L-01: kolom `tenant_id` terisi dari konteks aktor tervalidasi, migrasi 000058). **Sisa:** gateway/template/inbox/kampanye WhatsApp per tenant — menunggu keputusan **OD-4**.
+- **Status: Selesai sebagian besar (Fase 0 master-roadmap)** — isolasi pengelolaan pengguna (2026-10-30); role kustom per tenant + role bawaan templat + settings per tenant (S-03, PR #27); token API & perangkat offline terikat ember tenant (PR #33); pembacaan audit log terpagar tenant (L-01: kolom `tenant_id` terisi dari konteks aktor tervalidasi, migrasi 000058). **Selesai penuh (2026-11-15 s.d. 2026-11-17):** gateway & kredensial WhatsApp per tenant (PR #59); kampanye membawa `tenant_id`, log terember, template khusus platform/mandiri, tenant tersuspensi tidak mengirim (audit W-01, PR #74–#79). **OD-4 tertutup oleh implementasi.**
 
 ## Fase 4 — SaaS Lifecycle & Operations
 
 - **Objective:** siklus hidup tenant lengkap & aman dioperasikan: aktivasi, suspensi, langganan, kuota, onboarding, offboarding.
-- **Scope:** penegakan `tenants.is_active` (tolak login + putus sesi; J.2.9) · Subscription & PlanGate (sudah ada — pengerasan: penumpukan sisa masa saat konfirmasi, penagihan akun tambahan Team) · kuota & batas (sudah ada — audit kelengkapan seluruh jalur pembuatan entitas) · onboarding (verifikasi email + CAPTCHA/anti-penyalahgunaan pendaftaran) · offboarding (aliran status: aktif → nonaktif → masa tenggang → arsip/hapus, bersama Fase 5 untuk ekspor).
+- **Scope:** penegakan `tenants.is_active` (tolak login + putus sesi; J.2.9) · Subscription & PlanGate (sudah ada — pengerasan tersisa: penumpukan sisa masa saat konfirmasi, C-02) · kuota & batas (sudah ada — audit kelengkapan seluruh jalur pembuatan entitas) · onboarding (verifikasi email + CAPTCHA/anti-penyalahgunaan pendaftaran) · offboarding (aliran status: aktif → nonaktif → masa tenggang → arsip/hapus, bersama Fase 5 untuk ekspor).
 - **Dependencies:** fondasi langganan sudah terbangun (Fase 1 SaaS 2026-10-29); butir suspensi membutuhkan Fase 1 (konteks) untuk instansi bersama; offboarding membutuhkan Fase 5.
 - **Deliverables:** penegakan suspensi + test; pengerasan billing; gerbang anti-penyalahgunaan pendaftaran; prosedur offboarding terdokumentasi.
 - **Acceptance criteria:** AC-ISO-02 lulus (tenant tersuspensi tertolak total, termasuk sesi berjalan); pendaftaran bot tertahan CAPTCHA/verifikasi tanpa mengubah alur sah (test); konfirmasi billing dengan sisa masa aktif menghasilkan `expires_at` sesuai aturan yang diputuskan (dicatat sebagai revisi PRD bila berubah).
 - **Test requirements:** test suspensi (login, request berjalan, penjadwalan); test billing lanjutan; regresi penuh.
 - **Risks:** suspensi yang keliru mengunci tenant membayar → mitigasi: suspensi selalu reversible dari panel + teraudit + pemberitahuan tercatat.
 - **Exit criteria:** acceptance lulus; runbook operasi diperbarui (DEPLOY-RUNBOOK) untuk prosedur suspensi/offboarding.
-- **Status: In Progress** — fondasi siklus hidup (Plan, Subscription, Billing, kuota, panel, pendaftaran) **sudah terbangun & teruji** pada Fase 1 SaaS 2026-10-29; **suspensi tenant sudah ditegakkan** (S-01: login & akses ditolak); **anti-penyalahgunaan pendaftaran selesai** (S-05: Cloudflare Turnstile — pilihan pemilik proyek 2026-11-12; aktif begitu `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` terisi, verifikasi gagal-tertutup sebelum tenant dibuat). Yang tersisa: pengerasan billing lanjutan, dan offboarding (menunggu OD-5).
+- **Status: In Progress** — fondasi siklus hidup (Plan, Subscription, Billing, kuota, panel, pendaftaran) **sudah terbangun & teruji** pada Fase 1 SaaS 2026-10-29; **suspensi tenant sudah ditegakkan** (S-01: login & akses ditolak); **anti-penyalahgunaan pendaftaran selesai** (S-05: Cloudflare Turnstile — pilihan pemilik proyek 2026-11-12; aktif begitu `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` terisi, verifikasi gagal-tertutup sebelum tenant dibuat). **Bertambah sesudah D-01:** aturan langganan final (PR #67), model PAYG kredit prabayar (PR #64) & kredit Asisten AI (PR #60) dengan alur pengajuan→konfirmasi platform, dan pembayaran kolektif digerbang `accounting_full` (PR #66). Yang tersisa: penumpukan sisa masa saat konfirmasi (C-02 — perilaku saat ini menghanguskan sisa masa; belum diputuskan), dan offboarding (menunggu OD-5).
 
 ## Fase 5 — Backup, Export & Recovery
 
@@ -114,7 +115,7 @@ Fase 1 ──► Fase 5 (Backup/Ekspor/Recovery) ──► Fase 6 (Kesiapan Prod
 - **Test requirements:** test ekspor/restore ujung-ke-ujung dua tenant; uji restore DR tahunan dinyatakan sebagai prosedur (bukan hanya test otomatis).
 - **Risks:** ekspor yang tidak lengkap (tabel terlewat) memberi rasa aman palsu → mitigasi: daftar tabel ekspor diturunkan dari klasifikasi J.3 secara mekanis + test yang gagal bila tabel baru belum terklasifikasi.
 - **Exit criteria:** acceptance lulus; prosedur DR + ekspor menjadi bagian runbook.
-- **Status: Selesai untuk ekspor; restore per tenant diputuskan tidak dibangun** — backup tingkat instalasi berjalan dan tergerbang platform (`backups.manage` + BackupPolicy); **ekspor data per tenant Implemented (B-03, PR #35)** dengan registry klasifikasi tabel mekanis (89 tabel) + test kelengkapan + test negatif dua tenant. Restore per tenant: keputusan pemilik proyek 11 Nov 2026 untuk tidak membangunnya (restore tetap whole-DB platform). **Sisa:** formalisasi offsite & uji restore DR berkala (menunggu kredensial penyimpanan eksternal).
+- **Status: Selesai untuk ekspor; restore per tenant diputuskan tidak dibangun** — backup tingkat instalasi berjalan dan tergerbang platform (`backups.manage` + BackupPolicy); **ekspor data per tenant Implemented (B-03, PR #35)** dengan registry klasifikasi tabel mekanis (mencakup seluruh tabel hidup — inventaris audit 2026-11-18: 95 tabel — termasuk tabel kredit PAYG/AI dan `accounts` yang kini terklasifikasi sebagai tabel tenant) + test kelengkapan + test negatif dua tenant. Restore per tenant: keputusan pemilik proyek 11 Nov 2026 untuk tidak membangunnya (restore tetap whole-DB platform). **Sisa:** formalisasi offsite & uji restore DR berkala (menunggu kredensial penyimpanan eksternal).
 
 ## Fase 6 — Security & Production Readiness
 
@@ -126,7 +127,7 @@ Fase 1 ──► Fase 5 (Backup/Ekspor/Recovery) ──► Fase 6 (Kesiapan Prod
 - **Test requirements:** seluruh suite (regresi + konkurensi + negatif antar-tenant) hijau pada run yang sama; uji beban terdokumentasi dapat diulang.
 - **Risks:** tekanan jadwal mengubah penilaian menjadi formalitas → mitigasi: penilai independen + status tertulis yang ditandatangani pemilik proyek.
 - **Exit criteria:** laporan kesiapan diterima pemilik proyek; keputusan produksi per topologi tercatat.
-- **Status: Not Started.**
+- **Status: In Progress** — pembuktian keamanan berjalan bertahap dan buktinya ter-merge: matriks test keamanan per modul hidup di CI; **audit keamanan menyeluruh 2026-11-17** menutup F-1 s.d. F-6 (PR #68–#73); **audit WhatsApp W-01** menutup enam celah isolasi WA + kebijakan kedaluwarsa 24 jam (PR #74–#80); **audit isolasi menyeluruh 2026-11-18** (inventaris 95 tabel + 9 probe dinamis dua tenant) menutup ISO-1/2/3 (PR #81–#83). Yang belum: uji kinerja & kapasitas terukur, uji konkurensi sungguhan untuk penetapan Plan bersamaan (lanjutan F-5), dan penilaian kesiapan produksi formal tertulis (E-01) — produksi tetap menunggu gerbang ini dan keputusan OD-1.
 
 ---
 
