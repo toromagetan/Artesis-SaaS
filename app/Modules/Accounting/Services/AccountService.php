@@ -56,7 +56,17 @@ class AccountService
         $this->assertOwnBucket($actor, $account);
 
         return DB::transaction(function () use ($actor, $account, $data) {
-            $hasLines = $account->lines()->exists();
+            // Kunci baris akun + baca-pengunci baris jurnal
+            // (verifikasi audit 18 Nov 2026 temuan E): pemeriksaan
+            // hasLines tanpa kunci adalah TOCTOU — posting pertama
+            // dapat mendarat di antara pemeriksaan dan penyimpanan,
+            // lalu kode/grup berubah di atas akun yang sudah
+            // terpakai. PostingService mengambil kunci baris akun
+            // yang sama di dalam transaksinya, sehingga perubahan
+            // akun dan posting terserialkan: keputusan di sini
+            // membaca keadaan terkini di bawah kunci, bukan snapshot.
+            $account = Account::whereKey($account->id)->lockForUpdate()->firstOrFail();
+            $hasLines = $account->lines()->lockForUpdate()->exists();
             $old = ['code' => $account->code, 'name' => $account->name, 'group' => $account->group];
 
             if ($hasLines) {
