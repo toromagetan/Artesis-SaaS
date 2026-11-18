@@ -244,6 +244,12 @@ class PostingService
         $dateString = $date instanceof CarbonInterface ? $date->format('Y-m-d') : substr((string) $date, 0, 10);
         $period = substr($dateString, 0, 7);
 
+        // Ember tenant jurnal ditentukan SEBELUM baris disiapkan
+        // (ISO-2): kode akun diselesaikan hanya di dalam ember itu —
+        // jurnal tenant tidak pernah memposting ke akun tenant lain
+        // atau ke templat platform.
+        $tenantId = $this->tenantIdFor($actor, $lines, $tenantOverride, $tenantOverrideSet);
+
         $prepared = [];
         $totalDebit = Money::zero();
         $totalCredit = Money::zero();
@@ -256,7 +262,7 @@ class PostingService
             if ($debit->isPositive() && $credit->isPositive()) {
                 throw ValidationException::withMessages(['lines' => __('ui.accounting.line_both_sides')]);
             }
-            $account = Account::where('code', $line['account'])->first();
+            $account = Account::where('code', $line['account'])->inBucket($tenantId)->first();
             if ($account === null || ! $account->is_active) {
                 throw ValidationException::withMessages(['lines' => __('ui.accounting.account_missing', ['code' => $line['account']])]);
             }
@@ -277,7 +283,6 @@ class PostingService
             throw ValidationException::withMessages(['lines' => __('ui.accounting.journal_unbalanced')]);
         }
 
-        $tenantId = $this->tenantIdFor($actor, $prepared, $tenantOverride, $tenantOverrideSet);
         if ($this->isPeriodLocked($period, $tenantId)) {
             throw ValidationException::withMessages(['period' => __('ui.accounting.period_locked', ['period' => $period])]);
         }
