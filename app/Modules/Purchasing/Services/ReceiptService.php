@@ -97,7 +97,7 @@ class ReceiptService
             }
 
             $receipt = Receipt::create([
-                'number' => Numbering::next('RCV', now()),
+                'number' => Numbering::nextForBranch('RCV', $lockedPo->branch_id),
                 'purchase_order_id' => $lockedPo->id,
                 'received_date' => $receivedDate ?? now()->toDateString(),
                 'delivery_note_no' => $deliveryNoteNo,

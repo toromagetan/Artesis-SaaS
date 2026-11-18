@@ -256,7 +256,9 @@ class WarrantyWarehouseTenantIsolationTest extends TestCase
         $response = $this->actingAs($kasirA)->get(route('warranties.index'));
         $response->assertOk();
         $response->assertSee($caseA->number);
-        $response->assertDontSee($caseB->number);
+        // Penanda kebocoran = nama produk khas B pada baris kasus:
+        // sejak ISO-1 nomor kasus kedua tenant sama-sama WR-…-0001.
+        $response->assertDontSee('Frame B');
     }
 
     /**

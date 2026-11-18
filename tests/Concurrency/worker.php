@@ -27,6 +27,7 @@ use App\Modules\Sales\Models\OfflineDevice;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Services\OfflineSyncService;
 use App\Modules\Sales\Services\SalesService;
+use App\Support\Numbering;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 
@@ -126,6 +127,22 @@ try {
             TenantBillingRequest::findOrFail($params['request_id']),
             User::findOrFail($params['actor_id']),
         ),
+        // Balapan ISO-1: dua pekerja mencetak nomor dokumen untuk
+        // ember tenant params['tenant_ids'][idx] — setiap nomor di
+        // transaksinya sendiri (seperti pembuatan dokumen nyata);
+        // nomor yang tercetak ditulis ke berkas pendamping.
+        'numbering' => (function () use ($params, $readyFile, $resultFile) {
+            $idx = str_ends_with($readyFile, '-0') ? 0 : 1;
+            $numbers = [];
+            for ($i = 0; $i < (int) $params['count']; $i++) {
+                $numbers[] = DB::transaction(fn () => Numbering::next(
+                    $params['prefix'], now(), (int) $params['tenant_ids'][$idx], true,
+                ));
+            }
+            file_put_contents($resultFile.'.numbers.json', json_encode($numbers));
+
+            return $numbers;
+        })(),
         default => throw new RuntimeException('Skenario tidak dikenal: '.$scenario),
     };
     $result = ['ok' => true];

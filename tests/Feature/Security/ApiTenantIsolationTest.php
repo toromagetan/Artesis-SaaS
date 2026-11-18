@@ -136,7 +136,9 @@ class ApiTenantIsolationTest extends TestCase
             ->getJson('/api/v1/sales')
             ->assertOk()
             ->assertSee($this->saleA->number, false)
-            ->assertDontSee($this->saleB->number, false);
+            // Penanda kebocoran = nama produk khas B: sejak ISO-1
+            // nomor penjualan kedua tenant sama-sama INV-…-0001.
+            ->assertDontSee('Frame API B', false);
 
         $this->withHeader('Authorization', 'Bearer '.$this->tokenA)
             ->getJson('/api/v1/stock')
@@ -148,6 +150,6 @@ class ApiTenantIsolationTest extends TestCase
             ->getJson('/api/v1/sales')
             ->assertOk()
             ->assertSee($this->saleB->number, false)
-            ->assertDontSee($this->saleA->number, false);
+            ->assertDontSee('Frame API A', false);
     }
 }

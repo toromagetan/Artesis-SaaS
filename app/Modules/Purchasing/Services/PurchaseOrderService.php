@@ -74,7 +74,7 @@ class PurchaseOrderService
         }
 
         $po = PurchaseOrder::create([
-            'number' => Numbering::next('PO', now()),
+            'number' => Numbering::nextForBranch('PO', $branchId),
             'supplier_id' => $supplierId,
             'branch_id' => $branchId,
             'order_date' => $orderDate ?? now()->toDateString(),

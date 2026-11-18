@@ -48,7 +48,7 @@ class CustomerCreditService
 
         $sale = $return->sale;
         $credit = new CustomerCredit([
-            'credit_number' => Numbering::next('CR', now()),
+            'credit_number' => Numbering::nextForBranch('CR', $sale->branch_id),
             'customer_id' => $sale->customer_id,
             'sale_id' => $sale->id,
             'sale_return_id' => $return->id,

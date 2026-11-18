@@ -301,7 +301,7 @@ class PostingService
             }
 
             $journal = Journal::create([
-                'number' => Numbering::next('JU', now()),
+                'number' => Numbering::next('JU', now(), $tenantId, true),
                 'journal_date' => $dateString,
                 'source_type' => $sourceType,
                 'source_id' => $sourceId,

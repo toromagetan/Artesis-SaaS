@@ -262,7 +262,7 @@ class SalesService
             $claim = Money::fromDecimal((string) ($data['insurance_claim_amount'] ?? '0'));
 
             $sale = new Sale([
-                'number' => Numbering::next('INV', now()),
+                'number' => Numbering::nextForBranch('INV', $branchId),
                 'client_uuid' => $data['client_uuid'] ?? null,
                 'customer_id' => $customer->id,
                 'prescription_id' => $prescription?->id,

@@ -37,7 +37,7 @@ class PurchaseRequestService
 
         return DB::transaction(function () use ($actor, $branchId, $items, $notes) {
             $pr = PurchaseRequest::create([
-                'number' => Numbering::next('PR', now()),
+                'number' => Numbering::nextForBranch('PR', $branchId),
                 'requester_id' => $actor->id,
                 'branch_id' => $branchId,
                 'status' => 'draft',
@@ -75,7 +75,7 @@ class PurchaseRequestService
     public function createAutomatic(User $actor, Sale $sale, array $items): PurchaseRequest
     {
         $pr = PurchaseRequest::create([
-            'number' => Numbering::next('PR', now()),
+            'number' => Numbering::nextForBranch('PR', $sale->branch_id),
             'requester_id' => $actor->id,
             'branch_id' => $sale->branch_id,
             'sale_id' => $sale->id,

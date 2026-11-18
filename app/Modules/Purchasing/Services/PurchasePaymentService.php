@@ -55,7 +55,7 @@ class PurchasePaymentService
             }
 
             $payment = PurchasePayment::create([
-                'number' => Numbering::next('PAY', now()),
+                'number' => Numbering::next('PAY', now(), $supplier->tenant_id !== null ? (int) $supplier->tenant_id : null, true),
                 'supplier_id' => $supplier->id,
                 'method' => $method,
                 'amount' => $value->toDecimalString(),
