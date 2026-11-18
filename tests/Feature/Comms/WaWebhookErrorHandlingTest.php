@@ -136,42 +136,39 @@ class WaWebhookErrorHandlingTest extends TestCase
             'branch_id' => $branch->id, 'tenant_id' => $tenant->id,
         ]);
 
-        // Paksa kegagalan basis data NON-duplikat pada sisipan pesan
-        // tertentu: trigger menolak baris dengan SIGNAL (bukan
-        // pelanggaran unique mana pun). Trigger dibuat lewat
-        // koneksi admin TERPISAH (pola adminPdo test konkurensi):
-        // CREATE TRIGGER butuh hak SUPER saat binary logging aktif,
-        // dan DDL pada koneksi uji akan meng-commit transaksi
-        // RefreshDatabase sehingga mengotori test berikutnya.
-        $admin = $this->adminPdo();
-        $database = (string) config('database.connections.mysql.database');
-        $admin->exec('USE `'.$database.'`');
-        $admin->exec(
-            'CREATE TRIGGER wa_messages_uji_gagal BEFORE INSERT ON wa_messages '
-            .'FOR EACH ROW BEGIN '
-            ."IF NEW.provider_message_id = 'wamid.BOOM' THEN "
-            ."SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'kegagalan basis data paksa (uji)'; "
-            .'END IF; END'
-        );
+        // Paksa kegagalan basis data NON-duplikat pada sisipan
+        // pesan: id provider dibuat lebih panjang dari kolom
+        // provider_message_id (varchar 80) sehingga MySQL mode
+        // strict menolak sisipan dengan QueryException "Data too
+        // long" — bukan pelanggaran unique mana pun.
+        //
+        // Cara ini SENGAJA tanpa DDL dan tanpa koneksi kedua.
+        // Versi sebelumnya memakai CREATE TRIGGER lewat koneksi
+        // admin terpisah dan TERBUKTI menggantung suite CI:
+        // sisipan yang gagal tetap memegang kunci metadata tabel
+        // di dalam transaksi RefreshDatabase test ini, sehingga
+        // DROP TRIGGER lewat koneksi lain menunggu selamanya
+        // (kebuntuan dua koneksi; terbukti lewat PR diagnosis
+        // #92 — suite yang sama tanpa berkas ini hijau 5/5).
+        $longId = 'wamid.'.str_repeat('X', 120);
 
         $this->withoutExceptionHandling();
         $thrown = null;
         try {
             $this->signedWebhookPost(
-                $this->incomingPayload('PN-A', '6281234567890', 'wamid.BOOM', 'pesan penting'),
+                $this->incomingPayload('PN-A', '6281234567890', $longId, 'pesan penting'),
                 'secret-a',
             );
         } catch (QueryException $e) {
             $thrown = $e;
-        } finally {
-            $admin->exec('DROP TRIGGER IF EXISTS wa_messages_uji_gagal');
         }
 
         // Kesalahan BUKAN duplikat harus naik ke pemanggil (webhook
         // gagal → provider mengirim ulang), bukan ditelan menjadi
         // HTTP 200 yang menghilangkan pesan.
         $this->assertNotNull($thrown, 'QueryException non-duplikat tidak boleh ditelan webhook.');
-        $this->assertSame(0, WaMessage::where('provider_message_id', 'wamid.BOOM')->count());
+        $this->assertStringNotContainsString('Duplicate entry', $thrown->getMessage());
+        $this->assertSame(0, WaMessage::where('direction', 'in')->where('body', 'pesan penting')->count());
     }
 
     public function test_unique_violation_race_is_treated_as_duplicate_callback(): void
@@ -212,34 +209,21 @@ class WaWebhookErrorHandlingTest extends TestCase
         });
 
         // Yang kalah balapan adalah duplikat: webhook tetap 200 dan
-        // tepat satu pesan masuk tercatat.
-        $this->signedWebhookPost(
-            $this->incomingPayload('PN-A', '6281234567890', 'wamid.BALAPAN', 'pesan balapan'),
-            'secret-a',
-        )->assertOk();
+        // tepat satu pesan masuk tercatat. Listener uji dicabut
+        // segera sesudahnya agar tidak bocor ke test lain dalam
+        // proses yang sama.
+        try {
+            $this->signedWebhookPost(
+                $this->incomingPayload('PN-A', '6281234567890', 'wamid.BALAPAN', 'pesan balapan'),
+                'secret-a',
+            )->assertOk();
+        } finally {
+            WaMessage::flushEventListeners();
+        }
 
         $this->assertSame(
             1,
             WaMessage::where('provider_message_id', 'wamid.BALAPAN')->where('direction', 'in')->count(),
-        );
-    }
-
-    /** Koneksi admin untuk DDL uji (pola test konkurensi LNT-007). */
-    private function adminPdo(): \PDO
-    {
-        $socket = '/var/run/mysqld/mysqld.sock';
-        if (file_exists($socket)) {
-            try {
-                return new \PDO('mysql:unix_socket='.$socket, 'root', null);
-            } catch (\Throwable) {
-                // jatuh ke TCP di bawah
-            }
-        }
-
-        return new \PDO(
-            'mysql:host=127.0.0.1;port='.(string) env('DB_PORT', '3306'),
-            (string) env('DB_USERNAME', 'root'),
-            (string) env('DB_PASSWORD', ''),
         );
     }
 
