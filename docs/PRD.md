@@ -5,8 +5,8 @@
 | Dokumen | Product Requirements Document (PRD) v2.0 — penyelarasan SaaS |
 | Produk | **Artesis** — SaaS POS Optik & Operational Management (multi-tenant) |
 | Repositori | `toromagetan/Artesis-SaaS`, branch `main` — **bukan** `toromagetan/Artesis` (sistem self-hosted generasi sebelumnya, proyek terpisah) |
-| Baseline audit | `main` @ `43db5b54` (2026-11-12) — seluruh status implementasi di dokumen ini diverifikasi terhadap commit ini |
-| Tanggal | 30 Oktober 2026; **diselaraskan D-01 pada 2026-11-12** (status Fase 0, keputusan OD-2, dan modul B-02/B-03 diperbarui ke baseline baru; isi persyaratan tidak berubah) |
+| Baseline audit | `main` @ `a44d9311` (2026-11-18) — seluruh status implementasi di dokumen ini diverifikasi terhadap commit ini |
+| Tanggal | 30 Oktober 2026; **diselaraskan D-01 pada 2026-11-12** (status Fase 0, keputusan OD-2, dan modul B-02/B-03 diperbarui ke baseline baru; isi persyaratan tidak berubah); **diselaraskan D-02 pada 2026-11-18** (aturan langganan PR #67, model PAYG PR #64, kredit AI PR #60, katalog model detail A1–A7/ADR-023, WhatsApp per tenant + skema wa.me, pembayaran kolektif di Akuntansi, dan isolasi ISO-1/2/3 PR #81–#83 diperbarui ke baseline baru) |
 | Riwayat | v1.0 (2026-10-17) mendefinisikan produk ini sebagai "Lentera — kepemilikan penuh, single-business, self-hosted". Keputusan pemilik proyek 2026-10-29 mengubah arah produk menjadi SaaS multi-tenant bernama Artesis; v2.0 ini menggantikan v1.0 secara penuh. Ketentuan v1.0 yang bertentangan (termasuk "SaaS multi-tenant" sebagai non-goal) **tidak berlaku lagi**. |
 
 **Konvensi status** (dipakai di seluruh dokumen):
@@ -49,12 +49,14 @@ Satu platform operasional optik yang lengkap — setara sistem mahal — yang da
 | Plan | Harga | Batas kunci | Fitur pembeda |
 |---|---|---|---|
 | Free | Rp0 | maks 500 produk, 1 akun, 1 cabang, riwayat laporan 90 hari | Kasir lengkap + resep, laporan dasar |
-| Solo | Rp49 rb/bln | produk tanpa batas, 2 akun | Laporan penuh + ekspor; tanpa peran lanjutan/CRM/PR-PO penuh |
-| Team | Rp129 rb/bln | 7 akun (tambahan Rp19 rb/akun/bln) | Peran & izin, CRM/member, PR/PO penuh |
-| Best Offer | Rp199 rb/bln + Rp99 rb/cabang berikutnya | multi-cabang | Akuntansi penuh, WhatsApp, API, Asisten AI |
+| Solo | Rp49 rb/bln | produk tanpa batas, 4 akun, 1 cabang | Laporan penuh + ekspor; tanpa peran lanjutan/CRM/PR-PO penuh |
+| Team | Rp129 rb/bln | akun & cabang tanpa batas; cabang tambahan Rp89 rb/cabang/bln | Peran & izin, CRM/member, PR/PO penuh |
+| Best Offer | Rp199 rb/bln + Rp89 rb/cabang tambahan | akun & cabang tanpa batas | Akuntansi penuh, WhatsApp, API, Asisten AI |
+| PAYG | Rp0 + Rp500/transaksi penjualan berhasil | akun & cabang tanpa batas; tanpa biaya cabang | Semua fitur boolean termasuk akuntansi penuh; saldo kredit prabayar (saldo boleh minus sebagai tunggakan); void penuh mengembalikan kredit |
 
 - Penagihan saat ini: transfer manual + konfirmasi Platform Superadmin. Gateway pembayaran = **Proposed** (keputusan terpisah).
 - Fitur per Plan ditegakkan `PlanGate` dari registry fitur (8 fitur boolean + 4 batas angka); Platform Superadmin dapat mengubah definisi Plan dan memberi override per tenant beralasan & teraudit.
+- Item menu yang fiturnya terkunci Plan tampil **bertanda gembok dan tidak dapat diklik** (keputusan pemilik proyek 2026-11-15); gerbang server (403) tetap berlaku — gembok adalah penanda tampilan, bukan pengganti otorisasi.
 
 ### 1.6 Batasan produk (disengaja)
 
@@ -115,8 +117,10 @@ Format per kelompok: deskripsi · aktor · aturan bisnis kunci · status + bukti
 - **Status: Implemented** — penegakan izin Implemented; kepemilikan peran diselesaikan S-03 (Fase 0, PR #27): role kustom milik tenant, role bawaan = templat global baca-saja yang dirujuk (mengubah peran kustom tenant A tidak memengaruhi tenant B — teruji lintas tenant).
 
 ### 4.6 Product / Catalog Management
-- Katalog dua tingkat: induk (`product_parents`) → varian (`products` = satu-satunya unit stok; SKU, barcode, harga beli/jual per varian; gambar per varian). Lima tipe tetap (frame, lensa, lensa RX, softlens, aksesori) & lima kategori tetap tanpa UI kelola. Pembuatan produk tenant menstempel `tenant_id` dan digerbang `products_max`.
-- **Status: Implemented** — fungsi katalog Implemented; isolasi katalog per tenant selesai pada S-02 (Fase 0, PR #28) mengikuti keputusan OD-2 (10 Nov 2026): katalog hanya terlihat/dipakai tenant pemiliknya; ADR-012 berlaku **di dalam tenant** (lintas cabang satu tenant), bukan lintas tenant.
+- Katalog model Artesis (ADR-023, program adopsi A1–A7, 2026-11-14): kategori → produk (master ringan: `category_id`, brand, nama) → **detail per tipe** dengan id sendiri (`frame_details`, `lens_details`, `rx_details`, `softlens_details`, `accessories_details`). SKU milik detail dan unik per `(tenant_id, sku)`; **unit jual & stok adalah detail**, bukan produk induk. Lima tipe tetap (frame, lensa, lensa RX, softlens, aksesori); kategori adalah taksonomi bersama hanya-baca tanpa UI kelola tenant.
+- Impor produk Excel/CSV (A4) dan impor awal yang dapat dikerjakan pemilik tenant sendiri (A5) tersedia; halaman matriks stok lensa (A3) menampilkan ketersediaan lensa per kekuatan.
+- Pembuatan produk tenant menstempel `tenant_id` dan digerbang `products_max`.
+- **Status: Implemented** — isolasi katalog per tenant selesai pada S-02 (Fase 0, PR #28) mengikuti keputusan OD-2 (10 Nov 2026): katalog hanya terlihat/dipakai tenant pemiliknya; ADR-012 berlaku **di dalam tenant** (lintas cabang satu tenant), bukan lintas tenant.
 
 ### 4.7 Customer & Prescription Management
 - Master pelanggan (WA duplikat = peringatan, bukan blokir; merge duplikat = operasi Owner beraudit) dan resep grid OD/OS (terkunci sesudah terpakai; AXIS wajib 0–180 bila CYL ≠ 0; resep harus milik pelanggan transaksi). Daftar resep global + pintu "Tambah Resep" lewat pilih pelanggan.
@@ -128,11 +132,11 @@ Format per kelompok: deskripsi · aktor · aturan bisnis kunci · status + bukti
 - **Status: Implemented** (termasuk gerbang Plan untuk ekspor laporan & fitur terkait). Isolasi tenant pada data penjualan ditegakkan pagar cabang + tenant (Fase 0).
 
 ### 4.9 Inventory
-- `stock_movements` single-writer lewat `InventoryService`; saldo = gerakan terakhir per (produk, cabang); costing FIFO per cabang dengan lapisan penerimaan & penangguhan backorder; transfer antar cabang (kirim/terima idempoten; stok dalam perjalanan terlihat); opname (snapshot → hitung → review → approval menerbitkan selisih); impor stok awal (preview → commit, policy eksplisit peran tertinggi, bukan aktor platform); expiry softlens memblokir penjualan kedaluwarsa; label barcode.
+- `stock_movements` single-writer lewat `InventoryService`; saldo = gerakan terakhir per (detail produk, cabang); costing FIFO per cabang dengan lapisan penerimaan & penangguhan backorder; transfer antar cabang (kirim/terima idempoten; stok dalam perjalanan terlihat); opname (snapshot → hitung → review → approval menerbitkan selisih); impor stok awal (preview → commit, policy eksplisit peran tertinggi, bukan aktor platform); kedaluwarsa terlacak per batch untuk softlens & cairan softlens (penanda `expiry_tracked` pada detail softlens/aksesori; tanggal kedaluwarsa per batch pada penerimaan — wajib diisi bila penanda menyala; penjualan item kedaluwarsa diblokir); label barcode.
 - **Status: Implemented.** Pagar tenant eksplisit ditegakkan Fase 0, termasuk partisi gudang garansi per tenant (B-02).
 
 ### 4.10 Purchasing
-- PR (draft→submitted→approved→converted; gabung se-supplier; PR otomatis dari penjualan: RX selalu, stok hanya kekurangannya) → PO → penerimaan bertahap (melebihi sisa ditolak kecuali berizin + alasan) → pembayaran tunggal & **kolektif FIFO** (validasi penuh sebelum transaksi; kegagalan di tengah = nol baris tertinggal) → retur pembelian (mengurangi tagihan / menjadi kredit supplier). Digerbang Plan `purchasing_full` untuk tenant.
+- PR (draft→submitted→approved→converted; gabung se-supplier; PR otomatis dari penjualan: RX selalu, stok hanya kekurangannya) → PO → penerimaan bertahap (melebihi sisa ditolak kecuali berizin + alasan) → pembayaran tunggal & **kolektif FIFO** (validasi penuh sebelum transaksi; kegagalan di tengah = nol baris tertinggal) → retur pembelian (mengurangi tagihan / menjadi kredit supplier). PR/PO digerbang Plan `purchasing_full` untuk tenant; **pembayaran kolektif** berada di grup Akuntansi dan digerbang `accounting_full` (keputusan pemilik proyek 2026-11-16).
 - **Status: Implemented** (kontrak anti-sebagian diuji injeksi kegagalan).
 
 ### 4.11 Stock Transfer
@@ -148,12 +152,13 @@ Format per kelompok: deskripsi · aktor · aturan bisnis kunci · status + bukti
 - **Status: Implemented** — settings per tenant selesai pada S-03 (Fase 0, PR #27): baris pengaturan bertenant hanya berlaku bagi tenant pemiliknya; baris global instalasi (tenant_id NULL) tetap ada untuk konfigurasi tingkat instalasi (mis. gateway platform, penagihan).
 
 ### 4.14 Notification & WhatsApp
-- Gateway Meta Cloud API langsung di belakang antarmuka yang dapat diganti penyedia; pengiriman async antrean (coba lagi 3×) dan tidak pernah menggagalkan transaksi pemicu. Invoice, pengingat pengambilan, after-service H+7, cicilan, ulang tahun; inbox dua arah; kampanye bersegmen wajib persetujuan; opt-out dihormati. Untuk tenant, pengiriman otomasi digerbang Plan `whatsapp` per tenant cabang terkait.
-- **Status: Partial** — fungsi Implemented; **satu gateway per instalasi** (kredensial & nomor pengirim belum per tenant). Gateway per tenant = Roadmap Fase 3.
+- **Skema tenant yang berjalan (keputusan pemilik proyek 2026-11-15):** tombol **Kirim WA (wa.me click-to-chat)** dengan teks tersusun sistem pada dokumen & konteks pelanggan — berlaku semua Plan; setiap dokumen (invoice, resep, PO, dll.) wajib punya opsi **unduh PDF** agar dapat dilampirkan manual di WhatsApp.
+- WA API (Meta Cloud API langsung di belakang antarmuka yang dapat diganti penyedia) terbangun **per tenant**: gateway & kredensial milik tenant (PR #59), kampanye membawa `tenant_id` dan penerima diemberkan dari tenant kampanye, log kirim terember per tenant, template dikelola platform/instalasi mandiri, tenant tersuspensi tidak mengirim, dan pesan antrean **kedaluwarsa 24 jam** (tidak dikirim sesudahnya; PR #80). Pengiriman async antrean (coba lagi 3×) dan tidak pernah menggagalkan transaksi pemicu; opt-out dihormati; otomasi digerbang Plan `whatsapp`.
+- **Status: Implemented** — tetapi fitur WA API **dinonaktifkan dari sisi tenant** (menu & rute tertutup, kirim otomatis berhenti) atas keputusan yang sama; kode tetap di repo dan prasyarat isolasi untuk aktivasi ulang sudah terpenuhi (audit W-01, PR #74–#80). Menghidupkannya kembali untuk tenant adalah keputusan pemilik proyek yang terpisah.
 
 ### 4.15 Subscription & Billing
-- Platform menetapkan Plan ke tenant (`assignPlan`: langganan lama ditutup `expired`, baru dibuat, teraudit); langganan kedaluwarsa → tenant kembali ke hak Free. Tenant mengajukan permintaan penagihan dari Paket Saya (paket berbayar; 1/3/6/12 bulan; jumlah dibekukan = harga + cabang tambahan × bulan; satu pending per tenant); Platform mengonfirmasi (langganan aktif, masa berlaku mulai hari konfirmasi) atau menolak (tanpa perubahan). Tujuan transfer diatur Platform di panel Penagihan.
-- **Status: Implemented** (`PlanService`, `BillingService`; test `SaasSignupBillingTest`). **Planned/Proposed:** gateway pembayaran, penagihan akun tambahan Team otomatis per akun, penumpukan sisa masa langganan saat konfirmasi.
+- Platform menetapkan Plan ke tenant (`assignPlan`: langganan lama ditutup `expired`, baru dibuat, teraudit); langganan kedaluwarsa → tenant kembali ke hak Free. Tenant mengajukan permintaan penagihan dari Paket Saya (paket berbayar; 1/3/6/12 bulan; jumlah dibekukan = harga paket + biaya cabang tambahan × bulan — cabang tambahan adalah cabang di luar cabang pertama, untuk Plan yang mengenakannya; satu pending per tenant); Platform mengonfirmasi (langganan aktif, masa berlaku mulai hari konfirmasi) atau menolak (tanpa perubahan). Tujuan transfer diatur Platform di panel Penagihan.
+- **Status: Implemented** (`PlanService`, `BillingService`; test `SaasSignupBillingTest`). **Implemented tambahan:** isi ulang kredit **PAYG** (pengajuan tenant dari Paket Saya → konfirmasi platform; tarif per transaksi adalah pengaturan platform, bawaan Rp500; test `PaygCreditTest`) dan isi ulang kredit **Asisten AI** dengan pola yang sama (test `AiCreditTest`). **Planned/Proposed:** gateway pembayaran; penumpukan sisa masa langganan saat konfirmasi (C-02 — perilaku saat ini: konfirmasi menghanguskan sisa masa langganan berjalan; belum diputuskan pemilik proyek).
 
 ### 4.16 Platform Administration
 - Panel khusus aktor platform (middleware `platform` + izin `plans.manage`/`tenants.manage`): kelola Plan & fitur, kelola tenant (termasuk alih `is_active` dan provisioning), override fitur per tenant (alasan wajib, kedaluwarsa, teraudit), penagihan & pengaturan rekening, halaman Paket Saya untuk tenant.
@@ -172,7 +177,7 @@ Format per kelompok: deskripsi · aktor · aturan bisnis kunci · status + bukti
 | Authentication | Sesi Laravel; kata sandi `Password::defaults()`; pemulihan istimewa hanya Owner aktif (respons generik anti-enumerasi, teraudit, throttle) | Implemented |
 | Authorization | Registry izin + policy + pagar konteks; aktor platform ditolak dari bisnis | Implemented (matriks keamanan per modul) |
 | Data privacy | Kredensial terenkripsi & tersamar; audit log menyaring kolom rahasia; portal member hanya data token itu | Implemented |
-| Audit logging | Mutasi sensitif tercatat (aktor, aksi, subjek, cabang, nilai lama/baru tersaring, IP) | Implemented; kolom tenant belum ada (Fase 3) |
+| Audit logging | Mutasi sensitif tercatat (aktor, aksi, subjek, cabang, nilai lama/baru tersaring, IP) | Implemented — log membawa `tenant_id` (L-01, migrasi 000058) dan pembacaan terpagar tenant |
 | Availability | Scheduler + queue worker wajib hidup; dashboard memperingatkan job gagal & backup basi | Implemented (mekanisme peringatan) |
 | Performance | Daftar 25/baris; laporan berat agregasi; grafik server-rendered tanpa pustaka luar | Implemented |
 | Scalability | Satu instansi melayani banyak tenant kecil–menengah; angka kapasitas terverifikasi belum ada — wajib diukur sebelum klaim (Fase 6) | **Belum terukur** |
@@ -200,7 +205,10 @@ Format per kelompok: deskripsi · aktor · aturan bisnis kunci · status + bukti
 | Supplier & master data | Supplier/asuransi/dokter milik tenant tidak terlihat tenant lain | **Implemented** (S-02 + PR #30) |
 | User & role | Pengelolaan pengguna terisolasi per tenant; definisi peran per tenant | **Implemented** — pengguna (2026-10-30) + peran kustom per tenant & settings per tenant (S-03, PR #27); peran bawaan = templat global dirujuk |
 | Settings | Pengaturan per tenant | **Implemented** (S-03) |
-| WhatsApp gateway & inbox | Gateway, template, inbox, kampanye per tenant | **Belum** — satu gateway per instalasi (keputusan OD-4 terbuka); pagar ember pada webhook/inbox sudah ditegakkan (PR #33) |
+| WhatsApp gateway & inbox | Gateway, template, inbox, kampanye per tenant | **Implemented** — gateway & kredensial per tenant (PR #59); kampanye membawa `tenant_id` (PR #74); log terember per tenant (PR #75); template hanya dikelola platform/mandiri (PR #76); tenant tersuspensi tidak mengirim (PR #77); status webhook dibatasi ember gateway pemilik (PR #78). Skema tenant yang berjalan adalah wa.me (Bagian 4.14) |
+| Chart of accounts (COA) | Bagan akun milik tenant; tenant lain tidak dapat membaca/mengubah akun tenant lain | **Implemented** (ISO-2, PR #82) — `accounts.tenant_id` (migrasi 000065); setiap tenant menerima salinan templat bagan saat dibuat; kode akun unik per tenant; akun tenant lain menjawab 404; posting jurnal hanya menyelesaikan kode di bagan tenant pemilik jurnal |
+| Document numbering | Tangga nomor dokumen (INV/JU/PO/dll.) per tenant; nomor tenant lain tidak membocorkan volume | **Implemented** (ISO-1, PR #83) — `document_counters` per tenant (migrasi 000066); kenaikan nomor atomik satu pernyataan (pola lama terbukti deadlock pada pencetakan nomor pertama bersamaan) |
+| QC point templates | Template titik QC tidak dapat diubah tenant | **Implemented** (ISO-3, PR #81) — pengelolaan template tersegel untuk platform/instalasi mandiri (middleware `qc.template-admin`); halaman template bagi tenant hanya-baca |
 | Audit log | Log membawa identitas tenant; pembacaan terpagar tenant | **Implemented** — log membawa `tenant_id` (L-01, migrasi 000058; dicap dari konteks aktor tervalidasi, tidak pernah dari input) dan `branch_id`; pembacaan terpagar tenant: Owner melihat semua log tenantnya, admin terpagar cabang melihat cabang terkelolanya + log tanpa cabang |
 | Report & export | Laporan & ekspor hanya agregat tenant aktor | **Implemented** — pagar cabang/tenant + izin ekspor; ekspor data penuh per tenant di B-03 |
 | Backup & restore | Tenant tidak pernah dapat mengakses snapshot global; ekspor/restore per tenant terverifikasi kepemilikan | **Implemented untuk backup & ekspor** — snapshot global khusus platform (`backups.manage` + BackupPolicy); ekspor per tenant B-03. Restore per tenant diputuskan tidak dibangun |
@@ -245,7 +253,7 @@ Kriteria bisnis inti (warisan gerbang yang sudah lulus dan tetap mengikat):
 1. **OD-1 Topologi produksi:** satu instalasi per tenant di server bersama **vs** satu instansi multi-tenant penuh. Menentukan urgensi Fase 1–3 Roadmap.
 2. **OD-2 Nasib ADR-012 di mode SaaS:** — **DIPUTUSKAN 10 Nov 2026: isolasi per tenant penuh.** Seluruh data bisnis (termasuk katalog dan master) adalah milik tenant; ADR-012 hanya berlaku **di dalam tenant** (master global lintas cabang satu tenant), tidak pernah lintas tenant. Keputusan ini menutup pertanyaan topologi untuk kepemilikan data pada kedua pilihan OD-1.
 3. **OD-3 Gateway pembayaran** untuk Billing (tetap manual vs Midtrans/Xendit).
-4. **OD-4 Kredensial WhatsApp per tenant** (nomor pengirim per tenant vs satu nomor platform) — menentukan desain Fase 3.
+4. **OD-4 Kredensial WhatsApp per tenant** — **DITUTUP oleh implementasi (2026-11-15):** gateway & kredensial per tenant terbangun (PR #59); skema tenant yang berjalan adalah wa.me dan WA API dinonaktifkan dari sisi tenant (keputusan pemilik proyek 2026-11-15, Bagian 4.14).
 5. **OD-5 Retensi & penghapusan data tenant offboarding** (masa tenggang, bukti penghapusan).
 6. **OD-6 Tinjauan penutur asli Melayu/Mandarin** sebelum promosi pasar tersebut.
 
