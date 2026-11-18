@@ -8,7 +8,9 @@
  *
  * Argumen: worker.php <skenario> <params.json> <ready-file> <go-file> <result-file>
  */
+use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Journal;
+use App\Modules\Accounting\Services\AccountService;
 use App\Modules\Accounting\Services\PostingService;
 use App\Modules\Identity\Models\User;
 use App\Modules\Lab\Models\LensProcess;
@@ -107,6 +109,26 @@ try {
             }
 
             return $posting->lockPeriod($owner, $params['period']);
+        })(),
+        // Balapan COA (verifikasi audit 18 Nov 2026 temuan E):
+        // pekerja -0 mengubah kode akun, pekerja -1 memposting
+        // jurnal ke kode lama akun itu, dilepas serentak. Tepat
+        // satu yang boleh berhasil: perubahan kode atas akun yang
+        // sudah terpakai jurnal, dan posting yang mendarat di akun
+        // yang kodenya berubah sesudah resolusi, sama-sama terlarang.
+        'coa-race' => (function () use ($params, $owner, $readyFile) {
+            if (str_ends_with($readyFile, '-0')) {
+                return app(AccountService::class)->update(
+                    $owner,
+                    Account::findOrFail($params['account_id']),
+                    ['code' => $params['new_code']],
+                );
+            }
+
+            return app(PostingService::class)->post('race', null, $params['date'], [
+                ['account' => $params['old_code'], 'debit' => '1000'],
+                ['account' => $params['offset_code'], 'credit' => '1000'],
+            ], 'uji balapan COA', $owner);
         })(),
         // Balapan LNT-005: dua pekerja membalik jurnal yang sama.
         'reverse' => app(PostingService::class)->reverse(

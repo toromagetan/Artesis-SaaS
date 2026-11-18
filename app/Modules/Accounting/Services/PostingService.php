@@ -270,6 +270,7 @@ class PostingService
             $totalCredit = $totalCredit->add($credit);
             $prepared[] = [
                 'account_id' => $account->id,
+                'code' => $account->code,
                 'branch_id' => $line['branch_id'] ?? null,
                 'debit' => $debit->toDecimalString(),
                 'credit' => $credit->toDecimalString(),
@@ -300,6 +301,24 @@ class PostingService
                 throw ValidationException::withMessages(['period' => __('ui.accounting.period_locked', ['period' => $period])]);
             }
 
+            // Kunci baris akun yang dipakai + validasi ulang kode
+            // di bawah kunci (verifikasi audit 18 Nov 2026 temuan
+            // E): resolusi kode di luar transaksi dapat basi bila
+            // AccountService::update mengubah kode bersamaan.
+            // Update mengambil kunci baris akun yang sama, jadi
+            // keduanya terserialkan — posting tidak pernah mendarat
+            // di akun yang kodenya berubah sesudah resolusi, dan
+            // perubahan akun tidak diputuskan dari keadaan basi.
+            // Urutan kunci menurut id mencegah deadlock antar-posting.
+            $accountIds = collect($prepared)->pluck('account_id')->unique()->sort()->values();
+            $lockedAccounts = Account::whereIn('id', $accountIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            foreach ($prepared as $line) {
+                $locked = $lockedAccounts[$line['account_id']] ?? null;
+                if ($locked === null || ! $locked->is_active || $locked->code !== $line['code']) {
+                    throw ValidationException::withMessages(['lines' => __('ui.accounting.account_missing', ['code' => $line['code']])]);
+                }
+            }
+
             $journal = Journal::create([
                 'number' => Numbering::next('JU', now(), $tenantId, true),
                 'journal_date' => $dateString,
@@ -311,7 +330,9 @@ class PostingService
                 'tenant_id' => $tenantId,
             ]);
             foreach ($prepared as $line) {
-                $journal->lines()->create($line);
+                // 'code' hanya penanda validasi ulang di atas, bukan
+                // kolom journal_lines.
+                $journal->lines()->create(collect($line)->except('code')->all());
             }
 
             return $journal;
