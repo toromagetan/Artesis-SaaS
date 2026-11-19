@@ -25,7 +25,7 @@ class CustomerCredit extends Model
     public const STATUS_EXHAUSTED = 'exhausted';
 
     protected $fillable = [
-        'credit_number', 'customer_id', 'sale_id', 'sale_return_id', 'branch_id',
+        'tenant_id', 'credit_number', 'customer_id', 'sale_id', 'sale_return_id', 'branch_id',
         'amount', 'remaining_amount', 'status', 'reason', 'issued_at',
         'expires_at', 'created_by',
     ];

@@ -13,7 +13,7 @@ class PurchasePayment extends Model
     public const METHODS = ['transfer', 'cash', 'giro', 'other'];
 
     protected $fillable = [
-        'number', 'supplier_id', 'method', 'amount',
+        'tenant_id', 'number', 'supplier_id', 'method', 'amount',
         'payment_date', 'reference', 'paid_by', 'reversal_of_id',
     ];
 

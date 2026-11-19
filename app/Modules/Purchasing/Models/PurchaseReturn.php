@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class PurchaseReturn extends Model
 {
     protected $fillable = [
-        'number', 'receipt_id', 'reason', 'total_amount', 'credit_status', 'created_by',
+        'tenant_id', 'number', 'receipt_id', 'reason', 'total_amount', 'credit_status', 'created_by',
     ];
 
     protected function casts(): array

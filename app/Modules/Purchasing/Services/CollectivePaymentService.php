@@ -95,6 +95,7 @@ class CollectivePaymentService
         // ---- Fase 2: satu transaksi untuk pembayaran + semua alokasi ----
         return DB::transaction(function () use ($actor, $supplier, $value, $method, $paymentDate, $reference, $candidates) {
             $payment = PurchasePayment::create([
+                'tenant_id' => $supplier->tenant_id !== null ? (int) $supplier->tenant_id : null,
                 'number' => Numbering::next('PAY', now(), $supplier->tenant_id !== null ? (int) $supplier->tenant_id : null, true),
                 'supplier_id' => $supplier->id,
                 'method' => $method,

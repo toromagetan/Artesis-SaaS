@@ -13,6 +13,7 @@ use App\Modules\Master\Models\Setting;
 use App\Modules\Membership\Services\PointsService;
 use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Platform\Services\BackupService;
+use App\Modules\Platform\Services\DocumentTenantBackfillService;
 use App\Support\Money;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -323,3 +324,38 @@ Artisan::command('lentera:cek-produksi', function () {
 
     return 0;
 })->purpose('Gerbang read-only konfigurasi wajib produksi (SMTP, Turnstile, APP_DEBUG, APP_URL)');
+
+/*
+ * Isi ulang tenant_id dokumen bisnis (Keputusan C PR-1):
+ * memetakan dokumen lama ke tenant pemiliknya hanya dari sumber
+ * kepemilikan terverifikasi; yang tak terpeta/ambigu dilaporkan
+ * dan dibiarkan NULL. Idempoten — aman dijalankan ulang.
+ * --verify: hanya melaporkan (gerbang audit antara sebelum
+ * PR-2; kode keluar 1 bila ada ambigu/tak terpeta).
+ */
+Artisan::command('lentera:backfill-tenant-dokumen {--verify}', function () {
+    return TenantContext::asSystem(function () {
+        $verify = (bool) $this->option('verify');
+        $report = app(DocumentTenantBackfillService::class)->run($verify);
+
+        $rows = [];
+        foreach ($report as $table => $s) {
+            $rows[] = [$table, $s['total'], $s['sudah'], $s['terpetakan'], $s['mandiri'], $s['ambigu'], $s['tak_terpeta']];
+        }
+        $this->table(
+            ['tabel', 'total', 'sudah_tercap', $verify ? 'akan_terpetakan' : 'terpetakan', 'mandiri', 'ambigu', 'tak_terpeta'],
+            $rows,
+        );
+
+        if (DocumentTenantBackfillService::hasFindings($report)) {
+            $this->warn('Ada baris ambigu/tak terpeta: dilaporkan apa adanya, TIDAK ditebak. Selesaikan disposisinya sebelum PR-2 (unique) diaktifkan.');
+
+            return $verify ? 1 : 0;
+        }
+        $this->info($verify
+            ? 'Verifikasi bersih: setiap dokumen terpetakan ke tenantnya atau sah ember mandiri.'
+            : 'Isi ulang selesai: setiap dokumen terpetakan ke tenantnya atau sah ember mandiri.');
+
+        return 0;
+    });
+})->purpose('Isi ulang tenant_id dokumen bisnis dari sumber kepemilikan terverifikasi (Keputusan C PR-1)');

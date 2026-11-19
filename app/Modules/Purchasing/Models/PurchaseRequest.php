@@ -16,7 +16,7 @@ class PurchaseRequest extends Model
 
     public const STATUSES = ['draft', 'submitted', 'approved', 'converted', 'cancelled'];
 
-    protected $fillable = ['number', 'requester_id', 'branch_id', 'sale_id', 'status', 'notes'];
+    protected $fillable = ['tenant_id', 'number', 'requester_id', 'branch_id', 'sale_id', 'status', 'notes'];
 
     /** Penjualan asal bila PR ini lahir otomatis dari penjualan. */
     public function sale(): BelongsTo
