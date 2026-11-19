@@ -282,6 +282,7 @@ class SalesService
                 'notes' => $data['notes'] ?? null,
             ]);
             $sale->branch_id = $branchId;
+            $sale->tenant_id = Numbering::tenantIdForBranch($branchId);
             $sale->save();
 
             foreach ($lines as $line) {

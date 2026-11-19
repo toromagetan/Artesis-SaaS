@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Receipt extends Model
 {
     protected $fillable = [
-        'number', 'purchase_order_id', 'received_date', 'delivery_note_no', 'received_by',
+        'tenant_id', 'number', 'purchase_order_id', 'received_date', 'delivery_note_no', 'received_by',
     ];
 
     protected function casts(): array

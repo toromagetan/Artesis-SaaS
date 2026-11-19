@@ -170,4 +170,23 @@ class Numbering
 
         return static::next($prefix, $date, $branchTenantId, true);
     }
+
+    /**
+     * Tenant pemilik cabang untuk PENCAPAN dokumen (Keputusan C
+     * PR-1): ember yang sama dengan yang dipakai nextForBranch —
+     * tenant pemilik cabang, atau NULL untuk cabang instalasi
+     * mandiri. Pencarian murni TANPA lemparan: pembuktian ember
+     * adalah urusan nextForBranch, yang selalu dipanggil pada
+     * jalur pembuatan yang sama sebelum dokumen disimpan.
+     */
+    public static function tenantIdForBranch(?int $branchId): ?int
+    {
+        if ($branchId === null) {
+            return null;
+        }
+
+        $tenantId = Branch::whereKey($branchId)->value('tenant_id');
+
+        return $tenantId !== null ? (int) $tenantId : null;
+    }
 }

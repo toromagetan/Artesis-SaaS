@@ -79,6 +79,7 @@ class SaleReturnService
                 'created_by' => $actor->id,
             ]);
             $return->branch_id = $sale->branch_id;
+            $return->tenant_id = Numbering::tenantIdForBranch($sale->branch_id);
             $return->save();
 
             foreach ($prepared as $line) {

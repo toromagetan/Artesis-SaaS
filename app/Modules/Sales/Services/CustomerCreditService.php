@@ -60,6 +60,7 @@ class CustomerCreditService
             'created_by' => $actor->id,
         ]);
         $credit->branch_id = $sale->branch_id;
+        $credit->tenant_id = Numbering::tenantIdForBranch($sale->branch_id);
         $credit->save();
 
         app(AuditLogger::class)->log(

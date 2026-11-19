@@ -25,7 +25,7 @@ class WarrantyCase extends Model
     ];
 
     protected $fillable = [
-        'number', 'sale_id', 'sale_item_id', 'branch_id', 'status',
+        'tenant_id', 'number', 'sale_id', 'sale_item_id', 'branch_id', 'status',
         'reason', 'description', 'created_by', 'completed_at',
     ];
 

@@ -17,7 +17,7 @@ class SaleReturn extends Model
     use BranchScoped;
 
     protected $fillable = [
-        'number', 'sale_id', 'branch_id', 'reason', 'refund_method',
+        'tenant_id', 'number', 'sale_id', 'branch_id', 'reason', 'refund_method',
         'total_amount', 'created_by',
     ];
 

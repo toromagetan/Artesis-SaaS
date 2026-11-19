@@ -17,7 +17,7 @@ class PurchaseOrder extends Model
     public const STATUSES = ['draft', 'sent', 'partial', 'complete', 'void'];
 
     protected $fillable = [
-        'number', 'supplier_id', 'branch_id', 'order_date',
+        'tenant_id', 'number', 'supplier_id', 'branch_id', 'order_date',
         'total_amount', 'status', 'void_reason', 'created_by',
     ];
 

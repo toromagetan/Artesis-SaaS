@@ -124,6 +124,7 @@ class WarrantyService
                 throw ValidationException::withMessages(['sale_item_id' => __('ui.warranty.case_active')]);
             }
             $case = WarrantyCase::create([
+                'tenant_id' => Numbering::tenantIdForBranch($sale->branch_id),
                 'number' => Numbering::nextForBranch('WR', $sale->branch_id),
                 'sale_id' => $sale->id, 'sale_item_id' => $item->id, 'branch_id' => $sale->branch_id,
                 'status' => 'open', 'reason' => $reason, 'description' => $description,
