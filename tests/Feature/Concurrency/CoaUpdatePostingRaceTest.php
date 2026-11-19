@@ -4,6 +4,9 @@ namespace Tests\Feature\Concurrency;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalLine;
+use App\Modules\Identity\Models\Role;
+use App\Modules\Identity\Models\User;
+use App\Modules\Platform\Models\Tenant;
 use Database\Seeders\AccountingSeeder;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\SaasSeeder;
@@ -141,6 +144,63 @@ class CoaUpdatePostingRaceTest extends TestCase
                 $this->assertSame(1, $lines);
             }
         }
+    }
+
+    /**
+     * Ronde yang sama pada akun milik TENANT nyata (audit
+     * independen lanjutan atas PR #88, 18 Nov 2026): kunci baris
+     * akun harus menegakkan keadaan akhir yang sama di dalam ember
+     * tenant — bukan hanya ember mandiri — dan ember mandiri tidak
+     * boleh tersentuh oleh balapan tenant. Aktor kedua pekerja
+     * adalah owner tenant pemilik akun (params actor_id).
+     */
+    public function test_account_code_change_and_first_posting_never_interleave_for_tenant_accounts(): void
+    {
+        $tenant = Tenant::create([
+            'name' => 'Optik Balapan', 'slug' => 'optik-balapan', 'email' => 'balapan@uji.id',
+        ]);
+        $tenantOwner = User::create([
+            'email_verified_at' => now(),
+            'name' => 'Owner Balapan', 'username' => 'owner-balapan',
+            'email' => 'owner-balapan@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenant->id,
+        ]);
+        $tenantOwner->roles()->attach(Role::where('name', 'Owner')->firstOrFail());
+
+        // Bagan akun tenant ditanam hook Tenant::created (ISO-2).
+        $account = Account::where('code', '1-1100')->where('tenant_id', $tenant->id)->firstOrFail();
+        $results = $this->runWorkers([
+            'actor_id' => $tenantOwner->id,
+            'account_id' => $account->id,
+            'old_code' => '1-1100',
+            'new_code' => '9-9011',
+            'offset_code' => '4-1100',
+            'date' => now()->format('Y-m-d'),
+        ]);
+
+        [$updater, $poster] = $results;
+        $successes = (int) ($updater['ok'] ?? false) + (int) ($poster['ok'] ?? false);
+        $this->assertSame(
+            1,
+            $successes,
+            'Ronde tenant 1-1100: tepat satu pihak boleh berhasil. Hasil: '.json_encode($results),
+        );
+
+        $account->refresh();
+        $lines = JournalLine::where('account_id', $account->id)->count();
+        if ($updater['ok']) {
+            $this->assertSame(ValidationException::class, $poster['error'] ?? null);
+            $this->assertSame('9-9011', $account->code);
+            $this->assertSame(0, $lines);
+        } else {
+            $this->assertSame(ValidationException::class, $updater['error'] ?? null);
+            $this->assertSame('1-1100', $account->code);
+            $this->assertSame(1, $lines);
+        }
+
+        // Ember mandiri tidak tersentuh balapan tenant.
+        $standalone = Account::where('code', '1-1100')->whereNull('tenant_id')->firstOrFail();
+        $this->assertSame(0, JournalLine::where('account_id', $standalone->id)->count());
     }
 
     /**

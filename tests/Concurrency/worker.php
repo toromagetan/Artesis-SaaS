@@ -117,9 +117,16 @@ try {
         // sudah terpakai jurnal, dan posting yang mendarat di akun
         // yang kodenya berubah sesudah resolusi, sama-sama terlarang.
         'coa-race' => (function () use ($params, $owner, $readyFile) {
+            // Aktor bawaan: owner mandiri (ember NULL). Bila params
+            // membawa actor_id, aktor itu yang dipakai — skenario
+            // akun TENANT membutuhkan owner tenant pemilik akun agar
+            // kedua layanan menyelesaikan ember yang sama.
+            $actor = isset($params['actor_id'])
+                ? User::findOrFail((int) $params['actor_id'])
+                : $owner;
             if (str_ends_with($readyFile, '-0')) {
                 return app(AccountService::class)->update(
-                    $owner,
+                    $actor,
                     Account::findOrFail($params['account_id']),
                     ['code' => $params['new_code']],
                 );
@@ -128,7 +135,7 @@ try {
             return app(PostingService::class)->post('race', null, $params['date'], [
                 ['account' => $params['old_code'], 'debit' => '1000'],
                 ['account' => $params['offset_code'], 'credit' => '1000'],
-            ], 'uji balapan COA', $owner);
+            ], 'uji balapan COA', $actor);
         })(),
         // Balapan LNT-005: dua pekerja membalik jurnal yang sama.
         'reverse' => app(PostingService::class)->reverse(
