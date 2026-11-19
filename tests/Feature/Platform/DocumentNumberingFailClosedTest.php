@@ -124,6 +124,74 @@ class DocumentNumberingFailClosedTest extends TestCase
         $this->assertSame('INV-'.now()->format('Ym').'-0001', $number);
     }
 
+    public function test_next_for_branch_with_orphan_branch_throws_in_multi_tenant_install(): void
+    {
+        // Instalasi bertenant (ada tenant A) + cabang yatim tanpa
+        // tenant: cabang itu tidak membuktikan ember mana pun —
+        // sebelumnya diam-diam dicetak ke ember global.
+        $this->tenantWithBranch('a');
+        $orphan = Branch::create(['name' => 'Cabang Yatim', 'tenant_id' => null]);
+
+        try {
+            Numbering::nextForBranch('INV', $orphan->id);
+            $this->fail('Cabang tanpa tenant pada instalasi bertenant harus ditolak.');
+        } catch (RuntimeException) {
+            // Ditolak sesuai rancangan.
+        }
+        $this->assertSame(0, DB::table('document_counters')->count());
+    }
+
+    public function test_next_for_branch_with_orphan_branch_works_in_pure_standalone_install(): void
+    {
+        // Instalasi mandiri murni: cabang tanpa tenant adalah
+        // keadaan normal — ember NULL tetap sah.
+        $orphan = Branch::create(['name' => 'Cabang Tunggal', 'tenant_id' => null]);
+
+        $number = Numbering::nextForBranch('INV', $orphan->id);
+
+        $this->assertSame('INV-'.now()->format('Ym').'-0001', $number);
+        $this->assertNull(DB::table('document_counters')->where('prefix', 'INV')->value('tenant_id'));
+    }
+
+    public function test_next_for_branch_with_other_tenants_branch_throws_under_tenant_context(): void
+    {
+        [$tenantA, $branchA] = $this->tenantWithBranch('a');
+        [$tenantB] = $this->tenantWithBranch('b');
+
+        // Tanpa konteks tenant, cabang itu sendiri membuktikan
+        // embernya (jalur sistem in-process, ADR-022): nomor tercetak
+        // ke ember tenant A.
+        $this->assertSame(
+            'INV-'.now()->format('Ym').'-0001',
+            Numbering::nextForBranch('INV', $branchA->id),
+        );
+
+        // Di bawah konteks tenant B yang tervalidasi, id cabang
+        // tenant A TIDAK dapat dipakai untuk mencetak nomor ke
+        // ember A.
+        $ownerB = User::create([
+            'email_verified_at' => now(),
+            'name' => 'Owner B', 'username' => 'owner-b',
+            'email' => 'owner-b@uji.id', 'password' => bcrypt('rahasia-uji'),
+            'is_active' => true, 'is_platform' => false, 'tenant_id' => $tenantB->id,
+        ]);
+        $this->actingAs($ownerB);
+
+        try {
+            Numbering::nextForBranch('INV', $branchA->id);
+            $this->fail('Cabang tenant lain di bawah konteks tenant pemanggil harus ditolak.');
+        } catch (RuntimeException) {
+            // Ditolak sesuai rancangan.
+        }
+
+        // Penghitung ember A tidak bergerak akibat percobaan itu.
+        $this->assertSame(
+            1,
+            (int) DB::table('document_counters')
+                ->where('prefix', 'INV')->where('tenant_id', $tenantA->id)->value('last_number'),
+        );
+    }
+
     public function test_explicit_calls_are_unaffected(): void
     {
         [$tenant, $branch] = $this->tenantWithBranch('a');
