@@ -27,7 +27,8 @@ class AiCreditService
 {
     public const PRICE_KEY = 'ai_price_per_question';
 
-    public const DEFAULT_PRICE = 250;
+    /** Harga bawaan per pertanyaan (ketetapan owner 2026-11-19; sebelumnya bawaan sistem 250). */
+    public const DEFAULT_PRICE = 100;
 
     public const MIN_TOPUP = 10;
 
@@ -155,6 +156,12 @@ class AiCreditService
      * false (tanpa memotong) bila saldo sudah habis — pemanggil
      * memeriksa saldo SEBELUM bertanya; fungsi ini adalah penjaga
      * terakhir agar saldo tidak pernah negatif.
+     *
+     * Baris usage MEMATOK harga per pertanyaan yang berlaku saat
+     * jawaban terjadi (unit_price + amount), meniru patok harga
+     * PAYG (PR #85) — agar nilai rupiah pemakaian dapat
+     * direkonstruksi per jawaban walau tarif platform berubah
+     * sesudahnya.
      */
     public function chargeForAnswer(Tenant $tenant, User $actor): bool
     {
@@ -166,11 +173,15 @@ class AiCreditService
                 return false;
             }
 
+            $price = $this->pricePerQuestion();
+
             AiCreditLedger::create([
                 'tenant_id' => $tenant->id,
                 'kind' => 'usage',
                 'questions_delta' => -1,
                 'balance_after' => $balance - 1,
+                'unit_price' => $price,
+                'amount' => $price,
                 'actor_id' => $actor->id,
             ]);
 
