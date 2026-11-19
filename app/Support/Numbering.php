@@ -105,6 +105,19 @@ class Numbering
      * Gagal-tertutup: cabang yang diberikan tetapi tidak ditemukan
      * DITOLAK (sebelumnya jatuh diam-diam ke ember global), dan
      * cabang null hanya sah pada instalasi mandiri murni.
+     *
+     * Pengerasan lanjutan (audit independen lanjutan 18 Nov 2026):
+     * cabang yang ditemukan harus BENAR-BENAR membuktikan ember —
+     * (1) cabang bertenant_id NULL pada instalasi bertenant tidak
+     * membuktikan apa pun dan DITOLAK (sebelumnya diam-diam memakai
+     * ember global); ember NULL dari cabang yatim hanya sah pada
+     * instalasi mandiri murni; (2) tenant yang diklaim cabang harus
+     * benar-benar ada; (3) bila konteks ambient adalah konteks
+     * TENANT yang tervalidasi, cabang tenant lain DITOLAK —
+     * pemanggil bertenant tidak dapat mencetak nomor ke ember
+     * tenant lain lewat id cabang asing. Konteks sistem/platform/
+     * mandiri tidak dibatasi aturan (3): di sana cabang itu sendiri
+     * adalah bukti embernya (batas kepercayaan in-process ADR-022).
      */
     public static function nextForBranch(string $prefix, ?int $branchId, ?\DateTimeInterface $date = null): string
     {
@@ -126,6 +139,35 @@ class Numbering
             );
         }
 
-        return static::next($prefix, $date, $branch->tenant_id !== null ? (int) $branch->tenant_id : null, true);
+        $branchTenantId = $branch->tenant_id !== null ? (int) $branch->tenant_id : null;
+
+        if ($branchTenantId === null) {
+            if (Tenant::count() > 0) {
+                throw new RuntimeException(
+                    "Numbering: cabang {$branchId} tidak memiliki tenant pada instalasi "
+                    .'bertenant — ember dokumen tidak dapat dibuktikan.'
+                );
+            }
+
+            return static::next($prefix, $date, null, true);
+        }
+
+        if (! Tenant::whereKey($branchTenantId)->exists()) {
+            throw new RuntimeException(
+                "Numbering: tenant {$branchTenantId} pemilik cabang {$branchId} tidak ditemukan "
+                .'— ember dokumen tidak dapat dibuktikan.'
+            );
+        }
+
+        $context = TenantContext::current();
+        if ($context->isValid() && $context->tenantId() !== null
+            && $context->tenantId() !== $branchTenantId) {
+            throw new RuntimeException(
+                "Numbering: cabang {$branchId} milik tenant {$branchTenantId}, bukan tenant "
+                .'konteks pemanggil — nomor tidak dicetak ke ember tenant lain.'
+            );
+        }
+
+        return static::next($prefix, $date, $branchTenantId, true);
     }
 }

@@ -133,7 +133,12 @@ class WaWebhookController extends Controller
     private function storeIncoming(array $incoming, ?WaGateway $gateway): void
     {
         $providerId = (string) ($incoming['id'] ?? '');
-        if ($providerId === '' || WaMessage::where('provider_message_id', $providerId)->exists()) {
+        // Pemeriksaan duplikat HANYA atas pesan masuk: id provider
+        // pesan keluar dicatat sesudah kirim dan bukan subjek
+        // idempotensi webhook — id yang kebetulan sama tidak boleh
+        // menyingkirkan pesan masuk yang sah (audit independen
+        // lanjutan 18 Nov 2026).
+        if ($providerId === '' || WaMessage::where('provider_message_id', $providerId)->where('direction', 'in')->exists()) {
             return; // Webhook Meta dapat mengirim ulang; jangan gandakan.
         }
         $phone = MessagingService::normalizePhone((string) ($incoming['from'] ?? ''));
@@ -177,13 +182,39 @@ class WaWebhookController extends Controller
                 'provider_message_id' => $providerId,
                 'sent_at' => now(),
             ]);
-        } catch (QueryException) {
+        } catch (QueryException $e) {
             // Balapan callback identik: pemeriksaan exists() di atas
             // lolos bersamaan, unique index incoming_provider_key
             // (migrasi 000068) menolak sisipan kedua. Yang kalah
             // balapan adalah duplikat — abaikan tanpa menggagalkan
-            // kelompok callback ini.
+            // kelompok callback ini. HANYA pelanggaran unique index
+            // itu yang boleh diabaikan: kesalahan basis data lain
+            // (FK, skema, koneksi) dilempar kembali agar webhook
+            // gagal dan provider mengirim ulang — menelannya akan
+            // menghilangkan pesan pelanggan secara diam-diam
+            // (audit independen lanjutan 18 Nov 2026).
+            if (! self::isIncomingDuplicateViolation($e)) {
+                throw $e;
+            }
+
             return;
         }
+    }
+
+    /**
+     * Benar hanya bila pengecualian adalah pelanggaran unique
+     * index incoming_provider_key — satu-satunya kesalahan sisipan
+     * yang berarti "callback duplikat". Pesan kesalahan MySQL
+     * ("Duplicate entry ... for key '...incoming_provider_key'")
+     * maupun SQLite ("UNIQUE constraint failed:
+     * ...incoming_provider_key") menyebut nama indeksnya.
+     */
+    private static function isIncomingDuplicateViolation(QueryException $e): bool
+    {
+        $message = $e->getMessage();
+
+        return str_contains($message, 'incoming_provider_key')
+            && (str_contains($message, 'Duplicate entry')
+                || str_contains($message, 'UNIQUE constraint failed'));
     }
 }
