@@ -69,6 +69,7 @@ class PurchaseReturnService
             $creditStatus = $locked->remainingAmount()->isZero() ? 'supplier_credit' : 'reduces_payable';
 
             $retur = PurchaseReturn::create([
+                'tenant_id' => Numbering::tenantIdForBranch($locked->purchaseOrder->branch_id),
                 'number' => Numbering::nextForBranch('BR', $locked->purchaseOrder->branch_id),
                 'receipt_id' => $locked->id,
                 'reason' => $reason,

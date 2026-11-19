@@ -74,6 +74,7 @@ class PurchaseOrderService
         }
 
         $po = PurchaseOrder::create([
+            'tenant_id' => Numbering::tenantIdForBranch($branchId),
             'number' => Numbering::nextForBranch('PO', $branchId),
             'supplier_id' => $supplierId,
             'branch_id' => $branchId,

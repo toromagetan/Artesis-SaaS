@@ -55,6 +55,7 @@ class PurchasePaymentService
             }
 
             $payment = PurchasePayment::create([
+                'tenant_id' => $supplier->tenant_id !== null ? (int) $supplier->tenant_id : null,
                 'number' => Numbering::next('PAY', now(), $supplier->tenant_id !== null ? (int) $supplier->tenant_id : null, true),
                 'supplier_id' => $supplier->id,
                 'method' => $method,

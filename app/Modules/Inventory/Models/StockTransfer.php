@@ -19,7 +19,7 @@ class StockTransfer extends Model
     public const STATUSES = ['sent', 'received', 'cancelled'];
 
     protected $fillable = [
-        'number', 'from_branch_id', 'to_branch_id', 'source_type', 'source_id',
+        'tenant_id', 'number', 'from_branch_id', 'to_branch_id', 'source_type', 'source_id',
         'status', 'sent_by', 'received_by', 'received_at', 'notes',
     ];
 
