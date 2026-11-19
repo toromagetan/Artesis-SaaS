@@ -123,12 +123,12 @@ class AiCreditTest extends TestCase
         [$tenant, $owner] = $this->tenantOwner('a');
         $service = app(AiCreditService::class);
 
-        // Harga baku 250/pertanyaan; pengajuan membekukan total.
+        // Harga ketetapan owner 100/pertanyaan; pengajuan membekukan total.
         $this->actingAs($owner)->post(route('ai-credits.store'), ['questions' => 100])
             ->assertRedirect(route('plans.my'));
         $request = AiCreditRequest::where('tenant_id', $tenant->id)->firstOrFail();
-        $this->assertSame(250, $request->unit_price);
-        $this->assertSame(25000, $request->amount);
+        $this->assertSame(100, $request->unit_price);
+        $this->assertSame(10000, $request->amount);
         $this->assertSame(0, $service->balance($tenant));
 
         // Pengajuan kedua saat masih menunggu → ditolak validasi.
